@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
 import hudson.Extension;
+import hudson.util.FormValidation;
+import hudson.util.FormValidation.Kind;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
@@ -9,9 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,11 +32,18 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
-        if (getServerList().stream().allMatch(server -> server.validate())) {
+        List<FormValidation> aggregate = new ArrayList<>();
+        getServerList().stream().map(BitbucketServerConfiguration::validate).forEach(aggregate::addAll);
+        aggregate = aggregate.stream().filter(validation -> validation.kind != Kind.OK).collect(Collectors.toList());
+
+        if (aggregate.isEmpty()) {
             save();
             return true;
+        } else if (aggregate.size() == 1) {
+            throw new FormException(aggregate.get(0).getMessage(), "Bitbucket Server");
+        } else {
+            throw new FormException("Several fields in your Bitbucket Server instances were not configured correctly.", "Bitbucket Server");
         }
-        return false;
     }
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {
