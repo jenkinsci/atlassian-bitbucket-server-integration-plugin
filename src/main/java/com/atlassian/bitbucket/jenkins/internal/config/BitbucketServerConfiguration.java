@@ -33,14 +33,11 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
-import static hudson.util.FormValidation.Kind;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -141,8 +138,8 @@ public class BitbucketServerConfiguration
      *
      * @return true if valid; false otherwise
      */
-    public boolean validate() {
-        return checkBaseUrl(baseUrl).kind != Kind.ERROR && checkServerName(serverName).kind != Kind.ERROR;
+    public Collection<FormValidation> validate() {
+        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName));
     }
 
     /**
