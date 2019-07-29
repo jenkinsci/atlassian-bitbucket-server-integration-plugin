@@ -139,7 +139,33 @@ public class BitbucketServerConfiguration
      * @return true if valid; false otherwise
      */
     public Collection<FormValidation> validate() {
-        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName));
+        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName), checkAdminCredentialsId(credentialsId));
+    }
+
+    /**
+     * Validates the provided admin credentials are present and appropriate
+     *
+     * @param credentialsId
+     * @return
+     */
+    private static FormValidation checkAdminCredentialsId(String credentialsId) {
+        if (isBlank(credentialsId)) {
+            return FormValidation.error("An admin token must be selected");
+        }
+        Credentials creds =
+                firstOrNull(
+                        lookupCredentials(
+                                BitbucketTokenCredentials.class,
+                                Jenkins.get(),
+                                ACL.SYSTEM,
+                                Collections.emptyList()),
+                        withId(trimToEmpty(credentialsId)));
+
+        if (creds == null) {
+            return FormValidation.error(
+                    "Could not find the previous admin token (has it been deleted?), please select a new one");
+        }
+        return FormValidation.ok();
     }
 
     /**
@@ -189,23 +215,7 @@ public class BitbucketServerConfiguration
         @POST
         public FormValidation doCheckAdminCredentialsId(@QueryParameter String value) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (isBlank(value)) {
-                return FormValidation.error("An admin token must be selected");
-            }
-            Credentials creds =
-                    firstOrNull(
-                            lookupCredentials(
-                                    BitbucketTokenCredentials.class,
-                                    Jenkins.get(),
-                                    ACL.SYSTEM,
-                                    Collections.emptyList()),
-                            withId(trimToEmpty(value)));
-
-            if (creds == null) {
-                return FormValidation.error(
-                        "Could not find the previous admin token (has it been deleted?), please select a new one");
-            }
-            return FormValidation.ok();
+            return checkAdminCredentialsId(value);
         }
 
         @SuppressWarnings("MethodMayBeStatic")
