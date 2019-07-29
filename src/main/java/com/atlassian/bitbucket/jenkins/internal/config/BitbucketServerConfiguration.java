@@ -325,7 +325,7 @@ public class BitbucketServerConfiguration
 
         @Override
         public String getDisplayName() {
-            return "Bitbucket Server";
+            return "Instance details";
         }
     }
 }
