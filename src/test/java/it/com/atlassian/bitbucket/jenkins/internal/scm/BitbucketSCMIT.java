@@ -1,6 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.google.common.collect.ImmutableList;
@@ -66,6 +67,7 @@ public class BitbucketSCMIT {
                         REPO_SLUG,
                         bbJenkinsRule.getServerId());
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider());
+        bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.createGitSCM();
         return bitbucketSCM;
     }

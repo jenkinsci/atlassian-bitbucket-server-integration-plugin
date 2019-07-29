@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
@@ -55,6 +56,7 @@ public class BitbucketSCMTest {
                         REPO_SLUG,
                         bbJenkinsRule.getServerId());
         scm.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider());
+        scm.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         scm.createGitSCM();
         bbJenkinsRule
                 .service()

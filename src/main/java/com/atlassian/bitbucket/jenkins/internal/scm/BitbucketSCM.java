@@ -60,9 +60,10 @@ public class BitbucketSCM extends SCM {
     private final List<GitSCMExtension> extensions;
     private final String gitTool;
     private final String id;
-    private final List<BitbucketSCMRepository>
-            scmRepositories; // this is to enable us to support future multiple repositories and
+    private final List<BitbucketSCMRepository> repositories; // this is to enable us to support future multiple repositories
+
     private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
@@ -87,8 +88,8 @@ public class BitbucketSCM extends SCM {
             throw new BitbucketSCMException("A server is required", "serverId");
         }
 
-        scmRepositories = new ArrayList<>(1);
-        scmRepositories.add(
+        repositories = new ArrayList<>(1);
+        repositories.add(
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
         this.gitTool = gitTool;
         this.branches = branches;
@@ -162,8 +163,8 @@ public class BitbucketSCM extends SCM {
         } catch (BitbucketClientException e) {
             throw new BitbucketSCMException(
                     "Failed to save configuration, please use the back button on your browser and try again. "
-                    + "Additional information about this failure: "
-                    + e.getMessage());
+                            + "Additional information about this failure: "
+                            + e.getMessage());
         }
     }
 
@@ -194,6 +195,10 @@ public class BitbucketSCM extends SCM {
         return id;
     }
 
+    public List<BitbucketSCMRepository> getRepositories() {
+        return repositories;
+    }
+
     @CheckForNull
     public String getProjectKey() {
         return getBitbucketSCMRepository().getProjectKey();
@@ -214,6 +219,10 @@ public class BitbucketSCM extends SCM {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
     }
 
+    public void setBitbucketPluginConfiguration(BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
+    }
+
     private static String getCloneUrl(BitbucketRepository repo) {
         return repo.getCloneUrls()
                 .stream()
@@ -230,11 +239,7 @@ public class BitbucketSCM extends SCM {
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {
-        if (scmRepositories != null && scmRepositories.size() > 0) {
-            return scmRepositories.get(0);
-        } else {
-            return new BitbucketSCMRepository("", "", "", "");
-        }
+        return repositories.get(0);
     }
 
     private BitbucketRepository getRepository(
@@ -250,7 +255,7 @@ public class BitbucketSCM extends SCM {
     }
 
     private BitbucketServerConfiguration getServer() {
-        return new BitbucketPluginConfiguration()
+        return bitbucketPluginConfiguration
                 .getServerById(getBitbucketSCMRepository().getServerId())
                 .orElseThrow(() -> new RuntimeException("Server config not found"));
     }
@@ -269,6 +274,8 @@ public class BitbucketSCM extends SCM {
         private final GitSCM.DescriptorImpl gitScmDescriptor;
         @Inject
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+        @Inject
+        private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -381,7 +388,7 @@ public class BitbucketSCM extends SCM {
         /**
          * Overridden to provide a better experience for errors.
          *
-         * @param req request
+         * @param req      request
          * @param formData json data
          * @return a new BitbucketSCM instance
          * @throws FormException if any data is missing
@@ -392,6 +399,7 @@ public class BitbucketSCM extends SCM {
             try {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
                 scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
+                scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
                 scm.createGitSCM();
                 return scm;
             } catch (Error e) {
