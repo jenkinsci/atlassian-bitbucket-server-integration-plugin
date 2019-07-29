@@ -85,13 +85,6 @@
         <module name="TypecastParenPad"/>
         <module name="WhitespaceAfter"/>
         <module name="BitbucketWhitespaceAround">
-            <!-- removed these from default: GENERIC_START  GENERIC_END, WILDCARD_TYPE -->
-            <!-- TMP TODO remove RCURLY becauuse of annotations like
-             @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-            -->
-            <!-- Tom Davies: removed LCURLY to allow empty interfaces, e.g.
-                interface Binder extends UiBinder<Widget, ChangesetDiscussionPanel> {}
-            -->
             <property name="tokens"
                       value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN, BSR, BSR_ASSIGN, BXOR, BXOR_ASSIGN, COLON, DIV, DIV_ASSIGN, EQUAL, GE, GT, LAMBDA, LAND, LE, LITERAL_ASSERT, LITERAL_CATCH, LITERAL_DO, LITERAL_ELSE, LITERAL_FINALLY, LITERAL_FOR, LITERAL_IF, LITERAL_RETURN, LITERAL_SYNCHRONIZED, LITERAL_TRY, LITERAL_WHILE, LOR, LT, MINUS, MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL, PLUS, PLUS_ASSIGN, QUESTION, SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN, STAR, STAR_ASSIGN, TYPE_EXTENSION_AND"/>
             <property name="ignoredParents" value="ANNOTATION_MEMBER_VALUE_PAIR"/>
@@ -128,17 +121,7 @@
             <property name="annotation" value="EventListener"/>
             <property name="incompatibleAnnotations" value="Transactional,PreAuthorize"/>
         </module>
-        <!-- prevents AO from creating additional indexes on unique or PK columns (which will fail under Oracle) -->
-        <module name="AllowedAnnotations">
-            <property name="annotation" value="Indexed"/>
-            <property name="incompatibleAnnotations" value="PrimaryKey,Unique"/>
-        </module>
-        <!-- PK keys are unique -->
-        <module name="AllowedAnnotations">
-            <property name="annotation" value="PrimaryKey"/>
-            <property name="incompatibleAnnotations" value="Unique"/>
-        </module>
-        <module name="XMLParserConstructionUse"/>
+
         <module name="GetClassTestContextUse"/>
         <module name="MissingDeprecated">
             <property name="skipNoJavadoc" value="true"/>

@@ -298,23 +298,22 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         Request.Builder requestBuilder = new Request.Builder().url(url);
         addCredentials(requestBuilder);
 
-        try {
-            Response response = okHttpClient.newCall(requestBuilder.build()).execute();
+        try (Response response = okHttpClient.newCall(requestBuilder.build()).execute()) {
             int responseCode = response.code();
 
-            try (ResponseBody body = response.body()) {
-                if (response.isSuccessful()) {
-                    if (body == null) {
-                        log.debug("Bitbucket - No content in response");
-                        throw new NoContentException(
-                                "Remote side did not send a response body", responseCode);
-                    }
-                    log.trace("Bitbucket - call successful");
-                    return new BitbucketResponse<>(
-                            response.headers().toMultimap(), reader.readObject(body.byteStream()));
+            ResponseBody body = response.body();
+            if (response.isSuccessful()) {
+                if (body == null) {
+                    log.debug("Bitbucket - No content in response");
+                    throw new NoContentException(
+                            "Remote side did not send a response body", responseCode);
                 }
-                handleError(responseCode, body == null ? null : body.string());
+                log.trace("Bitbucket - call successful");
+                return new BitbucketResponse<>(
+                        response.headers().toMultimap(), reader.readObject(body.byteStream()));
             }
+            handleError(responseCode, body == null ? null : body.string());
+
         } catch (ConnectException | SocketTimeoutException e) {
             log.debug("Bitbucket - Connection failed", e);
             throw new ConnectionFailureException(e);

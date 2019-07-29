@@ -109,6 +109,10 @@
                     <groupId>org.apache.commons</groupId>
                     <artifactId>commons-lang3</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-osgi</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!--to mock Bitbucket Server-->
@@ -176,6 +180,7 @@
                     <encoding>UTF-8</encoding>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -266,5 +271,18 @@
         <developerConnection>scm:git:git@github.com:jenkinsci/atlassian-bitbucket-server-integration-plugin.git</developerConnection>
         <url>http://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin</url>
     </scm>
+
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
 </project>
