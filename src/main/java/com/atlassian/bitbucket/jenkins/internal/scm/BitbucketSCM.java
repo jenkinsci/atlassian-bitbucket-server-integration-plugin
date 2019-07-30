@@ -381,7 +381,7 @@ public class BitbucketSCM extends SCM {
         /**
          * Overridden to provide a better experience for errors.
          *
-         * @param req request
+         * @param req      request
          * @param formData json data
          * @return a new BitbucketSCM instance
          * @throws FormException if any data is missing

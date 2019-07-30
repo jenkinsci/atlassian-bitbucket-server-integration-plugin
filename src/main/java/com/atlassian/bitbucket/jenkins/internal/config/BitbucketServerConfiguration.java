@@ -21,14 +21,17 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.net.MalformedURLException;
@@ -58,10 +61,14 @@ public class BitbucketServerConfiguration
             String baseUrl,
             @Nullable String credentialsId,
             @Nullable String id) {
-        this.adminCredentialsId = requireNonNull(adminCredentialsId);
+        this.adminCredentialsId = requireNonNull(adminCredentialsId, "adminCredentialsID");
         this.baseUrl = requireNonNull(baseUrl);
         this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
+
+        if (getAdminCredentials() == null) {
+            throw new NullPointerException("A BitbucketAccessToken credential with the provided ID not found.");
+        }
     }
 
     @Nullable
@@ -333,6 +340,30 @@ public class BitbucketServerConfiguration
         @Override
         public String getDisplayName() {
             return "Bitbucket Server";
+        }
+
+        /**
+         * Overrides the configuration constructor from form data to provide better error handling
+         *
+         * param req request
+         * @param formData json data
+         * @return a new BitbucketSCM instance
+         * @throws FormException if any data is incorrect
+         */
+        @Override
+        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+            try {
+                return super.newInstance(req, formData);
+            } catch (Error e) {
+                Throwable cause = e.getCause();
+                while (cause != null) {
+                    if (cause instanceof NullPointerException) {
+                        throw new FormException(cause.getMessage(), cause.getMessage());
+                    }
+                    cause = cause.getCause();
+                }
+                throw e;
+            }
         }
     }
 }
