@@ -34,7 +34,7 @@ import static org.kohsuke.stapler.HttpResponses.error;
 @Extension
 public class BitbucketSearchEndpoint implements RootAction {
 
-    public static final String BITBUCKET_SERVER_SEARCH_URL = "bitbucket-server-search";
+    static final String BITBUCKET_SERVER_SEARCH_URL = "bitbucket-server-search";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketSearchEndpoint.class);
 
@@ -66,16 +66,16 @@ public class BitbucketSearchEndpoint implements RootAction {
     public HttpResponse doFindRepositories(
             @Nullable @QueryParameter("serverId") String serverId,
             @Nullable @QueryParameter("credentialsId") String credentialsId,
-            @Nullable @QueryParameter("projectKey") String projectKey,
+            @Nullable @QueryParameter("projectName") String projectName,
             @Nullable @QueryParameter("filter") String filter) {
         Jenkins.get().checkPermission(CONFIGURE);
-        if (StringUtils.isBlank(projectKey)) {
-            throw error(HTTP_BAD_REQUEST, "The projectKey must be present");
+        if (StringUtils.isBlank(projectName)) {
+            throw error(HTTP_BAD_REQUEST, "The projectName must be present");
         }
         BitbucketRepositorySearchClient searchClient =
                 bitbucketClientFactoryProvider
                         .getClient(getServer(serverId), getCredentials(credentialsId))
-                        .getRepositorySearchClient(projectKey);
+                        .getRepositorySearchClient(projectName);
         try {
             BitbucketPage<BitbucketRepository> repositories =
                     searchClient.get(StringUtils.stripToEmpty(filter));

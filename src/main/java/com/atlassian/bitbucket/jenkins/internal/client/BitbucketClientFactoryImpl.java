@@ -122,13 +122,13 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketRepositorySearchClient getRepositorySearchClient(String projectKey) {
-        requireNonNull(projectKey, "projectKey");
+    public BitbucketRepositorySearchClient getRepositorySearchClient(String projectName) {
+        requireNonNull(projectName, "projectName");
         return new BitbucketRepositorySearchClient() {
 
             @Override
             public BitbucketPage<BitbucketRepository> get(String filter) {
-                return get(singletonMap("filter", filter));
+                return get(singletonMap("name", filter));
             }
 
             @Override
@@ -140,11 +140,10 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                 HttpUrl.Builder urlBuilder = baseUrl.newBuilder();
                 urlBuilder
                         .addPathSegment("rest")
-                        .addPathSegment("search")
+                        .addPathSegment("api")
                         .addPathSegment("1.0")
-                        .addPathSegment("projects")
-                        .addPathSegment(projectKey)
-                        .addPathSegment("repos");
+                        .addPathSegment("repos")
+                        .addQueryParameter("projectname", projectName);
                 queryParams.forEach(urlBuilder::addQueryParameter);
                 return makeGetRequest(
                         urlBuilder.build(),

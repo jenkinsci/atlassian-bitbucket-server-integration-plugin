@@ -15,65 +15,46 @@ import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class BitbucketJenkinsRule extends JenkinsRule {
 
+    private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();
     private static final String BITBUCKET_ADMIN_PASSWORD =
             System.getProperty("bitbucket.admin.password", "admin");
     private static final String BITBUCKET_ADMIN_USERNAME =
             System.getProperty("bitbucket.admin.username", "admin");
     private static final String BITBUCKET_BASE_URL =
             System.getProperty("bitbucket.baseurl", "http://localhost:7990/bitbucket");
-    private static final AtomicReference<PersonalToken> PERSONAL_TOKEN = new AtomicReference<>();
+    private static final AtomicReference<PersonalToken> READ_PERSONAL_TOKEN = new AtomicReference<>();
     private BitbucketServerConfiguration bitbucketServer;
-    private String credentialsId;
-    private String serverId;
 
     @Override
     public void before() throws Throwable {
         super.before();
 
-        serverId = UUID.randomUUID().toString();
-        PersonalToken token = PERSONAL_TOKEN.get();
-        if (token == null) {
-            HashMap<String, Object> createTokenRequest = new HashMap<>();
-            createTokenRequest.put("name", "BitbucketJenkinsRule-" + serverId);
-            createTokenRequest.put("permissions", new String[]{"REPO_ADMIN"});
-            ResponseBody<Response> tokenResponse =
-                    RestAssured.given()
-                            .log()
-                            .ifValidationFails()
-                            .auth()
-                            .preemptive()
-                            .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                            .contentType(ContentType.JSON)
-                            .body(createTokenRequest)
-                            .expect()
-                            .statusCode(200)
-                            .when()
-                            .put(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin")
-                            .getBody();
-            token = new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
-            PERSONAL_TOKEN.set(token);
-            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(token.getId()));
+        if (ADMIN_PERSONAL_TOKEN.get() == null) {
+            ADMIN_PERSONAL_TOKEN.set(createPersonalToken("REPO_ADMIN"));
+            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(ADMIN_PERSONAL_TOKEN.get().getId()));
         }
+        String adminCredentialsId = setupCredentials(ADMIN_PERSONAL_TOKEN.get().getSecret());
 
-        credentialsId = UUID.randomUUID().toString();
-        setupCredentials(credentialsId, token.getSecret());
-        bitbucketServer =
-                new BitbucketServerConfiguration(credentialsId, BITBUCKET_BASE_URL, null, serverId);
-        List<BitbucketServerConfiguration> servers = new ArrayList<>();
-        servers.add(bitbucketServer);
-        ExtensionList<BitbucketPluginConfiguration> configExtensions =
-                jenkins.getExtensionList(BitbucketPluginConfiguration.class);
+        if (READ_PERSONAL_TOKEN.get() == null) {
+            READ_PERSONAL_TOKEN.set(createPersonalToken("PROJECT_READ"));
+            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(ADMIN_PERSONAL_TOKEN.get().getId()));
+        }
+        String readCredentialsId = setupCredentials(ADMIN_PERSONAL_TOKEN.get().getSecret());
+
+        bitbucketServer = new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
+        addBitbucketServer(bitbucketServer);
+    }
+
+    public void addBitbucketServer(BitbucketServerConfiguration bitbucketServer) {
+        ExtensionList<BitbucketPluginConfiguration> configExtensions = jenkins.getExtensionList(BitbucketPluginConfiguration.class);
         BitbucketPluginConfiguration configuration = configExtensions.get(0);
-        configuration.setServerList(servers);
+        configuration.getServerList().add(bitbucketServer);
         configuration.save();
     }
 
@@ -81,26 +62,39 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         return bitbucketServer;
     }
 
-    @Nonnull
-    public String getCredentialsId() {
-        return credentialsId;
+    private PersonalToken createPersonalToken(String... permissions) {
+        HashMap<String, Object> createTokenRequest = new HashMap<>();
+        createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
+        createTokenRequest.put("permissions", permissions);
+        ResponseBody<Response> tokenResponse =
+                RestAssured.given()
+                        .log()
+                        .ifValidationFails()
+                        .auth()
+                        .preemptive()
+                        .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                        .contentType(ContentType.JSON)
+                        .body(createTokenRequest)
+                        .expect()
+                        .statusCode(200)
+                        .when()
+                        .put(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin")
+                        .getBody();
+        return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
     }
 
-    @Nonnull
-    public String getServerId() {
-        return serverId;
-    }
-
-    private void setupCredentials(String credentialId, String secret) throws Exception {
+    private String setupCredentials(String secret) throws Exception {
+        String credentialId = UUID.randomUUID().toString();
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         Credentials credentials =
                 new UsernamePasswordCredentialsImpl(
-                        CredentialsScope.GLOBAL, credentialId, "", "admin", secret);
+                        CredentialsScope.GLOBAL, credentialId, "", BITBUCKET_ADMIN_USERNAME, secret);
         store.addCredentials(domain, credentials);
+        return credentialId;
     }
 
-    private class BitbucketTokenCleanUpThread extends Thread {
+    private static final class BitbucketTokenCleanUpThread extends Thread {
 
         private final String tokenId;
 
@@ -127,12 +121,12 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         }
     }
 
-    private class PersonalToken {
+    private static final class PersonalToken {
 
         private final String id;
         private final String secret;
 
-        public PersonalToken(String id, String secret) {
+        private PersonalToken(String id, String secret) {
             this.id = id;
             this.secret = secret;
         }
