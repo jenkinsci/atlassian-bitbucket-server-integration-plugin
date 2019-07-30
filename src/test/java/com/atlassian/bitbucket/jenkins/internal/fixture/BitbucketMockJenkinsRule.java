@@ -2,15 +2,16 @@ package com.atlassian.bitbucket.jenkins.internal.fixture;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.domains.Domain;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.Options;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.util.SecretFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -109,8 +110,8 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         Credentials credentials =
-                new UsernamePasswordCredentialsImpl(
-                        CredentialsScope.GLOBAL, credentialId, "", "admin", secret);
+                new BitbucketTokenCredentialsImpl(
+                        CredentialsScope.GLOBAL, credentialId, "", SecretFactory.getSecret(secret));
         store.addCredentials(domain, credentials);
     }
 }
