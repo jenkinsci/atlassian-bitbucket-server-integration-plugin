@@ -22,6 +22,8 @@ import static java.util.Objects.requireNonNull;
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
     public static final String FORM_INVALID_C2A = " Please go back to the previous page and try again.";
+    public static final String MULTIPLE_ERRORS_MESSAGE =
+            "Several fields in your Bitbucket Server instance were not configured correctly.";
     private static final Logger LOGGER =
             LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
@@ -46,8 +48,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         } else if (aggregate.size() == 1) {
             throw new FormException(aggregate.get(0).getMessage() + FORM_INVALID_C2A, "Bitbucket Server");
         } else {
-            throw new FormException(
-                    BitbucketServerConfiguration.MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
+            throw new FormException(MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
         }
     }
 

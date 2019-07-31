@@ -48,7 +48,6 @@ import static org.apache.commons.lang3.StringUtils.*;
 public class BitbucketServerConfiguration
         extends AbstractDescribableImpl<BitbucketServerConfiguration> {
 
-    public static final String MULTIPLE_ERRORS_MESSAGE = "A BitbucketAccessToken credential with the provided ID not found.";
     private final String adminCredentialsId;
     private final String credentialsId;
     private final String id;
@@ -66,9 +65,9 @@ public class BitbucketServerConfiguration
         this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
 
-        if (getAdminCredentials() == null) {
-            throw new NullPointerException(MULTIPLE_ERRORS_MESSAGE);
-        }
+        //if (getAdminCredentials() == null) {
+        //    throw new Descriptor.FormException(MULTIPLE_ERRORS_MESSAGE, "");
+        //}
     }
 
     @Nullable
@@ -146,7 +145,7 @@ public class BitbucketServerConfiguration
      * @return true if valid; false otherwise
      */
     public Collection<FormValidation> validate() {
-        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName), checkAdminCredentialsId(credentialsId));
+        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName), checkAdminCredentialsId(adminCredentialsId));
     }
 
     /**
@@ -347,12 +346,14 @@ public class BitbucketServerConfiguration
          * Overrides the configuration constructor from form data to provide better error handling
          *
          * param req request
+         *
          * @param formData json data
          * @return a new BitbucketSCM instance
          * @throws FormException if any data is incorrect
          */
         @Override
-        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
+        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req,
+                                                        JSONObject formData) throws FormException {
             try {
                 return super.newInstance(req, formData);
             } catch (Error e) {

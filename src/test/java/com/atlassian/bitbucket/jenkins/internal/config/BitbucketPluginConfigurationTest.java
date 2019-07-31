@@ -15,6 +15,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 
+import static com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,8 +63,7 @@ public class BitbucketPluginConfigurationTest {
     @Test
     public void testConfigureMultipleInvalid() throws Descriptor.FormException {
         expectedException.expect(Descriptor.FormException.class);
-        expectedException.expectMessage(
-                BitbucketServerConfiguration.MULTIPLE_ERRORS_MESSAGE + BitbucketPluginConfiguration.FORM_INVALID_C2A);
+        expectedException.expectMessage(MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A);
 
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, multipleInvalidServerConfiguration));
         pluginConfiguration.configure(request, formData);
@@ -73,7 +73,7 @@ public class BitbucketPluginConfigurationTest {
     @Test
     public void testConfigureSingleInvalid() throws Descriptor.FormException {
         expectedException.expect(Descriptor.FormException.class);
-        expectedException.expectMessage(ERROR_MESSAGE + BitbucketPluginConfiguration.FORM_INVALID_C2A);
+        expectedException.expectMessage(ERROR_MESSAGE + FORM_INVALID_C2A);
 
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, singleInvalidServerConfiguration));
         pluginConfiguration.configure(request, formData);
