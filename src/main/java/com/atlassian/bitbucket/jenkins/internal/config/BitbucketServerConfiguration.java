@@ -31,7 +31,6 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.net.MalformedURLException;
@@ -49,6 +48,7 @@ import static org.apache.commons.lang3.StringUtils.*;
 public class BitbucketServerConfiguration
         extends AbstractDescribableImpl<BitbucketServerConfiguration> {
 
+    public static final String MULTIPLE_ERRORS_MESSAGE = "A BitbucketAccessToken credential with the provided ID not found.";
     private final String adminCredentialsId;
     private final String credentialsId;
     private final String id;
@@ -62,12 +62,12 @@ public class BitbucketServerConfiguration
             @Nullable String credentialsId,
             @Nullable String id) {
         this.adminCredentialsId = requireNonNull(adminCredentialsId, "adminCredentialsID");
-        this.baseUrl = requireNonNull(baseUrl);
+        this.baseUrl = requireNonNull(baseUrl, "baseUrl");
         this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
 
         if (getAdminCredentials() == null) {
-            throw new NullPointerException("A BitbucketAccessToken credential with the provided ID not found.");
+            throw new NullPointerException(MULTIPLE_ERRORS_MESSAGE);
         }
     }
 
@@ -155,6 +155,7 @@ public class BitbucketServerConfiguration
      * @param credentialsId
      * @return
      */
+    //TODO: fix this (potential bug in interface?)
     private static FormValidation checkAdminCredentialsId(String credentialsId) {
         if (isBlank(credentialsId)) {
             return FormValidation.error("An admin token must be selected");
@@ -351,7 +352,7 @@ public class BitbucketServerConfiguration
          * @throws FormException if any data is incorrect
          */
         @Override
-        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
             try {
                 return super.newInstance(req, formData);
             } catch (Error e) {

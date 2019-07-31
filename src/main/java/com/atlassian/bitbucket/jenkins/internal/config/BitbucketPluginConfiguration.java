@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
         "unused") // Stapler calls many of the methods via reflection (such as the setServerList)
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
+    private static final String FORM_INVALID_C2A = " Please go back to the previous page and try again.";
     private static final Logger LOGGER =
             LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
@@ -32,17 +33,20 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
-        List<FormValidation> aggregate = new ArrayList<>();
-        getServerList().stream().map(BitbucketServerConfiguration::validate).forEach(aggregate::addAll);
-        aggregate = aggregate.stream().filter(validation -> validation.kind != Kind.OK).collect(Collectors.toList());
+        List<FormValidation> aggregate = getServerList()
+                .stream()
+                .map(BitbucketServerConfiguration::validate)
+                .flatMap(Collection::stream)
+                .filter(validation -> validation.kind == Kind.ERROR)
+                .collect(Collectors.toList());
 
         if (aggregate.isEmpty()) {
             save();
             return true;
         } else if (aggregate.size() == 1) {
-            throw new FormException(aggregate.get(0).getMessage(), "Bitbucket Server");
+            throw new FormException(aggregate.get(0).getMessage() + FORM_INVALID_C2A, "Bitbucket Server");
         } else {
-            throw new FormException("Several fields in your Bitbucket Server instances were not configured correctly.", "Bitbucket Server");
+            throw new FormException(BitbucketServerConfiguration.MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
         }
     }
 
