@@ -17,9 +17,7 @@ import static org.junit.Assert.assertEquals;
 public class BitbucketServerConfigurationTest {
 
     @ClassRule
-    public static BitbucketMockJenkinsRule bbJenkins =
-            new BitbucketMockJenkinsRule("token", wireMockConfig().dynamicPort())
-                    .stubRepository("PROJECT", "repo", "response");
+    public static BitbucketMockJenkinsRule bbJenkins = new BitbucketMockJenkinsRule("token", wireMockConfig().dynamicPort());
 
     @Mock
     private BitbucketClientFactoryProvider clientFactoryProvider;
