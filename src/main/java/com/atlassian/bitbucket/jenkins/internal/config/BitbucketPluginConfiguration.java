@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
         "unused") // Stapler calls many of the methods via reflection (such as the setServerList)
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
-    private static final String FORM_INVALID_C2A = " Please go back to the previous page and try again.";
+    public static final String FORM_INVALID_C2A = " Please go back to the previous page and try again.";
     private static final Logger LOGGER =
             LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
@@ -46,7 +46,8 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         } else if (aggregate.size() == 1) {
             throw new FormException(aggregate.get(0).getMessage() + FORM_INVALID_C2A, "Bitbucket Server");
         } else {
-            throw new FormException(BitbucketServerConfiguration.MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
+            throw new FormException(
+                    BitbucketServerConfiguration.MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
         }
     }
 
