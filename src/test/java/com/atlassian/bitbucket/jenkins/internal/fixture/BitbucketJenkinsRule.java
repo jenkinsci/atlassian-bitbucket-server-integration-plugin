@@ -24,21 +24,24 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BitbucketJenkinsRule extends JenkinsRule {
 
+    public static final String BITBUCKET_BASE_URL =
+            System.getProperty("bitbucket.baseurl", "http://localhost:7990/bitbucket");
+    public static final String SERVER_NAME = "Bitbucket server";
+
     private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();
     private static final String BITBUCKET_ADMIN_PASSWORD =
             System.getProperty("bitbucket.admin.password", "admin");
     private static final String BITBUCKET_ADMIN_USERNAME =
             System.getProperty("bitbucket.admin.username", "admin");
-    private static final String BITBUCKET_BASE_URL =
-            System.getProperty("bitbucket.baseurl", "http://localhost:7990/bitbucket");
     private static final AtomicReference<PersonalToken> READ_PERSONAL_TOKEN = new AtomicReference<>();
-    private BitbucketServerConfiguration bitbucketServer;
+    private BitbucketServerConfiguration bitbucketServerConfiguration;
+    private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
     public void addBitbucketServer(BitbucketServerConfiguration bitbucketServer) {
         ExtensionList<BitbucketPluginConfiguration> configExtensions = jenkins.getExtensionList(BitbucketPluginConfiguration.class);
-        BitbucketPluginConfiguration configuration = configExtensions.get(0);
-        configuration.getServerList().add(bitbucketServer);
-        configuration.save();
+        bitbucketPluginConfiguration = configExtensions.get(0);
+        bitbucketPluginConfiguration.getServerList().add(bitbucketServer);
+        bitbucketPluginConfiguration.save();
     }
 
     @Override
@@ -63,12 +66,17 @@ public class BitbucketJenkinsRule extends JenkinsRule {
                 "", BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
         addCredentials(readCredentials);
 
-        bitbucketServer = new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
-        addBitbucketServer(bitbucketServer);
+        bitbucketServerConfiguration = new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
+        bitbucketServerConfiguration.setServerName(SERVER_NAME);
+        addBitbucketServer(bitbucketServerConfiguration);
     }
 
-    public BitbucketServerConfiguration getBitbucketServer() {
-        return bitbucketServer;
+    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
+        return bitbucketServerConfiguration;
+    }
+
+    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
+        return bitbucketPluginConfiguration;
     }
 
     private void addCredentials(Credentials credentials) throws IOException {
@@ -120,8 +128,8 @@ public class BitbucketJenkinsRule extends JenkinsRule {
                     .when()
                     .delete(
                             BITBUCKET_BASE_URL
-                            + "/rest/access-tokens/latest/users/admin/"
-                            + tokenId);
+                                    + "/rest/access-tokens/latest/users/admin/"
+                                    + tokenId);
         }
     }
 
