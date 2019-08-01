@@ -33,17 +33,13 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     }
 
     @Override
-    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest req, JSONObject json) {
         req.bindJSON(this, json);
         FormValidation aggregate = FormValidation.aggregate(serverList.stream()
                 .map(BitbucketServerConfiguration::validate)
                 .collect(Collectors.toList()));
-
-        if (aggregate.kind == Kind.OK) {
-            save();
-            return true;
-        }
-        return false;
+        save();
+        return aggregate.kind == Kind.OK;
     }
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {
