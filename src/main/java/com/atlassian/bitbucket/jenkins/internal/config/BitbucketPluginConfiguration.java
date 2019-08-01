@@ -34,8 +34,11 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         FormValidation aggregate = FormValidation.aggregate(serverList.stream()
                 .map(BitbucketServerConfiguration::validate)
                 .collect(Collectors.toList()));
-        save();
-        return aggregate.kind == Kind.OK;
+        if (aggregate.kind == Kind.OK) {
+            save();
+            return true;
+        }
+        return false;
     }
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {

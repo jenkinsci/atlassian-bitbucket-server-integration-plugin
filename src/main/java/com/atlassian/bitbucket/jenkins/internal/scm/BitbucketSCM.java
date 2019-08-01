@@ -304,13 +304,12 @@ public class BitbucketSCM extends SCM {
         @POST
         public FormValidation doCheckServerId(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
-            BitbucketPluginConfiguration pluginConfiguration = new BitbucketPluginConfiguration();
-            List<BitbucketServerConfiguration> serverList = pluginConfiguration.getValidServerList();
+            List<BitbucketServerConfiguration> serverList = bitbucketPluginConfiguration.getValidServerList();
             // Users can only demur in providing a server name if none are available to select
             if (serverList.stream().noneMatch(server -> server.getId().equals(serverId))) {
                 return FormValidation.error("Please specify a valid Bitbucket Server.");
             }
-            if (pluginConfiguration.hasAnyInvalidConfiguration()) {
+            if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
                 return FormValidation.warning("Some servers have been incorrectly configured.");
             }
             return FormValidation.ok();
@@ -353,7 +352,7 @@ public class BitbucketSCM extends SCM {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
             //Filtered to only include valid server configurations
             List<BitbucketServerConfiguration> serverList =
-                    new BitbucketPluginConfiguration().getServerList()
+                    bitbucketPluginConfiguration.getServerList()
                             .stream()
                             .filter(server -> server.getId().equals(serverId) || server.validate().kind == FormValidation.Kind.OK)
                             .collect(Collectors.toList());
