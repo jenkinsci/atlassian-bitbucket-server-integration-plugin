@@ -35,21 +35,15 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
-        List<FormValidation> aggregate = getServerList()
-                .stream()
+        FormValidation aggregate = FormValidation.aggregate(serverList.stream()
                 .map(BitbucketServerConfiguration::validate)
-                .flatMap(Collection::stream)
-                .filter(validation -> validation.kind == Kind.ERROR)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
 
-        if (aggregate.isEmpty()) {
+        if (aggregate.kind == Kind.OK) {
             save();
             return true;
-        } else if (aggregate.size() == 1) {
-            throw new FormException(aggregate.get(0).getMessage() + FORM_INVALID_C2A, "Bitbucket Server");
-        } else {
-            throw new FormException(MULTIPLE_ERRORS_MESSAGE + FORM_INVALID_C2A, "Bitbucket Server");
         }
+        return false;
     }
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {
@@ -59,11 +53,29 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         return serverList.stream().filter(server -> server.getId().equals(serverId)).findFirst();
     }
 
+    /**
+     * Returns a list of all servers that have been configured by the user. This can include incorrectly or illegally
+     * defined servers.
+     *
+     * @return
+     */
     public List<BitbucketServerConfiguration> getServerList() {
         return serverList;
     }
 
     public void setServerList(@Nonnull List<BitbucketServerConfiguration> serverList) {
         this.serverList = requireNonNull(serverList);
+    }
+
+    /**
+     * Returns a list of all servers that have been configured by the user and pass the validate() function with no
+     * errors.
+     *
+     * @return
+     */
+    public List<BitbucketServerConfiguration> getValidServerList() {
+        return serverList.stream()
+                .filter(server -> server.validate().kind != Kind.ERROR)
+                .collect(Collectors.toList());
     }
 }

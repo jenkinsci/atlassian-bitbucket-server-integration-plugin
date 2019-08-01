@@ -349,7 +349,7 @@ public class BitbucketSCM extends SCM {
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
             List<BitbucketServerConfiguration> serverList =
-                    new BitbucketPluginConfiguration().getServerList();
+                    new BitbucketPluginConfiguration().getValidServerList();
             StandardListBoxModel model = new StandardListBoxModel();
             if (isBlank(serverId) || serverList.isEmpty()) {
                 model.includeEmptyValue();

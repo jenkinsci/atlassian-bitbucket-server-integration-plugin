@@ -21,14 +21,13 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.Nullable;
@@ -60,14 +59,10 @@ public class BitbucketServerConfiguration
             String baseUrl,
             @Nullable String credentialsId,
             @Nullable String id) {
-        this.adminCredentialsId = requireNonNull(adminCredentialsId, "adminCredentialsID");
-        this.baseUrl = requireNonNull(baseUrl, "baseUrl");
+        this.adminCredentialsId = requireNonNull(adminCredentialsId);
+        this.baseUrl = requireNonNull(baseUrl);
         this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
-
-        //if (getAdminCredentials() == null) {
-        //    throw new Descriptor.FormException(MULTIPLE_ERRORS_MESSAGE, "");
-        //}
     }
 
     @Nullable
@@ -144,19 +139,18 @@ public class BitbucketServerConfiguration
      *
      * @return true if valid; false otherwise
      */
-    public Collection<FormValidation> validate() {
-        return Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName), checkAdminCredentialsId(adminCredentialsId));
+    public FormValidation validate() {
+        return FormValidation.aggregate(Arrays.asList(checkBaseUrl(baseUrl), checkServerName(serverName), checkAdminCredentialsId(adminCredentialsId)));
     }
 
     /**
      * Validates the provided admin credentials are present and appropriate
      *
-     * @param credentialsId
+     * @param adminCredentialsId
      * @return
      */
-    //TODO: fix this (potential bug in interface?)
-    private static FormValidation checkAdminCredentialsId(String credentialsId) {
-        if (isBlank(credentialsId)) {
+    private static FormValidation checkAdminCredentialsId(String adminCredentialsId) {
+        if (isBlank(adminCredentialsId)) {
             return FormValidation.error("An admin token must be selected");
         }
         Credentials creds =
@@ -166,7 +160,7 @@ public class BitbucketServerConfiguration
                                 Jenkins.get(),
                                 ACL.SYSTEM,
                                 Collections.emptyList()),
-                        withId(trimToEmpty(credentialsId)));
+                        withId(trimToEmpty(adminCredentialsId)));
 
         if (creds == null) {
             return FormValidation.error(
@@ -212,6 +206,7 @@ public class BitbucketServerConfiguration
                 : FormValidation.ok();
     }
 
+    @Symbol("BbS")
     @Extension
     public static class DescriptorImpl extends Descriptor<BitbucketServerConfiguration> {
 
@@ -340,32 +335,6 @@ public class BitbucketServerConfiguration
         @Override
         public String getDisplayName() {
             return "Bitbucket Server";
-        }
-
-        /**
-         * Overrides the configuration constructor from form data to provide better error handling
-         *
-         * param req request
-         *
-         * @param formData json data
-         * @return a new BitbucketSCM instance
-         * @throws FormException if any data is incorrect
-         */
-        @Override
-        public BitbucketServerConfiguration newInstance(@Nullable StaplerRequest req,
-                                                        JSONObject formData) throws FormException {
-            try {
-                return super.newInstance(req, formData);
-            } catch (Error e) {
-                Throwable cause = e.getCause();
-                while (cause != null) {
-                    if (cause instanceof NullPointerException) {
-                        throw new FormException(cause.getMessage(), cause.getMessage());
-                    }
-                    cause = cause.getCause();
-                }
-                throw e;
-            }
         }
     }
 }
