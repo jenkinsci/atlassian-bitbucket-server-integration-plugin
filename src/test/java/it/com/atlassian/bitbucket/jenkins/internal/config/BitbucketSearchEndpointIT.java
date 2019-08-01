@@ -207,9 +207,10 @@ public class BitbucketSearchEndpointIT {
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
-        assertThat(repo.getCloneUrls().get(0).getName(), equalTo("http"));
-        assertThat(repo.getCloneUrls().get(0).getHref(),
-                equalTo(bitbucketJenkinsRule.getBitbucketServer().getBaseUrl() + "/scm/project_1/rep_1.git"));
+        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
+                .findAny()
+                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
+        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         BitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
@@ -290,12 +291,10 @@ public class BitbucketSearchEndpointIT {
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
-        assertThat(repo.getCloneUrls().get(0).getName(), equalTo("http"));
-        assertThat(
-                repo.getCloneUrls().get(0).getHref(),
-                equalTo(
-                        bitbucketJenkinsRule.getBitbucketServer().getBaseUrl()
-                        + "/scm/project_1/rep_1.git"));
+        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
+                .findAny()
+                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
+        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         BitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
@@ -341,12 +340,10 @@ public class BitbucketSearchEndpointIT {
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
-        assertThat(repo.getCloneUrls().get(0).getName(), equalTo("http"));
-        assertThat(
-                repo.getCloneUrls().get(0).getHref(),
-                equalTo(
-                        bitbucketJenkinsRule.getBitbucketServer().getBaseUrl()
-                        + "/scm/project_1/rep_1.git"));
+        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
+                .findAny()
+                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
+        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         BitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
@@ -391,12 +388,10 @@ public class BitbucketSearchEndpointIT {
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
-        assertThat(repo.getCloneUrls().get(0).getName(), equalTo("http"));
-        assertThat(
-                repo.getCloneUrls().get(0).getHref(),
-                equalTo(
-                        bitbucketJenkinsRule.getBitbucketServer().getBaseUrl()
-                        + "/scm/project_1/rep_1.git"));
+        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
+                .findAny()
+                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
+        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         BitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));

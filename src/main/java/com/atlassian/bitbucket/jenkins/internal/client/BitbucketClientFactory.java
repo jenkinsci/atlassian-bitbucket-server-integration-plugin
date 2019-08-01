@@ -34,7 +34,7 @@ public interface BitbucketClientFactory {
     /**
      * Return a repository search client
      *
-     * @param projectName The project key to scope the repository search
+     * @param projectName The project name to scope the repository search
      * @return a client that it ready to use
      */
     BitbucketRepositorySearchClient getRepositorySearchClient(String projectName);
