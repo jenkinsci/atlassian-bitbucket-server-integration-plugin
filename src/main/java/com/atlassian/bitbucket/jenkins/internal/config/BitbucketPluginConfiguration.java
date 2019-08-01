@@ -74,4 +74,13 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
                 .filter(server -> server.validate().kind != Kind.ERROR)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Determines if any servers have been incorrectly configured
+     *
+     * @return true if any server returns an error during validation; false otherwise
+     */
+    public boolean hasAnyInvalidConfiguration() {
+        return serverList.stream().anyMatch(server -> server.validate().kind == Kind.ERROR);
+    }
 }

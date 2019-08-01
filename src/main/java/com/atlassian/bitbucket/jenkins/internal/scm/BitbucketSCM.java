@@ -304,11 +304,14 @@ public class BitbucketSCM extends SCM {
         @POST
         public FormValidation doCheckServerId(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
-            List<BitbucketServerConfiguration> serverList =
-                    new BitbucketPluginConfiguration().getServerList();
+            BitbucketPluginConfiguration pluginConfiguration = new BitbucketPluginConfiguration();
+            List<BitbucketServerConfiguration> serverList = pluginConfiguration.getValidServerList();
             // Users can only demur in providing a server name if none are available to select
-            if (!serverList.isEmpty() && isBlank(serverId)) {
+            if (serverList.stream().noneMatch(server -> server.getId().equals(serverId))) {
                 return FormValidation.error("Please specify a valid Bitbucket Server.");
+            }
+            if (pluginConfiguration.hasAnyInvalidConfiguration()) {
+                return FormValidation.warning("Some servers have been incorrectly configured.");
             }
             return FormValidation.ok();
         }
@@ -349,9 +352,13 @@ public class BitbucketSCM extends SCM {
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
             List<BitbucketServerConfiguration> serverList =
-                    new BitbucketPluginConfiguration().getValidServerList();
+                    new BitbucketPluginConfiguration().getServerList()
+                            .stream()
+                            .filter(server -> server.getId().equals(serverId) || server.validate().kind == FormValidation.Kind.OK)
+                            .collect(Collectors.toList());
             StandardListBoxModel model = new StandardListBoxModel();
-            if (isBlank(serverId) || serverList.isEmpty()) {
+            if (isBlank(serverId) || serverList.isEmpty() ||
+                serverList.stream().noneMatch(server -> server.getId().equals(serverId))) {
                 model.includeEmptyValue();
             }
 
