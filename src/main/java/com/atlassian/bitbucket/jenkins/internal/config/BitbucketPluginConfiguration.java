@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,9 +20,6 @@ import static java.util.Objects.requireNonNull;
         "unused") // Stapler calls many of the methods via reflection (such as the setServerList)
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
-    public static final String FORM_INVALID_C2A = " Please go back to the previous page and try again.";
-    public static final String MULTIPLE_ERRORS_MESSAGE =
-            "Several fields in your Bitbucket Server instance were not configured correctly.";
     private static final Logger LOGGER =
             LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
@@ -53,13 +49,13 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
      * Returns a list of all servers that have been configured by the user. This can include incorrectly or illegally
      * defined servers.
      *
-     * @return
+     * @return a list of all configured servers
      */
     public List<BitbucketServerConfiguration> getServerList() {
         return serverList;
     }
 
-    public void setServerList(@Nonnull List<BitbucketServerConfiguration> serverList) {
+    public void setServerList(List<BitbucketServerConfiguration> serverList) {
         this.serverList = requireNonNull(serverList);
     }
 
@@ -67,7 +63,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
      * Returns a list of all servers that have been configured by the user and pass the validate() function with no
      * errors.
      *
-     * @return
+     * @return a list of all valid configured servers
      */
     public List<BitbucketServerConfiguration> getValidServerList() {
         return serverList.stream()

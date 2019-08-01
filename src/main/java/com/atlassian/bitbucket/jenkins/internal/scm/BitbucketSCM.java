@@ -351,6 +351,7 @@ public class BitbucketSCM extends SCM {
         @POST
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
+            //Filtered to only include valid server configurations
             List<BitbucketServerConfiguration> serverList =
                     new BitbucketPluginConfiguration().getServerList()
                             .stream()

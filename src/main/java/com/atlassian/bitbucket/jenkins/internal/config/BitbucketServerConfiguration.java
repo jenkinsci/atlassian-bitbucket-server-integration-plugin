@@ -146,8 +146,8 @@ public class BitbucketServerConfiguration
     /**
      * Validates the provided admin credentials are present and appropriate
      *
-     * @param adminCredentialsId
-     * @return
+     * @param adminCredentialsId the ID of the Bitbucket personal access token to check
+     * @return FormValidation with Kind.ok if credentials are present and the correct type; Kind.error otherwise
      */
     private static FormValidation checkAdminCredentialsId(String adminCredentialsId) {
         if (isBlank(adminCredentialsId)) {
