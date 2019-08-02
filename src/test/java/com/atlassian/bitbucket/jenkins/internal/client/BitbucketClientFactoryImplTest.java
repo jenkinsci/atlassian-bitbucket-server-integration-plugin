@@ -12,11 +12,10 @@ import okhttp3.*;
 import okio.BufferedSource;
 import org.apache.tools.ant.filters.StringInputStream;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.annotation.Nullable;
@@ -25,13 +24,20 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
 import static java.net.HttpURLConnection.*;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static okhttp3.HttpUrl.parse;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -41,12 +47,7 @@ public class BitbucketClientFactoryImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
     private BitbucketClientFactoryImpl anonymousClientFactory;
-    @Mock
-    private ResponseBody mockBody;
-    @Mock
-    private Call mockCall;
-    @Mock
-    private OkHttpClient mockClient;
+    private MockRemoteHttpServer mockRemoteHttpServer = new MockRemoteHttpServer();
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Before
@@ -54,89 +55,79 @@ public class BitbucketClientFactoryImplTest {
         anonymousClientFactory = getClientFactory(BASE_URL, null);
     }
 
+    @After
+    public void teardown() {
+        mockRemoteHttpServer.ensureResponseBodyClosed();
+    }
+
     @Test
-    public void testAccessTokenAuthCall() throws IOException {
+    public void testAccessTokenAuthCall() {
         Secret secret = SecretFactory.getSecret("MDU2NzY4Nzc0Njk5OgYPksHP4qAul5j5bCPoINDWmYio");
         StringCredentials cred = mock(StringCredentials.class);
         when(cred.getSecret()).thenReturn(secret);
 
         AtlassianServerCapabilities response =
                 makeCall(
+                        BASE_URL,
                         cred,
                         HTTP_OK,
                         readCapabilitiesResponseFromFile(),
                         AtlassianServerCapabilities.class);
-        ArgumentCaptor<Request> request = ArgumentCaptor.forClass(Request.class);
-        verify(mockClient).newCall(request.capture());
         assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = request.getValue().header("Authorization");
+        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
         assertNotNull(
                 "Should have added Authorization headers when credentials are provided",
                 authHeader);
         assertEquals(String.format("Bearer %s", secret.getPlainText()), authHeader);
-        verify(mockBody).close();
     }
 
     @Test
-    public void testAdminCall() throws IOException {
+    public void testAdminCall() {
         Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignum");
         BitbucketTokenCredentials admin = mock(BitbucketTokenCredentials.class);
         when(admin.getSecret()).thenReturn(secret);
 
         AtlassianServerCapabilities response =
                 makeCall(
+                        BASE_URL,
                         admin,
                         HTTP_OK,
                         readCapabilitiesResponseFromFile(),
                         AtlassianServerCapabilities.class);
-        ArgumentCaptor<Request> request = ArgumentCaptor.forClass(Request.class);
-        verify(mockClient).newCall(request.capture());
         assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = request.getValue().header("Authorization");
+        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
         assertNotNull(
                 "Should have added Authorization headers when credentials are provided",
                 authHeader);
         assertEquals("Bearer adminUtiSecretoMaiestatisSignum", authHeader);
-        verify(mockBody).close();
     }
 
     @Test
-    public void testAnonymousCall() throws IOException {
+    public void testAnonymousCall() {
         AtlassianServerCapabilities response =
                 makeCall(
                         null,
                         HTTP_OK,
                         readCapabilitiesResponseFromFile(),
                         AtlassianServerCapabilities.class);
-        ArgumentCaptor<Request> request = ArgumentCaptor.forClass(Request.class);
-        verify(mockClient).newCall(request.capture());
         assertTrue("Expected Bitbucket server", response.isBitbucketServer());
         assertNull(
                 "Should not have added any headers for anonymous call",
-                request.getValue().header("Authorization"));
-        verify(mockBody).close();
+                mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization"));
     }
 
     @Test(expected = ServerErrorException.class)
-    public void testBadGateway() throws IOException {
-        try {
-            makeCall(HTTP_BAD_GATEWAY);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testBadGateway() {
+        makeCall(HTTP_BAD_GATEWAY);
     }
 
     @Test(expected = BadRequestException.class)
-    public void testBadRequest() throws IOException {
-        try {
-            makeCall(HTTP_BAD_REQUEST);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testBadRequest() {
+        makeCall(HTTP_BAD_REQUEST);
     }
 
     @Test
-    public void testBasicAuthCall() throws IOException {
+    public void testBasicAuthCall() {
         Secret secret = SecretFactory.getSecret("password");
         String username = "username";
 
@@ -146,44 +137,51 @@ public class BitbucketClientFactoryImplTest {
 
         AtlassianServerCapabilities response =
                 makeCall(
+                        BASE_URL,
                         cred,
                         HTTP_OK,
                         readCapabilitiesResponseFromFile(),
                         AtlassianServerCapabilities.class);
-        ArgumentCaptor<Request> request = ArgumentCaptor.forClass(Request.class);
-        verify(mockClient).newCall(request.capture());
         assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = request.getValue().header("Authorization");
+        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
         assertNotNull(
                 "Should have added Authorization headers when credentials are provided",
                 authHeader);
         assertEquals("Basic dXNlcm5hbWU6cGFzc3dvcmQ=", authHeader);
-        verify(mockBody).close();
     }
 
     @Test(expected = AuthorizationException.class)
-    public void testForbidden() throws IOException {
-        try {
-            makeCall(HTTP_FORBIDDEN);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testForbidden() {
+        makeCall(HTTP_FORBIDDEN);
     }
 
     @Test
-    public void testGetCapabilties() throws IOException {
-        mockBasicResponseWithBody(
-                BASE_URL + "/rest/capabilities", 200, readCapabilitiesResponseFromFile());
+    public void testGetCapabilties() {
+        mockRemoteHttpServer.mapUrlToResult(
+                BASE_URL + "/rest/capabilities",readCapabilitiesResponseFromFile());
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
+        assertThat(response.getCapabilities(), hasKey("webhooks"));
     }
 
     @Test
-    public void testGetFullRepository() throws IOException {
-        mockBasicResponseWithBody(
+    public void testGetWebHookCapabilities() {
+        mockRemoteHttpServer.mapUrlToResult(
+                BASE_URL + "/rest/webhooks/latest/capabilities", readWebhookCapabilitiesResponseFromFile());
+        mockRemoteHttpServer.mapUrlToResult(
+                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
+
+        BitbucketWebhookSupportedEvents hookSupportedEvents =
+                anonymousClientFactory.getWebhookCapabilities().get();
+        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
+
+    }
+
+    @Test
+    public void testGetFullRepository() {
+        mockRemoteHttpServer.mapUrlToResult(
                 BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
-                200,
                 readFullRepositoryFromFile());
 
         BitbucketRepository repository =
@@ -215,10 +213,9 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetNoSShRepository() throws IOException {
-        mockBasicResponseWithBody(
+    public void testGetNoSShRepository() {
+        mockRemoteHttpServer.mapUrlToResult(
                 BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
-                200,
                 readNoSshRepositoryFromFile());
 
         BitbucketRepository repository =
@@ -248,20 +245,20 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetProject() throws IOException {
-        mockBasicResponseWithBody(
-                BASE_URL + "/rest/api/1.0/projects/QA", 200, readProjectFromFile());
+    public void testGetProject() {
+        mockRemoteHttpServer.mapUrlToResult(
+                BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
         BitbucketProject project = anonymousClientFactory.getProjectClient("QA").get();
 
         assertEquals("QA", project.getKey());
     }
 
     @Test
-    public void testGetProjectPage() throws IOException {
+    public void testGetProjectPage() {
         String url = BASE_URL + "/rest/api/1.0/projects";
 
         String projectPage = readFileToString("/project-page-all-response.json");
-        mockBasicResponseWithBody(url, 200, projectPage);
+        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
                 anonymousClientFactory.getProjectSearchClient().get();
@@ -273,11 +270,11 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetProjectPageFiltered() throws IOException {
+    public void testGetProjectPageFiltered() {
         String url = BASE_URL + "/rest/api/1.0/projects?name=myFilter";
 
         String projectPage = readFileToString("/project-page-filtered-response.json");
-        mockBasicResponseWithBody(url, 200, projectPage);
+        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
                 anonymousClientFactory.getProjectSearchClient().get("myFilter");
@@ -290,11 +287,11 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetRepoPage() throws IOException {
+    public void testGetRepoPage() {
         String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos";
 
         String projectPage = readFileToString("/repo-filter-response.json");
-        mockBasicResponseWithBody(url, 200, projectPage);
+        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
                 anonymousClientFactory.getRepositorySearchClient("PROJ").get();
@@ -306,11 +303,11 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetRepoPageFiltered() throws IOException {
+    public void testGetRepoPageFiltered() {
         String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos?filter=rep";
 
         String projectPage = readFileToString("/repo-filter-response.json");
-        mockBasicResponseWithBody(url, 200, projectPage);
+        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
                 anonymousClientFactory.getRepositorySearchClient("PROJ").get("rep");
@@ -323,12 +320,10 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetUsername() throws IOException {
+    public void testGetUsername() {
         String url = BASE_URL + "/rest/capabilities";
         String username = "CoolBananas";
-        mockBasicResponseWithBody(
-                url,
-                200,
+        mockRemoteHttpServer.mapUrlToResultWithHeaders(url,
                 readCapabilitiesResponseFromFile(),
                 singletonMap("X-AUSERNAME", username));
 
@@ -336,90 +331,62 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test(expected = BadRequestException.class)
-    public void testMethodNotAllowed() throws IOException {
-        try {
-            makeCall(HTTP_BAD_METHOD);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testMethodNotAllowed() {
+        makeCall(HTTP_BAD_METHOD);
     }
 
     @Test(expected = NoContentException.class)
-    public void testNoBody() throws IOException {
+    public void testNoBody() {
         // test that all the handling logic does not fail if there is no body available, this just
         // checks that no exceptions are thrown.
-        Response response =
-                new Response.Builder()
-                        .code(HTTP_OK)
-                        .request(new Request.Builder().url(BASE_URL).build())
-                        .protocol(Protocol.HTTP_1_1)
-                        .message("Hello handsome!")
-                        .build();
-        when(mockClient.newCall(any())).thenReturn(mockCall);
-        when(mockCall.execute()).thenReturn(response);
+        mockRemoteHttpServer.mapUrlToResult(BASE_URL, null);
 
-        anonymousClientFactory.makeGetRequest(HttpUrl.parse(BASE_URL), String.class);
+        anonymousClientFactory.makeGetRequest(parse(BASE_URL), String.class);
     }
 
     @Test(expected = AuthorizationException.class)
-    public void testNotAuthorized() throws IOException {
-        try {
-            makeCall(HTTP_UNAUTHORIZED);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testNotAuthorized() {
+        makeCall(HTTP_UNAUTHORIZED);
     }
 
     @Test(expected = NotFoundException.class)
-    public void testNotFound() throws IOException {
-        try {
-            makeCall(HTTP_NOT_FOUND);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testNotFound() {
+        makeCall(HTTP_NOT_FOUND);
     }
 
     @Test(expected = UnhandledErrorException.class)
-    public void testRedirect() throws IOException {
+    public void testRedirect() {
         // by default the client will follow re-directs, this test just makes sure that if that is
         // disabled the client will throw an exception
-        try {
-            makeCall(HTTP_MOVED_PERM);
-        } finally {
-            verify(mockBody).close();
-        }
+        makeCall(HTTP_MOVED_PERM);
     }
 
     @Test(expected = ServerErrorException.class)
-    public void testServerError() throws IOException {
-        try {
-            makeCall(HTTP_INTERNAL_ERROR);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testServerError() {
+        makeCall(HTTP_INTERNAL_ERROR);
     }
 
     @Test(expected = ConnectionFailureException.class)
-    public void testThrowsConnectException() throws IOException {
+    public void testThrowsConnectException() {
         ConnectException exception = new ConnectException();
         makeCallThatThrows(exception);
     }
 
     @Test(expected = BitbucketClientException.class)
-    public void testThrowsIoException() throws IOException {
+    public void testThrowsIoException() {
         IOException exception = new IOException();
 
         makeCallThatThrows(exception);
     }
 
     @Test(expected = ConnectionFailureException.class)
-    public void testThrowsSocketException() throws IOException {
+    public void testThrowsSocketException() {
         SocketTimeoutException exception = new SocketTimeoutException();
         makeCallThatThrows(exception);
     }
 
     @Test
-    public void testTokenCall() throws IOException {
+    public void testTokenCall() {
         Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
 
         StringCredentials cred = mock(StringCredentials.class);
@@ -427,49 +394,33 @@ public class BitbucketClientFactoryImplTest {
 
         AtlassianServerCapabilities response =
                 makeCall(
+                        BASE_URL,
                         cred,
                         HTTP_OK,
                         readCapabilitiesResponseFromFile(),
                         AtlassianServerCapabilities.class);
-        ArgumentCaptor<Request> request = ArgumentCaptor.forClass(Request.class);
-        verify(mockClient).newCall(request.capture());
         assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = request.getValue().header("Authorization");
+        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
         assertNotNull(
                 "Should have added Authorization headers when credentials are provided",
                 authHeader);
         assertEquals("Bearer adminUtiSecretoMaiestatisSignumLepus", authHeader);
-        verify(mockBody).close();
     }
 
     @Test(expected = ServerErrorException.class)
-    public void testUnavailable() throws IOException {
-        try {
-            makeCall(HTTP_UNAVAILABLE);
-        } finally {
-            verify(mockBody).close();
-        }
+    public void testUnavailable() {
+        makeCall(HTTP_UNAVAILABLE);
     }
 
     private BitbucketClientFactoryImpl getClientFactory(
             String url, @Nullable Credentials credentials) {
-        return new BitbucketClientFactoryImpl(url, credentials, objectMapper, mockClient);
-    }
-
-    private Response getResponse(String url, int responseCode, Map<String, String> headers) {
-        return new Response.Builder()
-                .code(responseCode)
-                .request(new Request.Builder().url(url).build())
-                .protocol(Protocol.HTTP_1_1)
-                .message("Hello handsome!")
-                .body(mockBody)
-                .headers(Headers.of(headers))
-                .build();
+        return new BitbucketClientFactoryImpl(url, credentials, objectMapper, mockRemoteHttpServer);
     }
 
     private AtlassianServerCapabilities makeCall(int responseCode)
-            throws BitbucketClientException, IOException {
+            throws BitbucketClientException {
         return makeCall(
+                BASE_URL,
                 null,
                 responseCode,
                 readCapabilitiesResponseFromFile(),
@@ -477,7 +428,7 @@ public class BitbucketClientFactoryImplTest {
     }
 
     private <T> T makeCall(Credentials credentials, int responseCode, String body, Class<T> type)
-            throws BitbucketClientException, IOException {
+            throws BitbucketClientException {
         return makeCall(BASE_URL, credentials, responseCode, body, type);
     }
 
@@ -487,39 +438,19 @@ public class BitbucketClientFactoryImplTest {
             int responseCode,
             String body,
             Class<T> type)
-            throws BitbucketClientException, IOException {
-        mockBasicResponseWithBody(url, responseCode, body);
+            throws BitbucketClientException {
+        mockRemoteHttpServer.mapUrlToResultWithResponseCode(url, responseCode, body);
         BitbucketClientFactoryImpl df = getClientFactory(url, credentials);
 
-        return df.makeGetRequest(HttpUrl.parse(url), type).getBody();
+        return df.makeGetRequest(parse(url), type).getBody();
     }
 
-    private AtlassianServerCapabilities makeCallThatThrows(Exception exception) throws IOException {
+    private AtlassianServerCapabilities makeCallThatThrows(Exception exception) {
         String url = "http://localhost:7990/bitbucket";
-        when(mockClient.newCall(any())).thenReturn(mockCall);
-        when(mockCall.execute()).thenThrow(exception);
+        mockRemoteHttpServer.mapUrlToException(url, exception);
         return getClientFactory(url, null)
-                .makeGetRequest(HttpUrl.parse(url), AtlassianServerCapabilities.class)
+                .makeGetRequest(parse(url), AtlassianServerCapabilities.class)
                 .getBody();
-    }
-
-    private void mockBasicResponseWithBody(String url, int responseCode, String body)
-            throws IOException {
-        mockBasicResponseWithBody(url, responseCode, body, Collections.emptyMap());
-    }
-
-    private void mockBasicResponseWithBody(
-            String url, int responseCode, String body, Map<String, String> headers)
-            throws IOException {
-        when(mockClient.newCall(
-                argThat(argument -> url.equalsIgnoreCase(argument.url().url().toString()))))
-                .thenReturn(mockCall);
-        when(mockCall.execute()).thenReturn(getResponse(url, responseCode, headers));
-        BufferedSource bufferedSource = mock(BufferedSource.class);
-        when(mockBody.source()).thenReturn(bufferedSource);
-        when(bufferedSource.readString(any())).thenReturn(body);
-        when(bufferedSource.select(any())).thenReturn(0);
-        when(mockBody.byteStream()).thenReturn(new StringInputStream(body));
     }
 
     private String readCapabilitiesResponseFromFile() {
@@ -546,4 +477,111 @@ public class BitbucketClientFactoryImplTest {
     private String readProjectFromFile() {
         return readFileToString("/project-response.json");
     }
+
+    private String readWebhookCapabilitiesResponseFromFile() {
+        return readFileToString("/webhook-capabilities-response.json");
+    }
+
+    private class MockRemoteHttpServer implements Call.Factory {
+
+        private final Map<String, Map<String, String>> headers = new HashMap<>();
+        private final Map<String, Exception> urlToException = new HashMap<>();
+        private final Map<String, String> urlToResult = new HashMap<>();
+        private final Map<String, Integer> urlToReturnCode = new HashMap<>();
+        private final Map<String, ResponseBody> urlToResponseBody = new HashMap<>();
+        private final Map<String, Request> urlToRequest = new HashMap<>();
+
+        @Override
+        public Call newCall(Request request) {
+            String url = request.url().url().toString();
+            if (urlToException.containsKey(url)) {
+                return mockCallToThrowException(url);
+            } else {
+                String result = urlToResult.get(url);
+                ResponseBody body = mockResponseBody(result);
+                urlToResponseBody.put(url, body);
+                urlToRequest.put(url, request);
+                return mockCallToThrowResult(url, body);
+            }
+        }
+
+        void ensureResponseBodyClosed() {
+            urlToResponseBody.values().stream().filter(Objects::nonNull).forEach(b -> verify(b).close());
+        }
+
+        Request getCapturedRequest(String url) {
+            return urlToRequest.get(url);
+        }
+
+        void mapUrlToResult(String url, String result) {
+            urlToResult.put(url, result);
+            headers.put(url, emptyMap());
+            urlToReturnCode.put(url, 200);
+        }
+
+        void mapUrlToResultWithResponseCode(String url, int responseCode, String result) {
+            urlToResult.put(url, result);
+            headers.put(url, emptyMap());
+            urlToReturnCode.put(url, responseCode);
+        }
+
+        void mapUrlToResultWithHeaders(String url, String result, Map<String, String> h) {
+            urlToResult.put(url, result);
+            headers.put(url, h);
+            urlToReturnCode.put(url, 200);
+        }
+
+        void mapUrlToException(String url, Exception exception) {
+            urlToException.put(url, exception);
+        }
+
+        private Response getResponse(String url, int responseCode, Map<String, String> headers, ResponseBody body) {
+            return new Response.Builder()
+                    .code(responseCode)
+                    .request(new Request.Builder().url(url).build())
+                    .protocol(Protocol.HTTP_1_1)
+                    .message("Hello handsome!")
+                    .body(body)
+                    .headers(Headers.of(headers))
+                    .build();
+        }
+
+        private Call mockCallToThrowResult(String url, ResponseBody mockBody) {
+            try {
+                Call mockCall = mock(Call.class);
+                when(mockCall.execute()).thenReturn(getResponse(url, urlToReturnCode.get(url), headers.get(url), mockBody));
+                return mockCall;
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+
+        private Call mockCallToThrowException(String url) {
+            try {
+                Call mockCall = mock(Call.class);
+                when(mockCall.execute()).thenThrow(urlToException.get(url));
+                return mockCall;
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+
+        private ResponseBody mockResponseBody(String result) {
+            try {
+                ResponseBody mockBody = null;
+                if (!isBlank(result)) {
+                    mockBody = mock(ResponseBody.class);
+                    BufferedSource bufferedSource = mock(BufferedSource.class);
+                    when(bufferedSource.readString(any())).thenReturn(result);
+                    when(bufferedSource.select(any())).thenReturn(0);
+                    when(mockBody.source()).thenReturn(bufferedSource);
+                    when(mockBody.byteStream()).thenReturn(new StringInputStream(result));
+                }
+                return mockBody;
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
 }

@@ -1,0 +1,29 @@
+{
+  "application-webhooks": [
+    "mirror:repo_synchronized",
+    "project:created",
+    "project:deleted",
+    "project:modified",
+    "repo:created",
+    "repo:forked",
+    "repo:deleted",
+    "repo:modified",
+    "repo:refs_changed",
+    "repo:default_branch_modified",
+    "repo:comment:added",
+    "repo:comment:edited",
+    "repo:comment:deleted",
+    "pr:opened",
+    "pr:merged",
+    "pr:declined",
+    "pr:deleted",
+    "pr:modified",
+    "pr:reviewer:updated",
+    "pr:reviewer:approved",
+    "pr:reviewer:unapproved",
+    "pr:reviewer:needs_work",
+    "pr:comment:added",
+    "pr:comment:edited",
+    "pr:comment:deleted"
+  ]
+}

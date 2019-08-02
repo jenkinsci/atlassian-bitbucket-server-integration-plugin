@@ -45,4 +45,10 @@ public interface BitbucketClientFactory {
      * @return a client that is ready to use
      */
     BitbucketUsernameClient getUsernameClient();
+
+    /**
+     * Returns a client that can return the supported web hook events
+     * @return a client that can fetch supported event type.
+     */
+    BitbucketWebhookSupportedEventsClient getWebhookCapabilities();
 }

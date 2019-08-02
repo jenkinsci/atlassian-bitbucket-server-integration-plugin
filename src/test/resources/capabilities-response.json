@@ -18,6 +18,7 @@
     "code-insights": "http://localhost:7990/bitbucket/rest/insights/latest/capabilities",
     "smart-commit-producer": "http://localhost:7990/bitbucket/rest/jira-dev/latest/smart-commit",
     "atlassian-remote-event-consumer": "http://localhost:7990/bitbucket/rest/remote-event-consumer/1/capabilities",
-    "atlassian-remote-event-producer": "http://localhost:7990/bitbucket/rest/remote-event-producer/1/capabilities"
+    "atlassian-remote-event-producer": "http://localhost:7990/bitbucket/rest/remote-event-producer/1/capabilities",
+    "webhooks": "http://localhost:7990/bitbucket/rest/webhooks/latest/capabilities"
   }
 }
