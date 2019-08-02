@@ -60,7 +60,8 @@ public class BitbucketSCM extends SCM {
     private final List<GitSCMExtension> extensions;
     private final String gitTool;
     private final String id;
-    private final List<BitbucketSCMRepository> repositories; // this is to enable us to support future multiple repositories
+    private final List<BitbucketSCMRepository> repositories;
+    // this is to enable us to support future multiple repositories
 
     private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -163,8 +164,8 @@ public class BitbucketSCM extends SCM {
         } catch (BitbucketClientException e) {
             throw new BitbucketSCMException(
                     "Failed to save configuration, please use the back button on your browser and try again. "
-                            + "Additional information about this failure: "
-                            + e.getMessage());
+                    + "Additional information about this failure: "
+                    + e.getMessage());
         }
     }
 
@@ -195,13 +196,13 @@ public class BitbucketSCM extends SCM {
         return id;
     }
 
-    public List<BitbucketSCMRepository> getRepositories() {
-        return repositories;
-    }
-
     @CheckForNull
     public String getProjectKey() {
         return getBitbucketSCMRepository().getProjectKey();
+    }
+
+    public List<BitbucketSCMRepository> getRepositories() {
+        return repositories;
     }
 
     @CheckForNull
@@ -304,13 +305,12 @@ public class BitbucketSCM extends SCM {
         @POST
         public FormValidation doCheckServerId(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
-            List<BitbucketServerConfiguration> serverList = bitbucketPluginConfiguration.getValidServerList();
             // Users can only demur in providing a server name if none are available to select
-            if (serverList.stream().noneMatch(server -> server.getId().equals(serverId))) {
+            if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
                 return FormValidation.error("Please specify a valid Bitbucket Server.");
             }
             if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
-                return FormValidation.warning("Some servers have been incorrectly configured.");
+                return FormValidation.warning("Some servers have been incorrectly configured, and are not displayed.");
             }
             return FormValidation.ok();
         }
@@ -351,27 +351,23 @@ public class BitbucketSCM extends SCM {
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
             //Filtered to only include valid server configurations
-            List<BitbucketServerConfiguration> serverList =
+            List<BitbucketServerConfiguration> serverList = bitbucketPluginConfiguration.getServerList();
+            StandardListBoxModel model = new StandardListBoxModel();
+            List<Option> options =
                     bitbucketPluginConfiguration.getServerList()
                             .stream()
-                            .filter(server -> server.getId().equals(serverId) || server.validate().kind == FormValidation.Kind.OK)
+                            .filter(server -> server.getId().equals(serverId) ||
+                                              server.validate().kind == FormValidation.Kind.OK)
+                            .map(server ->
+                                    new Option(
+                                            server.getServerName(),
+                                            server.getId(),
+                                            server.getId().equals(serverId)))
                             .collect(Collectors.toList());
-            StandardListBoxModel model = new StandardListBoxModel();
-            if (isBlank(serverId) || serverList.isEmpty() ||
-                serverList.stream().noneMatch(server -> server.getId().equals(serverId))) {
+            model.addAll(options);
+            if (options.isEmpty()) {
                 model.includeEmptyValue();
             }
-
-            model.addAll(
-                    serverList
-                            .stream()
-                            .map(
-                                    server ->
-                                            new Option(
-                                                    server.getServerName(),
-                                                    server.getId(),
-                                                    server.getId().equals(serverId)))
-                            .collect(Collectors.toList()));
             return model;
         }
 
