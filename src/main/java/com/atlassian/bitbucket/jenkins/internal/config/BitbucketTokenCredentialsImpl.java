@@ -67,7 +67,7 @@ public class BitbucketTokenCredentialsImpl extends BaseStandardCredentials
 
         @Override
         public String getDisplayName() {
-            return "Bitbucket Admin Token";
+            return "Bitbucket personal access token";
         }
 
         @Override

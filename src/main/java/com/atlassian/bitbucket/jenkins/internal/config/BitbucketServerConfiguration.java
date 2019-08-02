@@ -153,7 +153,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkBaseUrl(String baseUrl) {
         if (StringUtils.isEmpty(baseUrl)) {
-            return FormValidation.error("Please specify a url.");
+            return FormValidation.error("Enter your Bitbucket instance's URL.");
         }
         try {
             URL base = new URL(baseUrl);
@@ -178,7 +178,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkServerName(String serverName) {
         return isBlank(serverName)
-                ? FormValidation.error("Please specify a name.")
+                ? FormValidation.error("Enter a name to help users identify this instance.")
                 : FormValidation.ok();
     }
 
@@ -193,7 +193,7 @@ public class BitbucketServerConfiguration
         public FormValidation doCheckAdminCredentialsId(@QueryParameter String value) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (isBlank(value)) {
-                return FormValidation.error("An admin token must be selected");
+                return FormValidation.error("Choose a Bitbucket personal access token");
             }
             Credentials creds =
                     firstOrNull(
