@@ -82,8 +82,8 @@ public class BitbucketWebhookConsumerTest {
         refsChangedEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REFS_CHANGED_EVENT, new Date(), refChanges(), bitbucketRepository);
 
-        BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_KEY,
-                JENKINS_REPO_SLUG, serverId);
+        BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_KEY.toUpperCase(),
+                JENKINS_REPO_SLUG.toUpperCase(), serverId);
         when(bitbucketSCM.getRepositories())
                 .thenReturn(Collections.singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);
@@ -171,7 +171,7 @@ public class BitbucketWebhookConsumerTest {
     private List<RemoteConfig> createRemoteConfig() {
         RemoteConfig remoteConfig = mock(RemoteConfig.class);
         URIish uri = mock(URIish.class);
-        when(uri.toString()).thenReturn(BB_CLONE_URL);
+        when(uri.toString()).thenReturn(BB_CLONE_URL.toUpperCase());
         when(remoteConfig.getURIs()).thenReturn(Collections.singletonList(uri));
         return Collections.singletonList(remoteConfig);
     }

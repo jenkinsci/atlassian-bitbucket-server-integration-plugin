@@ -20,13 +20,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static java.util.Optional.empty;
@@ -39,7 +38,7 @@ public class BitbucketWebhookTriggerImplTest {
 
     public static final JenkinsRule jenkinsRule = new JenkinsRule();
     private static final Logger LOGGER =
-            LoggerFactory.getLogger(BitbucketWebhookTriggerImplTest.class);
+            Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
 
     @ClassRule
     public static TestRule chain =

@@ -19,12 +19,12 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses.HttpResponseException;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.GET;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+
+import java.util.logging.Logger;
 
 import static hudson.security.Permission.CONFIGURE;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
@@ -36,7 +36,7 @@ public class BitbucketSearchEndpoint implements RootAction {
 
     static final String BITBUCKET_SERVER_SEARCH_URL = "bitbucket-server-search";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketSearchEndpoint.class);
+    private static final Logger LOGGER = Logger.getLogger(BitbucketSearchEndpoint.class.getName());
 
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -57,7 +57,7 @@ public class BitbucketSearchEndpoint implements RootAction {
             return HttpResponses.okJSON(JSONObject.fromObject(projects));
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket
-            LOGGER.error(e.getMessage());
+            LOGGER.severe(e.getMessage());
             throw error(HTTP_INTERNAL_ERROR, e);
         }
     }
@@ -82,7 +82,7 @@ public class BitbucketSearchEndpoint implements RootAction {
             return HttpResponses.okJSON(JSONObject.fromObject(repositories));
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket
-            LOGGER.error(e.getMessage());
+            LOGGER.severe(e.getMessage());
             throw error(HTTP_INTERNAL_ERROR, e);
         }
     }

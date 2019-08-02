@@ -4,8 +4,6 @@ import hudson.Extension;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -20,8 +18,6 @@ import static java.util.Objects.requireNonNull;
         "unused") // Stapler calls many of the methods via reflection (such as the setServerList)
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
 
     public BitbucketPluginConfiguration() {

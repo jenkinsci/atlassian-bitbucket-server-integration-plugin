@@ -16,27 +16,27 @@ import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.triggers.SCMTriggerItem;
 import org.eclipse.jgit.transport.RemoteConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Singleton
 public class BitbucketWebhookConsumer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketWebhookConsumer.class);
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookConsumer.class.getName());
 
     @Inject
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
     void process(RefsChangedWebhookEvent event) {
-        LOGGER.debug("Received refs changed event" + event);
+        BitbucketRepository repository = event.getRepository();
+        LOGGER.fine(String.format("Received refs changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
         if (eligibleRefs(event).isEmpty()) {
-            LOGGER.debug("Skipping processing of refs changed event because no refs have been added or updated");
+            LOGGER.fine("Skipping processing of refs changed event because no refs have been added or updated");
             return;
         }
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
@@ -52,14 +52,14 @@ public class BitbucketWebhookConsumer {
                     .map(Optional::get)
                     .filter(triggerDetails -> hasMatchingRepository(refChangedDetails, triggerDetails.getJob()))
                     .forEach(triggerDetails -> {
-                        LOGGER.debug("Triggering " + triggerDetails.getJob().getFullDisplayName());
+                        LOGGER.fine("Triggering " + triggerDetails.getJob().getFullDisplayName());
                         triggerDetails.getTrigger().trigger(request);
                     });
         }
     }
 
     void process(MirrorSynchronizedWebhookEvent event) {
-        LOGGER.debug("Received mirror synchronized event" + event);
+        LOGGER.fine("Received mirror synchronized event: " + event);
     }
 
     private static Set<String> cloneLinks(RefsChangedWebhookEvent event) {
@@ -109,12 +109,16 @@ public class BitbucketWebhookConsumer {
     }
 
     private static boolean matchingRepo(BitbucketRepository repository, BitbucketSCMRepository scmRepo) {
-        return scmRepo.getProjectKey().equals(repository.getProject().getKey())
-                && scmRepo.getRepositorySlug().equals(repository.getSlug());
+        return scmRepo.getProjectKey().equalsIgnoreCase(repository.getProject().getKey()) &&
+                scmRepo.getRepositorySlug().equalsIgnoreCase(repository.getSlug());
     }
 
     private static boolean matchingRepo(Set<String> cloneLinks, RemoteConfig repo) {
-        return repo.getURIs().stream().anyMatch(uri -> cloneLinks.contains(uri.toString()));
+        return repo.getURIs().stream().anyMatch(uri -> {
+            String uriStr = uri.toString();
+            return cloneLinks.stream()
+                    .anyMatch(link -> link.equalsIgnoreCase(uriStr));
+        });
     }
 
     private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob job) {
