@@ -1,46 +1,35 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import hudson.util.Secret;
-import hudson.util.SecretFactory;
 import okhttp3.*;
 import okio.BufferedSource;
 import org.apache.tools.ant.filters.StringInputStream;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
-import static java.net.HttpURLConnection.*;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static okhttp3.HttpUrl.parse;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
@@ -53,113 +42,13 @@ public class BitbucketClientFactoryImplTest {
 
     @Before
     public void setup() {
-        anonymousClientFactory = getClientFactory(BASE_URL, null);
-    }
-
-    @After
-    public void teardown() {
-        mockRemoteHttpServer.ensureResponseBodyClosed();
-    }
-
-    @Test
-    public void testAccessTokenAuthCall() {
-        Secret secret = SecretFactory.getSecret("MDU2NzY4Nzc0Njk5OgYPksHP4qAul5j5bCPoINDWmYio");
-        StringCredentials cred = mock(StringCredentials.class);
-        when(cred.getSecret()).thenReturn(secret);
-
-        AtlassianServerCapabilities response =
-                makeCall(
-                        BASE_URL,
-                        cred,
-                        HTTP_OK,
-                        readCapabilitiesResponseFromFile(),
-                        AtlassianServerCapabilities.class);
-        assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
-        assertNotNull(
-                "Should have added Authorization headers when credentials are provided",
-                authHeader);
-        assertEquals(String.format("Bearer %s", secret.getPlainText()), authHeader);
-    }
-
-    @Test
-    public void testAdminCall() {
-        Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignum");
-        BitbucketTokenCredentials admin = mock(BitbucketTokenCredentials.class);
-        when(admin.getSecret()).thenReturn(secret);
-
-        AtlassianServerCapabilities response =
-                makeCall(
-                        BASE_URL,
-                        admin,
-                        HTTP_OK,
-                        readCapabilitiesResponseFromFile(),
-                        AtlassianServerCapabilities.class);
-        assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
-        assertNotNull(
-                "Should have added Authorization headers when credentials are provided",
-                authHeader);
-        assertEquals("Bearer adminUtiSecretoMaiestatisSignum", authHeader);
-    }
-
-    @Test
-    public void testAnonymousCall() {
-        AtlassianServerCapabilities response =
-                makeCall(
-                        null,
-                        HTTP_OK,
-                        readCapabilitiesResponseFromFile(),
-                        AtlassianServerCapabilities.class);
-        assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        assertNull(
-                "Should not have added any headers for anonymous call",
-                mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization"));
-    }
-
-    @Test(expected = ServerErrorException.class)
-    public void testBadGateway() {
-        makeCall(HTTP_BAD_GATEWAY);
-    }
-
-    @Test(expected = BadRequestException.class)
-    public void testBadRequest() {
-        makeCall(HTTP_BAD_REQUEST);
-    }
-
-    @Test
-    public void testBasicAuthCall() {
-        Secret secret = SecretFactory.getSecret("password");
-        String username = "username";
-
-        UsernamePasswordCredentials cred = mock(UsernamePasswordCredentials.class);
-        when(cred.getPassword()).thenReturn(secret);
-        when(cred.getUsername()).thenReturn(username);
-
-        AtlassianServerCapabilities response =
-                makeCall(
-                        BASE_URL,
-                        cred,
-                        HTTP_OK,
-                        readCapabilitiesResponseFromFile(),
-                        AtlassianServerCapabilities.class);
-        assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
-        assertNotNull(
-                "Should have added Authorization headers when credentials are provided",
-                authHeader);
-        assertEquals("Basic dXNlcm5hbWU6cGFzc3dvcmQ=", authHeader);
-    }
-
-    @Test(expected = AuthorizationException.class)
-    public void testForbidden() {
-        makeCall(HTTP_FORBIDDEN);
+        anonymousClientFactory = getClientFactory(BASE_URL, BitbucketCredential.ANONYMOUS_CREDENTIALS);
     }
 
     @Test
     public void testGetCapabilties() {
         mockRemoteHttpServer.mapUrlToResult(
-                BASE_URL + "/rest/capabilities",readCapabilitiesResponseFromFile());
+                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
@@ -176,7 +65,6 @@ public class BitbucketClientFactoryImplTest {
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getWebhookCapabilities().get();
         assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
-
     }
 
     @Test
@@ -331,127 +219,9 @@ public class BitbucketClientFactoryImplTest {
         assertEquals(username, anonymousClientFactory.getUsernameClient().get().get());
     }
 
-    @Test(expected = BadRequestException.class)
-    public void testMethodNotAllowed() {
-        makeCall(HTTP_BAD_METHOD);
-    }
-
-    @Test(expected = NoContentException.class)
-    public void testNoBody() {
-        // test that all the handling logic does not fail if there is no body available, this just
-        // checks that no exceptions are thrown.
-        mockRemoteHttpServer.mapUrlToResult(BASE_URL, null);
-
-        anonymousClientFactory.makeGetRequest(parse(BASE_URL), String.class);
-    }
-
-    @Test(expected = AuthorizationException.class)
-    public void testNotAuthorized() {
-        makeCall(HTTP_UNAUTHORIZED);
-    }
-
-    @Test(expected = NotFoundException.class)
-    public void testNotFound() {
-        makeCall(HTTP_NOT_FOUND);
-    }
-
-    @Test(expected = UnhandledErrorException.class)
-    public void testRedirect() {
-        // by default the client will follow re-directs, this test just makes sure that if that is
-        // disabled the client will throw an exception
-        makeCall(HTTP_MOVED_PERM);
-    }
-
-    @Test(expected = ServerErrorException.class)
-    public void testServerError() {
-        makeCall(HTTP_INTERNAL_ERROR);
-    }
-
-    @Test(expected = ConnectionFailureException.class)
-    public void testThrowsConnectException() {
-        ConnectException exception = new ConnectException();
-        makeCallThatThrows(exception);
-    }
-
-    @Test(expected = BitbucketClientException.class)
-    public void testThrowsIoException() {
-        IOException exception = new IOException();
-
-        makeCallThatThrows(exception);
-    }
-
-    @Test(expected = ConnectionFailureException.class)
-    public void testThrowsSocketException() {
-        SocketTimeoutException exception = new SocketTimeoutException();
-        makeCallThatThrows(exception);
-    }
-
-    @Test
-    public void testTokenCall() {
-        Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
-
-        StringCredentials cred = mock(StringCredentials.class);
-        when(cred.getSecret()).thenReturn(secret);
-
-        AtlassianServerCapabilities response =
-                makeCall(
-                        BASE_URL,
-                        cred,
-                        HTTP_OK,
-                        readCapabilitiesResponseFromFile(),
-                        AtlassianServerCapabilities.class);
-        assertTrue("Expected Bitbucket server", response.isBitbucketServer());
-        String authHeader = mockRemoteHttpServer.getCapturedRequest(BASE_URL).header("Authorization");
-        assertNotNull(
-                "Should have added Authorization headers when credentials are provided",
-                authHeader);
-        assertEquals("Bearer adminUtiSecretoMaiestatisSignumLepus", authHeader);
-    }
-
-    @Test(expected = ServerErrorException.class)
-    public void testUnavailable() {
-        makeCall(HTTP_UNAVAILABLE);
-    }
-
     private BitbucketClientFactoryImpl getClientFactory(
-            String url, @Nullable Credentials credentials) {
+            String url, BitbucketCredential credentials) {
         return new BitbucketClientFactoryImpl(url, credentials, objectMapper, mockRemoteHttpServer);
-    }
-
-    private AtlassianServerCapabilities makeCall(int responseCode)
-            throws BitbucketClientException {
-        return makeCall(
-                BASE_URL,
-                null,
-                responseCode,
-                readCapabilitiesResponseFromFile(),
-                AtlassianServerCapabilities.class);
-    }
-
-    private <T> T makeCall(Credentials credentials, int responseCode, String body, Class<T> type)
-            throws BitbucketClientException {
-        return makeCall(BASE_URL, credentials, responseCode, body, type);
-    }
-
-    private <T> T makeCall(
-            String url,
-            @Nullable Credentials credentials,
-            int responseCode,
-            String body,
-            Class<T> type)
-            throws BitbucketClientException {
-        mockRemoteHttpServer.mapUrlToResultWithResponseCode(url, responseCode, body);
-        BitbucketClientFactoryImpl df = getClientFactory(url, credentials);
-
-        return df.makeGetRequest(parse(url), type).getBody();
-    }
-
-    private AtlassianServerCapabilities makeCallThatThrows(Exception exception) {
-        String url = "http://localhost:7990/bitbucket";
-        mockRemoteHttpServer.mapUrlToException(url, exception);
-        return getClientFactory(url, null)
-                .makeGetRequest(parse(url), AtlassianServerCapabilities.class)
-                .getBody();
     }
 
     private String readCapabilitiesResponseFromFile() {
@@ -483,35 +253,22 @@ public class BitbucketClientFactoryImplTest {
         return readFileToString("/webhook-capabilities-response.json");
     }
 
-    private class MockRemoteHttpServer implements Call.Factory {
+    private class MockRemoteHttpServer implements HttpRequestExecutor {
 
         private final Map<String, Map<String, String>> headers = new HashMap<>();
-        private final Map<String, Exception> urlToException = new HashMap<>();
         private final Map<String, String> urlToResult = new HashMap<>();
         private final Map<String, Integer> urlToReturnCode = new HashMap<>();
         private final Map<String, ResponseBody> urlToResponseBody = new HashMap<>();
-        private final Map<String, Request> urlToRequest = new HashMap<>();
 
         @Override
-        public Call newCall(Request request) {
-            String url = request.url().url().toString();
-            if (urlToException.containsKey(url)) {
-                return mockCallToThrowException(url);
-            } else {
-                String result = urlToResult.get(url);
-                ResponseBody body = mockResponseBody(result);
-                urlToResponseBody.put(url, body);
-                urlToRequest.put(url, request);
-                return mockCallToThrowResult(url, body);
-            }
-        }
-
-        void ensureResponseBodyClosed() {
-            urlToResponseBody.values().stream().filter(Objects::nonNull).forEach(b -> verify(b).close());
-        }
-
-        Request getCapturedRequest(String url) {
-            return urlToRequest.get(url);
+        public <T> T executeGet(@Nonnull HttpUrl httpUrl, @Nonnull BitbucketCredential credential,
+                                @Nonnull ResponseConsumer<T> consumer) {
+            String url = httpUrl.toString();
+            String result = urlToResult.get(url);
+            ResponseBody body = mockResponseBody(result);
+            urlToResponseBody.put(url, body);
+            Response response = getResponse(url, 200, Collections.emptyMap(), body);
+            return consumer.consume(response);
         }
 
         void mapUrlToResult(String url, String result) {
@@ -520,20 +277,10 @@ public class BitbucketClientFactoryImplTest {
             urlToReturnCode.put(url, 200);
         }
 
-        void mapUrlToResultWithResponseCode(String url, int responseCode, String result) {
-            urlToResult.put(url, result);
-            headers.put(url, emptyMap());
-            urlToReturnCode.put(url, responseCode);
-        }
-
         void mapUrlToResultWithHeaders(String url, String result, Map<String, String> h) {
             urlToResult.put(url, result);
             headers.put(url, h);
             urlToReturnCode.put(url, 200);
-        }
-
-        void mapUrlToException(String url, Exception exception) {
-            urlToException.put(url, exception);
         }
 
         private Response getResponse(String url, int responseCode, Map<String, String> headers, ResponseBody body) {
@@ -545,26 +292,6 @@ public class BitbucketClientFactoryImplTest {
                     .body(body)
                     .headers(Headers.of(headers))
                     .build();
-        }
-
-        private Call mockCallToThrowResult(String url, ResponseBody mockBody) {
-            try {
-                Call mockCall = mock(Call.class);
-                when(mockCall.execute()).thenReturn(getResponse(url, urlToReturnCode.get(url), headers.get(url), mockBody));
-                return mockCall;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-
-        private Call mockCallToThrowException(String url) {
-            try {
-                Call mockCall = mock(Call.class);
-                when(mockCall.execute()).thenThrow(urlToException.get(url));
-                return mockCall;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
         }
 
         private ResponseBody mockResponseBody(String result) {
@@ -584,5 +311,4 @@ public class BitbucketClientFactoryImplTest {
             }
         }
     }
-
 }

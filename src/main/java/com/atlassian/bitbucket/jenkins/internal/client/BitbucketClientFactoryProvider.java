@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.utils.JenkinsToBitbucketCredentialFactory;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Plugin;
@@ -36,11 +38,13 @@ public class BitbucketClientFactoryProvider {
      */
     public BitbucketClientFactory getClient(
             @Nonnull BitbucketServerConfiguration server, @Nullable Credentials credentials) {
+        credentials = credentials == null ? server.getCredentials() : credentials;
+        BitbucketCredential bitbucketCredential = JenkinsToBitbucketCredentialFactory.create(credentials);
         return new BitbucketClientFactoryImpl(
                 server.getBaseUrl(),
-                credentials == null ? server.getCredentials() : credentials,
+                bitbucketCredential,
                 objectMapper,
-                okHttpClient);
+                new HttpRequestExecutorImpl(okHttpClient));
     }
 
     /**

@@ -1,32 +1,21 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-import org.apache.commons.codec.Charsets;
+import okhttp3.HttpUrl;
+import okhttp3.ResponseBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
-import static java.net.HttpURLConnection.*;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.requireNonNull;
@@ -34,23 +23,22 @@ import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
-    private static final int BAD_REQUEST_FAMILY = 4;
-    private static final int SERVER_ERROR_FAMILY = 5;
     private static final Logger log = Logger.getLogger(BitbucketClientFactoryImpl.class);
+
     private final HttpUrl baseUrl;
-    private final Credentials credentials;
+    private final BitbucketCredential credentials;
     private final ObjectMapper objectMapper;
-    private final Call.Factory httpCallFactory;
+    private HttpRequestExecutor httpRequestExecutor;
 
     BitbucketClientFactoryImpl(
             String serverUrl,
-            @Nullable Credentials credentials,
+            BitbucketCredential credentials,
             ObjectMapper objectMapper,
-            Call.Factory client) {
+            HttpRequestExecutor httpRequestExecutor) {
         baseUrl = parse(requireNonNull(serverUrl));
         this.credentials = credentials;
         this.objectMapper = requireNonNull(objectMapper);
-        httpCallFactory = requireNonNull(client);
+        this.httpRequestExecutor = requireNonNull(httpRequestExecutor);
     }
 
     @Override
@@ -233,68 +221,6 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     /**
-     * Handle a failed request. Will try to map the response code to an appropriate exception.
-     *
-     * @param responseCode the response code from the request.
-     * @param body if present, the body of the request.
-     * @throws AuthorizationException if the credentials did not allow access to the given url
-     * @throws NotFoundException if the requested url does not exist
-     * @throws BadRequestException if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException if the server failed to process the request
-     * @throws BitbucketClientException for all errors not already captured
-     */
-    private static void handleError(int responseCode, @Nullable String body)
-            throws AuthorizationException {
-        switch (responseCode) {
-            case HTTP_FORBIDDEN: // fall through to same handling.
-            case HTTP_UNAUTHORIZED:
-                log.debug("Bitbucket - responded with not authorized ");
-                throw new AuthorizationException(
-                        "Provided credentials cannot access the resource", responseCode, body);
-            case HTTP_NOT_FOUND:
-                log.debug("Bitbucket - Path not found");
-                throw new NotFoundException("The requested resource does not exist", body);
-        }
-        int family = responseCode / 100;
-        switch (family) {
-            case BAD_REQUEST_FAMILY:
-                log.debug("Bitbucket - did not accept the request");
-                throw new BadRequestException("The request is malformed", responseCode, body);
-            case SERVER_ERROR_FAMILY:
-                log.debug("Bitbucket - failed to service request");
-                throw new ServerErrorException(
-                        "The server failed to service request", responseCode, body);
-        }
-        throw new UnhandledErrorException("Unhandled error", responseCode, body);
-    }
-
-    /**
-     * Add the credentials to the request. If no credentials are provided this is a no-op.
-     *
-     * @param builder builder to add credentials to
-     */
-    private void addCredentials(Request.Builder builder) {
-        String headerValue = null;
-        if (credentials instanceof StringCredentials) {
-            headerValue = "Bearer " + ((StringCredentials) credentials).getSecret().getPlainText();
-        } else if (credentials instanceof UsernamePasswordCredentials) {
-            UsernamePasswordCredentials upc = (UsernamePasswordCredentials) credentials;
-            String authorization = upc.getUsername() + ':' + upc.getPassword().getPlainText();
-            headerValue =
-                    "Basic "
-                    + Base64.getEncoder()
-                            .encodeToString(authorization.getBytes(Charsets.UTF_8));
-        } else if (credentials instanceof BitbucketTokenCredentials) {
-            headerValue =
-                    "Bearer "
-                    + ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
-        }
-        if (headerValue != null) { // no header value means it is an anonymous request
-            builder.addHeader("Authorization", headerValue);
-        }
-    }
-
-    /**
      * Add the basic path to the core rest API (/rest/api/1.0).
      *
      * @param builder builder to add path to
@@ -307,38 +233,21 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     private <T> BitbucketResponse<T> makeGetRequest(
             @Nonnull HttpUrl url, @Nonnull ObjectReader<T> reader) {
-        Request.Builder requestBuilder = new Request.Builder().url(url);
-        addCredentials(requestBuilder);
+        return httpRequestExecutor.executeGet(url, credentials,
+                    response -> new BitbucketResponse<>(
+                            response.headers().toMultimap(), unmarshall(reader, response.body())));
+    }
 
+    private <T> T unmarshall(@Nonnull ObjectReader<T> reader, ResponseBody body) {
         try {
-            Response response = httpCallFactory.newCall(requestBuilder.build()).execute();
-            int responseCode = response.code();
-
-            try (ResponseBody body = response.body()) {
-                if (response.isSuccessful()) {
-                    if (body == null) {
-                        log.debug("Bitbucket - No content in response");
-                        throw new NoContentException(
-                                "Remote side did not send a response body", responseCode);
-                    }
-                    log.trace("Bitbucket - call successful");
-                    return new BitbucketResponse<>(
-                            response.headers().toMultimap(), reader.readObject(body.byteStream()));
-                }
-                handleError(responseCode, body == null ? null : body.string());
-            }
-        } catch (ConnectException | SocketTimeoutException e) {
-            log.debug("Bitbucket - Connection failed", e);
-            throw new ConnectionFailureException(e);
+            return reader.readObject(body.byteStream());
         } catch (IOException e) {
-            log.debug("Bitbucket - io exception", e);
+            log.debug("Bitbucket - io exception while unmarshalling the body", e);
             throw new BitbucketClientException(e);
         }
-        throw new UnhandledErrorException("Unhandled error", -1, null);
     }
 
     private interface ObjectReader<T> {
-
         T readObject(InputStream in) throws IOException;
     }
 }
