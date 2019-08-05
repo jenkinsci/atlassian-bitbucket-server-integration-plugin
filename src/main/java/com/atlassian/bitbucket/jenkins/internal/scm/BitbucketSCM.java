@@ -48,8 +48,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -351,8 +351,7 @@ public class BitbucketSCM extends SCM {
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(Permission.CONFIGURE);
             //Filtered to only include valid server configurations
-            StandardListBoxModel model = new StandardListBoxModel();
-            List<Option> options =
+            StandardListBoxModel model =
                     bitbucketPluginConfiguration.getServerList()
                             .stream()
                             .filter(server -> server.getId().equals(serverId) ||
@@ -362,9 +361,8 @@ public class BitbucketSCM extends SCM {
                                             server.getServerName(),
                                             server.getId(),
                                             server.getId().equals(serverId)))
-                            .collect(Collectors.toList());
-            model.addAll(options);
-            if (options.isEmpty()) {
+                            .collect(toCollection(StandardListBoxModel::new));
+            if (model.isEmpty()) {
                 model.includeEmptyValue();
             }
             return model;
