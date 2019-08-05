@@ -4,10 +4,11 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositorySearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.utils.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.Extension;
 import hudson.model.RootAction;
@@ -47,9 +48,10 @@ public class BitbucketSearchEndpoint implements RootAction {
             @Nullable @QueryParameter("credentialsId") String credentialsId,
             @Nullable @QueryParameter("name") String name) {
         Jenkins.get().checkPermission(CONFIGURE);
+        BitbucketServerConfiguration serverConf = getServer(serverId);
         BitbucketProjectSearchClient projectSearchClient =
                 bitbucketClientFactoryProvider
-                        .getClient(getServer(serverId), getCredentials(credentialsId))
+                        .getClient(serverConf.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(credentialsId, serverConf))
                         .getProjectSearchClient();
         try {
             BitbucketPage<BitbucketProject> projects =
@@ -72,9 +74,11 @@ public class BitbucketSearchEndpoint implements RootAction {
         if (StringUtils.isBlank(projectKey)) {
             throw error(HTTP_BAD_REQUEST, "The projectKey must be present");
         }
+        BitbucketServerConfiguration serverConf = getServer(serverId);
         BitbucketRepositorySearchClient searchClient =
                 bitbucketClientFactoryProvider
-                        .getClient(getServer(serverId), getCredentials(credentialsId))
+                        .getClient(serverConf.getBaseUrl(),
+                                BitbucketCredentialsAdaptor.createWithFallback(credentialsId, serverConf))
                         .getRepositorySearchClient(projectKey);
         try {
             BitbucketPage<BitbucketRepository> repositories =

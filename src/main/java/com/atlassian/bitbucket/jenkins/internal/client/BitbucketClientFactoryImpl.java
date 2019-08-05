@@ -26,13 +26,13 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     private static final Logger log = Logger.getLogger(BitbucketClientFactoryImpl.class);
 
     private final HttpUrl baseUrl;
-    private final BitbucketCredential credentials;
+    private final BitbucketCredentials credentials;
     private final ObjectMapper objectMapper;
     private HttpRequestExecutor httpRequestExecutor;
 
     BitbucketClientFactoryImpl(
             String serverUrl,
-            BitbucketCredential credentials,
+            BitbucketCredentials credentials,
             ObjectMapper objectMapper,
             HttpRequestExecutor httpRequestExecutor) {
         baseUrl = parse(requireNonNull(serverUrl));
@@ -182,13 +182,6 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
      * @param returnType type reference used when getting generified objects (such as pages)
      * @param <T> type to return
      * @return a deserialized object of type T
-     * @throws AuthorizationException if the credentials did not allow access to the given url
-     * @throws NoContentException if a body was expected but the server did not respond with a body
-     * @throws ConnectionFailureException if the server did not respond
-     * @throws NotFoundException if the requested url does not exist
-     * @throws BadRequestException if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException if the server failed to process the request
-     * @throws BitbucketClientException for all errors not already captured
      * @see #makeGetRequest(HttpUrl, Class)
      */
     <T> BitbucketResponse<T> makeGetRequest(
@@ -207,16 +200,9 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
      *         this method will not work
      * @param <T> type to return
      * @return a deserialized object of type T
-     * @throws AuthorizationException if the credentials did not allow access to the given url
-     * @throws NoContentException if a body was expected but the server did not respond with a body
-     * @throws ConnectionFailureException if the server did not respond
-     * @throws NotFoundException if the requested url does not exist
-     * @throws BadRequestException if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException if the server failed to process the request
-     * @throws BitbucketClientException for all errors not already captured
      * @see #makeGetRequest(HttpUrl, TypeReference)
      */
-    <T> BitbucketResponse<T> makeGetRequest(@Nonnull HttpUrl url, @Nonnull Class<T> returnType) {
+    private <T> BitbucketResponse<T> makeGetRequest(@Nonnull HttpUrl url, @Nonnull Class<T> returnType) {
         return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
     }
 

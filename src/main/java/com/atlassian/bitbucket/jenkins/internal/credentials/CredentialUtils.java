@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.utils;
+package com.atlassian.bitbucket.jenkins.internal.credentials;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -33,7 +33,7 @@ public class CredentialUtils {
     }
 
     @CheckForNull
-    public static Credentials getCredentials(Class type, String credentialsId) {
+    private static Credentials getCredentials(Class type, String credentialsId) {
         return firstOrNull(
                 lookupCredentials(type, Jenkins.get(), ACL.SYSTEM, Collections.emptyList()),
                 withId(trimToEmpty(credentialsId)));

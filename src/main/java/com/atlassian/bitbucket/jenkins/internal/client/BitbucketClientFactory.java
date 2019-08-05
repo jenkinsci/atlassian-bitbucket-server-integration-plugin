@@ -48,6 +48,7 @@ public interface BitbucketClientFactory {
 
     /**
      * Returns a client that can return the supported web hook events
+     *
      * @return a client that can fetch supported event type.
      */
     BitbucketWebhookSupportedEventsClient getWebhookCapabilities();

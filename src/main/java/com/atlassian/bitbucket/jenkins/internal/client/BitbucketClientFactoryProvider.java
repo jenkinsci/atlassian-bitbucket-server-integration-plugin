@@ -1,9 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.utils.JenkinsToBitbucketCredentialFactory;
-import com.cloudbees.plugins.credentials.Credentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Plugin;
 import jenkins.model.Jenkins;
@@ -14,7 +11,6 @@ import okhttp3.Response;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Singleton;
 import java.io.IOException;
@@ -31,18 +27,16 @@ public class BitbucketClientFactoryProvider {
             new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build();
 
     /**
-     * Return a client factory for the given server.
+     * Return a client factory for the given base URL.
      *
-     * @param server the server to connect to
+     * @param baseUrl the URL to connect to
      * @return a ready to use client factory
      */
     public BitbucketClientFactory getClient(
-            @Nonnull BitbucketServerConfiguration server, @Nullable Credentials credentials) {
-        credentials = credentials == null ? server.getCredentials() : credentials;
-        BitbucketCredential bitbucketCredential = JenkinsToBitbucketCredentialFactory.create(credentials);
+            @Nonnull String baseUrl, @Nonnull BitbucketCredentials credentials) {
         return new BitbucketClientFactoryImpl(
-                server.getBaseUrl(),
-                bitbucketCredential,
+                baseUrl,
+                credentials,
                 objectMapper,
                 new HttpRequestExecutorImpl(okHttpClient));
     }

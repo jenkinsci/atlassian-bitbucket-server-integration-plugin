@@ -6,8 +6,9 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationEx
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
-import com.atlassian.bitbucket.jenkins.internal.utils.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -288,14 +289,14 @@ public class BitbucketServerConfiguration
 
                 Optional<String> username =
                         clientFactoryProvider
-                                .getClient(config, config.getAdminCredentials())
+                                .getClient(config.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(config.getAdminCredentials(), config))
                                 .getUsernameClient()
                                 .get();
                 if (!username.isPresent()) {
                     return FormValidation.error("The admin credentials are invalid");
                 }
                 BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(config, credentials);
+                        clientFactoryProvider.getClient(config.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(credentials, config));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().get();
                 if (credentials instanceof StringCredentials) {

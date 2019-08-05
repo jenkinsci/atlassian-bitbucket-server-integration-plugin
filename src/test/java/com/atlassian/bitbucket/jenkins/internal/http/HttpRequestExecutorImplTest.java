@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.http;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import okhttp3.*;
@@ -15,8 +15,8 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential.ANONYMOUS_CREDENTIALS;
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential.AUTHORIZATION_HEADER_KEY;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.AUTHORIZATION_HEADER_KEY;
 import static java.net.HttpURLConnection.*;
 import static okhttp3.HttpUrl.parse;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -33,7 +33,7 @@ public class HttpRequestExecutorImplTest {
 
     private MockRemoteHttpServer factory = new MockRemoteHttpServer();
     @Mock
-    private BitbucketCredential credential;
+    private BitbucketCredentials credential;
     private HttpRequestExecutor httpBasedRequestExecutor = new HttpRequestExecutorImpl(factory);
 
     @Before

@@ -42,7 +42,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Before
     public void setup() {
-        anonymousClientFactory = getClientFactory(BASE_URL, BitbucketCredential.ANONYMOUS_CREDENTIALS);
+        anonymousClientFactory = getClientFactory(BASE_URL, BitbucketCredentials.ANONYMOUS_CREDENTIALS);
     }
 
     @Test
@@ -220,7 +220,7 @@ public class BitbucketClientFactoryImplTest {
     }
 
     private BitbucketClientFactoryImpl getClientFactory(
-            String url, BitbucketCredential credentials) {
+            String url, BitbucketCredentials credentials) {
         return new BitbucketClientFactoryImpl(url, credentials, objectMapper, mockRemoteHttpServer);
     }
 
@@ -261,7 +261,7 @@ public class BitbucketClientFactoryImplTest {
         private final Map<String, ResponseBody> urlToResponseBody = new HashMap<>();
 
         @Override
-        public <T> T executeGet(@Nonnull HttpUrl httpUrl, @Nonnull BitbucketCredential credential,
+        public <T> T executeGet(@Nonnull HttpUrl httpUrl, @Nonnull BitbucketCredentials credential,
                                 @Nonnull ResponseConsumer<T> consumer) {
             String url = httpUrl.toString();
             String result = urlToResult.get(url);

@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.http;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import okhttp3.*;
@@ -12,8 +12,8 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential.ANONYMOUS_CREDENTIALS;
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredential.AUTHORIZATION_HEADER_KEY;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.AUTHORIZATION_HEADER_KEY;
 import static java.net.HttpURLConnection.*;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
@@ -27,7 +27,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {this.httpCallFactory = httpCallFactory;}
 
     @Override
-    public <T> T executeGet(@Nonnull HttpUrl url, @Nonnull BitbucketCredential credential,
+    public <T> T executeGet(@Nonnull HttpUrl url, @Nonnull BitbucketCredentials credential,
                             @Nonnull ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
         if (credential != ANONYMOUS_CREDENTIALS) {
