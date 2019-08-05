@@ -4,7 +4,7 @@ def f = namespace(lib.FormTagLib)
 def c = namespace(lib.CredentialsTagLib)
 
 
-f.section(title: _("bitbucket")) {
+f.section() {
     f.entry(title: _("bitbucket.server.id"), field: "id") {
         f.readOnlyTextbox(clazz: "bbs-server-id-textbox", checkMethod: "post")
     }

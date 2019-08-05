@@ -177,7 +177,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkBaseUrl(String baseUrl) {
         if (StringUtils.isEmpty(baseUrl)) {
-            return FormValidation.error("Please specify a url.");
+            return FormValidation.error("Enter your Bitbucket instance's URL.");
         }
         try {
             URL base = new URL(baseUrl);
@@ -202,7 +202,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkServerName(String serverName) {
         return isBlank(serverName)
-                ? FormValidation.error("Please specify a name.")
+                ? FormValidation.error("Enter a name to help users identify this instance.")
                 : FormValidation.ok();
     }
 
@@ -334,7 +334,7 @@ public class BitbucketServerConfiguration
 
         @Override
         public String getDisplayName() {
-            return "Bitbucket Server";
+            return "Instance details";
         }
     }
 }
