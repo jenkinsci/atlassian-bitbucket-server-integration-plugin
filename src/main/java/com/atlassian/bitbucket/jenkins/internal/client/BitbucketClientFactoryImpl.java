@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
 import static java.net.HttpURLConnection.*;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.requireNonNull;
+import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
@@ -37,18 +39,18 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     private static final Logger log = Logger.getLogger(BitbucketClientFactoryImpl.class);
     private final HttpUrl baseUrl;
     private final Credentials credentials;
+    private final Call.Factory httpCallFactory;
     private final ObjectMapper objectMapper;
-    private final OkHttpClient okHttpClient;
 
     BitbucketClientFactoryImpl(
             String serverUrl,
             @Nullable Credentials credentials,
             ObjectMapper objectMapper,
-            OkHttpClient client) {
-        baseUrl = HttpUrl.parse(requireNonNull(serverUrl));
+            Call.Factory client) {
+        baseUrl = parse(requireNonNull(serverUrl));
         this.credentials = credentials;
         this.objectMapper = requireNonNull(objectMapper);
-        okHttpClient = requireNonNull(client);
+        httpCallFactory = requireNonNull(client);
     }
 
     @Override
@@ -170,6 +172,24 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                 return usernames.stream().findFirst();
             }
             return Optional.empty();
+        };
+    }
+
+    @Override
+    public BitbucketWebhookSupportedEventsClient getWebhookCapabilities() {
+        return () -> {
+            AtlassianServerCapabilities capabilities = getCapabilityClient().get();
+            String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
+            if(urlStr == null) {
+                throw new WebhookNotSupportedException("Remote Bitbucket Server does not support Web hooks. Make sure " +
+                                                       "Bitbucket server supports web hooks or correct version of it is installed.");
+            }
+            HttpUrl url = parse(urlStr);
+            if(url == null) {
+                throw new IllegalStateException(
+                        "URL to fetch supported web hook supported event is wrong. URL: " + urlStr);
+            }
+            return makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
         };
     }
 
@@ -299,7 +319,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         addCredentials(requestBuilder);
 
         try {
-            Response response = okHttpClient.newCall(requestBuilder.build()).execute();
+            Response response = httpCallFactory.newCall(requestBuilder.build()).execute();
             int responseCode = response.code();
 
             try (ResponseBody body = response.body()) {
