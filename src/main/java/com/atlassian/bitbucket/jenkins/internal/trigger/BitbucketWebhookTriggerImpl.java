@@ -15,8 +15,6 @@ import hudson.util.StreamTaskListener;
 import jenkins.triggers.SCMTriggerItem;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -28,11 +26,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketWebhookTriggerImpl.class);
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
@@ -143,22 +143,22 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                 PrintStream logger = listener.getLogger();
                 logger.println(
                         "Starting polling: "
-                        + DateFormat.getDateTimeInstance().format(new Date(start)));
+                                + DateFormat.getDateTimeInstance().format(new Date(start)));
 
                 PollingResult result = triggerItem.poll(listener);
                 logger.println(
                         "Poll complete. Took "
-                        + Util.getTimeSpanString(System.currentTimeMillis() - start));
+                                + Util.getTimeSpanString(System.currentTimeMillis() - start));
 
                 if (result.hasChanges()) {
                     logger.println("Changes since last build: " + result.change);
                     triggerItem.scheduleBuild2(0, actions.toArray(ACTION_ARRAY));
                 }
             } catch (IOException | RuntimeException e) {
-                LOGGER.error(
-                        "Failed to trigger job {} because an error occurred while writing the polling log to {}",
+                LOGGER.log(Level.SEVERE, String.format(
+                        "Failed to trigger job %s because an error occurred while writing the polling log to %s",
                         job,
-                        logFile.getPath(),
+                        logFile.getPath()),
                         e);
             }
         }
