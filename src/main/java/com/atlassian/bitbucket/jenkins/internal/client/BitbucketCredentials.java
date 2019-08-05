@@ -23,7 +23,7 @@ public interface BitbucketCredentials {
 
         @Override
         public String toHeaderValue() {
-            throw new IllegalStateException();
+            return "";
         }
     }
 }

@@ -45,22 +45,22 @@ public class BitbucketCredentialsAdaptor implements BitbucketCredentials {
 
     @Override
     public String toHeaderValue() {
-        String headerValue = null;
         if (credentials instanceof StringCredentials) {
-            headerValue = "Bearer " + ((StringCredentials) credentials).getSecret().getPlainText();
+            return "Bearer " + ((StringCredentials) credentials).getSecret().getPlainText();
         } else if (credentials instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) credentials;
             String authorization = upc.getUsername() + ':' + upc.getPassword().getPlainText();
-            headerValue =
+            return
                     "Basic "
                     + Base64.getEncoder()
                             .encodeToString(authorization.getBytes(Charsets.UTF_8));
         } else if (credentials instanceof BitbucketTokenCredentials) {
-            headerValue =
+            return
                     "Bearer "
                     + ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
+        } else {
+            return ANONYMOUS_CREDENTIALS.toHeaderValue();
         }
-        return headerValue;
     }
 
     private static BitbucketCredentials create(BitbucketServerConfiguration configuration) {
