@@ -16,7 +16,7 @@
         <bitbucket.version>5.6.0</bitbucket.version>
         <java.level>8</java.level>
         <jackson.version>2.9.9</jackson.version>
-        <jenkins.version>2.164.1</jenkins.version>
+        <jenkins.version>2.162</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <name>Atlassian Bitbucket Server Integration</name>
