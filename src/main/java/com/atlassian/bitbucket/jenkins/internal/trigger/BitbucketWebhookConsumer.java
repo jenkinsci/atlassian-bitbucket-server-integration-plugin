@@ -101,8 +101,8 @@ public class BitbucketWebhookConsumer {
     }
 
     private static boolean matchingRepo(BitbucketRepository repository, BitbucketSCMRepository scmRepo) {
-        return scmRepo.getProjectKey().equals(repository.getProject().getKey()) &&
-               scmRepo.getRepositorySlug().equals(repository.getSlug());
+        return scmRepo.getProjectKey().equalsIgnoreCase(repository.getProject().getKey()) &&
+               scmRepo.getRepositorySlug().equalsIgnoreCase(repository.getSlug());
     }
 
     private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob job) {
