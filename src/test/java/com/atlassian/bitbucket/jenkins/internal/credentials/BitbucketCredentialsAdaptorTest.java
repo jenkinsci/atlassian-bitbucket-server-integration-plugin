@@ -19,6 +19,28 @@ import static org.mockito.Mockito.when;
 public class BitbucketCredentialsAdaptorTest {
 
     @Test
+    public void testBasicAuth() {
+        Secret secret = SecretFactory.getSecret("password");
+        String username = "username";
+
+        UsernamePasswordCredentials cred = mock(UsernamePasswordCredentials.class);
+        when(cred.getPassword()).thenReturn(secret);
+        when(cred.getUsername()).thenReturn(username);
+
+        assertThat(toHeaderValue(cred), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
+    }
+
+    @Test
+    public void testBitbucketToken() {
+        Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
+
+        BitbucketTokenCredentials cred = mock(BitbucketTokenCredentials.class);
+        when(cred.getSecret()).thenReturn(secret);
+
+        assertThat(toHeaderValue(cred), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
+    }
+
+    @Test
     public void testFallbackCredentialsNotUsed() {
         BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
 
@@ -53,15 +75,14 @@ public class BitbucketCredentialsAdaptorTest {
     }
 
     @Test
-    public void testBasicAuth() {
-        Secret secret = SecretFactory.getSecret("password");
-        String username = "username";
+    public void testNullCredentials() {
+        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
+        when(conf.getCredentials()).thenReturn(null);
+        Credentials c = null;
 
-        UsernamePasswordCredentials cred = mock(UsernamePasswordCredentials.class);
-        when(cred.getPassword()).thenReturn(secret);
-        when(cred.getUsername()).thenReturn(username);
+        BitbucketCredentials bitbucketCredentials = BitbucketCredentialsAdaptor.createWithFallback(c, conf);
 
-        assertThat(toHeaderValue(cred), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
+        assertThat(bitbucketCredentials, is(BitbucketCredentials.ANONYMOUS_CREDENTIALS));
     }
 
     @Test
@@ -72,27 +93,6 @@ public class BitbucketCredentialsAdaptorTest {
         when(cred.getSecret()).thenReturn(secret);
 
         assertThat(toHeaderValue(cred), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
-    }
-
-    @Test
-    public void testBitbucketToken() {
-        Secret secret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
-
-        BitbucketTokenCredentials cred = mock(BitbucketTokenCredentials.class);
-        when(cred.getSecret()).thenReturn(secret);
-
-        assertThat(toHeaderValue(cred), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
-    }
-
-    @Test
-    public void testNullCredentials() {
-        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
-        when(conf.getCredentials()).thenReturn(null);
-        Credentials c = null;
-
-        BitbucketCredentials bitbucketCredentials = BitbucketCredentialsAdaptor.createWithFallback(c, conf);
-
-        assertThat(bitbucketCredentials, is(BitbucketCredentials.ANONYMOUS_CREDENTIALS));
     }
 
     private String toHeaderValue(Credentials cred) {

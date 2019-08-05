@@ -1,44 +1,33 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
+import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-import okio.BufferedSource;
-import org.apache.tools.ant.filters.StringInputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
-    private MockRemoteHttpServer mockRemoteHttpServer = new MockRemoteHttpServer();
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();
 
     @Before
     public void setup() {
@@ -47,7 +36,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetCapabilties() {
-        mockRemoteHttpServer.mapUrlToResult(
+        mockExecutor.mapUrlToResult(
                 BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
         assertTrue(response.isBitbucketServer());
@@ -56,20 +45,8 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetWebHookCapabilities() {
-        mockRemoteHttpServer.mapUrlToResult(
-                BASE_URL + "/rest/webhooks/latest/capabilities", readWebhookCapabilitiesResponseFromFile());
-        mockRemoteHttpServer.mapUrlToResult(
-                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
-
-        BitbucketWebhookSupportedEvents hookSupportedEvents =
-                anonymousClientFactory.getWebhookCapabilities().get();
-        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
-    }
-
-    @Test
     public void testGetFullRepository() {
-        mockRemoteHttpServer.mapUrlToResult(
+        mockExecutor.mapUrlToResult(
                 BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
                 readFullRepositoryFromFile());
 
@@ -103,7 +80,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetNoSShRepository() {
-        mockRemoteHttpServer.mapUrlToResult(
+        mockExecutor.mapUrlToResult(
                 BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
                 readNoSshRepositoryFromFile());
 
@@ -135,7 +112,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetProject() {
-        mockRemoteHttpServer.mapUrlToResult(
+        mockExecutor.mapUrlToResult(
                 BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
         BitbucketProject project = anonymousClientFactory.getProjectClient("QA").get();
 
@@ -147,7 +124,7 @@ public class BitbucketClientFactoryImplTest {
         String url = BASE_URL + "/rest/api/1.0/projects";
 
         String projectPage = readFileToString("/project-page-all-response.json");
-        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
+        mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
                 anonymousClientFactory.getProjectSearchClient().get();
@@ -163,7 +140,7 @@ public class BitbucketClientFactoryImplTest {
         String url = BASE_URL + "/rest/api/1.0/projects?name=myFilter";
 
         String projectPage = readFileToString("/project-page-filtered-response.json");
-        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
+        mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
                 anonymousClientFactory.getProjectSearchClient().get("myFilter");
@@ -180,7 +157,7 @@ public class BitbucketClientFactoryImplTest {
         String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos";
 
         String projectPage = readFileToString("/repo-filter-response.json");
-        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
+        mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
                 anonymousClientFactory.getRepositorySearchClient("PROJ").get();
@@ -196,7 +173,7 @@ public class BitbucketClientFactoryImplTest {
         String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos?filter=rep";
 
         String projectPage = readFileToString("/repo-filter-response.json");
-        mockRemoteHttpServer.mapUrlToResult(url, projectPage);
+        mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
                 anonymousClientFactory.getRepositorySearchClient("PROJ").get("rep");
@@ -212,16 +189,29 @@ public class BitbucketClientFactoryImplTest {
     public void testGetUsername() {
         String url = BASE_URL + "/rest/capabilities";
         String username = "CoolBananas";
-        mockRemoteHttpServer.mapUrlToResultWithHeaders(url,
+        mockExecutor.mapUrlToResultWithHeaders(url,
                 readCapabilitiesResponseFromFile(),
                 singletonMap("X-AUSERNAME", username));
 
         assertEquals(username, anonymousClientFactory.getUsernameClient().get().get());
     }
 
+    @Test
+    public void testGetWebHookCapabilities() {
+        mockExecutor.mapUrlToResult(
+                BASE_URL + "/rest/webhooks/latest/capabilities", readWebhookCapabilitiesResponseFromFile());
+        mockExecutor.mapUrlToResult(
+                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
+
+        BitbucketWebhookSupportedEvents hookSupportedEvents =
+                anonymousClientFactory.getWebhookCapabilities().get();
+        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
+    }
+
     private BitbucketClientFactoryImpl getClientFactory(
             String url, BitbucketCredentials credentials) {
-        return new BitbucketClientFactoryImpl(url, credentials, objectMapper, mockRemoteHttpServer);
+        HttpRequestExecutor executor = new HttpRequestExecutorImpl(mockExecutor);
+        return new BitbucketClientFactoryImpl(url, credentials, objectMapper, executor);
     }
 
     private String readCapabilitiesResponseFromFile() {
@@ -251,64 +241,5 @@ public class BitbucketClientFactoryImplTest {
 
     private String readWebhookCapabilitiesResponseFromFile() {
         return readFileToString("/webhook-capabilities-response.json");
-    }
-
-    private class MockRemoteHttpServer implements HttpRequestExecutor {
-
-        private final Map<String, Map<String, String>> headers = new HashMap<>();
-        private final Map<String, String> urlToResult = new HashMap<>();
-        private final Map<String, Integer> urlToReturnCode = new HashMap<>();
-        private final Map<String, ResponseBody> urlToResponseBody = new HashMap<>();
-
-        @Override
-        public <T> T executeGet(@Nonnull HttpUrl httpUrl, @Nonnull BitbucketCredentials credential,
-                                @Nonnull ResponseConsumer<T> consumer) {
-            String url = httpUrl.toString();
-            String result = urlToResult.get(url);
-            ResponseBody body = mockResponseBody(result);
-            urlToResponseBody.put(url, body);
-            Response response = getResponse(url, 200, Collections.emptyMap(), body);
-            return consumer.consume(response);
-        }
-
-        void mapUrlToResult(String url, String result) {
-            urlToResult.put(url, result);
-            headers.put(url, emptyMap());
-            urlToReturnCode.put(url, 200);
-        }
-
-        void mapUrlToResultWithHeaders(String url, String result, Map<String, String> h) {
-            urlToResult.put(url, result);
-            headers.put(url, h);
-            urlToReturnCode.put(url, 200);
-        }
-
-        private Response getResponse(String url, int responseCode, Map<String, String> headers, ResponseBody body) {
-            return new Response.Builder()
-                    .code(responseCode)
-                    .request(new Request.Builder().url(url).build())
-                    .protocol(Protocol.HTTP_1_1)
-                    .message("Hello handsome!")
-                    .body(body)
-                    .headers(Headers.of(headers))
-                    .build();
-        }
-
-        private ResponseBody mockResponseBody(String result) {
-            try {
-                ResponseBody mockBody = null;
-                if (!isBlank(result)) {
-                    mockBody = mock(ResponseBody.class);
-                    BufferedSource bufferedSource = mock(BufferedSource.class);
-                    when(bufferedSource.readString(any())).thenReturn(result);
-                    when(bufferedSource.select(any())).thenReturn(0);
-                    when(mockBody.source()).thenReturn(bufferedSource);
-                    when(mockBody.byteStream()).thenReturn(new StringInputStream(result));
-                }
-                return mockBody;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
     }
 }

@@ -27,8 +27,8 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     private final HttpUrl baseUrl;
     private final BitbucketCredentials credentials;
-    private final ObjectMapper objectMapper;
     private HttpRequestExecutor httpRequestExecutor;
+    private final ObjectMapper objectMapper;
 
     BitbucketClientFactoryImpl(
             String serverUrl,
@@ -168,7 +168,15 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return () -> {
             AtlassianServerCapabilities capabilities = getCapabilityClient().get();
             String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
+            if(urlStr == null) {
+                throw new WebhookNotSupportedException("Remote Bitbucket Server does not support Web hooks. Make sure " +
+                                                       "Bitbucket server supports web hooks or correct version of it is installed.");
+            }
             HttpUrl url = parse(urlStr);
+            if(url == null) {
+                throw new IllegalStateException(
+                        "URL to fetch supported web hook supported event is wrong. URL: " + urlStr);
+            }
             return makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
         };
     }
