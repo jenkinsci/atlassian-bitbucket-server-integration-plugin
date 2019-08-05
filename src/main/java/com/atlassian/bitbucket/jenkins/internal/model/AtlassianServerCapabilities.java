@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -23,7 +23,7 @@ public class AtlassianServerCapabilities {
     public AtlassianServerCapabilities(@JsonProperty(value = "application") String application,
                                        @JsonProperty(value = "capabilities") Map<String, String> capabilities) {
         this.application = application;
-        this.capabilities = capabilities;
+        this.capabilities = Collections.unmodifiableMap(capabilities);
     }
 
     /**

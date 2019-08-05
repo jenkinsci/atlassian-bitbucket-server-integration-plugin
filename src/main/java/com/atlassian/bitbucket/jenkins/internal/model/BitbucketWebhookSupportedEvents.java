@@ -6,14 +6,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketWebhookSupportedEvents {
 
-    private Set<String> applicationWebHooks;
+    private final Set<String> applicationWebHooks;
 
     @JsonCreator
     public BitbucketWebhookSupportedEvents(@JsonProperty(value = "application-webhooks") Set<String> applicationWebHooks) {
-        this.applicationWebHooks = applicationWebHooks;
+        this.applicationWebHooks = requireNonNull(applicationWebHooks, "Application hooks events unavailable");
     }
 
     public Set<String> getApplicationWebHooks() {

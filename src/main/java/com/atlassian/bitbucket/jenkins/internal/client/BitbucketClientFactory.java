@@ -35,6 +35,7 @@ public interface BitbucketClientFactory {
      * Return a repository search client
      *
      * @param projectKey The project key to scope the repository search
+     *
      * @return a client that it ready to use
      */
     BitbucketRepositorySearchClient getRepositorySearchClient(String projectKey);
@@ -48,6 +49,7 @@ public interface BitbucketClientFactory {
 
     /**
      * Returns a client that can return the supported web hook events
+     *
      * @return a client that can fetch supported event type.
      */
     BitbucketWebhookSupportedEventsClient getWebhookCapabilities();

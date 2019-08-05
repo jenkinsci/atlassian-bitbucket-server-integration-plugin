@@ -46,10 +46,10 @@ import static org.mockito.Mockito.*;
 public class BitbucketClientFactoryImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
-    private MockRemoteHttpServer mockRemoteHttpServer = new MockRemoteHttpServer();
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final MockRemoteHttpServer mockRemoteHttpServer = new MockRemoteHttpServer();
 
     @Before
     public void setup() {
@@ -159,8 +159,10 @@ public class BitbucketClientFactoryImplTest {
     @Test
     public void testGetCapabilties() {
         mockRemoteHttpServer.mapUrlToResult(
-                BASE_URL + "/rest/capabilities",readCapabilitiesResponseFromFile());
+                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
+
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
+
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
         assertThat(response.getCapabilities(), hasKey("webhooks"));
@@ -176,7 +178,6 @@ public class BitbucketClientFactoryImplTest {
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getWebhookCapabilities().get();
         assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
-
     }
 
     @Test
@@ -584,5 +585,4 @@ public class BitbucketClientFactoryImplTest {
             }
         }
     }
-
 }
