@@ -362,7 +362,7 @@ public class BitbucketSCM extends SCM {
                                             server.getId(),
                                             server.getId().equals(serverId)))
                             .collect(toCollection(StandardListBoxModel::new));
-            if (model.isEmpty()) {
+            if (model.isEmpty() || model.stream().noneMatch(server -> server.value.equals(serverId))) {
                 model.includeEmptyValue();
             }
             return model;
