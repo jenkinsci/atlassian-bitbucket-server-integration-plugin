@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 public class BitbucketClientFactoryImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
     private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();

@@ -10,10 +10,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Singleton;
 import java.io.IOException;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Client factory provider, use to ensure that expensive objects are only created once and re-used.
@@ -32,8 +33,9 @@ public class BitbucketClientFactoryProvider {
      * @param baseUrl the URL to connect to
      * @return a ready to use client factory
      */
-    public BitbucketClientFactory getClient(
-            @Nonnull String baseUrl, @Nonnull BitbucketCredentials credentials) {
+    public BitbucketClientFactory getClient(String baseUrl, BitbucketCredentials credentials) {
+        requireNonNull(baseUrl, "Bitbucket Server base url cannot be null.");
+        requireNonNull(credentials, "Credentials can't be null. For no credentials use anonymous.");
         return new BitbucketClientFactoryImpl(
                 baseUrl,
                 credentials,

@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,10 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
 import static java.util.Collections.emptyMap;
@@ -168,12 +170,14 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return () -> {
             AtlassianServerCapabilities capabilities = getCapabilityClient().get();
             String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
-            if(urlStr == null) {
-                throw new WebhookNotSupportedException("Remote Bitbucket Server does not support Web hooks. Make sure " +
-                                                       "Bitbucket server supports web hooks or correct version of it is installed.");
+            if (urlStr == null) {
+                throw new WebhookNotSupportedException(
+                        "Remote Bitbucket Server does not support Web hooks. Make sure " +
+                        "Bitbucket server supports web hooks or correct version of it is installed.");
             }
+
             HttpUrl url = parse(urlStr);
-            if(url == null) {
+            if (url == null) {
                 throw new IllegalStateException(
                         "URL to fetch supported web hook supported event is wrong. URL: " + urlStr);
             }
@@ -186,14 +190,13 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
      * If the requested resource is paged, or the return type is generified use this method,
      * otherwise the {@link #makeGetRequest(HttpUrl, Class)} is most likely a better choice.
      *
-     * @param url url to connect to
+     * @param url        url to connect to
      * @param returnType type reference used when getting generified objects (such as pages)
-     * @param <T> type to return
+     * @param <T>        type to return
      * @return a deserialized object of type T
      * @see #makeGetRequest(HttpUrl, Class)
      */
-    <T> BitbucketResponse<T> makeGetRequest(
-            @Nonnull HttpUrl url, @Nonnull TypeReference<T> returnType) {
+    <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, TypeReference<T> returnType) {
         return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
     }
 
@@ -203,14 +206,14 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
      * generics (such as {@link BitbucketPage}) for that use {@link #makeGetRequest(HttpUrl,
      * TypeReference)} instead.
      *
-     * @param url url to connect to
+     * @param url        url to connect to
      * @param returnType class of the desired return type. Do note that if the type is generified
-     *         this method will not work
-     * @param <T> type to return
+     *                   this method will not work
+     * @param <T>        type to return
      * @return a deserialized object of type T
      * @see #makeGetRequest(HttpUrl, TypeReference)
      */
-    private <T> BitbucketResponse<T> makeGetRequest(@Nonnull HttpUrl url, @Nonnull Class<T> returnType) {
+    private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, Class<T> returnType) {
         return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
     }
 
@@ -225,14 +228,13 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return builder.addPathSegment("rest").addPathSegment("api").addPathSegment("1.0");
     }
 
-    private <T> BitbucketResponse<T> makeGetRequest(
-            @Nonnull HttpUrl url, @Nonnull ObjectReader<T> reader) {
+    private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, ObjectReader<T> reader) {
         return httpRequestExecutor.executeGet(url, credentials,
-                    response -> new BitbucketResponse<>(
-                            response.headers().toMultimap(), unmarshall(reader, response.body())));
+                response -> new BitbucketResponse<>(
+                        response.headers().toMultimap(), unmarshall(reader, response.body())));
     }
 
-    private <T> T unmarshall(@Nonnull ObjectReader<T> reader, ResponseBody body) {
+    private <T> T unmarshall(ObjectReader<T> reader, ResponseBody body) {
         try {
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
@@ -242,6 +244,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     private interface ObjectReader<T> {
+
         T readObject(InputStream in) throws IOException;
     }
 }
