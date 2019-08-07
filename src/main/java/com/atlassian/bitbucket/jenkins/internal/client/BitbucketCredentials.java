@@ -13,13 +13,15 @@ public interface BitbucketCredentials {
 
     /**
      * Convert this representation to authorization header value.
+     *
      * @return header value.
      */
     String toHeaderValue();
 
     class AnonymousCredentials implements BitbucketCredentials {
 
-        private AnonymousCredentials(){}
+        private AnonymousCredentials() {
+        }
 
         @Override
         public String toHeaderValue() {

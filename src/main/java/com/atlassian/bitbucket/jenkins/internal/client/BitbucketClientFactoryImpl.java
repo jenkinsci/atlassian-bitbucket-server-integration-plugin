@@ -38,7 +38,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             ObjectMapper objectMapper,
             HttpRequestExecutor httpRequestExecutor) {
         baseUrl = parse(requireNonNull(serverUrl));
-        this.credentials = credentials;
+        this.credentials = requireNonNull(credentials);
         this.objectMapper = requireNonNull(objectMapper);
         this.httpRequestExecutor = requireNonNull(httpRequestExecutor);
     }

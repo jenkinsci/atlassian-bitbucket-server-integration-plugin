@@ -7,6 +7,7 @@ import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
@@ -22,7 +23,7 @@ public class CredentialUtils {
     }
 
     @CheckForNull
-    public static Credentials getCredentials(String credentialsId) {
+    public static Credentials getCredentials(@Nullable String credentialsId) {
         Credentials creds = getCredentials(StringCredentials.class, credentialsId);
 
         if (creds == null) {

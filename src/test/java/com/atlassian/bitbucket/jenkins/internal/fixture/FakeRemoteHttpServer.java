@@ -118,7 +118,9 @@ public class FakeRemoteHttpServer implements Call.Factory {
         private final String result;
         private boolean isClosed;
 
-        private FakeResponseBody(String result) {this.result = result;}
+        private FakeResponseBody(String result) {
+            this.result = result;
+        }
 
         @Override
         public void close() {

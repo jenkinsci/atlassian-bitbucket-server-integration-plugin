@@ -1,12 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.http;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import okhttp3.*;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -24,11 +23,12 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private final Call.Factory httpCallFactory;
 
-    public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {this.httpCallFactory = httpCallFactory;}
+    public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
+        this.httpCallFactory = httpCallFactory;
+    }
 
     @Override
-    public <T> T executeGet(@Nonnull HttpUrl url, @Nonnull BitbucketCredentials credential,
-                            @Nonnull ResponseConsumer<T> consumer) {
+    public <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
         if (credential != ANONYMOUS_CREDENTIALS) {
             requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
