@@ -16,13 +16,12 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
-public class BitbucketCredentialsAdaptor implements BitbucketCredentials {
+public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
 
     private final Credentials credentials;
 
-    private BitbucketCredentialsAdaptor(@Nonnull Credentials credentials) {
-        requireNonNull(credentials);
-        this.credentials = credentials;
+    private BitbucketCredentialsAdaptor(Credentials credentials) {
+        this.credentials = requireNonNull(credentials);
     }
 
     public static BitbucketCredentials createWithFallback(@Nullable String credentials,
@@ -41,7 +40,6 @@ public class BitbucketCredentialsAdaptor implements BitbucketCredentials {
     static BitbucketCredentials create(@Nonnull Credentials credentials) {
         return new BitbucketCredentialsAdaptor(credentials);
     }
-
 
     @Override
     public String toHeaderValue() {
@@ -64,8 +62,10 @@ public class BitbucketCredentialsAdaptor implements BitbucketCredentials {
     }
 
     private static BitbucketCredentials create(BitbucketServerConfiguration configuration) {
-        return Optional.ofNullable(configuration.getCredentials())
-                .map(credentials -> (BitbucketCredentials) new BitbucketCredentialsAdaptor(credentials))
-                .orElse(ANONYMOUS_CREDENTIALS);
+        if (configuration.getCredentials() != null) {
+            return new BitbucketCredentialsAdaptor(configuration.getCredentials());
+        } else {
+            return ANONYMOUS_CREDENTIALS;
+        }
     }
 }
