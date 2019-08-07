@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import okhttp3.HttpUrl;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,6 +40,11 @@ public class HttpRequestExecutorImplTest {
     @Before
     public void setup() {
         when(credential.toHeaderValue()).thenReturn("xyz");
+    }
+
+    @After
+    public void teardown() {
+        factory.ensureResponseBodyClosed();
     }
 
     @Test
@@ -110,14 +116,6 @@ public class HttpRequestExecutorImplTest {
         // disabled the client will throw an exception
         factory.mapUrlToResponseCode(BASE_URL, HTTP_MOVED_PERM);
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
-    }
-
-    @Test
-    public void testResponseClosedProperly() {
-        factory.mapUrlToResult(BASE_URL, "hello");
-        httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
-
-        factory.ensureResponseBodyClosed();
     }
 
     @Test(expected = ServerErrorException.class)

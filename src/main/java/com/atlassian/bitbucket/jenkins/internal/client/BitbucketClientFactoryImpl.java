@@ -38,7 +38,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             ObjectMapper objectMapper,
             HttpRequestExecutor httpRequestExecutor) {
         baseUrl = parse(requireNonNull(serverUrl));
-        this.credentials = credentials;
+        this.credentials = requireNonNull(credentials);
         this.objectMapper = requireNonNull(objectMapper);
         this.httpRequestExecutor = requireNonNull(httpRequestExecutor);
     }
@@ -238,7 +238,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         try {
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
-            log.debug("Bitbucket - io exception while unmarshalling the body", e);
+            log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
             throw new BitbucketClientException(e);
         }
     }

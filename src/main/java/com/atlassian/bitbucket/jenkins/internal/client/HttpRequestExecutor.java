@@ -4,8 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 
-import javax.annotation.Nonnull;
-
 /**
  * Responsible for making remote HTTP calls to the given URL using passed in credentials. The implementation is tightly
  * bound with OkHttpClient library. Methods also takes {@link ResponseConsumer} instead of returning response in order
@@ -28,7 +26,7 @@ public interface HttpRequestExecutor {
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
      */
-    <T> T executeGet(HttpUrl url, @Nonnull BitbucketCredentials credential, ResponseConsumer<T> consumer);
+    <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer);
 
     interface ResponseConsumer<T> {
 
