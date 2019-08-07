@@ -1,22 +1,25 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import hudson.util.FormValidation;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.UUID;
+
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketServerConfigurationTest {
 
     @ClassRule
-    public static JenkinsRule jenkins = new JenkinsRule();
+    public static BitbucketMockJenkinsRule bbJenkins = new BitbucketMockJenkinsRule("token", wireMockConfig().dynamicPort());
 
     @Mock
     private BitbucketClientFactoryProvider clientFactoryProvider;
@@ -52,6 +55,12 @@ public class BitbucketServerConfigurationTest {
     }
 
     @Test
+    public void testMatchingAdminCredentials() {
+        assertEquals(FormValidation.Kind.OK,
+                descriptor.doCheckAdminCredentialsId(bbJenkins.getCredentialsId()).kind);
+    }
+
+    @Test
     public void testMissingHost() {
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckBaseUrl("http://").kind);
     }
@@ -65,6 +74,16 @@ public class BitbucketServerConfigurationTest {
     public void testNoContext() {
         assertEquals(
                 FormValidation.Kind.OK, descriptor.doCheckBaseUrl("http://localhost:7990").kind);
+    }
+
+    @Test
+    public void testNonMatchingAdminCredentials() {
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckAdminCredentialsId("nonmatching").kind);
+    }
+
+    @Test
+    public void testBlankAdminCredentials() {
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckAdminCredentialsId("").kind);
     }
 
     @Test
@@ -102,5 +121,75 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidServerName() {
         assertEquals(FormValidation.Kind.OK, descriptor.doCheckServerName("Server Name").kind);
+    }
+
+    @Test
+    public void testNullAdminCredentials() {
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckAdminCredentialsId(null).kind);
+    }
+
+    @Test
+    public void testBitbucketCloudBaseUrl() {
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckBaseUrl("http://www.bitbucket.org").kind);
+    }
+
+    @Test
+    public void testValidateValidServer() {
+        BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
+                bbJenkins.getCredentialsId(),
+                "http://localhost:7990/bitbucket",
+                bbJenkins.getCredentialsId(),
+                UUID.randomUUID().toString()
+        );
+        serverConfiguration.setServerName("Server Name");
+        assertEquals(FormValidation.Kind.OK, serverConfiguration.validate().kind);
+    }
+
+    @Test
+    public void testValidateIncorrectUrl() {
+        BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
+                bbJenkins.getCredentialsId(),
+                "http://",
+                bbJenkins.getCredentialsId(),
+                UUID.randomUUID().toString()
+        );
+        serverConfiguration.setServerName("Server Name");
+        assertEquals(FormValidation.Kind.ERROR, serverConfiguration.validate().kind);
+    }
+
+    @Test
+    public void testValidateIncorrectServerName() {
+        BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
+                bbJenkins.getCredentialsId(),
+                "http://localhost:7990/bitbucket",
+                bbJenkins.getCredentialsId(),
+                UUID.randomUUID().toString()
+        );
+        serverConfiguration.setServerName(null);
+        assertEquals(FormValidation.Kind.ERROR, serverConfiguration.validate().kind);
+    }
+
+    @Test
+    public void testValidateIncorrectAdminCredentials() {
+        BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
+                "",
+                "http://localhost:7990/bitbucket",
+                bbJenkins.getCredentialsId(),
+                UUID.randomUUID().toString()
+        );
+        serverConfiguration.setServerName("Server Name");
+        assertEquals(FormValidation.Kind.ERROR, serverConfiguration.validate().kind);
+    }
+
+    @Test
+    public void testValidateAllInvalid() {
+        BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
+                "",
+                "http://",
+                bbJenkins.getCredentialsId(),
+                UUID.randomUUID().toString()
+        );
+        serverConfiguration.setServerName(null);
+        assertEquals(FormValidation.Kind.ERROR, serverConfiguration.validate().kind);
     }
 }

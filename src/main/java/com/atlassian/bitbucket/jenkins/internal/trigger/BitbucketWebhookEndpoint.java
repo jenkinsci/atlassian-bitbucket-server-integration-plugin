@@ -9,14 +9,13 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @Extension
 public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
@@ -28,7 +27,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     public static final String X_EVENT_KEY = "X-Event-Key";
 
     private static final String APPLICATION_JSON = "application/json";
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketWebhookEndpoint.class);
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookEndpoint.class.getName());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -85,11 +84,11 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     private <T> T parse(StaplerRequest request, Class<T> type) throws ServletException {
         try {
             T event = objectMapper.readValue(request.getInputStream(), type);
-            LOGGER.trace("Payload {}", event);
+            LOGGER.fine(String.format("Payload: %s", event));
             return event;
         } catch (IOException e) {
             String error = "Failed to parse the body: " + e.getMessage();
-            LOGGER.error(error);
+            LOGGER.severe(error);
             throw org.kohsuke.stapler.HttpResponses.errorWithoutStack(HttpServletResponse.SC_BAD_REQUEST, error);
         }
     }
@@ -110,14 +109,14 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     private void validateContentType(StaplerRequest request) {
         String contentType = request.getContentType();
         if (contentType != null && !contentType.startsWith(APPLICATION_JSON)) {
-            LOGGER.error("Invalid content type {}", contentType);
+            LOGGER.severe(String.format("Invalid content type %s", contentType));
             throw org.kohsuke.stapler.HttpResponses.errorWithoutStack(
                     HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
                     "Invalid content type: '"
-                    + contentType
-                    + "'. Content type should be '"
-                    + APPLICATION_JSON
-                    + "'");
+                            + contentType
+                            + "'. Content type should be '"
+                            + APPLICATION_JSON
+                            + "'");
         }
     }
 }

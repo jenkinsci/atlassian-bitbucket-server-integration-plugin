@@ -1,9 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.fixture;
 
-import com.sun.xml.bind.StringInputStream;
 import okhttp3.*;
 import okio.Buffer;
 import okio.BufferedSource;
+import org.apache.tools.ant.filters.StringInputStream;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -14,7 +14,8 @@ import java.util.Objects;
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FakeRemoteHttpServer implements Call.Factory {
 

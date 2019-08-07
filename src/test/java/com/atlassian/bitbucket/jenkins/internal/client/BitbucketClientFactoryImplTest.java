@@ -11,11 +11,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.junit.Assert.*;
@@ -23,7 +25,7 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
 
-    private static final String BASE_URL = "http://localhost:7990/bitbucket";
+    private static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
@@ -31,13 +33,13 @@ public class BitbucketClientFactoryImplTest {
 
     @Before
     public void setup() {
-        anonymousClientFactory = getClientFactory(BASE_URL, BitbucketCredentials.ANONYMOUS_CREDENTIALS);
+        anonymousClientFactory = getClientFactory(BITBUCKET_BASE_URL, BitbucketCredentials.ANONYMOUS_CREDENTIALS);
     }
 
     @Test
     public void testGetCapabilties() {
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
+                BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
@@ -47,7 +49,7 @@ public class BitbucketClientFactoryImplTest {
     @Test
     public void testGetFullRepository() {
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
+                BITBUCKET_BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
                 readFullRepositoryFromFile());
 
         BitbucketRepository repository =
@@ -67,7 +69,7 @@ public class BitbucketClientFactoryImplTest {
                         .get()
                         .getHref());
         assertEquals(
-                BASE_URL + "/scm/qa/qa-resources.git",
+                BITBUCKET_BASE_URL + "/scm/qa/qa-resources.git",
                 repository
                         .getCloneUrls()
                         .stream()
@@ -81,7 +83,7 @@ public class BitbucketClientFactoryImplTest {
     @Test
     public void testGetNoSShRepository() {
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
+                BITBUCKET_BASE_URL + "/rest/api/1.0/projects/QA/repos/qa-resources",
                 readNoSshRepositoryFromFile());
 
         BitbucketRepository repository =
@@ -99,7 +101,7 @@ public class BitbucketClientFactoryImplTest {
                         .filter(link -> "ssh".equals(link.getName()))
                         .findFirst());
         assertEquals(
-                BASE_URL + "/scm/qa/qa-resources.git",
+                BITBUCKET_BASE_URL + "/scm/qa/qa-resources.git",
                 repository
                         .getCloneUrls()
                         .stream()
@@ -113,7 +115,7 @@ public class BitbucketClientFactoryImplTest {
     @Test
     public void testGetProject() {
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
+                BITBUCKET_BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
         BitbucketProject project = anonymousClientFactory.getProjectClient("QA").get();
 
         assertEquals("QA", project.getKey());
@@ -121,7 +123,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetProjectPage() {
-        String url = BASE_URL + "/rest/api/1.0/projects";
+        String url = BITBUCKET_BASE_URL + "/rest/api/1.0/projects";
 
         String projectPage = readFileToString("/project-page-all-response.json");
         mockExecutor.mapUrlToResult(url, projectPage);
@@ -137,7 +139,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetProjectPageFiltered() {
-        String url = BASE_URL + "/rest/api/1.0/projects?name=myFilter";
+        String url = BITBUCKET_BASE_URL + "/rest/api/1.0/projects?name=myFilter";
 
         String projectPage = readFileToString("/project-page-filtered-response.json");
         mockExecutor.mapUrlToResult(url, projectPage);
@@ -154,7 +156,7 @@ public class BitbucketClientFactoryImplTest {
 
     @Test
     public void testGetRepoPage() {
-        String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos";
+        String url = BITBUCKET_BASE_URL + "/rest/api/1.0/repos?projectname=PROJ";
 
         String projectPage = readFileToString("/repo-filter-response.json");
         mockExecutor.mapUrlToResult(url, projectPage);
@@ -166,28 +168,47 @@ public class BitbucketClientFactoryImplTest {
         assertThat(repositories.getLimit(), equalTo(25));
         assertThat(repositories.isLastPage(), equalTo(true));
         assertThat(repositories.getValues().size(), equalTo(1));
+        BitbucketRepository repository = repositories.getValues().get(0);
+        BitbucketProject project = repository.getProject();
+        assertThat(project.getKey(), equalTo("PROJECT_1"));
+        assertThat(project.getName(), equalTo("Project 1"));
+        assertThat(repository.getSlug(), equalTo("rep_1"));
+        assertThat(repository.getName(), equalTo("rep_1"));
+        List<BitbucketNamedLink> cloneUrls = repository.getCloneUrls();
+        assertThat(cloneUrls, hasSize(2));
+        BitbucketNamedLink httpCloneUrl = cloneUrls.get(0);
+        assertThat(httpCloneUrl.getHref(), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
     }
 
     @Test
     public void testGetRepoPageFiltered() {
-        String url = BASE_URL + "/rest/search/1.0/projects/PROJ/repos?filter=rep";
+        String url = BITBUCKET_BASE_URL + "/rest/api/1.0/repos?projectname=my%20project%20name&name=rep";
 
         String projectPage = readFileToString("/repo-filter-response.json");
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("PROJ").get("rep");
+                anonymousClientFactory.getRepositorySearchClient("my project name").get("rep");
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));
         assertThat(repositories.isLastPage(), equalTo(true));
         assertThat(repositories.getValues().size(), equalTo(1));
-        assertThat(repositories.getValues().get(0).getSlug(), equalTo("rep_1"));
+        BitbucketRepository repository = repositories.getValues().get(0);
+        BitbucketProject project = repository.getProject();
+        assertThat(project.getKey(), equalTo("PROJECT_1"));
+        assertThat(project.getName(), equalTo("Project 1"));
+        assertThat(repository.getSlug(), equalTo("rep_1"));
+        assertThat(repository.getName(), equalTo("rep_1"));
+        List<BitbucketNamedLink> cloneUrls = repository.getCloneUrls();
+        assertThat(cloneUrls, hasSize(2));
+        BitbucketNamedLink httpCloneUrl = cloneUrls.get(0);
+        assertThat(httpCloneUrl.getHref(), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
     }
 
     @Test
     public void testGetUsername() {
-        String url = BASE_URL + "/rest/capabilities";
+        String url = BITBUCKET_BASE_URL + "/rest/capabilities";
         String username = "CoolBananas";
         mockExecutor.mapUrlToResultWithHeaders(url,
                 readCapabilitiesResponseFromFile(),
@@ -199,9 +220,9 @@ public class BitbucketClientFactoryImplTest {
     @Test
     public void testGetWebHookCapabilities() {
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/webhooks/latest/capabilities", readWebhookCapabilitiesResponseFromFile());
+                BITBUCKET_BASE_URL + "/rest/webhooks/latest/capabilities", readWebhookCapabilitiesResponseFromFile());
         mockExecutor.mapUrlToResult(
-                BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
+                BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
 
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getWebhookCapabilities().get();

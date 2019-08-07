@@ -1,17 +1,15 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
 import hudson.Extension;
+import hudson.util.FormValidation;
+import hudson.util.FormValidation.Kind;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -20,8 +18,6 @@ import static java.util.Objects.requireNonNull;
         "unused") // Stapler calls many of the methods via reflection (such as the setServerList)
 public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(BitbucketPluginConfiguration.class);
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
 
     public BitbucketPluginConfiguration() {
@@ -29,9 +25,12 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     }
 
     @Override
-    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest req, JSONObject json) {
         req.bindJSON(this, json);
-        if (getServerList().stream().allMatch(server -> server.validate())) {
+        FormValidation aggregate = FormValidation.aggregate(serverList.stream()
+                .map(BitbucketServerConfiguration::validate)
+                .collect(Collectors.toList()));
+        if (aggregate.kind == Kind.OK) {
             save();
             return true;
         }
@@ -45,11 +44,38 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         return serverList.stream().filter(server -> server.getId().equals(serverId)).findFirst();
     }
 
+    /**
+     * Returns a list of all servers that have been configured by the user. This can include incorrectly or illegally
+     * defined servers.
+     *
+     * @return a list of all configured servers
+     */
     public List<BitbucketServerConfiguration> getServerList() {
         return serverList;
     }
 
-    public void setServerList(@Nonnull List<BitbucketServerConfiguration> serverList) {
+    public void setServerList(List<BitbucketServerConfiguration> serverList) {
         this.serverList = requireNonNull(serverList);
+    }
+
+    /**
+     * Returns a list of all servers that have been configured by the user and pass the validate() function with no
+     * errors.
+     *
+     * @return a list of all valid configured servers
+     */
+    public List<BitbucketServerConfiguration> getValidServerList() {
+        return serverList.stream()
+                .filter(server -> server.validate().kind != Kind.ERROR)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Determines if any servers have been incorrectly configured
+     *
+     * @return true if any server returns an error during validation; false otherwise
+     */
+    public boolean hasAnyInvalidConfiguration() {
+        return serverList.stream().anyMatch(server -> server.validate().kind == Kind.ERROR);
     }
 }

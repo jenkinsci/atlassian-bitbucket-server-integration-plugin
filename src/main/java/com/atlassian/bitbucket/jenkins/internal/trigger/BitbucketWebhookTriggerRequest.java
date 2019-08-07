@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import hudson.model.Action;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -51,7 +52,7 @@ public final class BitbucketWebhookTriggerRequest {
         private final List<Action> additionalActions = new ArrayList<>();
         private BitbucketUser actor;
 
-        public Builder actor(BitbucketUser value) {
+        public Builder actor(@Nullable BitbucketUser value) {
             actor = value;
             return this;
         }
