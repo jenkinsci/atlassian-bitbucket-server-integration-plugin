@@ -31,8 +31,8 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .queryParam("name", "proj")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
@@ -57,7 +57,7 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", "")
                         .queryParam("name", "proj")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
@@ -80,7 +80,7 @@ public class BitbucketSearchEndpointIT {
         RestAssured.expect()
                 .statusCode(400)
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                 .queryParam("credentialsId", "some-invalid-credentials")
                 .queryParam("name", "proj")
                 .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
@@ -89,8 +89,8 @@ public class BitbucketSearchEndpointIT {
     @Test
     public void testFindProjectsCredentialsIdMissing() throws Exception {
         BitbucketServerConfiguration bitbucketServerWithoutCredentials = new BitbucketServerConfiguration(
-                bitbucketJenkinsRule.getBitbucketServer().getAdminCredentialsId(),
-                bitbucketJenkinsRule.getBitbucketServer().getBaseUrl(), null, null);
+                bitbucketJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
+                bitbucketJenkinsRule.getBitbucketServerConfiguration().getBaseUrl(), null, null);
         bitbucketJenkinsRule.addBitbucketServer(bitbucketServerWithoutCredentials);
         HudsonResponse<BitbucketPage<BitbucketProject>> response =
                 RestAssured.expect()
@@ -119,8 +119,8 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .queryParam("name", "")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
@@ -145,8 +145,8 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
@@ -168,7 +168,7 @@ public class BitbucketSearchEndpointIT {
                 .statusCode(400)
                 .given()
                 .queryParam("serverId", "")
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("name", "proj")
                 .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
     }
@@ -178,7 +178,7 @@ public class BitbucketSearchEndpointIT {
         RestAssured.expect()
                 .statusCode(400)
                 .given()
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("name", "proj")
                 .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
     }
@@ -189,8 +189,8 @@ public class BitbucketSearchEndpointIT {
                 .log()
                 .all()
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("projectName", "Project 1")
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
@@ -223,8 +223,8 @@ public class BitbucketSearchEndpointIT {
                 .log()
                 .ifError()
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("projectName", "Project 1")
                 .queryParam("filter", "non-existent repo")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
@@ -246,8 +246,8 @@ public class BitbucketSearchEndpointIT {
                 .log()
                 .ifError()
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("projectName", "non-existent project")
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
@@ -270,7 +270,7 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", "")
                         .queryParam("projectName", "Project 1")
                         .queryParam("filter", "rep")
@@ -305,7 +305,7 @@ public class BitbucketSearchEndpointIT {
         RestAssured.expect()
                 .statusCode(400)
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                 .queryParam("credentialsId", "some-invalid-credentials")
                 .queryParam("projectName", "Project 1")
                 .queryParam("filter", "rep")
@@ -320,7 +320,7 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("projectName", "Project 1")
                         .queryParam("filter", "rep")
                         .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
@@ -354,8 +354,8 @@ public class BitbucketSearchEndpointIT {
         RestAssured.expect()
                 .statusCode(400)
                 .given()
-                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL);
     }
@@ -368,8 +368,8 @@ public class BitbucketSearchEndpointIT {
                         .log()
                         .ifError()
                         .given()
-                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServer().getId())
-                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .queryParam("projectName", "Project 1")
                         .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
                         .getBody()
@@ -403,7 +403,7 @@ public class BitbucketSearchEndpointIT {
                 .statusCode(400)
                 .given()
                 .queryParam("serverId", "")
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("projectName", "Project 1")
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL);
@@ -414,7 +414,7 @@ public class BitbucketSearchEndpointIT {
         RestAssured.expect()
                 .statusCode(400)
                 .given()
-                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServer().getCredentialsId())
+                .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("projectName", "Project 1")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL);
     }
