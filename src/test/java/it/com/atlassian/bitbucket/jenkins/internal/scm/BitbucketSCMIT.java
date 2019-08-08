@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.google.common.collect.ImmutableList;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
@@ -14,6 +13,7 @@ import org.junit.*;
 import java.io.IOException;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -59,7 +59,7 @@ public class BitbucketSCMIT {
         BitbucketSCM bitbucketSCM =
                 new BitbucketSCM(
                         "",
-                        ImmutableList.of(new BranchSpec(branchSpec)),
+                        singletonList(new BranchSpec(branchSpec)),
                         bbJenkinsRule.getBitbucketServer().getAdminCredentialsId(),
                         emptyList(),
                         "",
