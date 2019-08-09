@@ -4,18 +4,25 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.google.common.collect.ImmutableList;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.emptyList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.*;
 
 public class BitbucketSCMIT {
 
@@ -35,10 +42,10 @@ public class BitbucketSCMIT {
         project.delete();
     }
 
-    @Ignore("TODO: Fix this test")
     @Test
     public void testCheckout() throws Exception {
-        project.setScm(createSCM("**/master"));
+        project.setScm(createSCM("*/master"));
+        project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
 
@@ -47,25 +54,47 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    public void testCheckoutWithMultipleBranches() throws Exception {
+        project.setScm(createSCM("*/master", "*/basic_branching"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        assertEquals(Result.SUCCESS, build.getResult());
+        assertTrue(build.getWorkspace().child("add_file").isDirectory());
+
+        waitFor(() -> {
+            if (project.isInQueue()) {
+                return Optional.of("Build is queued");
+            }
+            return Optional.empty();
+        }, 1000);
+        assertThat(project.getBuilds(), hasSize(2));
+    }
+
+    @Test
     public void testCheckoutWithNonExistentBranch() throws Exception {
         project.setScm(createSCM("**/master-does-not-exist"));
+        project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
 
         assertEquals(Result.FAILURE, build.getResult());
     }
 
-    private BitbucketSCM createSCM(String branchSpec) {
+    private BitbucketSCM createSCM(String... refs) {
+        List<BranchSpec> branchSpecs = Arrays.stream(refs)
+                .map(BranchSpec::new)
+                .collect(Collectors.toList());
         BitbucketSCM bitbucketSCM =
                 new BitbucketSCM(
                         "",
-                        ImmutableList.of(new BranchSpec(branchSpec)),
-                        bbJenkinsRule.getBitbucketServer().getAdminCredentialsId(),
+                        branchSpecs,
+                        bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
                         emptyList(),
                         "",
                         PROJECT_KEY,
                         REPO_SLUG,
-                        bbJenkinsRule.getBitbucketServer().getId());
+                        bbJenkinsRule.getBitbucketServerConfiguration().getId());
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider());
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.createGitSCM();
