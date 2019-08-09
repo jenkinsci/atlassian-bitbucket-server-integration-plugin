@@ -13,8 +13,7 @@ import org.junit.Test;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BitbucketCredentialsAdaptorTest {
 
@@ -57,6 +56,7 @@ public class BitbucketCredentialsAdaptorTest {
         BitbucketCredentials bbCreds = BitbucketCredentialsAdaptor.createWithFallback(cred, conf);
 
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
+        verifyZeroInteractions(conf);
     }
 
     @Test
@@ -96,6 +96,6 @@ public class BitbucketCredentialsAdaptorTest {
     }
 
     private String toHeaderValue(Credentials cred) {
-        return BitbucketCredentialsAdaptor.create(cred).toHeaderValue();
+        return BitbucketCredentialsAdaptor.createWithFallback(cred, mock(BitbucketServerConfiguration.class)).toHeaderValue();
     }
 }

@@ -237,7 +237,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         try {
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
-            log.debug("Bitbucket - io exception while unmarshalling the body", e);
+            log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
             throw new BitbucketClientException(e);
         }
     }

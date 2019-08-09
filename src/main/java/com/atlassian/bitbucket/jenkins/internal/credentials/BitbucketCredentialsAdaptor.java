@@ -14,7 +14,6 @@ import javax.annotation.Nullable;
 import java.util.Base64;
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils.getCredentials;
 import static java.util.Objects.requireNonNull;
 
 public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
@@ -27,7 +26,7 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
 
     public static BitbucketCredentials createWithFallback(@Nullable String credentials,
                                                           BitbucketServerConfiguration configuration) {
-        return createWithFallback(getCredentials(credentials), configuration);
+        return createWithFallback(CredentialUtils.getCredentials(credentials), configuration);
     }
 
     public static BitbucketCredentials createWithFallback(@Nullable Credentials credentials,
@@ -35,11 +34,6 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
         return Optional.ofNullable(credentials)
                 .map(c -> (BitbucketCredentials) new BitbucketCredentialsAdaptor(c))
                 .orElseGet(() -> create(configuration));
-    }
-
-    @VisibleForTesting
-    static BitbucketCredentials create(@Nonnull Credentials credentials) {
-        return new BitbucketCredentialsAdaptor(credentials);
     }
 
     @Override
