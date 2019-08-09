@@ -10,12 +10,11 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.Job;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.GitTool;
@@ -118,6 +117,8 @@ public class BitbucketSCM extends SCM {
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
+        EnvVars env = build.getEnvironment(listener);
+        //post in progress
     }
 
     @Override
