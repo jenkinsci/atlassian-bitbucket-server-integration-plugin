@@ -5,11 +5,9 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Base64;
 import java.util.Optional;

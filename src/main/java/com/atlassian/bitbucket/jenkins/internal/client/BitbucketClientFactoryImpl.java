@@ -171,14 +171,14 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
             if (urlStr == null) {
                 throw new WebhookNotSupportedException(
-                        "Remote Bitbucket Server does not support Web hooks. Make sure " +
-                        "Bitbucket server supports web hooks or correct version of it is installed.");
+                        "Remote Bitbucket Server does not support Webhooks. Make sure " +
+                        "Bitbucket server supports webhooks or correct version of it is installed.");
             }
 
             HttpUrl url = parse(urlStr);
             if (url == null) {
                 throw new IllegalStateException(
-                        "URL to fetch supported web hook supported event is wrong. URL: " + urlStr);
+                        "URL to fetch supported webhook supported event is wrong. URL: " + urlStr);
             }
             return makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
         };
