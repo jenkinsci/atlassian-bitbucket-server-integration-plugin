@@ -370,7 +370,7 @@ public class BitbucketSCM extends SCM {
 
         @Override
         public String getDisplayName() {
-            return "Bitbucket";
+            return "Bitbucket Server";
         }
 
         public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
