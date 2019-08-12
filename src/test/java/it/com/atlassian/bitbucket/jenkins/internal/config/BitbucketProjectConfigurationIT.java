@@ -62,11 +62,19 @@ public class BitbucketProjectConfigurationIT {
 
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
         waitTillItemIsRendered(() -> credential.getOptions());
-        credential.getOption(1).click();
+        Optional<HtmlOption> configuredCredential = credential.getOptions().stream()
+                .filter(option -> option.getValueAttribute().equals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId()))
+                .findFirst();
+        assertTrue("Credentials should be configured", configuredCredential.isPresent());
+        configuredCredential.get().click();
 
         HtmlSelect serverId = form.getSelectByName("_.serverId");
         waitTillItemIsRendered(() -> serverId.getOptions());
-        serverId.getOption(0).click();
+        Optional<HtmlOption> configuredServer = serverId.getOptions().stream()
+                .filter(option -> option.getValueAttribute().equals(bbJenkinsRule.getBitbucketServerConfiguration().getId()))
+                .findFirst();
+        assertTrue("Bitbucket server should be configured", configuredServer.isPresent());
+        configuredServer.get().click();
 
         HtmlInput projectKeyInput = form.getInputByName("_.projectKey");
 
