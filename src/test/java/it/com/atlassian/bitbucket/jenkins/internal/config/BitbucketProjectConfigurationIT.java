@@ -3,6 +3,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
@@ -151,7 +152,7 @@ public class BitbucketProjectConfigurationIT {
                 PROJECT_KEY,
                 REPO_SLUG,
                 bbJenkinsRule.getBitbucketServerConfiguration().getId());
-        bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider());
+        bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.createGitSCM();
         project.setScm(bitbucketSCM);

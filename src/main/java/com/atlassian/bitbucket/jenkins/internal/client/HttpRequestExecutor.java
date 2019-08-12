@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
+import com.google.inject.ImplementedBy;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 
@@ -9,6 +11,7 @@ import okhttp3.Response;
  * bound with OkHttpClient library. Methods also takes {@link ResponseConsumer} instead of returning response in order
  * to have better handle on cleaning of resources.
  */
+@ImplementedBy(HttpRequestExecutorImpl.class)
 public interface HttpRequestExecutor {
 
     /**

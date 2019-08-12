@@ -3,9 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.http;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import hudson.Plugin;
+import jenkins.model.Jenkins;
 import okhttp3.*;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
@@ -23,6 +26,11 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
 
     private final Call.Factory httpCallFactory;
+
+    @Inject
+    public HttpRequestExecutorImpl() {
+        this(new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build());
+    }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
         this.httpCallFactory = httpCallFactory;
@@ -107,5 +115,34 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                         "The server failed to service request", responseCode, body);
         }
         throw new UnhandledErrorException("Unhandled error", responseCode, body);
+    }
+
+    /**
+     * Having this as a client level interceptor means we can configure it once to set the
+     * user-agent and not have to worry about setting the header for every request.
+     */
+    private static class UserAgentInterceptor implements Interceptor {
+
+        private final String bbJenkinsUserAgent;
+
+        UserAgentInterceptor() {
+            String version = "unknown";
+            try {
+                Plugin plugin = Jenkins.get().getPlugin("atlassian-bitbucket-server-scm");
+                if (plugin != null) {
+                    version = plugin.getWrapper().getVersion();
+                }
+            } catch (IllegalStateException e) {
+                org.apache.log4j.Logger.getLogger(UserAgentInterceptor.class).warn("Jenkins not available", e);
+            }
+            bbJenkinsUserAgent = "Bitbucket Jenkins Integration/" + version;
+        }
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Request request =
+                    chain.request().newBuilder().header("User-Agent", bbJenkinsUserAgent).build();
+            return chain.proceed(request);
+        }
     }
 }
