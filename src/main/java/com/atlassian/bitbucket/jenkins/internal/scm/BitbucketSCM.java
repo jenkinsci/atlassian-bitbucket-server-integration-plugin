@@ -4,13 +4,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -117,8 +117,15 @@ public class BitbucketSCM extends SCM {
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
-        EnvVars env = build.getEnvironment(listener);
-        //post in progress
+
+        BitbucketServerConfiguration server = getServer();
+        bitbucketClientFactoryProvider.getClient(server, CredentialUtils.getCredentials(server.getCredentialsId()))
+                .getBuildStatusClient(getLatestRevision(build))
+                .post(new BitbucketBuildStatus((Build) build));
+    }
+
+    public String getLatestRevision(Run<?, ?> build) {
+        return gitSCM.getBuildData(build).lastBuild.getRevision().getSha1String();
     }
 
     @Override

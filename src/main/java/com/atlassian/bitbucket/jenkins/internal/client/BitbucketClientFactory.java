@@ -8,6 +8,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 public interface BitbucketClientFactory {
 
     /**
+     * Return a build request
+     *
+     * @return a client that is ready to use
+     */
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1);
+
+    /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client
      * is thread safe and can be used multiple times.
      *
@@ -19,7 +26,7 @@ public interface BitbucketClientFactory {
      * Return a project client.
      *
      * @param projectKey key of the project, if a project with this key does not exist all
-     *         subsequent calls on this client will throw a {@link NotFoundException}
+     *                   subsequent calls on this client will throw a {@link NotFoundException}
      * @return a client that is ready to use
      */
     BitbucketProjectClient getProjectClient(String projectKey);
