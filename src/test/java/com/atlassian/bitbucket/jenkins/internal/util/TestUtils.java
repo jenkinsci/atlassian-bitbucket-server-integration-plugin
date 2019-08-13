@@ -1,0 +1,33 @@
+package com.atlassian.bitbucket.jenkins.internal.util;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.file.Paths;
+
+import static java.nio.file.Files.readAllBytes;
+import static org.apache.commons.io.Charsets.UTF_8;
+
+public class TestUtils {
+
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    public static String readFileToString(String relativeFilename) {
+        try {
+            return new String(
+                    readAllBytes(Paths.get(TestUtils.class.getResource(relativeFilename).toURI())));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String encode(String urlSnippet) {
+        try {
+            return URLEncoder.encode(urlSnippet, UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}

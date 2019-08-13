@@ -1,0 +1,9 @@
+{
+  "name": "WebhookName",
+  "events": [
+    "repo:refs_changed",
+    "mirror:repo_synchronized"
+  ],
+  "url": "www.example.com",
+  "active": true
+}

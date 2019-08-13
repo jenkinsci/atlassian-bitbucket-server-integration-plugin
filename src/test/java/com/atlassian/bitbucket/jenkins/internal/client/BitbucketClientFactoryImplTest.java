@@ -3,18 +3,17 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.OBJECT_MAPPER;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.readFileToString;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -26,7 +25,6 @@ import static org.junit.Assert.*;
 public class BitbucketClientFactoryImplTest {
 
     private static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
     private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();
@@ -232,20 +230,11 @@ public class BitbucketClientFactoryImplTest {
     private BitbucketClientFactoryImpl getClientFactory(
             String url, BitbucketCredentials credentials) {
         HttpRequestExecutor executor = new HttpRequestExecutorImpl(mockExecutor);
-        return new BitbucketClientFactoryImpl(url, credentials, objectMapper, executor);
+        return new BitbucketClientFactoryImpl(url, credentials, OBJECT_MAPPER, executor);
     }
 
     private String readCapabilitiesResponseFromFile() {
         return readFileToString("/capabilities-response.json");
-    }
-
-    private String readFileToString(String filename) {
-        try {
-            return new String(
-                    Files.readAllBytes(Paths.get(getClass().getResource(filename).toURI())));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private String readFullRepositoryFromFile() {

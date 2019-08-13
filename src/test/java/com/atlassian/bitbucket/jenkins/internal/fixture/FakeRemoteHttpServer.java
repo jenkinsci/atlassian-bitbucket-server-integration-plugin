@@ -1,8 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.fixture;
 
 import okhttp3.*;
+import okhttp3.internal.http.HttpMethod;
 import okio.Buffer;
+import okio.BufferedSink;
 import okio.BufferedSource;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.filters.StringInputStream;
 
 import javax.annotation.Nullable;
@@ -12,7 +15,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
-import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,6 +29,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
     private final Map<String, Integer> urlToReturnCode = new HashMap<>();
     private final Map<String, FakeResponseBody> urlToResponseBody = new HashMap<>();
     private final Map<String, Request> urlToRequest = new HashMap<>();
+    private final Map<String, String> urlToRequestBody = new HashMap<>();
 
     @Override
     public Call newCall(Request request) {
@@ -33,6 +38,9 @@ public class FakeRemoteHttpServer implements Call.Factory {
             return mockCallToThrowException(url);
         } else {
             String result = urlToResult.get(url);
+            if(request.method().equalsIgnoreCase("POST")) {
+                ensureCorrectPostRequestBody(request, url);
+            }
             FakeResponseBody body = mockResponseBody(result);
             urlToResponseBody.put(url, body);
             urlToRequest.put(url, request);
@@ -40,8 +48,23 @@ public class FakeRemoteHttpServer implements Call.Factory {
         }
     }
 
+    private void ensureCorrectPostRequestBody(Request request, String url) {
+        Buffer b = new Buffer();
+        try {
+            request.body().writeTo(b);
+            assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(urlToRequestBody.get(url))), new String(b.readByteArray()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void ensureResponseBodyClosed() {
         urlToResponseBody.values().stream().filter(Objects::nonNull).forEach(b -> assertTrue(b.isClosed()));
+    }
+
+    public void mapPostRequestToResult(String url, String requestBody, String responseBody) {
+        urlToRequestBody.put(url, requestBody);
+        mapUrlToResult(url, responseBody);
     }
 
     public void mapUrlToException(String url, Exception exception) {

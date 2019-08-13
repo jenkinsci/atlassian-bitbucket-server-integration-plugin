@@ -30,11 +30,21 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     @Override
     public <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        if (credential != ANONYMOUS_CREDENTIALS) {
-            requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
-        }
+        handleAuthorization(credential, requestBuilder);
+        return executeRequest(requestBuilder.build(), consumer);
+    }
+
+    @Override
+    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody, ResponseConsumer<T> consumer) {
+        MediaType mediaType = MediaType.parse(requestBody);
+        Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
+        handleAuthorization(credential, requestBuilder);
+        return executeRequest(requestBuilder.build(), consumer);
+    }
+
+    private <T> T executeRequest(Request request, ResponseConsumer<T> consumer) {
         try {
-            Response response = httpCallFactory.newCall(requestBuilder.build()).execute();
+            Response response = executeRequest(request);
             int responseCode = response.code();
 
             try (ResponseBody body = response.body()) {
@@ -57,6 +67,21 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
             throw new BitbucketClientException(e);
         }
         throw new UnhandledErrorException("Unhandled error", -1, null);
+    }
+
+    private Response executeRequest(Request request) {
+        try {
+            return httpCallFactory.newCall(request).execute();
+        } catch (IOException e) {
+            log.debug("Bitbucket - io exception", e);
+            throw new BitbucketClientException(e);
+        }
+    }
+
+    private void handleAuthorization(BitbucketCredentials credential, Request.Builder requestBuilder) {
+        if (credential != ANONYMOUS_CREDENTIALS) {
+            requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
+        }
     }
 
     /**
