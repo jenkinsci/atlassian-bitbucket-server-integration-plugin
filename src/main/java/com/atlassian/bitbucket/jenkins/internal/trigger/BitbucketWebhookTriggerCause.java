@@ -36,7 +36,6 @@ public class BitbucketWebhookTriggerCause extends Cause {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(triggerRequest);
     }
 }
