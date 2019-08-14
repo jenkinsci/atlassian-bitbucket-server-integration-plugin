@@ -1,11 +1,13 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
-import com.google.common.collect.Sets;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
+import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 
 public class WebhookRegisterRequest {
 
@@ -18,7 +20,7 @@ public class WebhookRegisterRequest {
     private WebhookRegisterRequest(WebhookRegisterRequestBuilder builder) {
         projectSlug = builder.projectSlug;
         repoSlug = builder.repoSlug;
-        events = builder.events;
+        events = unmodifiableSet(builder.events);
         url = builder.url;
         name = builder.name;
     }
@@ -48,8 +50,9 @@ public class WebhookRegisterRequest {
         }
 
         public static WebhookRegisterRequestBuilder aRequestFor(String event, String... events) {
-            Set<String> eventSet = Sets.newHashSet(events);
+            Set<String> eventSet = new LinkedHashSet<>();
             eventSet.add(event);
+            eventSet.addAll(asList(events));
             return new WebhookRegisterRequestBuilder(eventSet);
         }
 

@@ -2,51 +2,27 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import hudson.model.*;
-import hudson.scm.PollingResult;
-import jenkins.model.RunAction2;
+import hudson.util.SequentialExecutionQueue;
 import jenkins.triggers.SCMTriggerItem;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.List;
+import java.util.Objects;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketWebhookTriggerImplTest {
 
-    BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor descriptor =
-            new BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor();
-    BitbucketWebhookTriggerImpl trigger =
-            new BitbucketWebhookTriggerImpl() {
-
-                @Override
-                public BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor
-                getDescriptor() {
-                    // There is no running Jenkins instance, so Trigger.getDescriptor won't work in
-                    // the test.
-                    return descriptor;
-                }
-
-                @Override
-                public void trigger(BitbucketWebhookTriggerRequest triggerRequest) {
-                    super.trigger(triggerRequest);
-
-                    // The trigger is async because it puts the job on the queue and then the queue
-                    // has to execute it.
-                    // This can sometimes mean the test verifies if `scheduleBuild2` is called
-                    // before the queue has actually
-                    // had time to schedule it itself.
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
+    private SequentialExecutionQueue queue = mock(SequentialExecutionQueue.class);
+    private BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor descriptor =
+            new BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor(queue);
 
     @Test
     public void testDescriptorIsApplicableForNonSCMTriggerItem() {
@@ -55,146 +31,91 @@ public class BitbucketWebhookTriggerImplTest {
 
     @Test
     public void testDescriptorIsApplicableForSCMTriggerItem() {
-        assertTrue(
-                descriptor.isApplicable(
-                        mock(Item.class, withSettings().extraInterfaces(SCMTriggerItem.class))));
+        assertTrue(descriptor.isApplicable(mock(Item.class, withSettings().extraInterfaces(SCMTriggerItem.class))));
     }
 
     @Test
     public void testDescriptorIsApplicableForSCMedItem() {
-        assertTrue(
-                descriptor.isApplicable(
-                        mock(Item.class, withSettings().extraInterfaces(SCMedItem.class))));
+        assertTrue(descriptor.isApplicable(mock(Item.class, withSettings().extraInterfaces(SCMedItem.class))));
     }
 
     @Test
-    public void testTriggerBuildNow() {
+    public void testTrigger() {
+        BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor mockDescriptor = mock(BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor.class);
+        BitbucketWebhookTriggerImpl trigger =
+                new BitbucketWebhookTriggerImpl() {
+
+                    @Override
+                    public BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor
+                    getDescriptor() {
+                        // There is no running Jenkins instance, so Trigger.getDescriptor won't work in
+                        // the test.
+                        return mockDescriptor;
+                    }
+                };
         FreeStyleProject project = mock(FreeStyleProject.class);
         Hudson itemGroup = mock(Hudson.class);
         when(itemGroup.getFullName()).thenReturn("Item name");
         when(project.getParent()).thenReturn(itemGroup);
         when(project.getName()).thenReturn("Project name");
-        when(project.poll(any())).thenReturn(PollingResult.BUILD_NOW);
+        BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
+        BitbucketWebhookTriggerRequest request = BitbucketWebhookTriggerRequest.builder()
+                .actor(user)
+                .build();
+
         trigger.start(project, true);
-
-        trigger.trigger(
-                BitbucketWebhookTriggerRequest.builder()
-                        .actor(new BitbucketUser("me", "me@test.atlassian", "Me"))
-                        .build());
-
-        verify(project)
-                .scheduleBuild2(
-                        eq(0),
-                        argThat(
-                                (ArgumentMatcher<CauseAction>)
-                                        argument ->
-                                                "Triggered by Bitbucket webhook due to changes by Me."
-                                                        .equals(
-                                                                argument.getCauses()
-                                                                        .get(0)
-                                                                        .getShortDescription())));
+        trigger.trigger(request);
+        verify(mockDescriptor).schedule(eq(project), eq(project), eq(request));
     }
 
     @Test
-    public void testTriggerNoChanges() {
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
-        when(project.poll(any())).thenReturn(PollingResult.NO_CHANGES);
-        trigger.start(project, true);
+    public void testDescriptorSchedule() {
+        Job job = mock(Job.class);
+        SCMTriggerItem triggerItem = mock(SCMTriggerItem.class);
+        BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
+        BitbucketWebhookTriggerRequest request = BitbucketWebhookTriggerRequest.builder()
+                .actor(user)
+                .build();
+        CauseAction causeAction = new CauseAction(new BitbucketWebhookTriggerCause(request));
+        BitbucketTriggerWorker expectedValue = new BitbucketTriggerWorker(job, triggerItem,
+                causeAction, request.getAdditionalActions());
 
-        trigger.trigger(
-                BitbucketWebhookTriggerRequest.builder()
-                        .actor(new BitbucketUser("me", "me@test.atlassian", "Me"))
-                        .build());
-
-        verify(project).poll(any());
-        verify(project, never()).scheduleBuild2(anyInt(), any(CauseAction.class));
+        descriptor.schedule(job, triggerItem, request);
+        verify(queue).execute(argThat((ArgumentMatcher<BitbucketTriggerWorker>) argument -> deepEqual(expectedValue, argument)));
     }
 
-    @Test
-    public void testTriggerSignificantChanges() throws Exception {
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
-        when(project.poll(any())).thenReturn(PollingResult.SIGNIFICANT);
-        trigger.start(project, true);
+    /**
+     * Since the BitbucketTriggerWorker has a specific requirement around equals that does not consider all the things in the
+     * class this method is a substitute to compare everything we need for testing purposes.
+     */
+    private boolean deepEqual(BitbucketTriggerWorker expected, BitbucketTriggerWorker actual) {
 
-        trigger.trigger(
-                BitbucketWebhookTriggerRequest.builder()
-                        .actor(new BitbucketUser("username", "me@test.atlassian", "me"))
-                        .build());
-
-        verify(project)
-                .scheduleBuild2(
-                        eq(0),
-                        argThat(
-                                (ArgumentMatcher<CauseAction>)
-                                        argument ->
-                                                "Triggered by Bitbucket webhook due to changes by me."
-                                                        .equals(
-                                                                argument.getCauses()
-                                                                        .get(0)
-                                                                        .getShortDescription())));
-    }
-
-    @Test
-    public void testTriggerWithAdditionalActions() {
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
-        when(project.poll(any())).thenReturn(PollingResult.BUILD_NOW);
-        trigger.start(project, true);
-        RunAction2 additionalAction = mock(RunAction2.class);
-
-        trigger.trigger(
-                BitbucketWebhookTriggerRequest.builder()
-                        .actor(new BitbucketUser("me", "me@test.atlassian", "Me"))
-                        .additionalActions(additionalAction)
-                        .build());
-
-        verify(project)
-                .scheduleBuild2(
-                        eq(0),
-                        argThat(
-                                (ArgumentMatcher<CauseAction>)
-                                        argument ->
-                                                "Triggered by Bitbucket webhook due to changes by Me."
-                                                        .equals(
-                                                                argument.getCauses()
-                                                                        .get(0)
-                                                                        .getShortDescription())),
-                        eq(additionalAction));
-    }
-
-    @Test
-    public void testTriggerWithoutAuthor() {
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
-        when(project.poll(any())).thenReturn(PollingResult.SIGNIFICANT);
-        trigger.start(project, true);
-
-        trigger.trigger(BitbucketWebhookTriggerRequest.builder().build());
-
-        verify(project)
-                .scheduleBuild2(
-                        eq(0),
-                        argThat(
-                                (ArgumentMatcher<CauseAction>)
-                                        argument ->
-                                                "Triggered by Bitbucket Server webhook."
-                                                        .equals(
-                                                                argument.getCauses()
-                                                                        .get(0)
-                                                                        .getShortDescription())));
+        List<Action> expectedActions = expected.getActions();
+        List<Action> actualActions = actual.getActions();
+        if (expectedActions.size() != actualActions.size()) {
+            return false;
+        }
+        //Cause does not have an equals so we need to manually compare the fields.
+        for (int i = 0; i < expectedActions.size(); i++) {
+            Action action = expectedActions.get(i);
+            Action thatAction = actualActions.get(i);
+            if (action.getClass() != thatAction.getClass()) {
+                return false;
+            }
+            boolean equals = Objects.equals(action.getDisplayName(), thatAction.getDisplayName()) &&
+                    Objects.equals(action.getIconFileName(), thatAction.getIconFileName()) &&
+                    Objects.equals(action.getUrlName(), thatAction.getUrlName());
+            if (!equals) {
+                return false;
+            }
+            //Cause actions have more fields and do not necessarily differ in the fields tested above
+            if (action instanceof CauseAction && thatAction instanceof CauseAction) {
+                if (!((CauseAction) action).getCauses().equals(((CauseAction) thatAction).getCauses())) {
+                    return false;
+                }
+            }
+        }
+        return Objects.equals(expected.getJob(), actual.getJob()) &&
+                Objects.equals(expected.getTriggerItem(), actual.getTriggerItem());
     }
 }
