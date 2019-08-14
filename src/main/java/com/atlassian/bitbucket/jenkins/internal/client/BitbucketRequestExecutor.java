@@ -1,12 +1,14 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NoContentException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
+import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.log4j.Logger;
 
@@ -85,10 +87,21 @@ public class BitbucketRequestExecutor {
         return bitbucketBaseUrl.newBuilder().addPathSegment("rest").addPathSegment("api").addPathSegment("1.0").build();
     }
 
+    private void ensureNonEmptyBode(Response response) {
+        if (response.body() == null) {
+            log.debug("Bitbucket - No content in response");
+            throw new NoContentException(
+                    "Remote side did not send a response body", response.code());
+        }
+    }
+
     private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, ObjectReader<T> reader) {
         return httpRequestExecutor.executeGet(url, credentials,
-                response -> new BitbucketResponse<>(
-                        response.headers().toMultimap(), unmarshall(reader, response.body())));
+                response -> {
+                    ensureNonEmptyBode(response);
+                    return new BitbucketResponse<>(
+                            response.headers().toMultimap(), unmarshall(reader, response.body()));
+                });
     }
 
     private <T> String marshall(T requestPayload) {

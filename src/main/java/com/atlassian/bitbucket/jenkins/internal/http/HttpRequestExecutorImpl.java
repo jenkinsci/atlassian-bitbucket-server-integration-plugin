@@ -35,9 +35,11 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
-    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody, ResponseConsumer<T> consumer) {
+    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody,
+                             ResponseConsumer<T> consumer) {
         MediaType mediaType = MediaType.parse(requestBody);
-        Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
+        Request.Builder requestBuilder =
+                new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
         handleAuthorization(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
@@ -49,11 +51,6 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
             try (ResponseBody body = response.body()) {
                 if (response.isSuccessful()) {
-                    if (body == null) {
-                        log.debug("Bitbucket - No content in response");
-                        throw new NoContentException(
-                                "Remote side did not send a response body", responseCode);
-                    }
                     log.trace("Bitbucket - call successful");
                     return consumer.consume(response);
                 }

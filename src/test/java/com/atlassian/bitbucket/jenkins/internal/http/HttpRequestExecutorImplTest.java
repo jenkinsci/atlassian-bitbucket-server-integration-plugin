@@ -89,15 +89,6 @@ public class HttpRequestExecutorImplTest {
         assertNull(factory.getHeaderValue(BASE_URL, AUTHORIZATION_HEADER_KEY));
     }
 
-    @Test(expected = NoContentException.class)
-    public void testNoBody() {
-        // test that all the handling logic does not fail if there is no body available, this just
-        // checks that no exceptions are thrown.
-        factory.mapUrlToResult(BASE_URL, null);
-
-        httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
-    }
-
     @Test(expected = AuthorizationException.class)
     public void testNotAuthorized() {
         factory.mapUrlToResponseCode(BASE_URL, HTTP_UNAUTHORIZED);
