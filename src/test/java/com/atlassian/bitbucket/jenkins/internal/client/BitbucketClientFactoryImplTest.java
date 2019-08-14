@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.List;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.BITBUCKET_BASE_URL;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.OBJECT_MAPPER;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.readFileToString;
@@ -23,8 +24,6 @@ import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
-
-    private static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
     private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();

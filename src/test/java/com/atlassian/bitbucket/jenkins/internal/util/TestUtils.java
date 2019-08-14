@@ -11,6 +11,7 @@ import static org.apache.commons.io.Charsets.UTF_8;
 
 public class TestUtils {
 
+    public static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static String readFileToString(String relativeFilename) {

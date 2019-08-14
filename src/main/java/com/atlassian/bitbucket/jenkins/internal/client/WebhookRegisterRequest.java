@@ -38,10 +38,10 @@ public class WebhookRegisterRequest {
     public static class WebhookRegisterRequestBuilder {
 
         private final Set<String> events;
-        private String url;
+        private String name;
         private String projectSlug;
         private String repoSlug;
-        private String name;
+        private String url;
 
         private WebhookRegisterRequestBuilder(Set<String> events) {
             this.events = events;
@@ -61,6 +61,11 @@ public class WebhookRegisterRequest {
             return new WebhookRegisterRequest(this);
         }
 
+        public WebhookRegisterRequestBuilder name(String name) {
+            this.name = name;
+            return this;
+        }
+
         public WebhookRegisterRequestBuilder onProject(String projectSlug) {
             this.projectSlug = projectSlug;
             return this;
@@ -73,11 +78,6 @@ public class WebhookRegisterRequest {
 
         public WebhookRegisterRequestBuilder withCallbackTo(String url) {
             this.url = url;
-            return this;
-        }
-
-        public WebhookRegisterRequestBuilder name(String name) {
-            this.name = name;
             return this;
         }
     }

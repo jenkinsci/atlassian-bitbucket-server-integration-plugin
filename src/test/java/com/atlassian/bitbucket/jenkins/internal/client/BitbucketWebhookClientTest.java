@@ -19,7 +19,6 @@ import static org.junit.Assert.assertThat;
 
 public class BitbucketWebhookClientTest {
 
-    private static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
     private static final String projectSlug = "proj";
     private static final String repoSlug = "repo";
 

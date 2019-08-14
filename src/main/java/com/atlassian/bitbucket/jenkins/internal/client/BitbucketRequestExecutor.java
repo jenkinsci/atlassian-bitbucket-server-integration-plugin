@@ -20,9 +20,11 @@ import static okhttp3.HttpUrl.parse;
 
 public class BitbucketRequestExecutor {
 
+    private static final String API_VERSION = "1.0";
     private static final Logger log = Logger.getLogger(BitbucketRequestExecutor.class);
 
     private final HttpUrl bitbucketBaseUrl;
+    private final HttpUrl coreRestPathUrl;
     private final HttpRequestExecutor httpRequestExecutor;
     private final ObjectMapper objectMapper;
     private final BitbucketCredentials credentials;
@@ -31,13 +33,27 @@ public class BitbucketRequestExecutor {
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
                                     BitbucketCredentials credentials) {
         this.bitbucketBaseUrl = parse(requireNonNull(bitbucketBaseUrl));
+        this.coreRestPathUrl =
+                this.bitbucketBaseUrl.newBuilder().addPathSegment("rest").addPathSegment("api").addPathSegment(API_VERSION).build();
         this.httpRequestExecutor = httpRequestExecutor;
         this.objectMapper = objectMapper;
         this.credentials = credentials;
     }
 
+    /**
+     * Returns the root URL of Bitbucket server.
+     */
     public HttpUrl getBaseUrl() {
         return bitbucketBaseUrl;
+    }
+
+    /**
+     * Provide the base Rest path
+     *
+     * @return HttpUrl of the core rest path;
+     */
+    public HttpUrl getCoreRestPath() {
+        return coreRestPathUrl;
     }
 
     /**
@@ -72,19 +88,20 @@ public class BitbucketRequestExecutor {
         return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
     }
 
+    /**
+     * Makes a POST request to the given URL with given request payload.
+     *
+     * @param url,            the URL to make the request to
+     * @param requestPayload, JSON payload which will be marshalled to send it with POST.
+     * @param returnType,     Class of expected return type
+     * @param <T>,            Type of Request payload.
+     * @param <R>,            Return type
+     * @return
+     */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
         return httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), response ->
                 new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
-    }
-
-    /**
-     * Add the basic path to the core rest API (/rest/api/1.0).
-     *
-     * @return modified builder (same instance as the parameter)
-     */
-    public HttpUrl getCoreRestPath() {
-        return bitbucketBaseUrl.newBuilder().addPathSegment("rest").addPathSegment("api").addPathSegment("1.0").build();
     }
 
     private void ensureNonEmptyBode(Response response) {

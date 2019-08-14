@@ -6,11 +6,10 @@ import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import org.junit.Test;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.OBJECT_MAPPER;
 
 public class BitbucketRequestExecutorTest {
-
-    private static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
 
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
