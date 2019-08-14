@@ -1,11 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.fixture;
 
 import okhttp3.*;
-import okhttp3.internal.http.HttpMethod;
 import okio.Buffer;
-import okio.BufferedSink;
 import okio.BufferedSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.filters.StringInputStream;
 
 import javax.annotation.Nullable;
@@ -38,7 +35,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
             return mockCallToThrowException(url);
         } else {
             String result = urlToResult.get(url);
-            if(request.method().equalsIgnoreCase("POST")) {
+            if (request.method().equalsIgnoreCase("POST")) {
                 ensureCorrectPostRequestBody(request, url);
             }
             FakeResponseBody body = mockResponseBody(result);

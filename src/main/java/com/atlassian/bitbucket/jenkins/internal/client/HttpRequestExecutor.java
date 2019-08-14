@@ -1,11 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
-
-import java.util.Map;
 
 /**
  * Responsible for making remote HTTP calls to the given URL using passed in credentials. The implementation is tightly

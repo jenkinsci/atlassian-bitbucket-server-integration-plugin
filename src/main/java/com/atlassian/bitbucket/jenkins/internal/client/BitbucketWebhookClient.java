@@ -3,11 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
-import okhttp3.Response;
-
-import java.io.IOException;
 
 import static java.util.Arrays.stream;
 
