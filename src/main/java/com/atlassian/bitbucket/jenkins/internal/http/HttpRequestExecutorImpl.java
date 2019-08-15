@@ -30,7 +30,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     @Override
     public <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        handleAuthorization(credential, requestBuilder);
+        addAuthorization(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
 
@@ -38,7 +38,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody, ResponseConsumer<T> consumer) {
         MediaType mediaType = MediaType.parse(requestBody);
         Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
-        handleAuthorization(credential, requestBuilder);
+        addAuthorization(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
 
@@ -64,7 +64,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         throw new UnhandledErrorException("Unhandled error", -1, null);
     }
 
-    private void handleAuthorization(BitbucketCredentials credential, Request.Builder requestBuilder) {
+    private void addAuthorization(BitbucketCredentials credential, Request.Builder requestBuilder) {
         if (credential != ANONYMOUS_CREDENTIALS) {
             requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
         }
