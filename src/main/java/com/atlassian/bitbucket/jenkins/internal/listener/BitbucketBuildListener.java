@@ -23,8 +23,8 @@ public class BitbucketBuildListener<R extends Run> extends RunListener<R> {
 
     @Override
     public void onCompleted(R r, TaskListener listener) {
-        if (r instanceof FreeStyleBuild) {
-            FreeStyleBuild build = (FreeStyleBuild) r;
+        if (r instanceof AbstractBuild) {
+            AbstractBuild build = (AbstractBuild) r;
             if (build.getProject().getScm() instanceof BitbucketSCM) {
                 BitbucketSCM scm = (BitbucketSCM) build.getProject().getScm();
                 BitbucketServerConfiguration server = pluginConfiguration.getServerById(scm.getServerId())

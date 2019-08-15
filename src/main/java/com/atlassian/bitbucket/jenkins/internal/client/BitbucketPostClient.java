@@ -1,13 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import okhttp3.Response;
-
 /**
  * Basic Bitbucket post client. A client is normally threadsafe and can be used multiple times.
  *
- * @param <T> The model used in the post parameters
+ * @param <ResponseType> The data returned from the POST request
+ * @param <RequestType> The data to be sent in the POST request
  */
-public interface BitbucketPostClient<T> {
+public interface BitbucketPostClient<ResponseType, RequestType> {
 
     /**
      * Make the call out to Bitbucket and read the response.
@@ -17,5 +16,5 @@ public interface BitbucketPostClient<T> {
      * @param data
      * @return
      */
-    Response post(T data);
+    ResponseType post(RequestType data);
 }

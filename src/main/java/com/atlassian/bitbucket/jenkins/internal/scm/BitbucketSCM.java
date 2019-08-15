@@ -118,10 +118,12 @@ public class BitbucketSCM extends SCM {
             throws IOException, InterruptedException {
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
 
-        BitbucketServerConfiguration server = getServer();
-        bitbucketClientFactoryProvider.getClient(server, CredentialUtils.getCredentials(server.getCredentialsId()))
-                .getBuildStatusClient(getLatestRevision(build))
-                .post(new BitbucketBuildStatus((Build) build));
+        if (build instanceof AbstractBuild) {
+            BitbucketServerConfiguration server = getServer();
+            bitbucketClientFactoryProvider.getClient(server, CredentialUtils.getCredentials(server.getCredentialsId()))
+                    .getBuildStatusClient(getLatestRevision(build))
+                    .post(new BitbucketBuildStatus((AbstractBuild) build));
+        }
     }
 
     public String getLatestRevision(Run<?, ?> build) {
