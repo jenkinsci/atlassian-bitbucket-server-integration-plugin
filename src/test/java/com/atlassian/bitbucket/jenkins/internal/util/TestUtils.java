@@ -1,11 +1,15 @@
 package com.atlassian.bitbucket.jenkins.internal.util;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.HttpUrl;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.stream.Stream;
 
 import static java.nio.file.Files.readAllBytes;
 
@@ -29,6 +33,14 @@ public class TestUtils {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static HttpUrl parseUrl(String url) {
+        return HttpUrl.parse(url);
+    }
+
+    public static <T> Stream<T> convertToElementStream(Stream<BitbucketPage<T>> pageStream) {
+        return pageStream.map(BitbucketPage::getValues).flatMap(Collection::stream);
     }
 
 }
