@@ -93,7 +93,13 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
         this.gitTool = gitTool;
         this.branches = branches;
-        this.extensions = extensions;
+
+        if (extensions != null) {
+            extensions.add(new BitbucketGitSCMExtension(serverId));
+            this.extensions = extensions;
+        } else {
+            this.extensions = Collections.singletonList(new BitbucketGitSCMExtension(serverId));
+        }
     }
 
     @CheckForNull
@@ -117,16 +123,9 @@ public class BitbucketSCM extends SCM {
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
-
-        if (build instanceof AbstractBuild) {
-            BitbucketServerConfiguration server = getServer();
-            bitbucketClientFactoryProvider.getClient(server, CredentialUtils.getCredentials(server.getCredentialsId()))
-                    .getBuildStatusClient(getLatestRevision(build))
-                    .post(new BitbucketBuildStatus((AbstractBuild) build));
-        }
     }
 
-    public String getLatestRevision(Run<?, ?> build) {
+    public String getLatestRevision(AbstractBuild build) {
         return gitSCM.getBuildData(build).lastBuild.getRevision().getSha1String();
     }
 
