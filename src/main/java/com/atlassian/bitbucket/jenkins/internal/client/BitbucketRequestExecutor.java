@@ -104,7 +104,7 @@ public class BitbucketRequestExecutor {
                 new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
     }
 
-    private void ensureNonEmptyBode(Response response) {
+    private void ensureNonEmptyBody(Response response) {
         if (response.body() == null) {
             log.debug("Bitbucket - No content in response");
             throw new NoContentException(
@@ -115,7 +115,7 @@ public class BitbucketRequestExecutor {
     private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, ObjectReader<T> reader) {
         return httpRequestExecutor.executeGet(url, credentials,
                 response -> {
-                    ensureNonEmptyBode(response);
+                    ensureNonEmptyBody(response);
                     return new BitbucketResponse<>(
                             response.headers().toMultimap(), unmarshall(reader, response.body()));
                 });
@@ -123,6 +123,7 @@ public class BitbucketRequestExecutor {
 
     private <T> String marshall(T requestPayload) {
         try {
+            requireNonNull(requestPayload);
             return objectMapper.writeValueAsString(requestPayload);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Programming error while marshalling webhook model.", e);
@@ -131,6 +132,7 @@ public class BitbucketRequestExecutor {
 
     private <T> T unmarshall(ObjectReader<T> reader, ResponseBody body) {
         try {
+            requireNonNull(body);
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
             log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());

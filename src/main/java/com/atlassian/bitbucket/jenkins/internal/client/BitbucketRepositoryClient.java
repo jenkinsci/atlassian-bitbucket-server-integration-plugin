@@ -7,4 +7,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
  * source code.
  */
 public interface BitbucketRepositoryClient extends BitbucketClient<BitbucketRepository> {
+
+    /**
+     * A client for performing various webhook related operations.
+     *
+     * @return, a client.
+     */
+    BitbucketWebhookClient getWebhookClient();
 }

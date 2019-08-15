@@ -1,0 +1,47 @@
+package com.atlassian.bitbucket.jenkins.internal.client;
+
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
+import com.fasterxml.jackson.core.type.TypeReference;
+import okhttp3.HttpUrl;
+
+import static java.util.Arrays.stream;
+
+public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
+
+    private final String projectKey;
+    private final String repoSlug;
+    private final BitbucketRequestExecutor bitbucketRequestExecutor;
+
+    public BitbucketWebhookClientImpl(String projectKey,
+                                      String repoSlug,
+                                      BitbucketRequestExecutor bitbucketRequestExecutor) {
+        this.projectKey = projectKey;
+        this.repoSlug = repoSlug;
+        this.bitbucketRequestExecutor = bitbucketRequestExecutor;
+    }
+
+    @Override
+    public BitbucketPage<BitbucketWebhook> getWebhooks(String... eventIdFilter) {
+        HttpUrl.Builder urlBuilder = getWebhookUrl(projectKey, repoSlug);
+        stream(eventIdFilter).forEach(eventId -> urlBuilder.addQueryParameter("event", eventId));
+        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
+    }
+
+    @Override
+    public BitbucketWebhook registerWebhook(WebhookRegisterRequest request) {
+        return bitbucketRequestExecutor.makePostRequest(
+                getWebhookUrl(projectKey, repoSlug).build(),
+                request.getRequestPayload(),
+                BitbucketWebhook.class).getBody();
+    }
+
+    private HttpUrl.Builder getWebhookUrl(String projectSlug, String repoSlug) {
+        return bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectSlug)
+                .addPathSegment("repos")
+                .addPathSegment(repoSlug)
+                .addPathSegment("webhooks");
+    }
+}

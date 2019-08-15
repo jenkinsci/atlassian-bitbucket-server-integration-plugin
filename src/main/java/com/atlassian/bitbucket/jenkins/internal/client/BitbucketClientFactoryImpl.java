@@ -56,14 +56,22 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
             @Override
             public BitbucketRepositoryClient getRepositoryClient(String slug) {
-                return () -> {
-                    HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                            .addPathSegment("projects")
-                            .addPathSegment(projectKey)
-                            .addPathSegment("repos")
-                            .addPathSegment(slug);
+                return new BitbucketRepositoryClient() {
+                    @Override
+                    public BitbucketWebhookClient getWebhookClient() {
+                        return new BitbucketWebhookClientImpl(projectKey, slug, bitbucketRequestExecutor);
+                    }
 
-                    return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), BitbucketRepository.class).getBody();
+                    @Override
+                    public BitbucketRepository get() {
+                        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                                .addPathSegment("projects")
+                                .addPathSegment(projectKey)
+                                .addPathSegment("repos")
+                                .addPathSegment(slug);
+
+                        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), BitbucketRepository.class).getBody();
+                    }
                 };
             }
         };

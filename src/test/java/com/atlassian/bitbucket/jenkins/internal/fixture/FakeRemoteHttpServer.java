@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -41,7 +42,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
             FakeResponseBody body = mockResponseBody(result);
             urlToResponseBody.put(url, body);
             urlToRequest.put(url, request);
-            return mockCallToThrowResult(url, body);
+            return mockCallToReturnResult(url, body);
         }
     }
 
@@ -105,10 +106,12 @@ public class FakeRemoteHttpServer implements Call.Factory {
                 .build();
     }
 
-    private Call mockCallToThrowResult(String url, ResponseBody mockBody) {
+    private Call mockCallToReturnResult(String url, ResponseBody mockBody) {
         try {
+            int returnCode = requireNonNull(urlToReturnCode.get(url));
+            Map<String, String> headers = requireNonNull(this.headers.get(url));
             Call mockCall = mock(Call.class);
-            when(mockCall.execute()).thenReturn(getResponse(url, urlToReturnCode.get(url), headers.get(url), mockBody));
+            when(mockCall.execute()).thenReturn(getResponse(url, returnCode, headers, mockBody));
             return mockCall;
         } catch (IOException ex) {
             throw new RuntimeException(ex);

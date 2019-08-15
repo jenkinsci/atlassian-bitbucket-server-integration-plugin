@@ -17,23 +17,24 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.assertThat;
 
-public class BitbucketWebhookClientTest {
+public class BitbucketWebhookClientImplTest {
 
-    private static final String projectSlug = "proj";
+    private static final String projectKey = "proj";
     private static final String repoSlug = "repo";
 
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
-    private BitbucketWebhookClient client =
-            new BitbucketWebhookClient(new BitbucketRequestExecutor(BITBUCKET_BASE_URL, requestExecutor, OBJECT_MAPPER, ANONYMOUS_CREDENTIALS));
+    private BitbucketWebhookClientImpl client =
+            new BitbucketWebhookClientImpl(projectKey, repoSlug, new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
+                    requestExecutor, OBJECT_MAPPER, ANONYMOUS_CREDENTIALS));
 
     @Test
     public void testFetchingOfExistingWebhooks() {
         String response = readFileToString("/webhook/configured_web_hooks_response.json");
-        String url = format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks", BITBUCKET_BASE_URL, projectSlug, repoSlug);
+        String url = format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks", BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        List<BitbucketWebhook> webhooks = client.getWebhooks(projectSlug, repoSlug).getValues();
+        List<BitbucketWebhook> webhooks = client.getWebhooks().getValues();
 
         assertThat(webhooks.size(), is(equalTo(2)));
     }
@@ -46,14 +47,14 @@ public class BitbucketWebhookClientTest {
         String url =
                 format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks?event=%s&event=%s",
                         BITBUCKET_BASE_URL,
-                        projectSlug,
+                        projectKey,
                         repoSlug,
                         encode(repoRefEvent),
                         encode(mirrorSyncEvent));
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
         List<BitbucketWebhook> webhooks =
-                client.getWebhooks(projectSlug, repoSlug, repoRefEvent, mirrorSyncEvent).getValues();
+                client.getWebhooks(repoRefEvent, mirrorSyncEvent).getValues();
 
         assertThat(webhooks.size(), is(equalTo(2)));
         Set<String> events =
@@ -70,16 +71,15 @@ public class BitbucketWebhookClientTest {
         String registerUrl =
                 format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks",
                         BITBUCKET_BASE_URL,
-                        projectSlug,
+                        projectKey,
                         repoSlug);
         fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, readFileToString("/webhook/webhook_creation_request.json"), response);
 
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(repoRefEvent, mirrorSyncEvent)
                 .withCallbackTo(url)
-                .onProject(projectSlug)
                 .name("WebhookName")
-                .onRepo(repoSlug).build();
+                .build();
         BitbucketWebhook result = client.registerWebhook(request);
 
         assertThat(result.getEvents(), hasItems(repoRefEvent, mirrorSyncEvent));
