@@ -25,7 +25,7 @@ public class TestUtils {
 
     public static String encode(String urlSnippet) {
         try {
-            return URLEncoder.encode(urlSnippet, UTF_8.toString());
+            return URLEncoder.encode(urlSnippet, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
