@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
 import static java.nio.file.Files.readAllBytes;
-import static org.apache.commons.io.Charsets.UTF_8;
 
 public class TestUtils {
 
@@ -25,7 +25,7 @@ public class TestUtils {
 
     public static String encode(String urlSnippet) {
         try {
-            return URLEncoder.encode(urlSnippet, UTF_8.toString());
+            return URLEncoder.encode(urlSnippet, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
