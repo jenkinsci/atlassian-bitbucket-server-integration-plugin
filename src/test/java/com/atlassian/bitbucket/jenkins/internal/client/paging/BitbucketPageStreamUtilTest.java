@@ -13,10 +13,11 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BitbucketPageStreamTest {
+public class BitbucketPageStreamUtilTest {
 
     @Mock
     private NextPageFetcher nextPageFetcher;
@@ -36,7 +37,7 @@ public class BitbucketPageStreamTest {
         when(nextPageFetcher.next(firstPage)).thenReturn(secondPage);
         when(nextPageFetcher.next(secondPage)).thenReturn(lastPage);
 
-        Stream<BitbucketPage<Integer>> stream = BitbucketPageStream.toStream(firstPage, nextPageFetcher);
+        Stream<BitbucketPage<Integer>> stream = BitbucketPageStreamUtil.toStream(firstPage, nextPageFetcher);
 
         assertThat(convertToElementStream(stream).collect(toList()), contains(1, 2, 3, 4, 5, 6));
     }
@@ -47,9 +48,15 @@ public class BitbucketPageStreamTest {
         firstPage.setValues(asList(1, 2));
         firstPage.setLastPage(true);
 
-        Stream<BitbucketPage<Integer>> stream = BitbucketPageStream.toStream(firstPage, nextPageFetcher);
+        Stream<BitbucketPage<Integer>> stream = BitbucketPageStreamUtil.toStream(firstPage, nextPageFetcher);
 
         assertThat(convertToElementStream(stream).collect(toList()), contains(1, 2));
-        verify(nextPageFetcher.next(firstPage), never());
+    }
+
+    @Test
+    public void testNoPage() {
+        Stream<BitbucketPage<Integer>> stream = BitbucketPageStreamUtil.toStream(null, null);
+
+        assertTrue(stream.collect(toList()).size() == 0);
     }
 }

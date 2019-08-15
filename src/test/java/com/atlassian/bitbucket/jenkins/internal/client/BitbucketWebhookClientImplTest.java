@@ -11,6 +11,7 @@ import java.util.Set;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -30,11 +31,11 @@ public class BitbucketWebhookClientImplTest {
 
     @Test
     public void testFetchingOfExistingWebhooks() {
-        String response = readFileToString("/webhook/configured_web_hooks_response.json");
+        String response = readFileToString("/webhook/web_hooks_in_system.json");
         String url = format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks", BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        List<BitbucketWebhook> webhooks = client.getWebhooks().getValues();
+        List<BitbucketWebhook> webhooks = convertToElementStream(client.getWebhooks()).collect(toList());
 
         assertThat(webhooks.size(), is(equalTo(2)));
     }
@@ -43,7 +44,7 @@ public class BitbucketWebhookClientImplTest {
     public void testFetchingOfExistingWebhooksWithFilter() {
         String repoRefEvent = "repo:refs_changed";
         String mirrorSyncEvent = "mirror:repo_synchronized";
-        String response = readFileToString("/webhook/configured_web_hooks_response.json");
+        String response = readFileToString("/webhook/web_hooks_in_system.json");
         String url =
                 format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks?event=%s&event=%s",
                         BITBUCKET_BASE_URL,
@@ -53,8 +54,7 @@ public class BitbucketWebhookClientImplTest {
                         encode(mirrorSyncEvent));
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        List<BitbucketWebhook> webhooks =
-                client.getWebhooks(repoRefEvent, mirrorSyncEvent).getValues();
+        List<BitbucketWebhook> webhooks = convertToElementStream(client.getWebhooks(repoRefEvent, mirrorSyncEvent)).collect(toList());
 
         assertThat(webhooks.size(), is(equalTo(2)));
         Set<String> events =

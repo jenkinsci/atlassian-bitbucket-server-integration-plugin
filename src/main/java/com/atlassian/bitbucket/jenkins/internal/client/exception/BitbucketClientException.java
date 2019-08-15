@@ -31,6 +31,12 @@ public class BitbucketClientException extends RuntimeException {
         body = null;
     }
 
+    public BitbucketClientException(String message) {
+        super(message);
+        responseCode = -1;
+        body = null;
+    }
+
     @Override
     public String toString() {
         String message = format("%s: - response: %d", getClass().getName(), responseCode);

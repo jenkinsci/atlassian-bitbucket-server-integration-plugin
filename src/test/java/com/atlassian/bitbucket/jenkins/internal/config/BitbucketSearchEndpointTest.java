@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint.BITBUCKET_SERVER_SEARCH_URL;
 import static io.restassured.RestAssured.given;
+import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -72,7 +73,7 @@ public class BitbucketSearchEndpointTest {
         page.setValues(projects);
         page.setSize(1);
         page.setLastPage(true);
-        when(bbProjectSearchClient.get("")).thenReturn(page);
+        when(bbProjectSearchClient.get("")).thenReturn(asList(page).stream());
 
         given().contentType(ContentType.JSON)
                 .log()

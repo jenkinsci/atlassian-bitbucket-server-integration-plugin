@@ -1,9 +1,13 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
+import com.atlassian.bitbucket.jenkins.internal.client.paging.GetBasedNextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
+
+import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 
@@ -22,10 +26,13 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
     }
 
     @Override
-    public BitbucketPage<BitbucketWebhook> getWebhooks(String... eventIdFilter) {
+    public Stream<BitbucketPage<BitbucketWebhook>> getWebhooks(String... eventIdFilter) {
         HttpUrl.Builder urlBuilder = getWebhookUrl(projectKey, repoSlug);
         stream(eventIdFilter).forEach(eventId -> urlBuilder.addQueryParameter("event", eventId));
-        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
+        HttpUrl url = urlBuilder.build();
+        BitbucketPage<BitbucketWebhook> firstPage =
+                bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
+        return BitbucketPageStreamUtil.toStream(firstPage, new GetBasedNextPageFetcher(url, bitbucketRequestExecutor));
     }
 
     @Override
