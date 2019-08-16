@@ -125,10 +125,6 @@ public class BitbucketSCM extends SCM {
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
     }
 
-    public String getLatestRevision(AbstractBuild build) {
-        return gitSCM.getBuildData(build).lastBuild.getRevision().getSha1String();
-    }
-
     @Override
     public PollingResult compareRemoteRevisionWith(
             @Nonnull Job<?, ?> project,
@@ -203,6 +199,10 @@ public class BitbucketSCM extends SCM {
 
     public String getId() {
         return id;
+    }
+
+    public String getLatestRevision(AbstractBuild build) {
+        return gitSCM.getBuildData(build).lastBuild.getRevision().getSha1String();
     }
 
     @CheckForNull

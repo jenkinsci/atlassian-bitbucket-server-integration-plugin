@@ -5,5 +5,5 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 /**
  * Client to post build status to remote server
  */
-public interface BitbucketBuildStatusClient extends BitbucketPostClient<Integer, BitbucketBuildStatus> {
+public interface BitbucketBuildStatusClient extends BitbucketPostClient<Void, BitbucketBuildStatus> {
 }

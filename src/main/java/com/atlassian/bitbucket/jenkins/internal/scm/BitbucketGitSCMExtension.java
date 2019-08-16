@@ -15,7 +15,6 @@ import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 
 import javax.inject.Inject;
-import java.io.IOException;
 
 public class BitbucketGitSCMExtension extends GitSCMExtension {
 
@@ -31,7 +30,7 @@ public class BitbucketGitSCMExtension extends GitSCMExtension {
 
     @Override
     public void decorateCheckoutCommand(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener,
-                                        CheckoutCommand cmd) throws IOException, InterruptedException, GitException {
+                                        CheckoutCommand cmd) throws GitException {
         if (build instanceof AbstractBuild) {
             String revisionSha1 = scm.getBuildData(build).lastBuild.getRevision().getSha1String();
             BitbucketServerConfiguration server =
