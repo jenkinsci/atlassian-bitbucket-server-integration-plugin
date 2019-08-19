@@ -35,9 +35,9 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
-    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody, ResponseConsumer<T> consumer) {
-        MediaType mediaType = MediaType.parse(requestBody);
-        Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
+    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson, ResponseConsumer<T> consumer) {
+        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+        Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBodyAsJson)).url(url);
         addAuthorization(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
