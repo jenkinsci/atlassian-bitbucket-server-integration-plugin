@@ -3,6 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest.BitbucketWebhookRequestBuilder;
 import org.junit.Test;
 
 import java.util.List;
@@ -37,6 +39,9 @@ public class BitbucketWebhookClientImplTest {
         List<BitbucketWebhook> webhooks = client.getWebhooks().getValues();
 
         assertThat(webhooks.size(), is(equalTo(2)));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::getName).collect(toSet()), hasItems("w1", "w2"));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::getUrl).collect(toSet()), hasItems("http://localhost:8090"));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::isActive).collect(toSet()), hasItems(true));
     }
 
     @Test
@@ -75,10 +80,11 @@ public class BitbucketWebhookClientImplTest {
                         repoSlug);
         fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, readFileToString("/webhook/webhook_creation_request.json"), response);
 
-        WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
+        BitbucketWebhookRequest request = BitbucketWebhookRequestBuilder
                 .aRequestFor(repoRefEvent, mirrorSyncEvent)
                 .withCallbackTo(url)
                 .name("WebhookName")
+                .withIsActive(true)
                 .build();
         BitbucketWebhook result = client.registerWebhook(request);
 
