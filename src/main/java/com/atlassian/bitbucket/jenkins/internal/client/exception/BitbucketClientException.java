@@ -20,15 +20,26 @@ public class BitbucketClientException extends RuntimeException {
 
     public BitbucketClientException(
             @Nonnull String message, int responseCode, @Nullable String body) {
-        super(message);
-        this.responseCode = responseCode;
-        this.body = body;
+        this(message, null, responseCode, body);
     }
 
     public BitbucketClientException(IOException e) {
-        super(e);
-        responseCode = -1;
-        body = null;
+        this(e.getMessage(), e);
+    }
+
+    public BitbucketClientException(String message, Throwable cause, @Nullable String body) {
+        this(message, cause, -1, body);
+    }
+
+    public BitbucketClientException(String message, Throwable cause) {
+        this(message, cause, null);
+    }
+
+    public BitbucketClientException(String message, @Nullable Throwable cause, int responseCode,
+                                    @Nullable String body) {
+        super(message, cause);
+        this.responseCode = responseCode;
+        this.body = body;
     }
 
     @Override

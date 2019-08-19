@@ -4,12 +4,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import okhttp3.*;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.AUTHORIZATION_HEADER_KEY;
@@ -19,7 +20,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private static final int BAD_REQUEST_FAMILY = 4;
     private static final int SERVER_ERROR_FAMILY = 5;
-    private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class);
+    private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
 
     private final Call.Factory httpCallFactory;
 
@@ -30,15 +31,17 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     @Override
     public <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        addAuthorization(credential, requestBuilder);
+        addAuthentication(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
 
     @Override
-    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBody, ResponseConsumer<T> consumer) {
-        MediaType mediaType = MediaType.parse(requestBody);
-        Request.Builder requestBuilder = new Request.Builder().post(RequestBody.create(mediaType, requestBody)).url(url);
-        addAuthorization(credential, requestBuilder);
+    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
+                             ResponseConsumer<T> consumer) {
+        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+        Request.Builder requestBuilder =
+                new Request.Builder().post(RequestBody.create(mediaType, requestBodyAsJson)).url(url);
+        addAuthentication(credential, requestBuilder);
         return executeRequest(requestBuilder.build(), consumer);
     }
 
@@ -49,22 +52,22 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
             try (ResponseBody body = response.body()) {
                 if (response.isSuccessful()) {
-                    log.trace("Bitbucket - call successful");
+                    log.fine("Bitbucket - call successful");
                     return consumer.consume(response);
                 }
                 handleError(responseCode, body == null ? null : body.string());
             }
         } catch (ConnectException | SocketTimeoutException e) {
-            log.debug("Bitbucket - Connection failed", e);
+            log.log(Level.SEVERE, "Bitbucket - Connection failed", e);
             throw new ConnectionFailureException(e);
         } catch (IOException e) {
-            log.debug("Bitbucket - io exception", e);
+            log.log(Level.SEVERE, "Bitbucket - io exception", e);
             throw new BitbucketClientException(e);
         }
         throw new UnhandledErrorException("Unhandled error", -1, null);
     }
 
-    private void addAuthorization(BitbucketCredentials credential, Request.Builder requestBuilder) {
+    private void addAuthentication(BitbucketCredentials credential, Request.Builder requestBuilder) {
         if (credential != ANONYMOUS_CREDENTIALS) {
             requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
         }
@@ -86,20 +89,20 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         switch (responseCode) {
             case HTTP_FORBIDDEN: // fall through to same handling.
             case HTTP_UNAUTHORIZED:
-                log.debug("Bitbucket - responded with not authorized ");
+                log.severe("Bitbucket - responded with not authorized ");
                 throw new AuthorizationException(
                         "Provided credentials cannot access the resource", responseCode, body);
             case HTTP_NOT_FOUND:
-                log.debug("Bitbucket - Path not found");
+                log.severe("Bitbucket - Path not found");
                 throw new NotFoundException("The requested resource does not exist", body);
         }
         int family = responseCode / 100;
         switch (family) {
             case BAD_REQUEST_FAMILY:
-                log.debug("Bitbucket - did not accept the request");
+                log.severe("Bitbucket - did not accept the request");
                 throw new BadRequestException("The request is malformed", responseCode, body);
             case SERVER_ERROR_FAMILY:
-                log.debug("Bitbucket - failed to service request");
+                log.severe("Bitbucket - failed to service request");
                 throw new ServerErrorException(
                         "The server failed to service request", responseCode, body);
         }
