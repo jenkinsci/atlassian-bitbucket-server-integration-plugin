@@ -9,29 +9,27 @@ import static java.util.Arrays.stream;
 
 public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
 
-    private final String projectKey;
-    private final String repoSlug;
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final HttpUrl.Builder urlBuilder;
 
     public BitbucketWebhookClientImpl(String projectKey,
                                       String repoSlug,
                                       BitbucketRequestExecutor bitbucketRequestExecutor) {
-        this.projectKey = projectKey;
-        this.repoSlug = repoSlug;
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
+        this.urlBuilder = getWebhookUrl(projectKey, repoSlug);
     }
 
     @Override
     public BitbucketPage<BitbucketWebhook> getWebhooks(String... eventIdFilter) {
-        HttpUrl.Builder urlBuilder = getWebhookUrl(projectKey, repoSlug);
         stream(eventIdFilter).forEach(eventId -> urlBuilder.addQueryParameter("event", eventId));
-        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
+        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(),
+                new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
     }
 
     @Override
     public BitbucketWebhook registerWebhook(WebhookRegisterRequest request) {
         return bitbucketRequestExecutor.makePostRequest(
-                getWebhookUrl(projectKey, repoSlug).build(),
+                urlBuilder.build(),
                 request.getRequestPayload(),
                 BitbucketWebhook.class).getBody();
     }
