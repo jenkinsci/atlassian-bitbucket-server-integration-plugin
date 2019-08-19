@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 
 import java.util.stream.Stream;
 
@@ -15,7 +16,7 @@ public interface BitbucketWebhookClient {
      * every subsequent fetch of {@link BitbucketPage} results in a remote call to Bitbucket server.
      *
      * @param eventId, Event id filters. These ids are the same as the one recieved as
-     *                       {@link com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents}
+     *                 {@link com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents}
      * @return a stream of webhooks.
      */
     Stream<BitbucketWebhook> getWebhooks(String... eventId);
@@ -26,5 +27,5 @@ public interface BitbucketWebhookClient {
      * @param request Webhook details
      * @return returns the registered webhook
      */
-    BitbucketWebhook registerWebhook(WebhookRegisterRequest request);
+    BitbucketWebhook registerWebhook(BitbucketWebhookRequest request);
 }

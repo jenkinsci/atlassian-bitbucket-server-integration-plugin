@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStrea
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
@@ -36,10 +37,10 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
     }
 
     @Override
-    public BitbucketWebhook registerWebhook(WebhookRegisterRequest request) {
+    public BitbucketWebhook registerWebhook(BitbucketWebhookRequest request) {
         return bitbucketRequestExecutor.makePostRequest(
                 urlBuilder.build(),
-                request.getRequestPayload(),
+                request,
                 BitbucketWebhook.class).getBody();
     }
 
