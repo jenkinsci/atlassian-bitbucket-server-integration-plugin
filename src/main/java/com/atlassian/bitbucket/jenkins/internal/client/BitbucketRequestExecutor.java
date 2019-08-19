@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
 import static java.util.Objects.requireNonNull;
 import static okhttp3.HttpUrl.parse;
 
@@ -25,9 +26,9 @@ public class BitbucketRequestExecutor {
 
     private final HttpUrl bitbucketBaseUrl;
     private final HttpUrl coreRestPathUrl;
-    private final HttpRequestExecutor httpRequestExecutor;
-    private final ObjectMapper objectMapper;
     private final BitbucketCredentials credentials;
+    private final ObjectMapper objectMapper;
+    private final HttpRequestExecutor httpRequestExecutor;
 
     public BitbucketRequestExecutor(String bitbucketBaseUrl,
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
@@ -91,17 +92,29 @@ public class BitbucketRequestExecutor {
     /**
      * Makes a POST request to the given URL with given request payload.
      *
-     * @param url,            the URL to make the request to
+     * @param url             the URL to make the request to
      * @param requestPayload, JSON payload which will be marshalled to send it with POST.
      * @param returnType,     Class of expected return type
-     * @param <T>,            Type of Request payload.
-     * @param <R>,            Return type
+     * @param <T>             Type of Request payload.
+     * @param <R>             Return type
      * @return
      */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
         return httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), response ->
                 new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
+    }
+
+    /**
+     * Makes a POST request to the given URL with given request payload.
+     *
+     * @param url            the URL to make the request to
+     * @param requestPayload JSON payload which will be marshalled to send it with POST.
+     * @param <T>            Type of Request payload.
+     * @return
+     */
+    public <T> void makePostRequest(HttpUrl url, T requestPayload) {
+        httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
     }
 
     private void ensureNonEmptyBody(Response response) {
@@ -122,8 +135,8 @@ public class BitbucketRequestExecutor {
     }
 
     private <T> String marshall(T requestPayload) {
+        requireNonNull(requestPayload);
         try {
-            requireNonNull(requestPayload);
             return objectMapper.writeValueAsString(requestPayload);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Programming error while marshalling webhook model.", e);
@@ -131,8 +144,8 @@ public class BitbucketRequestExecutor {
     }
 
     private <T> T unmarshall(ObjectReader<T> reader, ResponseBody body) {
+        requireNonNull(body);
         try {
-            requireNonNull(body);
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
             log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
