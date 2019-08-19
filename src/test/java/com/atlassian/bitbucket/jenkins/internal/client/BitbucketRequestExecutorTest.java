@@ -18,8 +18,6 @@ public class BitbucketRequestExecutorTest {
 
     @Test(expected = NoContentException.class)
     public void testNoBody() {
-        // test that all the handling logic does not fail if there is no body available, this just
-        // checks that no exceptions are thrown.
         fakeRemoteHttpServer.mapUrlToResult(BITBUCKET_BASE_URL, null);
 
         bitbucketRequestExecutor.makeGetRequest(bitbucketRequestExecutor.getBaseUrl(), Object.class);

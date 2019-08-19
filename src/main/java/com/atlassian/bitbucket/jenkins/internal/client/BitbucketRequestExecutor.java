@@ -25,9 +25,9 @@ public class BitbucketRequestExecutor {
 
     private final HttpUrl bitbucketBaseUrl;
     private final HttpUrl coreRestPathUrl;
-    private final HttpRequestExecutor httpRequestExecutor;
-    private final ObjectMapper objectMapper;
     private final BitbucketCredentials credentials;
+    private final ObjectMapper objectMapper;
+    private final HttpRequestExecutor httpRequestExecutor;
 
     public BitbucketRequestExecutor(String bitbucketBaseUrl,
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
@@ -122,8 +122,8 @@ public class BitbucketRequestExecutor {
     }
 
     private <T> String marshall(T requestPayload) {
+        requireNonNull(requestPayload);
         try {
-            requireNonNull(requestPayload);
             return objectMapper.writeValueAsString(requestPayload);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Programming error while marshalling webhook model.", e);
@@ -131,8 +131,8 @@ public class BitbucketRequestExecutor {
     }
 
     private <T> T unmarshall(ObjectReader<T> reader, ResponseBody body) {
+        requireNonNull(body);
         try {
-            requireNonNull(body);
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
             log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
