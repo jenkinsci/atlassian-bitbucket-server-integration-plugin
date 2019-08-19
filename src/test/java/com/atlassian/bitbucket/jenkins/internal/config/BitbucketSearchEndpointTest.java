@@ -73,7 +73,7 @@ public class BitbucketSearchEndpointTest {
         page.setValues(projects);
         page.setSize(1);
         page.setLastPage(true);
-        when(bbProjectSearchClient.get("")).thenReturn(asList(page).stream());
+        when(bbProjectSearchClient.get("")).thenReturn(page);
 
         given().contentType(ContentType.JSON)
                 .log()

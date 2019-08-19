@@ -2,7 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.client.paging;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 
-public interface NextPageFetcher {
+public interface NextPageFetcher<T> {
 
-    <T> BitbucketPage<T> next(BitbucketPage<T> previous);
+    BitbucketPage<T> next(BitbucketPage<T> previous);
 }

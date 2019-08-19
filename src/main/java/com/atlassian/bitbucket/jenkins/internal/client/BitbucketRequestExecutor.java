@@ -116,8 +116,9 @@ public class BitbucketRequestExecutor {
         return httpRequestExecutor.executeGet(url, credentials,
                 response -> {
                     ensureNonEmptyBody(response);
+                    T result = unmarshall(reader, response.body());
                     return new BitbucketResponse<>(
-                            response.headers().toMultimap(), unmarshall(reader, response.body()));
+                            response.headers().toMultimap(), result);
                 });
     }
 

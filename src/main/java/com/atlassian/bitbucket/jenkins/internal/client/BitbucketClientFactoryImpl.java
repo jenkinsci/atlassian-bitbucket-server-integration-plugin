@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
-import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
-import com.atlassian.bitbucket.jenkins.internal.client.paging.GetBasedNextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +11,6 @@ import javax.annotation.CheckForNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
 import static java.util.Collections.emptyMap;
@@ -85,7 +82,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return new BitbucketProjectSearchClient() {
 
             @Override
-            public Stream<BitbucketPage<BitbucketProject>> get(@CheckForNull String name) {
+            public BitbucketPage<BitbucketProject> get(@CheckForNull String name) {
                 if (StringUtils.isBlank(name)) {
                     return get();
                 }
@@ -93,21 +90,20 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             }
 
             @Override
-            public Stream<BitbucketPage<BitbucketProject>> get() {
+            public BitbucketPage<BitbucketProject> get() {
                 return get(emptyMap());
             }
 
-            private Stream<BitbucketPage<BitbucketProject>> get(Map<String, String> queryParams) {
+            private BitbucketPage<BitbucketProject> get(Map<String, String> queryParams) {
                 HttpUrl.Builder urlBuilder =
                         bitbucketRequestExecutor.getCoreRestPath().newBuilder().addPathSegment("projects");
                 queryParams.forEach(urlBuilder::addQueryParameter);
                 HttpUrl url = urlBuilder.build();
-                BitbucketPage<BitbucketProject> page = bitbucketRequestExecutor.makeGetRequest(
+                return bitbucketRequestExecutor.makeGetRequest(
                         url,
                         new TypeReference<BitbucketPage<BitbucketProject>>() {
                         })
                         .getBody();
-                return BitbucketPageStreamUtil.toStream(page, new GetBasedNextPageFetcher(url, bitbucketRequestExecutor));
             }
         };
     }
@@ -118,16 +114,16 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return new BitbucketRepositorySearchClient() {
 
             @Override
-            public Stream<BitbucketPage<BitbucketRepository>> get(String filter) {
+            public BitbucketPage<BitbucketRepository> get(String filter) {
                 return get(singletonMap("name", filter));
             }
 
             @Override
-            public Stream<BitbucketPage<BitbucketRepository>> get() {
+            public BitbucketPage<BitbucketRepository> get() {
                 return get(emptyMap());
             }
 
-            private Stream<BitbucketPage<BitbucketRepository>> get(Map<String, String> queryParams) {
+            private BitbucketPage<BitbucketRepository> get(Map<String, String> queryParams) {
                 HttpUrl.Builder urlBuilder = bitbucketRequestExecutor
                         .getCoreRestPath()
                         .newBuilder()
@@ -135,12 +131,11 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                         .addQueryParameter("projectname", projectName);
                 queryParams.forEach(urlBuilder::addQueryParameter);
                 HttpUrl url = urlBuilder.build();
-                BitbucketPage<BitbucketRepository> firstPage = bitbucketRequestExecutor.makeGetRequest(
+                return bitbucketRequestExecutor.makeGetRequest(
                         url,
                         new TypeReference<BitbucketPage<BitbucketRepository>>() {
                         })
                         .getBody();
-                return BitbucketPageStreamUtil.toStream(firstPage, new GetBasedNextPageFetcher(url, bitbucketRequestExecutor));
             }
         };
     }

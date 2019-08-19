@@ -16,9 +16,9 @@ public interface BitbucketWebhookClient {
      *
      * @param eventIdFilter, Event id filters. These ids are the same as the one recieved as
      *                       {@link com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents}
-     * @return a stream of pages of webhooks.
+     * @return a stream of webhooks.
      */
-    Stream<BitbucketPage<BitbucketWebhook>> getWebhooks(String... eventIdFilter);
+    Stream<BitbucketWebhook> getWebhooks(String... eventIdFilter);
 
     /**
      * Registers the given webhook in the Bitbucket Server.

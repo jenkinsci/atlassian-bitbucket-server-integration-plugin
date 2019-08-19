@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.EmptyBitbucketPage;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.Extension;
 import hudson.model.RootAction;
@@ -56,8 +55,7 @@ public class BitbucketSearchEndpoint implements RootAction {
                         .getProjectSearchClient();
         try {
             BitbucketPage<BitbucketProject> projects =
-                    projectSearchClient.get(StringUtils.stripToEmpty(name))
-                            .findAny().orElse(new EmptyBitbucketPage<>());
+                    projectSearchClient.get(StringUtils.stripToEmpty(name));
 
             return HttpResponses.okJSON(JSONObject.fromObject(projects));
         } catch (BitbucketClientException e) {
@@ -85,9 +83,7 @@ public class BitbucketSearchEndpoint implements RootAction {
                         .getRepositorySearchClient(projectName);
         try {
             BitbucketPage<BitbucketRepository> repositories =
-                    searchClient.get(StringUtils.stripToEmpty(filter))
-                            .findFirst()
-                            .orElse(new EmptyBitbucketPage<>());
+                    searchClient.get(StringUtils.stripToEmpty(filter));
             return HttpResponses.okJSON(JSONObject.fromObject(repositories));
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket

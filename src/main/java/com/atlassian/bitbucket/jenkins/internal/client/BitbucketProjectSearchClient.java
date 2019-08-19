@@ -4,10 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 
 import javax.annotation.CheckForNull;
-import java.util.stream.Stream;
 
 public interface BitbucketProjectSearchClient
-        extends BitbucketClient<Stream<BitbucketPage<BitbucketProject>>> {
+        extends BitbucketClient<BitbucketPage<BitbucketProject>> {
 
     /**
      * Search for Bitbucket Server projects whose names contain the provided value. Matching is
@@ -20,5 +19,5 @@ public interface BitbucketProjectSearchClient
      * @param name the query on which to search for projects
      * @return stream of pages of projects matching the query
      */
-    Stream<BitbucketPage<BitbucketProject>> get(@CheckForNull String name);
+    BitbucketPage<BitbucketProject> get(@CheckForNull String name);
 }

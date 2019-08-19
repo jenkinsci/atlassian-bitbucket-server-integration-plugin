@@ -126,7 +126,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
-                anonymousClientFactory.getProjectSearchClient().get().findFirst().get();
+                anonymousClientFactory.getProjectSearchClient().get();
 
         assertThat(projects.getSize(), equalTo(4));
         assertThat(projects.getLimit(), equalTo(25));
@@ -142,7 +142,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
-                anonymousClientFactory.getProjectSearchClient().get("myFilter").findFirst().get();
+                anonymousClientFactory.getProjectSearchClient().get("myFilter");
 
         assertThat(projects.getSize(), equalTo(1));
         assertThat(projects.getLimit(), equalTo(25));
@@ -159,7 +159,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("PROJ").get().findFirst().get();
+                anonymousClientFactory.getRepositorySearchClient("PROJ").get();
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));
@@ -185,7 +185,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("my project name").get("rep").findFirst().get();
+                anonymousClientFactory.getRepositorySearchClient("my project name").get("rep");
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));

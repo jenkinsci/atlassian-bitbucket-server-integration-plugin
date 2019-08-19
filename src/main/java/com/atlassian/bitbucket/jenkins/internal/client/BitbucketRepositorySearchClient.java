@@ -3,10 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
-import java.util.stream.Stream;
-
 public interface BitbucketRepositorySearchClient
-        extends BitbucketClient<Stream<BitbucketPage<BitbucketRepository>>> {
+        extends BitbucketClient<BitbucketPage<BitbucketRepository>> {
 
     /**
      * Search for Bitbucket Server repositories whose names match the provided value. Matching is
@@ -21,5 +19,5 @@ public interface BitbucketRepositorySearchClient
      * @param filter the terms to use when searching for repositories
      * @return a page of repositories matching the filter
      */
-    Stream<BitbucketPage<BitbucketRepository>> get(String filter);
+    BitbucketPage<BitbucketRepository> get(String filter);
 }
