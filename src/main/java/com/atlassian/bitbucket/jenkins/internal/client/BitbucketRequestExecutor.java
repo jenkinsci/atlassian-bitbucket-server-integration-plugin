@@ -92,11 +92,11 @@ public class BitbucketRequestExecutor {
     /**
      * Makes a POST request to the given URL with given request payload.
      *
-     * @param url            the URL to make the request to
+     * @param url             the URL to make the request to
      * @param requestPayload, JSON payload which will be marshalled to send it with POST.
      * @param returnType,     Class of expected return type
-     * @param <T>            Type of Request payload.
-     * @param <R>            Return type
+     * @param <T>             Type of Request payload.
+     * @param <R>             Return type
      * @return
      */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
@@ -116,7 +116,6 @@ public class BitbucketRequestExecutor {
     public <T> void makePostRequest(HttpUrl url, T requestPayload) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
     }
-
 
     private void ensureNonEmptyBody(Response response) {
         if (response.body() == null) {
