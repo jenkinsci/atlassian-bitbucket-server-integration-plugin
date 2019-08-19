@@ -36,15 +36,14 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
         return new BitbucketBuildStatusClient() {
             @Override
             public Void post(BitbucketBuildStatus status) {
-                //HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
-                HttpUrl url = baseUrl.newBuilder()
+                HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                         .addPathSegment("rest")
                         .addPathSegment("build-status")
                         .addPathSegment("1.0")
                         .addPathSegment("commits")
                         .addPathSegment(revisionSha1)
                         .build();
-                //return bitbucketRequestExecutor.makePostRequest(url, objectMapper.writeValueAsString(status), ResponseType.class);
+                bitbucketRequestExecutor.makePostRequest(url, status, Void.class);
                 return null;
             }
         };

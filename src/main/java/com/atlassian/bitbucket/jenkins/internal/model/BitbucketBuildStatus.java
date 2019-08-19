@@ -20,6 +20,7 @@ public class BitbucketBuildStatus {
         description = state.getDescriptiveText(build);
         key = build.getId();
         name = build.getProject().getName();
+        //TODO: Something (?) is wrong here
         url = new HttpUrl.Builder()
                 .addPathSegment(Jenkins.get().getRootUrl())
                 .addPathSegment(build.getUrl())

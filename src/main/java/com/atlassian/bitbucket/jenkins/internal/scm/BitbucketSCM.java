@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -93,13 +92,12 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
         this.gitTool = gitTool;
         this.branches = branches;
-
-        if (extensions != null) {
-            extensions.add(new BitbucketGitSCMExtension(serverId));
-            this.extensions = extensions;
+        this.extensions = extensions;
+        /*if (extensions != null) {
+            extensions.add(new BitbucketPostBuildStatus(serverId));
         } else {
-            this.extensions = Collections.singletonList(new BitbucketGitSCMExtension(serverId));
-        }
+            this.extensions = Collections.singletonList(new BitbucketPostBuildStatus(serverId));
+        }*/
     }
 
     @CheckForNull
