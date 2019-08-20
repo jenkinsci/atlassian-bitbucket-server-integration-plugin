@@ -38,7 +38,7 @@ public class BitbucketPostBuildStatusListener<R extends Run> extends RunListener
                 BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
 
         bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
-                .getBuildStatusClient(scm.getLatestRevision(build))
+                .getBuildStatusClient(scm.getLatestRevision(build).getSha1String())
                 .post(new BitbucketBuildStatus(build));
     }
 }

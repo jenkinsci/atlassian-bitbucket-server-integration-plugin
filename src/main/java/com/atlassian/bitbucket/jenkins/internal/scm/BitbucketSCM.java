@@ -15,10 +15,7 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
-import hudson.plugins.git.BranchSpec;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.GitTool;
-import hudson.plugins.git.UserRemoteConfig;
+import hudson.plugins.git.*;
 import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
@@ -197,8 +194,8 @@ public class BitbucketSCM extends SCM {
         return id;
     }
 
-    public String getLatestRevision(AbstractBuild build) {
-        return gitSCM.getBuildData(build).lastBuild.getRevision().getSha1String();
+    public Revision getLatestRevision(AbstractBuild build) {
+        return gitSCM.getBuildData(build).lastBuild.getRevision();
     }
 
     @CheckForNull
