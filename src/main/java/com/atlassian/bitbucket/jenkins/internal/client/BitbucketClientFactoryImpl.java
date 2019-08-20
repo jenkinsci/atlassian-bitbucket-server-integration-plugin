@@ -8,6 +8,7 @@ import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +36,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1) {
         return new BitbucketBuildStatusClient() {
             @Override
+            @Nullable
             public Void post(BitbucketBuildStatus status) {
                 HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                         .addPathSegment("rest")

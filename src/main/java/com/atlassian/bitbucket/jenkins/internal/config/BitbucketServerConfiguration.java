@@ -86,7 +86,6 @@ public class BitbucketServerConfiguration
      *
      * @return the bitbucket server base URL
      */
-    @Nullable
     public String getBaseUrl() {
         return baseUrl;
     }

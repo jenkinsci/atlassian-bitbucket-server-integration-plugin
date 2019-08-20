@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.google.inject.Injector;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -14,6 +15,8 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
+
+import java.util.Optional;
 
 public class BitbucketPostBuildStatus extends GitSCMExtension {
 
@@ -26,11 +29,15 @@ public class BitbucketPostBuildStatus extends GitSCMExtension {
     @Override
     public void decorateCheckoutCommand(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener,
                                         CheckoutCommand cmd) throws GitException {
-        BitbucketPluginConfiguration pluginConfiguration = Jenkins.get().getInjector().getInstance(BitbucketPluginConfiguration.class);
-        BitbucketClientFactoryProvider clientFactoryProvider = Jenkins.get().getInjector().getInstance(BitbucketClientFactoryProvider.class);
+        Injector injector = Optional.ofNullable(Jenkins.get().getInjector()).orElseThrow(RuntimeException::new);
+        BitbucketPluginConfiguration pluginConfiguration =
+                injector.getInstance(BitbucketPluginConfiguration.class);
+        BitbucketClientFactoryProvider clientFactoryProvider =
+                injector.getInstance(BitbucketClientFactoryProvider.class);
 
         if (build instanceof AbstractBuild) {
-            String revisionSha1 = scm.getBuildData(build).lastBuild.getRevision().getSha1String();
+            String revisionSha1 =
+                    Optional.ofNullable(scm.getBuildData(build)).orElseThrow(RuntimeException::new).lastBuild.getRevision().getSha1String();
             BitbucketServerConfiguration server =
                     pluginConfiguration.getServerById(serverId)
                             .orElseThrow(() -> new RuntimeException("The provided Bitbucket Server config does not exist"));

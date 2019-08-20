@@ -40,10 +40,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toCollection;
@@ -195,7 +192,8 @@ public class BitbucketSCM extends SCM {
     }
 
     public Revision getLatestRevision(AbstractBuild build) {
-        return gitSCM.getBuildData(build).lastBuild.getRevision();
+        return Optional.ofNullable(gitSCM.getBuildData(build)).orElseThrow(RuntimeException::new)
+                .lastBuild.getRevision();
     }
 
     @CheckForNull
