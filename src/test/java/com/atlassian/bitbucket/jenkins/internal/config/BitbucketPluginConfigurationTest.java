@@ -12,8 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -50,6 +50,7 @@ public class BitbucketPluginConfigurationTest {
     @Test
     public void testConfigureMultipleInvalid() {
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne, invalidServerConfigurationTwo));
+        formData.put("serverList", 2);
         assertFalse(pluginConfiguration.configure(request, formData));
         verify(request).bindJSON(pluginConfiguration, formData);
     }
@@ -57,26 +58,29 @@ public class BitbucketPluginConfigurationTest {
     @Test
     public void testConfigureSingleInvalid() {
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne));
+        formData.put("serverList", 1);
         assertFalse(pluginConfiguration.configure(request, formData));
         verify(request).bindJSON(pluginConfiguration, formData);
     }
 
     @Test
     public void testConfigureValid() {
-        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration));
+        pluginConfiguration.setServerList(Collections.singletonList(validServerConfiguration));
+        formData.put("serverList", 1);
         assertTrue(pluginConfiguration.configure(request, formData));
         verify(request).bindJSON(pluginConfiguration, formData);
     }
 
     @Test
     public void testGetValidServerListEmpty() {
-        pluginConfiguration.setServerList(new ArrayList<>());
+        pluginConfiguration.setServerList(Collections.emptyList());
         assertThat(pluginConfiguration.getValidServerList(), Matchers.hasSize(0));
     }
 
     @Test
     public void testGetValidServerListAllValid() {
-        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration));
+        pluginConfiguration.setServerList(Collections.singletonList(validServerConfiguration));
+        formData.put("serverList", 1);
         List<BitbucketServerConfiguration> validServerList = pluginConfiguration.getValidServerList();
         assertThat(validServerList, Matchers.contains(validServerConfiguration));
         assertThat(validServerList, Matchers.contains(validServerConfiguration));
@@ -85,6 +89,7 @@ public class BitbucketPluginConfigurationTest {
     @Test
     public void testGetValidServerListSomeInvalid() {
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne, invalidServerConfigurationTwo));
+        formData.put("serverList", 2);
         List<BitbucketServerConfiguration> validServerList = pluginConfiguration.getValidServerList();
         assertThat(validServerList, Matchers.contains(validServerConfiguration));
         assertThat(validServerList, Matchers.contains(validServerConfiguration));
@@ -92,19 +97,21 @@ public class BitbucketPluginConfigurationTest {
 
     @Test
     public void testHasAnyInvalidConfigurationEmpty() {
-        pluginConfiguration.setServerList(new ArrayList<>());
+        pluginConfiguration.setServerList(Collections.emptyList());
         assertFalse(pluginConfiguration.hasAnyInvalidConfiguration());
     }
 
     @Test
     public void testHasAnyInvalidConfigurationNoInvalid() {
-        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration));
+        pluginConfiguration.setServerList(Collections.singletonList(validServerConfiguration));
+        formData.put("serverList", 1);
         assertFalse(pluginConfiguration.hasAnyInvalidConfiguration());
     }
 
     @Test
     public void testHasAnyInvalidConfigurationSomeInvalid() {
         pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne, invalidServerConfigurationTwo));
+        formData.put("serverList", 2);
         assertTrue(pluginConfiguration.hasAnyInvalidConfiguration());
     }
 }
