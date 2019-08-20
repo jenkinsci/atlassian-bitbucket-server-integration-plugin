@@ -2,8 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import hudson.model.AbstractBuild;
-import jenkins.model.Jenkins;
 import okhttp3.HttpUrl;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.net.URL;
 
@@ -20,12 +20,7 @@ public class BitbucketBuildStatus {
         description = state.getDescriptiveText(build);
         key = build.getId();
         name = build.getProject().getName();
-        //TODO: Something (?) is wrong here
-        url = new HttpUrl.Builder()
-                .addPathSegment(Jenkins.get().getRootUrl())
-                .addPathSegment(build.getUrl())
-                .build()
-                .url();
+        url = HttpUrl.parse(DisplayURLProvider.get().getRunURL(build)).url();
     }
 
     @JsonProperty(value = "description")

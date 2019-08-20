@@ -43,7 +43,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                         .addPathSegment("commits")
                         .addPathSegment(revisionSha1)
                         .build();
-                bitbucketRequestExecutor.makePostRequest(url, status, Void.class);
+                bitbucketRequestExecutor.makePostRequest(url, status);
                 return null;
             }
         };

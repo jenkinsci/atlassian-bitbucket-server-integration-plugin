@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.extensions.buildstatus.BitbucketPostBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -92,12 +94,7 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
         this.gitTool = gitTool;
         this.branches = branches;
-        this.extensions = extensions;
-        /*if (extensions != null) {
-            extensions.add(new BitbucketPostBuildStatus(serverId));
-        } else {
-            this.extensions = Collections.singletonList(new BitbucketPostBuildStatus(serverId));
-        }*/
+        this.extensions = extensions == null ? Collections.singletonList(new BitbucketPostBuildStatus(serverId)) : extensions;
     }
 
     @CheckForNull
@@ -188,7 +185,8 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        return gitSCM.getExtensions();
+        return gitSCM.getExtensions().stream().filter(extension -> extension.getClass() !=
+                                                                   BitbucketPostBuildStatus.class).collect(Collectors.toList());
     }
 
     public String getGitTool() {

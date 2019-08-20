@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.listener;
+package com.atlassian.bitbucket.jenkins.internal.extensions.buildstatus;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
@@ -15,7 +15,7 @@ import hudson.model.listeners.RunListener;
 import javax.inject.Inject;
 
 @Extension
-public class BitbucketBuildListener<R extends Run> extends RunListener<R> {
+public class BitbucketPostBuildStatusListener<R extends Run> extends RunListener<R> {
 
     @Inject
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
@@ -24,18 +24,21 @@ public class BitbucketBuildListener<R extends Run> extends RunListener<R> {
 
     @Override
     public void onCompleted(R r, TaskListener listener) {
-        if (r instanceof AbstractBuild) {
-            AbstractBuild build = (AbstractBuild) r;
-            if (build.getProject().getScm() instanceof BitbucketSCM) {
-                BitbucketSCM scm = (BitbucketSCM) build.getProject().getScm();
-                BitbucketServerConfiguration server = pluginConfiguration.getServerById(scm.getServerId())
-                        .orElseThrow(() -> new BitbucketSCMException("The provided Bitbucket Server config does not exist"));
-                BitbucketCredentials credentials = BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
-
-                bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
-                        .getBuildStatusClient(scm.getLatestRevision(build))
-                        .post(new BitbucketBuildStatus(build));
-            }
+        if (!(r instanceof AbstractBuild)) {
+            return;
         }
+        AbstractBuild build = (AbstractBuild) r;
+        if (!(build.getProject().getScm() instanceof BitbucketSCM)) {
+            return;
+        }
+        BitbucketSCM scm = (BitbucketSCM) build.getProject().getScm();
+        BitbucketServerConfiguration server = pluginConfiguration.getServerById(scm.getServerId())
+                .orElseThrow(() -> new BitbucketSCMException("The provided Bitbucket Server config does not exist"));
+        BitbucketCredentials credentials =
+                BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
+
+        bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
+                .getBuildStatusClient(scm.getLatestRevision(build))
+                .post(new BitbucketBuildStatus(build));
     }
 }
