@@ -13,11 +13,11 @@ public class BitbucketWebhookRequest {
     private final String url;
     private final boolean isActive;
 
-    protected BitbucketWebhookRequest(BitbucketWebhookRequestBuilder builder) {
-        this.name = builder.name;
-        this.events = builder.events;
-        this.url = builder.url;
-        this.isActive = builder.isActive;
+    protected BitbucketWebhookRequest(String name, Set<String> events, String url, boolean isActive) {
+        this.name = name;
+        this.events = events;
+        this.url = url;
+        this.isActive = isActive;
     }
 
     public String getName() {
@@ -62,10 +62,10 @@ public class BitbucketWebhookRequest {
         }
 
         public BitbucketWebhookRequest build() {
-            requireNonNull(events, "Specify the web hook events");
+            requireNonNull(events, "Specify the webhook events");
             requireNonNull(url, "Specify the Call back URL");
             requireNonNull(name, "Specify the name of the webhook.");
-            return new BitbucketWebhookRequest(this);
+            return new BitbucketWebhookRequest(name, events, url, isActive);
         }
 
         public BitbucketWebhookRequestBuilder withIsActive(boolean isActive) {

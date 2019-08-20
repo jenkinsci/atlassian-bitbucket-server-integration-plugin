@@ -17,17 +17,18 @@ import static java.util.Arrays.stream;
 public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
-    private final HttpUrl.Builder urlBuilder;
+    private final HttpUrl url;
 
     public BitbucketWebhookClientImpl(String projectKey,
                                       String repoSlug,
                                       BitbucketRequestExecutor bitbucketRequestExecutor) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
-        this.urlBuilder = getWebhookUrl(projectKey, repoSlug);
+        this.url = getWebhookUrl(projectKey, repoSlug);
     }
 
     @Override
     public Stream<BitbucketWebhook> getWebhooks(String... eventIdFilter) {
+        HttpUrl.Builder urlBuilder = url.newBuilder();
         stream(eventIdFilter).forEach(eventId -> urlBuilder.addQueryParameter("event", eventId));
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketWebhook> firstPage =
@@ -39,18 +40,19 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
     @Override
     public BitbucketWebhook registerWebhook(BitbucketWebhookRequest request) {
         return bitbucketRequestExecutor.makePostRequest(
-                urlBuilder.build(),
+                url,
                 request,
                 BitbucketWebhook.class).getBody();
     }
 
-    private HttpUrl.Builder getWebhookUrl(String projectSlug, String repoSlug) {
+    private HttpUrl getWebhookUrl(String projectSlug, String repoSlug) {
         return bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
                 .addPathSegment(projectSlug)
                 .addPathSegment("repos")
                 .addPathSegment(repoSlug)
-                .addPathSegment("webhooks");
+                .addPathSegment("webhooks")
+                .build();
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketWebhook> {

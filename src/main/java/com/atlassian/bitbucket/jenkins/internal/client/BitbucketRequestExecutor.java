@@ -10,10 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
 import static java.util.Objects.requireNonNull;
@@ -22,10 +22,10 @@ import static okhttp3.HttpUrl.parse;
 public class BitbucketRequestExecutor {
 
     private static final String API_VERSION = "1.0";
-    private static final Logger log = Logger.getLogger(BitbucketRequestExecutor.class);
+    private static final Logger log = Logger.getLogger(BitbucketRequestExecutor.class.getName());
 
     private final HttpUrl bitbucketBaseUrl;
-    private final HttpUrl coreRestPathUrl;
+    private final HttpUrl bitbucketCoreRestPathUrl;
     private final BitbucketCredentials credentials;
     private final ObjectMapper objectMapper;
     private final HttpRequestExecutor httpRequestExecutor;
@@ -34,7 +34,7 @@ public class BitbucketRequestExecutor {
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
                                     BitbucketCredentials credentials) {
         this.bitbucketBaseUrl = parse(requireNonNull(bitbucketBaseUrl));
-        this.coreRestPathUrl =
+        this.bitbucketCoreRestPathUrl =
                 this.bitbucketBaseUrl.newBuilder().addPathSegment("rest").addPathSegment("api").addPathSegment(API_VERSION).build();
         this.httpRequestExecutor = httpRequestExecutor;
         this.objectMapper = objectMapper;
@@ -54,7 +54,7 @@ public class BitbucketRequestExecutor {
      * @return HttpUrl of the core rest path;
      */
     public HttpUrl getCoreRestPath() {
-        return coreRestPathUrl;
+        return bitbucketCoreRestPathUrl;
     }
 
     /**
@@ -119,7 +119,7 @@ public class BitbucketRequestExecutor {
 
     private void ensureNonEmptyBody(Response response) {
         if (response.body() == null) {
-            log.debug("Bitbucket - No content in response");
+            log.severe("Bitbucket - No content in response");
             throw new NoContentException(
                     "Remote side did not send a response body", response.code());
         }
@@ -140,7 +140,8 @@ public class BitbucketRequestExecutor {
         try {
             return objectMapper.writeValueAsString(requestPayload);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Programming error while marshalling webhook model.", e);
+            log.severe("Programming error while marshalling webhook model." + e.getMessage());
+            throw new BitbucketClientException(e);
         }
     }
 
@@ -149,7 +150,7 @@ public class BitbucketRequestExecutor {
         try {
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
-            log.debug("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
+            log.severe("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
             throw new BitbucketClientException(e);
         }
     }

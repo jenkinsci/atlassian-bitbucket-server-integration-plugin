@@ -45,6 +45,9 @@ public class BitbucketWebhookClientImplTest {
         List<BitbucketWebhook> webhooks = client.getWebhooks().collect(toList());
 
         assertThat(webhooks.size(), is(equalTo(2)));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::getName).collect(toSet()), hasItems("w1", "w2"));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::getUrl).collect(toSet()), hasItems("http://localhost:8090"));
+        assertThat(webhooks.stream().map(BitbucketWebhookRequest::isActive).collect(toSet()), hasItems(true));
     }
 
     @Test
