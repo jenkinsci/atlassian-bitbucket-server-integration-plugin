@@ -56,7 +56,6 @@ public class BitbucketSearchEndpoint implements RootAction {
         try {
             BitbucketPage<BitbucketProject> projects =
                     projectSearchClient.get(StringUtils.stripToEmpty(name));
-
             return HttpResponses.okJSON(JSONObject.fromObject(projects));
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket

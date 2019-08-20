@@ -7,8 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest.BitbucketWebhookRequestBuilder.aRequestFor;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketWebhook extends BitbucketWebhookRequest {
 
@@ -20,7 +18,7 @@ public class BitbucketWebhook extends BitbucketWebhookRequest {
                             @JsonProperty(value = "events") Set<String> events,
                             @JsonProperty(value = "url") String url,
                             @JsonProperty(value = "active") boolean isActive) {
-        super(aRequestFor(events).name(name).withIsActive(isActive).withCallbackTo(url));
+        super(name, events, url, isActive);
         this.id = id;
     }
 

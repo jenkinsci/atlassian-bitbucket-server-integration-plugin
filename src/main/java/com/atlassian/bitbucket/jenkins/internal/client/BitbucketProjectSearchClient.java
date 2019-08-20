@@ -17,7 +17,7 @@ public interface BitbucketProjectSearchClient
      * in the first page of all (accessible) projects being returned
      *
      * @param name the query on which to search for projects
-     * @return stream of pages of projects matching the query
+     * @return a page of projects matching the query
      */
     BitbucketPage<BitbucketProject> get(@CheckForNull String name);
 }

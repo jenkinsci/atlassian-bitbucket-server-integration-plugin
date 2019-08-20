@@ -6,23 +6,36 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Provides a way to return Stream of page based on first page and {@link NextPageFetcher}.
+ */
 public class BitbucketPageStreamUtil {
 
-    public static <T> Stream<BitbucketPage<T>> toStream(BitbucketPage<T> firstPage, NextPageFetcher nextPageFetcher) {
+    /**
+     * Returns a Stream of Bitbucket Pages. {@link NextPageFetcher} provides a way for individual client to provide a way
+     * to fetch next page.
+     *
+     * @param firstPage       First Page
+     * @param nextPageFetcher Used for fetching next page
+     * @param <T>             Type for Page
+     * @return Stream of pages.
+     */
+    public static <T> Stream<BitbucketPage<T>> toStream(BitbucketPage<T> firstPage,
+                                                        NextPageFetcher<T> nextPageFetcher) {
         return StreamSupport.stream(pageIterable(firstPage, nextPageFetcher).spliterator(), false);
     }
 
     private static <T> Iterable<BitbucketPage<T>> pageIterable(BitbucketPage<T> firstPage,
-                                                               NextPageFetcher nextPageFetcher) {
+                                                               NextPageFetcher<T> nextPageFetcher) {
         return () -> new PageIterator<>(nextPageFetcher, firstPage);
     }
 
     private static class PageIterator<T> implements Iterator<BitbucketPage<T>> {
 
-        private final NextPageFetcher nextPageFetcher;
+        private final NextPageFetcher<T> nextPageFetcher;
         private BitbucketPage<T> currentPage;
 
-        PageIterator(NextPageFetcher nextPageFetcher,
+        PageIterator(NextPageFetcher<T> nextPageFetcher,
                      BitbucketPage<T> firstPage) {
             this.nextPageFetcher = nextPageFetcher;
             this.currentPage = firstPage;

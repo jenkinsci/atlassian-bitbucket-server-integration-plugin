@@ -17,7 +17,6 @@ import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static junit.framework.TestCase.assertNotNull;
 import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -108,14 +107,11 @@ public class BitbucketWebhookClientImplTest {
         firstPage.setNextPageStart(nextPageStart);
 
         BitbucketPage<BitbucketWebhook> next = fetcher.next(firstPage);
-        assertEquals(next.getSize(), next.getValues().size());
+        List<BitbucketWebhook> values = next.getValues();
+        assertEquals(next.getSize(), values.size());
         assertTrue(next.getSize() > 0);
 
-        BitbucketWebhook webhook = next.getValues().get(0);
-        assertNotNull(webhook.getName());
-        assertTrue(webhook.getId() > 0);
-        assertThat(next.isLastPage(), is(true));
-
+        assertThat(values.stream().map(BitbucketWebhook::getId).collect(toSet()), hasItems(3, 4));
         assertThat(next.isLastPage(), is(true));
     }
 
