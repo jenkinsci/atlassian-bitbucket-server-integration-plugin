@@ -108,7 +108,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
 
     private Call mockCallToReturnResult(String url, ResponseBody mockBody) {
         try {
-            int returnCode = requireNonNull(urlToReturnCode.get(url));
+            int returnCode = requireNonNull(urlToReturnCode.get(url), "Input URL " + url);
             Map<String, String> headers = requireNonNull(this.headers.get(url));
             Call mockCall = mock(Call.class);
             when(mockCall.execute()).thenReturn(getResponse(url, returnCode, headers, mockBody));

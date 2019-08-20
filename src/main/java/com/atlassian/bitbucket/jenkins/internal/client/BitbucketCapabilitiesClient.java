@@ -6,4 +6,10 @@ import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilitie
  * Client to get capabilities from the remote server.
  */
 public interface BitbucketCapabilitiesClient extends BitbucketClient<AtlassianServerCapabilities> {
+
+    /**
+     * A Client which can be queried for webhook related support.
+     * @return
+     */
+    BitbucketWebhookSupportedEventsClient getWebhookSupportedClient();
 }

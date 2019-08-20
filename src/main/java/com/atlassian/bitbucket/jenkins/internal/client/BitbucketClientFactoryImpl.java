@@ -33,13 +33,37 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketCapabilitiesClient getCapabilityClient() {
-        return () -> {
-            HttpUrl url =
-                    bitbucketRequestExecutor.getBaseUrl().newBuilder()
-                            .addPathSegment("rest")
-                            .addPathSegment("capabilities")
-                            .build();
-            return bitbucketRequestExecutor.makeGetRequest(url, AtlassianServerCapabilities.class).getBody();
+        return new BitbucketCapabilitiesClient() {
+
+            @Override
+            public BitbucketWebhookSupportedEventsClient getWebhookSupportedClient() {
+                return () -> {
+                    AtlassianServerCapabilities capabilities = get();
+                    String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
+                    if (urlStr == null) {
+                        throw new WebhookNotSupportedException(
+                                "Remote Bitbucket Server does not support Webhooks. Make sure " +
+                                "Bitbucket server supports webhooks or correct version of it is installed.");
+                    }
+
+                    HttpUrl url = parse(urlStr);
+                    if (url == null) {
+                        throw new IllegalStateException(
+                                "URL to fetch supported webhook supported event is wrong. URL: " + urlStr);
+                    }
+                    return bitbucketRequestExecutor.makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
+                };
+            }
+
+            @Override
+            public AtlassianServerCapabilities get() {
+                HttpUrl url =
+                        bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                                .addPathSegment("rest")
+                                .addPathSegment("capabilities")
+                                .build();
+                return bitbucketRequestExecutor.makeGetRequest(url, AtlassianServerCapabilities.class).getBody();
+            }
         };
     }
 
@@ -155,26 +179,6 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                 return usernames.stream().findFirst();
             }
             return Optional.empty();
-        };
-    }
-
-    @Override
-    public BitbucketWebhookSupportedEventsClient getWebhookCapabilities() {
-        return () -> {
-            AtlassianServerCapabilities capabilities = getCapabilityClient().get();
-            String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
-            if (urlStr == null) {
-                throw new WebhookNotSupportedException(
-                        "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                        "Bitbucket server supports webhooks or correct version of it is installed.");
-            }
-
-            HttpUrl url = parse(urlStr);
-            if (url == null) {
-                throw new IllegalStateException(
-                        "URL to fetch supported webhook supported event is wrong. URL: " + urlStr);
-            }
-            return bitbucketRequestExecutor.makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
         };
     }
 }
