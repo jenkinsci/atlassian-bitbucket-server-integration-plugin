@@ -15,7 +15,7 @@ public enum BuildState {
     INPROGRESS("%s in progress"),
     SUCCESSFUL("%s successful in %s");
 
-    private static Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
+    private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 
     private final String formatString;
 

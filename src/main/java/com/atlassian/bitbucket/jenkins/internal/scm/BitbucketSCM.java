@@ -14,7 +14,6 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -196,11 +195,6 @@ public class BitbucketSCM extends SCM {
 
     public String getId() {
         return id;
-    }
-
-    public Revision getLatestRevision(AbstractBuild build) {
-        return Optional.ofNullable(gitSCM.getBuildData(build)).orElseThrow(RuntimeException::new)
-                .lastBuild.getRevision();
     }
 
     @CheckForNull

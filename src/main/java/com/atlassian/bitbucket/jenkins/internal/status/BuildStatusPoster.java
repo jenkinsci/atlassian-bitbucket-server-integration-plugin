@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
@@ -30,19 +29,22 @@ public class BuildStatusPoster {
         if (revisionAction == null) {
             return;
         }
-        Optional<BitbucketServerConfiguration> serverOptional = pluginConfiguration.getServerById(revisionAction.getServerId());
+        Optional<BitbucketServerConfiguration> serverOptional =
+                pluginConfiguration.getServerById(revisionAction.getServerId());
         if (serverOptional.isPresent()) {
             BitbucketServerConfiguration server = serverOptional.get();
-            listener.getLogger().println("Posting build status to: " + server.getServerName());
-
-            BitbucketCredentials credentials =
-                    BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
             try {
+                BitbucketBuildStatus buildStatus = new BitbucketBuildStatus(build);
+                listener.getLogger().println(
+                        "Posting build status of " + buildStatus.getState() + " to: " + server.getServerName());
+
+                BitbucketCredentials credentials =
+                        BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
                         .getBuildStatusClient(revisionAction.getRevisionSha1())
-                        .post(new BitbucketBuildStatus(build));
+                        .post(buildStatus);
                 return;
-            } catch (BitbucketClientException e) {
+            } catch (RuntimeException e) {
                 LOGGER.info("Failed to post build status, additional information: " + e.getMessage());
                 LOGGER.log(Level.FINE, "Stacktrace from build status failure", e);
             }
