@@ -10,37 +10,18 @@ import java.util.Collection;
  * The state or result of a build
  */
 public enum BuildState {
-    FAILED {
-        @Override
-        public String getDescriptiveText(AbstractBuild build) {
-            return new StringBuilder()
-                    .append(build.getDisplayName())
-                    .append(" failed in ")
-                    .append(build.getDurationString())
-                    .toString();
-        }
-    },
-    INPROGRESS {
-        @Override
-        public String getDescriptiveText(AbstractBuild build) {
-            return new StringBuilder()
-                    .append(build.getDisplayName())
-                    .append(" in progress")
-                    .toString();
-        }
-    },
-    SUCCESSFUL {
-        @Override
-        public String getDescriptiveText(AbstractBuild build) {
-            return new StringBuilder()
-                    .append(build.getDisplayName())
-                    .append(" successful in ")
-                    .append(build.getDurationString())
-                    .toString();
-        }
-    };
+
+    FAILED("%s failed in %s"),
+    INPROGRESS("%s in progress"),
+    SUCCESSFUL("%s successful in %s");
 
     private static Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
+
+    private final String formatString;
+
+    BuildState(String formatString) {
+        this.formatString = formatString;
+    }
 
     public static BuildState fromBuild(AbstractBuild build) {
         if (build.isBuilding()) {
@@ -52,5 +33,7 @@ public enum BuildState {
         }
     }
 
-    public abstract String getDescriptiveText(AbstractBuild build);
+    public String getDescriptiveText(AbstractBuild build) {
+        return String.format(formatString, build.getDisplayName(), build.getDurationString());
+    }
 }
