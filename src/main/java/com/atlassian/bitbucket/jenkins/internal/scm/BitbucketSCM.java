@@ -5,8 +5,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
-import com.atlassian.bitbucket.jenkins.internal.extensions.buildstatus.BitbucketPostBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.extensions.BitbucketPostBuildStatus;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -14,7 +14,10 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.Job;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.plugins.git.*;
 import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtension;
@@ -66,7 +69,7 @@ public class BitbucketSCM extends SCM {
             String id,
             List<BranchSpec> branches,
             String credentialsId,
-            List<GitSCMExtension> extensions,
+            @CheckForNull List<GitSCMExtension> extensions,
             String gitTool,
             String projectKey,
             String repositorySlug,
@@ -88,7 +91,11 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
         this.gitTool = gitTool;
         this.branches = branches;
-        this.extensions = extensions == null ? Collections.singletonList(new BitbucketPostBuildStatus(serverId)) : extensions;
+        this.extensions = new ArrayList<>();
+        if (extensions != null) {
+            this.extensions.addAll(extensions);
+        }
+        this.extensions.add(new BitbucketPostBuildStatus(serverId));
     }
 
     @CheckForNull
