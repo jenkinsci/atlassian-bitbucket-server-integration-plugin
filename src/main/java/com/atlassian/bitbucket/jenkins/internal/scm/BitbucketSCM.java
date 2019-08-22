@@ -1,11 +1,16 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.BitbucketWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest.WebhookRegisterRequestBuilder;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterResult;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -65,6 +70,8 @@ public class BitbucketSCM extends SCM {
 
     private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private boolean isRegisterWebhooks;
+    private transient String jenkinsUrl;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
@@ -161,11 +168,24 @@ public class BitbucketSCM extends SCM {
                             new Stash(getRepositoryUrl(repo)),
                             gitTool,
                             extensions);
+            registerWebhook(credentialsId, scmRepository.getProjectKey(), repositorySlug);
         } catch (BitbucketClientException e) {
             throw new BitbucketSCMException(
                     "Failed to save configuration, please use the back button on your browser and try again. "
                     + "Additional information about this failure: "
                     + e.getMessage());
+        }
+    }
+
+    private void registerWebhook(String credentialId, String projectKey, String repoSlug) {
+        if (isRegisterWebhooks) {
+            BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(getServer().getBaseUrl(),
+                    BitbucketCredentialsAdaptor.createWithFallback(credentialId, getServer()));
+            BitbucketWebhookClient webhookClient =
+                    client.getProjectClient(projectKey).getRepositoryClient(repoSlug).getWebhookClient();
+            BitbucketWebhookHandler handler = new BitbucketWebhookHandler(client.getCapabilityClient(), webhookClient);
+            WebhookRegisterResult result =
+                    handler.register(WebhookRegisterRequestBuilder.aRequestFor(jenkinsUrl).isMirror(false).withName(id).build());
         }
     }
 
@@ -222,6 +242,14 @@ public class BitbucketSCM extends SCM {
 
     public void setBitbucketPluginConfiguration(BitbucketPluginConfiguration bitbucketPluginConfiguration) {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
+    }
+
+    public void setJenkinsUrl(String jenkinsUrl) {
+        this.jenkinsUrl = jenkinsUrl;
+    }
+
+    public void isRegisterWebhooks(boolean isRegister) {
+        this.isRegisterWebhooks = isRegister;
     }
 
     private static String getCloneUrl(BitbucketRepository repo) {
@@ -400,6 +428,8 @@ public class BitbucketSCM extends SCM {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
                 scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
                 scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
+                scm.setJenkinsUrl(req.getRootPath());
+                scm.isRegisterWebhooks(req.getParameter("bitbucket_trigger_enabled") != null);
                 scm.createGitSCM();
                 return scm;
             } catch (Error e) {

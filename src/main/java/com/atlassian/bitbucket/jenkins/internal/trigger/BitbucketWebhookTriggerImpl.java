@@ -69,6 +69,11 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
 
         @Override
+        public String getId() {
+            return "bitbucket_trigger_enabled";
+        }
+
+        @Override
         public boolean isApplicable(Item item) {
             return SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(item) != null;
         }

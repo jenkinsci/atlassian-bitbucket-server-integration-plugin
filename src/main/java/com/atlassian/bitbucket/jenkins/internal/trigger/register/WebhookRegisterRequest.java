@@ -1,27 +1,29 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
+import static java.util.Objects.requireNonNull;
+
 public class WebhookRegisterRequest {
 
+    private final String name;
     private final String jenkinsUrl;
     private final boolean isMirror;
-    private final String serverId;
 
-    public WebhookRegisterRequest(WebhookRegisterRequestBuilder builder) {
-        jenkinsUrl = builder.jenkinsUrl;
-        isMirror = builder.isMirror;
-        serverId = builder.serverId;
+    private WebhookRegisterRequest(String name, String jenkinsUrl, boolean isMirror) {
+        this.name = requireNonNull(name);
+        this.jenkinsUrl = requireNonNull(jenkinsUrl);
+        this.isMirror = isMirror;
     }
 
-    public boolean isMirror() {
-        return isMirror;
-    }
-
-    public String getServerId() {
-        return serverId;
+    public String getName() {
+        return name;
     }
 
     public String getJenkinsUrl() {
         return jenkinsUrl;
+    }
+
+    public boolean isMirror() {
+        return isMirror;
     }
 
     public static class WebhookRegisterRequestBuilder {
@@ -39,7 +41,7 @@ public class WebhookRegisterRequest {
         }
 
         public WebhookRegisterRequest build() {
-            return new WebhookRegisterRequest(this);
+            return new WebhookRegisterRequest(serverId, jenkinsUrl, isMirror);
         }
 
         public WebhookRegisterRequestBuilder isMirror(boolean isMirror) {
@@ -47,7 +49,7 @@ public class WebhookRegisterRequest {
             return this;
         }
 
-        public WebhookRegisterRequestBuilder withServerId(String serverId) {
+        public WebhookRegisterRequestBuilder withName(String serverId) {
             this.serverId = serverId;
             return this;
         }

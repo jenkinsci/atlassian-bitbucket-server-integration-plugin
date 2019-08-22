@@ -24,8 +24,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketWebhookHandlerTest {
@@ -47,12 +46,12 @@ public class BitbucketWebhookHandlerTest {
     @Test
     public void testConstructCorrectCallbackUrl() {
         String jenkinUrl = "www.jenkins.mycompany.com";
-        String expectedCallbackUrl = jenkinUrl + BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL + "/trigger";
+        String expectedCallbackUrl = jenkinUrl + "/" + BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL + "/trigger";
         BitbucketWebhookHandler handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(jenkinUrl)
                 .isMirror(false)
-                .withServerId("id1")
+                .withName("id1")
                 .build();
 
         WebhookRegisterResult result = handler.register(request);
@@ -69,7 +68,7 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhookHandler handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(jenkinUrl)
-                .withServerId(serverId)
+                .withName(serverId)
                 .build();
 
         WebhookRegisterResult result = handler.register(request);
@@ -87,7 +86,7 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhookHandler handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(jenkinUrl)
-                .withServerId(serverId)
+                .withName(serverId)
                 .isMirror(true)
                 .build();
         WebhookRegisterResult result = handler.register(request);
@@ -108,13 +107,14 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhookHandler handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(jenkinUrl)
-                .withServerId(serverId)
+                .withName(serverId)
                 .build();
         WebhookRegisterResult result = handler.register(request);
 
         assertThat(result.isSuccess(), is(false));
         assertThat(result.isAlreadyRegistered(), is(true));
         assertThat(result.getWebhook(), is(event));
+        verify(webhookClient.registerWebhook(any(BitbucketWebhookRequest.class)), never());
     }
 
     @Test
@@ -129,7 +129,7 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhookHandler handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
         WebhookRegisterRequest request = WebhookRegisterRequest.WebhookRegisterRequestBuilder
                 .aRequestFor(jenkinUrl)
-                .withServerId(serverId)
+                .withName(serverId)
                 .isMirror(true)
                 .build();
         WebhookRegisterResult result = handler.register(request);

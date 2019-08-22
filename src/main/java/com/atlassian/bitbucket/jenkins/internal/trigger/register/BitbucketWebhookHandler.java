@@ -17,7 +17,7 @@ import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookE
 
 public class BitbucketWebhookHandler {
 
-    private final static String CALLBACK_URL_SUFFIX = BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL + "/trigger";
+    private final static String CALLBACK_URL_SUFFIX = "/" + BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL + "/trigger";
 
     private final BitbucketCapabilitiesClient serverCapabilities;
     private final BitbucketWebhookClient webhookClient;
@@ -33,7 +33,7 @@ public class BitbucketWebhookHandler {
         checkSupportsWebhooks();
         return isWebhookAlreadyExists(request, webhookClient)
                 .map(WebhookRegisterResult::alreadyExists)
-                .orElse(WebhookRegisterResult.aSuccess(registerWebhook(request, webhookClient)));
+                .orElseGet(() -> WebhookRegisterResult.aSuccess(registerWebhook(request, webhookClient)));
     }
 
     private BitbucketWebhook registerWebhook(WebhookRegisterRequest request, BitbucketWebhookClient webhookClient) {
@@ -41,7 +41,7 @@ public class BitbucketWebhookHandler {
         return webhookClient.registerWebhook(BitbucketWebhookRequest
                 .BitbucketWebhookRequestBuilder.aRequestFor(event.getEventId())
                 .withCallbackTo(constructCallbackUrl(request))
-                .name(request.getServerId())
+                .name(request.getName())
                 .build());
     }
 
