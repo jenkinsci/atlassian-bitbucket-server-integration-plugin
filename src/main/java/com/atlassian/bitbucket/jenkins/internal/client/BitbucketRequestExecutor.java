@@ -43,6 +43,8 @@ public class BitbucketRequestExecutor {
 
     /**
      * Returns the root URL of Bitbucket server.
+     *
+     * @return the base url
      */
     public HttpUrl getBaseUrl() {
         return bitbucketBaseUrl;
@@ -97,7 +99,7 @@ public class BitbucketRequestExecutor {
      * @param returnType,     Class of expected return type
      * @param <T>             Type of Request payload.
      * @param <R>             Return type
-     * @return
+     * @return the result
      */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
@@ -111,7 +113,6 @@ public class BitbucketRequestExecutor {
      * @param url            the URL to make the request to
      * @param requestPayload JSON payload which will be marshalled to send it with POST.
      * @param <T>            Type of Request payload.
-     * @return
      */
     public <T> void makePostRequest(HttpUrl url, T requestPayload) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);

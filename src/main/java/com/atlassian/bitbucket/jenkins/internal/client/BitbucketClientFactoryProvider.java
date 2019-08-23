@@ -31,6 +31,7 @@ public class BitbucketClientFactoryProvider {
      * Return a client factory for the given base URL.
      *
      * @param baseUrl the URL to connect to
+     * @param credentials the credentials to use while making the HTTP request
      * @return a ready to use client factory
      */
     public BitbucketClientFactory getClient(String baseUrl, BitbucketCredentials credentials) {

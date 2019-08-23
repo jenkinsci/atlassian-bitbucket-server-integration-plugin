@@ -24,6 +24,7 @@ public interface HttpRequestExecutor {
      * @throws BadRequestException        if the request was malformed and thus rejected by the server
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
+     * @return result
      */
     <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer);
 
@@ -42,6 +43,7 @@ public interface HttpRequestExecutor {
      * @throws BadRequestException        if the request was malformed and thus rejected by the server
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
+     * @return result
      */
     <T> T executePost(HttpUrl url, BitbucketCredentials credentials, String requestBodyAsJson,
                       ResponseConsumer<T> consumer);
