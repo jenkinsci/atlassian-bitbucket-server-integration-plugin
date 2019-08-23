@@ -26,6 +26,9 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) {
+        if (json.isEmpty()) {
+            setServerList(Collections.emptyList());
+        }
         req.bindJSON(this, json);
         FormValidation aggregate = FormValidation.aggregate(serverList.stream()
                 .map(BitbucketServerConfiguration::validate)
