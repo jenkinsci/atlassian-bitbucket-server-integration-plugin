@@ -18,7 +18,11 @@ import java.util.logging.Logger;
 @Singleton
 public class BuildStatusPoster {
 
+    private static final String BUILD_STATUS_ERROR_MSG = "Failed to post build status, additional information:";
+    private static final String BUILD_STATUS_FORMAT = "Posting build status of %s to %s";
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
+    private static final String NO_SERVER_MSG =
+            "Failed to post build status as the provided Bitbucket Server config does not exist";
     @Inject
     BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
@@ -35,8 +39,7 @@ public class BuildStatusPoster {
             BitbucketServerConfiguration server = serverOptional.get();
             try {
                 BitbucketBuildStatus buildStatus = new BitbucketBuildStatus(build);
-                listener.getLogger().println(
-                        "Posting build status of " + buildStatus.getState() + " to: " + server.getServerName());
+                listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 BitbucketCredentials credentials =
                         BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
@@ -45,11 +48,12 @@ public class BuildStatusPoster {
                         .post(buildStatus);
                 return;
             } catch (RuntimeException e) {
-                LOGGER.info("Failed to post build status, additional information: " + e.getMessage());
+                LOGGER.info(BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage());
                 LOGGER.log(Level.FINE, "Stacktrace from build status failure", e);
             }
+        } else {
+            listener.error(NO_SERVER_MSG);
         }
-        listener.error("Failed to post build status as the provided Bitbucket Server config does not exist");
     }
 }
 

@@ -2,10 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import hudson.model.AbstractBuild;
-import okhttp3.HttpUrl;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
-
-import java.net.URL;
 
 public class BitbucketBuildStatus {
 
@@ -13,14 +10,14 @@ public class BitbucketBuildStatus {
     private final String key;
     private final String name;
     private final BuildState state;
-    private final URL url;
+    private final String url;
 
     public BitbucketBuildStatus(AbstractBuild build) {
         state = BuildState.fromBuild(build);
         description = state.getDescriptiveText(build);
         key = build.getId();
         name = build.getProject().getName();
-        url = HttpUrl.parse(DisplayURLProvider.get().getRunURL(build)).url();
+        url = DisplayURLProvider.get().getRunURL(build);
     }
 
     @JsonProperty(value = "description")
@@ -45,6 +42,6 @@ public class BitbucketBuildStatus {
 
     @JsonProperty(value = "url", required = true)
     public String getUrl() {
-        return url.toString();
+        return url;
     }
 }
