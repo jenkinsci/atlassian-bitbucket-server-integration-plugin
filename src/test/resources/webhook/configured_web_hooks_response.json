@@ -1,0 +1,37 @@
+{
+  "size": 2,
+  "limit": 25,
+  "isLastPage": true,
+  "values": [
+    {
+      "id": 1,
+      "name": "w1",
+      "createdDate": 1565581545438,
+      "updatedDate": 1565581545438,
+      "events": [
+        "repo:refs_changed",
+        "mirror:repo_synchronized"
+      ],
+      "configuration": {
+        "secret": "123"
+      },
+      "url": "http://localhost:8090",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "w2",
+      "createdDate": 1565581545438,
+      "updatedDate": 1565581545438,
+      "events": [
+        "repo:refs_changed"
+      ],
+      "configuration": {
+        "secret": "123"
+      },
+      "url": "http://localhost:8090",
+      "active": true
+    }
+  ],
+  "start": 0
+}

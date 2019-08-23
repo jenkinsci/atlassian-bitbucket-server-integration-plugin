@@ -11,8 +11,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.List;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.BITBUCKET_BASE_URL;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.OBJECT_MAPPER;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.readFileToString;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;

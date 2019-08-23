@@ -398,7 +398,7 @@ public class BitbucketSCM extends SCM {
 
         @Override
         public String getDisplayName() {
-            return "Bitbucket";
+            return "Bitbucket Server";
         }
 
         public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
@@ -432,15 +432,15 @@ public class BitbucketSCM extends SCM {
                 scm.isRegisterWebhooks(req.getParameter("bitbucket_trigger_enabled") != null);
                 scm.createGitSCM();
                 return scm;
-            } catch (Error e) {
-                Throwable cause = e.getCause();
-                while (cause != null) {
+            } catch (Error | RuntimeException e) {
+                Throwable cause = e;
+                do {
                     if (cause instanceof BitbucketSCMException) {
                         throw new FormException(
                                 cause.getMessage(), ((BitbucketSCMException) cause).getField());
                     }
                     cause = cause.getCause();
-                }
+                } while (cause != null);
                 throw e; // didn't match any known error, so throw it up and let Jenkins handle it
             }
         }
