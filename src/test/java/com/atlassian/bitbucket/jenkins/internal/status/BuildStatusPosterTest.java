@@ -32,8 +32,10 @@ public class BuildStatusPosterTest {
     private static final String REVISION_SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
     private static final String SERVER_ID = "FakeServerId";
     private static final String SERVER_URL = "http://www.example.com";
+
     @ClassRule
     public static JenkinsRule jenkins = new JenkinsRule();
+
     @Mock
     private BitbucketRevisionAction action;
     @Mock

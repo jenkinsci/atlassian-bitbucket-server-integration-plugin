@@ -29,15 +29,17 @@ public class BitbucketPostBuildStatusTest {
 
     private static final String SERVER_ID = "TestServerID";
     private static final String SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
+
+    @Captor
+    private ArgumentCaptor<BitbucketRevisionAction> captor;
+    private BitbucketPostBuildStatus extension;
+
     @Mock
     private AbstractBuild build;
     @Mock
     private BuildData buildData;
     @Mock
     private BuildStatusPoster buildStatusPoster;
-    @Captor
-    private ArgumentCaptor<BitbucketRevisionAction> captor;
-    private BitbucketPostBuildStatus extension;
     @Mock
     private Injector injector;
     @Mock
@@ -81,7 +83,6 @@ public class BitbucketPostBuildStatusTest {
     @Test
     public void testNoPoster() {
         when(jenkins.getInjector()).thenReturn(injector);
-        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
     }
