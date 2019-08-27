@@ -43,7 +43,8 @@ public class BitbucketTriggerWorkerTest {
 
     @After
     public void tearDown() throws Exception {
-        FileUtils.deleteDirectory(tempDir);
+        FileUtils.cleanDirectory(tempDir);
+        Files.delete(tempDir.toPath());
     }
 
     @Test
