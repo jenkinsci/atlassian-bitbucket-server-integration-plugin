@@ -7,6 +7,7 @@ import hudson.util.StreamTaskListener;
 import jenkins.model.RunAction2;
 import jenkins.triggers.SCMTriggerItem;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +20,7 @@ import java.nio.file.Files;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -44,6 +46,7 @@ public class BitbucketTriggerWorkerTest {
     @After
     public void tearDown() throws Exception {
         FileUtils.cleanDirectory(tempDir);
+        assumeFalse("The delete of temp directories does not work under windows", SystemUtils.IS_OS_WINDOWS);
         Files.delete(tempDir.toPath());
     }
 
