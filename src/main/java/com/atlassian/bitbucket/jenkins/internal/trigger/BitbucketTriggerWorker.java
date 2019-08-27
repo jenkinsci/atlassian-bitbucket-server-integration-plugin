@@ -59,8 +59,7 @@ public class BitbucketTriggerWorker implements Runnable {
             return;
         }
         File logFile = new File(job.getRootDir(), "bitbucket-webhook-trigger.log");
-        try {
-            StreamTaskListener listener = new StreamTaskListener(logFile);
+        try (StreamTaskListener listener = new StreamTaskListener(logFile)) {
 
             long start = System.currentTimeMillis();
             PrintStream logger = listener.getLogger();

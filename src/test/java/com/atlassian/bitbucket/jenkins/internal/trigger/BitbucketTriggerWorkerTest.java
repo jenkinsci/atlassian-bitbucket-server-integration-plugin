@@ -20,7 +20,6 @@ import java.nio.file.Files;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -46,8 +45,10 @@ public class BitbucketTriggerWorkerTest {
     @After
     public void tearDown() throws Exception {
         FileUtils.cleanDirectory(tempDir);
-        assumeFalse("The delete of temp directories does not work under windows", SystemUtils.IS_OS_WINDOWS);
-        Files.delete(tempDir.toPath());
+        if (!SystemUtils.IS_OS_WINDOWS) {
+            //The delete of temp directories does not work under windows
+            Files.delete(tempDir.toPath());
+        }
     }
 
     @Test
