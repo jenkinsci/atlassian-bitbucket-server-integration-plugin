@@ -2,9 +2,14 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -31,6 +36,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -44,10 +50,8 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -65,6 +69,7 @@ public class BitbucketSCM extends SCM {
 
     private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private transient BitbucketSearchEndpoint bitbucketSearchEndpoint;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
@@ -76,8 +81,8 @@ public class BitbucketSCM extends SCM {
             String gitTool,
             String projectKey,
             String repositorySlug,
+            String mirrorName,
             String serverId) {
-
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         if (isBlank(projectKey)) {
             throw new BitbucketSCMException("A project is required", "projectKey");
@@ -91,7 +96,7 @@ public class BitbucketSCM extends SCM {
 
         repositories = new ArrayList<>(1);
         repositories.add(
-                new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId));
+                new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId, mirrorName));
         this.gitTool = gitTool;
         this.branches = branches;
         this.extensions = extensions;
@@ -140,15 +145,15 @@ public class BitbucketSCM extends SCM {
         BitbucketSCMRepository scmRepository = getBitbucketSCMRepository();
         BitbucketServerConfiguration server = getServer();
         String repositorySlug = scmRepository.getRepositorySlug();
+        String credentialsId = scmRepository.getCredentialsId();
 
         try {
-            String credentialsId = scmRepository.getCredentialsId();
-            BitbucketRepository repo =
-                    getRepository(
-                            server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
+            BitbucketRepository repo = getRepository(server, scmRepository.getProjectKey(),
+                    repositorySlug, credentialsId);
+            String cloneUrl = getCloneUrl(server, credentialsId, repo, scmRepository.getMirrorName());
             UserRemoteConfig remoteConfig =
                     new UserRemoteConfig(
-                            getCloneUrl(repo),
+                            cloneUrl,
                             repositorySlug,
                             null,
                             pickCredentialsId(server, credentialsId));
@@ -164,8 +169,8 @@ public class BitbucketSCM extends SCM {
         } catch (BitbucketClientException e) {
             throw new BitbucketSCMException(
                     "Failed to save configuration, please use the back button on your browser and try again. "
-                    + "Additional information about this failure: "
-                    + e.getMessage());
+                            + "Additional information about this failure: "
+                            + e.getMessage());
         }
     }
 
@@ -211,6 +216,11 @@ public class BitbucketSCM extends SCM {
     }
 
     @CheckForNull
+    public String getMirrorName() {
+        return getBitbucketSCMRepository().getMirrorName();
+    }
+
+    @CheckForNull
     public String getServerId() {
         return getBitbucketSCMRepository().getServerId();
     }
@@ -224,13 +234,44 @@ public class BitbucketSCM extends SCM {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
     }
 
-    private static String getCloneUrl(BitbucketRepository repo) {
-        return repo.getCloneUrls()
+    public void setBitbucketSearchEndpoint(BitbucketSearchEndpoint bitbucketSearchEndpoint) {
+        this.bitbucketSearchEndpoint = bitbucketSearchEndpoint;
+    }
+
+    private String getCloneUrl(BitbucketServerConfiguration server, String credentialsId,
+                               BitbucketRepository repo, String mirrorName) {
+        if (StringUtils.isEmpty(mirrorName)) {
+            return getUpstreamCloneUrl(repo);
+        } else {
+            return getMirrorCloneUrl(server, credentialsId, repo, mirrorName);
+        }
+    }
+
+    private static String getUpstreamCloneUrl(BitbucketRepository repo) {
+        List<BitbucketNamedLink> cloneUrls = repo.getCloneUrls();
+        return getHttpCloneUrl(cloneUrls);
+    }
+
+    private static String getHttpCloneUrl(List<BitbucketNamedLink> cloneUrls) {
+        return cloneUrls
                 .stream()
                 .filter(link -> "http".equals(link.getName()))
                 .findFirst()
                 .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -404, null))
                 .getHref();
+    }
+
+    private String getMirrorCloneUrl(BitbucketServerConfiguration server, String credentialsId,
+                                     BitbucketRepository repo, String mirrorName) {
+        BitbucketPage<BitbucketMirroredRepository> mirroredRepositories = bitbucketSearchEndpoint
+                .getBitbucketMirroredRepository(server.getId(), credentialsId, repo.getId());
+        List<BitbucketNamedLink> cloneUrls = mirroredRepositories.getValues()
+                .stream()
+                .filter(mRepo -> mRepo.getMirrorName().equals(mirrorName))
+                .map(mRepo -> mRepo.getCloneUrls())
+                .findFirst()
+                .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -404, null));
+        return getHttpCloneUrl(cloneUrls);
     }
 
     private static String getRepositoryUrl(BitbucketRepository repository) {
@@ -264,7 +305,7 @@ public class BitbucketSCM extends SCM {
     @Nullable
     private String pickCredentialsId(
             BitbucketServerConfiguration serverConfiguration, @Nullable String credentialsId) {
-        return credentialsId != null ? credentialsId : serverConfiguration.getCredentialsId();
+        return StringUtils.isNoneEmpty(credentialsId) ? credentialsId : serverConfiguration.getCredentialsId();
     }
 
     @Symbol("BbS")
@@ -277,6 +318,8 @@ public class BitbucketSCM extends SCM {
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+        @Inject
+        private BitbucketSearchEndpoint bitbucketSearchEndpoint;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -355,7 +398,7 @@ public class BitbucketSCM extends SCM {
                     bitbucketPluginConfiguration.getServerList()
                             .stream()
                             .filter(server -> server.getId().equals(serverId) ||
-                                              server.validate().kind == FormValidation.Kind.OK)
+                                    server.validate().kind == FormValidation.Kind.OK)
                             .map(server ->
                                     new Option(
                                             server.getServerName(),
@@ -366,6 +409,39 @@ public class BitbucketSCM extends SCM {
                 model.includeEmptyValue();
             }
             return model;
+        }
+
+        @POST
+        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
+                                                  @QueryParameter String credentialsId,
+                                                  @QueryParameter String projectKey,
+                                                  @QueryParameter String repositorySlug,
+                                                  @QueryParameter String mirrorName) {
+            Jenkins.get().checkPermission(Permission.CONFIGURE);
+            StandardListBoxModel options = new StandardListBoxModel();
+            options.add(new Option("Primary Server", ""));
+            if (StringUtils.isEmpty(serverId) || StringUtils.isEmpty(projectKey) || StringUtils.isEmpty(repositorySlug)) {
+                return options;
+            }
+            BitbucketServerConfiguration server = bitbucketPluginConfiguration.getServerById(serverId)
+                    .orElseThrow(() -> new RuntimeException("Server config not found"));
+            BitbucketRepository bitbucketRepository;
+            try {
+                bitbucketRepository = bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(credentialsId, server))
+                        .getProjectClient(projectKey)
+                        .getRepositoryClient(repositorySlug)
+                        .get();
+            } catch (NotFoundException e) {
+                return options;
+            }
+            BitbucketPage<BitbucketMirroredRepository> mirroredRepository = bitbucketSearchEndpoint.getBitbucketMirroredRepository(serverId, credentialsId, bitbucketRepository.getId());
+            List<Option> mirrorOptions = mirroredRepository.getValues()
+                    .stream()
+                    .map(mirroredRepo -> new Option(mirroredRepo.getMirrorName(),
+                            mirroredRepo.getMirrorName(), mirroredRepo.getMirrorName().equals(mirrorName)))
+                    .collect(Collectors.toList());
+            options.addAll(mirrorOptions);
+            return options;
         }
 
         @Override
@@ -400,6 +476,7 @@ public class BitbucketSCM extends SCM {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
                 scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
                 scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
+                scm.setBitbucketSearchEndpoint(bitbucketSearchEndpoint);
                 scm.createGitSCM();
                 return scm;
             } catch (Error | RuntimeException e) {

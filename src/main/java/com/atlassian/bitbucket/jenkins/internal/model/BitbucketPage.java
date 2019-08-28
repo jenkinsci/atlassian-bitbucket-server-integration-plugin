@@ -3,7 +3,11 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Basic implementation of a page as returned by all paged resources in Bitbucket Server.
@@ -67,5 +71,20 @@ public class BitbucketPage<T> {
     @JsonProperty("isLastPage")
     public void setLastPage(boolean lastPage) {
         this.lastPage = lastPage;
+    }
+
+    @Nonnull
+    public <E> BitbucketPage<E> transform(@Nonnull Function<? super T, ? extends E> transformFunction) {
+        List<E> list = values.stream()
+                .map(transformFunction)
+                .collect(toList());
+
+        BitbucketPage<E> page = new BitbucketPage<>();
+        page.setValues(list);
+        page.setLimit(limit);
+        page.setSize(size);
+        page.setLastPage(lastPage);
+        page.setStart(start);
+        return page;
     }
 }

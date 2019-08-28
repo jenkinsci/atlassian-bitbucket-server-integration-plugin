@@ -13,6 +13,7 @@ import static java.util.Collections.unmodifiableList;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketRepository {
 
+    private final int id;
     private final String name;
     private final BitbucketProject project;
     private final String slug;
@@ -22,16 +23,22 @@ public class BitbucketRepository {
 
     @JsonCreator
     public BitbucketRepository(
+            @JsonProperty("id") int id,
             @JsonProperty("name") String name,
             @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
             @JsonProperty("project") BitbucketProject project,
             @JsonProperty("slug") String slug,
             @JsonProperty("state") RepositoryState state) {
+        this.id = id;
         this.name = name;
         this.project = project;
         this.slug = slug;
         this.state = state;
         setLinks(links);
+    }
+
+    public int getId() {
+        return id;
     }
 
     public List<BitbucketNamedLink> getCloneUrls() {

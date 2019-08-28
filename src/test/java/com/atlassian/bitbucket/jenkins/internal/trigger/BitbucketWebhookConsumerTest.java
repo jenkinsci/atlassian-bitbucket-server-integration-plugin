@@ -83,7 +83,7 @@ public class BitbucketWebhookConsumerTest {
                 BITBUCKET_USER, REFS_CHANGED_EVENT, new Date(), refChanges(), bitbucketRepository);
 
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_KEY.toUpperCase(),
-                JENKINS_REPO_SLUG.toUpperCase(), serverId);
+                JENKINS_REPO_SLUG.toUpperCase(), serverId, null);
         when(bitbucketSCM.getRepositories())
                 .thenReturn(Collections.singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);
@@ -194,7 +194,7 @@ public class BitbucketWebhookConsumerTest {
         List<BitbucketNamedLink> cloneLinks = Collections.singletonList(cloneLink);
         Map<String, List<BitbucketNamedLink>> links = Maps.of("clone", cloneLinks, "self", Collections.singletonList(selfLink));
         BitbucketProject project = new BitbucketProject(projectKey, projectKey);
-        return new BitbucketRepository(
+        return new BitbucketRepository(1,
                 repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
     }
 }

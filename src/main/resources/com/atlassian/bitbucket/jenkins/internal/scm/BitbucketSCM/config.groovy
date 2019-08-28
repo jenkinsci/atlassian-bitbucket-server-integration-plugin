@@ -21,6 +21,10 @@ f.section() {
         f.textbox(placeholder: "repository slug", checkMethod: "post")
     }
 
+    f.entry(title: _("bitbucket.scm.mirror"), field: "mirrorName") {
+        f.select(placeholder: "Clone from", checkMethod: "post")
+    }
+
     f.entry(title: _("Branches to build")) {
         f.repeatableProperty(field: "branches", addCaption: _("Add branch"), hasHeader: "true", minimum: "1", noAddButton: "true")
     }
