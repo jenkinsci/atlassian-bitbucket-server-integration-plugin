@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 /**
  * In order to support multiple paging, implementation should provide a way to fetch next page based on previous page.
  *
- * @param <T>
+ * @param <T> the type of elements in BitbucketPage
  */
 public interface NextPageFetcher<T> {
 

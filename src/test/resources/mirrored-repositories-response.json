@@ -1,0 +1,43 @@
+{
+  "size": 2,
+  "limit": 25,
+  "isLastPage": true,
+  "values": [
+    {
+      "mirrorServer": {
+        "id": "BSERV-1337-ABCD-R2D2-C3P0",
+        "baseUrl": "https://us-east.bitbucket.example.com",
+        "name": "US East Mirror",
+        "productType": "Bitbucket Server",
+        "productVersion": "4.2.0",
+        "lastSeenDate": 1453879734348,
+        "enabled": true
+      },
+      "links": {
+        "self": [
+          {
+            "href": "https://us-east.bitbucket.example.com/rest/mirroring/1.0/repos/1?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+          }
+        ]
+      }
+    },
+    {
+      "mirrorServer": {
+        "id": "BSERV-1337-ABCD-R2D2-C3P1",
+        "baseUrl": "https://us-west.bitbucket.example.com",
+        "name": "US West Mirror",
+        "productType": "Bitbucket Server",
+        "productVersion": "4.2.0",
+        "lastSeenDate": 1453879734388,
+        "enabled": true
+      },
+      "links": {
+        "self": [
+          {
+            "href": "https://us-west.bitbucket.example.com/rest/mirroring/1.0/repos/1?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+          }
+        ]
+      }
+    }
+  ]
+}

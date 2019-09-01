@@ -25,6 +25,10 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
 
+    private static final String MIRROR_SELF_LINK = "https://us-east.bitbucket.example.com/rest/mirroring/1.0/repos/1?" +
+            "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9" +
+            ".TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
+
     private BitbucketClientFactoryImpl anonymousClientFactory;
     private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();
 
@@ -34,13 +38,29 @@ public class BitbucketClientFactoryImplTest {
     }
 
     @Test
-    public void testGetCapabilties() {
+    public void testGetCapabilities() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
         AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
         assertThat(response.getCapabilities(), hasKey("webhooks"));
+    }
+
+    @Test
+    public void testGetMirroredRepositories() {
+        mockExecutor.mapUrlToResult(
+                BITBUCKET_BASE_URL + "/rest/mirroring/1.0/repos/1/mirrors", readMirroredRepositoriesResponseFromFile());
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient(1).get();
+        assertEquals(2, repositoryPage.getSize());
+        assertEquals(25, repositoryPage.getLimit());
+        assertEquals(true, repositoryPage.isLastPage());
+        assertEquals(2, repositoryPage.getValues().size());
+        BitbucketMirroredRepositoryDescriptor mirroredRepo = repositoryPage.getValues().get(0);
+        assertEquals(MIRROR_SELF_LINK, mirroredRepo.getSelfLink());
+        BitbucketMirror mirrorServer = mirroredRepo.getMirrorServer();
+        assertEquals("US East Mirror", mirrorServer.getName());
+        assertEquals("https://us-east.bitbucket.example.com", mirrorServer.getBaseUrl());
     }
 
     @Test
@@ -234,6 +254,10 @@ public class BitbucketClientFactoryImplTest {
 
     private String readCapabilitiesResponseFromFile() {
         return readFileToString("/capabilities-response.json");
+    }
+
+    private String readMirroredRepositoriesResponseFromFile() {
+        return readFileToString("/mirrored-repositories-response.json");
     }
 
     private String readFullRepositoryFromFile() {
