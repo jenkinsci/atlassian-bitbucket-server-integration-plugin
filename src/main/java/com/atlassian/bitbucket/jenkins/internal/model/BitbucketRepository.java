@@ -66,7 +66,7 @@ public class BitbucketRepository {
             cloneUrls = emptyList();
         }
         List<BitbucketNamedLink> link = rawLinks.get("self");
-        if (link != null && link.size() > 0) { // there should always be exactly one self link.
+        if (link != null && !link.isEmpty()) { // there should always be exactly one self link.
             selfLink = link.get(0).getHref();
         }
     }

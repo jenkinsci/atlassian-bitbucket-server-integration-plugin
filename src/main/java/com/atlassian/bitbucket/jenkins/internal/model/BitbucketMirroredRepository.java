@@ -28,7 +28,7 @@ public class BitbucketMirroredRepository {
         this.available = available;
         this.links = requireNonNull(links, "links");
         this.mirrorName = requireNonNull(mirrorName, "mirrorName");
-        this.repositoryId = requireNonNull(repositoryId, "repositoryId");
+        this.repositoryId = repositoryId;
         this.status = requireNonNull(status, "status");
     }
 

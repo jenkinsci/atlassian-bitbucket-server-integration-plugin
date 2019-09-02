@@ -39,7 +39,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
@@ -100,20 +99,20 @@ public class BitbucketSCM extends SCM {
     @CheckForNull
     @Override
     public SCMRevisionState calcRevisionsFromBuild(
-            @Nonnull Run<?, ?> build,
+            Run<?, ?> build,
             @Nullable FilePath workspace,
             @Nullable Launcher launcher,
-            @Nonnull TaskListener listener)
+            TaskListener listener)
             throws IOException, InterruptedException {
         return gitSCM.calcRevisionsFromBuild(build, workspace, launcher, listener);
     }
 
     @Override
     public void checkout(
-            @Nonnull Run<?, ?> build,
-            @Nonnull Launcher launcher,
-            @Nonnull FilePath workspace,
-            @Nonnull TaskListener listener,
+            Run<?, ?> build,
+            Launcher launcher,
+            FilePath workspace,
+            TaskListener listener,
             @CheckForNull File changelogFile,
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
@@ -122,11 +121,11 @@ public class BitbucketSCM extends SCM {
 
     @Override
     public PollingResult compareRemoteRevisionWith(
-            @Nonnull Job<?, ?> project,
+            Job<?, ?> project,
             @Nullable Launcher launcher,
             @Nullable FilePath workspace,
-            @Nonnull TaskListener listener,
-            @Nonnull SCMRevisionState baseline)
+            TaskListener listener,
+            SCMRevisionState baseline)
             throws IOException, InterruptedException {
         return gitSCM.compareRemoteRevisionWith(project, launcher, workspace, listener, baseline);
     }
@@ -229,7 +228,7 @@ public class BitbucketSCM extends SCM {
                 .stream()
                 .filter(link -> "http".equals(link.getName()))
                 .findFirst()
-                .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -404, null))
+                .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -1, null))
                 .getHref();
     }
 
@@ -394,7 +393,7 @@ public class BitbucketSCM extends SCM {
          * @throws FormException if any data is missing
          */
         @Override
-        public SCM newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData)
+        public SCM newInstance(@Nullable StaplerRequest req, JSONObject formData)
                 throws FormException {
             try {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);

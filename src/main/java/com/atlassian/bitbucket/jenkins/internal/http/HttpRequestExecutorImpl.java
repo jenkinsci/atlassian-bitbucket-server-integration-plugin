@@ -16,8 +16,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.AUTHORIZATION_HEADER_KEY;
 import static java.net.HttpURLConnection.*;
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
@@ -77,7 +77,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private void addAuthentication(BitbucketCredentials credential, Request.Builder requestBuilder) {
         if (credential != ANONYMOUS_CREDENTIALS) {
-            requestBuilder.addHeader(AUTHORIZATION_HEADER_KEY, credential.toHeaderValue());
+            requestBuilder.addHeader(AUTHORIZATION, credential.toHeaderValue());
         }
     }
 

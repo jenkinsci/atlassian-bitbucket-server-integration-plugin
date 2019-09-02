@@ -10,7 +10,6 @@ import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
 import java.util.Base64;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,9 +28,10 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
 
     public static BitbucketCredentials createWithFallback(@Nullable Credentials credentials,
                                                           BitbucketServerConfiguration configuration) {
-        return Optional.ofNullable(credentials)
-                .map(c -> (BitbucketCredentials) new BitbucketCredentialsAdaptor(c))
-                .orElseGet(() -> create(configuration));
+        if (credentials == null) {
+            return create(configuration);
+        }
+        return new BitbucketCredentialsAdaptor(credentials);
     }
 
     public static BitbucketCredentials create(Credentials credentials) {

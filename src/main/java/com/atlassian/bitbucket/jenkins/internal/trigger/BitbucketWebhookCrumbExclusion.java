@@ -18,18 +18,17 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 @Extension
 public class BitbucketWebhookCrumbExclusion extends CrumbExclusion {
 
+    private static final String EXCLUSION_PATH = '/' + BIBUCKET_WEBHOOK_URL + '/';
+
     @Override
     public boolean process(HttpServletRequest req, HttpServletResponse resp, FilterChain chain)
             throws IOException, ServletException {
         String pathInfo = req.getPathInfo();
-        if (isEmpty(pathInfo) || !pathInfo.startsWith(getExclusionPath())) {
+        if (isEmpty(pathInfo) || !pathInfo.startsWith(EXCLUSION_PATH)) {
             return false;
         }
         chain.doFilter(req, resp);
         return true;
     }
 
-    private String getExclusionPath() {
-        return "/" + BIBUCKET_WEBHOOK_URL + "/";
-    }
 }

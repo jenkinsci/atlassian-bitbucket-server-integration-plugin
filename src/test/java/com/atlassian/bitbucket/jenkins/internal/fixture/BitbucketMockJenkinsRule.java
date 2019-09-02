@@ -15,7 +15,6 @@ import hudson.util.SecretFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -63,12 +62,10 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         configuration.save();
     }
 
-    @Nonnull
     public String getCredentialsId() {
         return credentialsId;
     }
 
-    @Nonnull
     public String getServerId() {
         return serverId;
     }

@@ -10,12 +10,12 @@ import org.apache.commons.lang3.StringUtils;
 import javax.annotation.CheckForNull;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
@@ -171,7 +171,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             if (usernames != null) {
                 return usernames.stream().findFirst();
             }
-            return Optional.empty();
+            return empty();
         };
     }
 
