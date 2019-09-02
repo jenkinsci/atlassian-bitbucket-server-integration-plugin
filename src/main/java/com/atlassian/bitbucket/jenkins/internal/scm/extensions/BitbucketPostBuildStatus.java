@@ -15,12 +15,15 @@ import hudson.plugins.git.util.BuildData;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 
+import java.util.logging.Logger;
+
 /**
  * Although this class extends the GitSCMExtension, it is only intended for use with the BitbucketSCM, which instantiates
  * it automatically. It is not configurable in the manner of other GitSCMExtensions through the SCM config page.
  */
 public class BitbucketPostBuildStatus extends GitSCMExtension {
 
+    private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private final JenkinsProvider jenkinsProvider;
     private final String serverId;
 
@@ -38,7 +41,7 @@ public class BitbucketPostBuildStatus extends GitSCMExtension {
                                         CheckoutCommand cmd) throws GitException {
         Injector injector = jenkinsProvider.get().getInjector();
         if (injector == null) {
-            return;
+            LOGGER.warning("Injector could not be found while creating build status");
         }
 
         if (build instanceof AbstractBuild) {

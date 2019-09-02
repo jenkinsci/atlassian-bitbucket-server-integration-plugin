@@ -20,6 +20,7 @@ import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
+    private final String BUILD_STATUS_VERSION = "1.0";
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
 
     BitbucketClientFactoryImpl(
@@ -39,7 +40,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                 HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                         .addPathSegment("rest")
                         .addPathSegment("build-status")
-                        .addPathSegment("1.0")
+                        .addPathSegment(BUILD_STATUS_VERSION)
                         .addPathSegment("commits")
                         .addPathSegment(revisionSha1)
                         .build();

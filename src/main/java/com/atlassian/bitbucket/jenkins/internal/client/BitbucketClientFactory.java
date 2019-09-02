@@ -8,9 +8,9 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 public interface BitbucketClientFactory {
 
     /**
-     * Return a build request
+     * Return a client that can post the current status of a build to Bitbucket.
      *
-     * @return a client that is ready to use
+     * @return a client that can post a build status
      */
     BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1);
 
