@@ -34,6 +34,10 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
                 .orElseGet(() -> create(configuration));
     }
 
+    public static BitbucketCredentials create(Credentials credentials) {
+        return new BitbucketCredentialsAdaptor(credentials);
+    }
+
     @Override
     public String toHeaderValue() {
         if (credentials instanceof StringCredentials) {

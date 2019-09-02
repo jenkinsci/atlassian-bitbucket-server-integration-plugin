@@ -2,6 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
@@ -14,14 +15,39 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class BitbucketSearchEndpointIT {
 
+    private static final String FIND_MIRRORED_REPOS_URL = "bitbucket-server-search/findMirroredRepositories";
     private static final String FIND_PROJECT_URL = "bitbucket-server-search/findProjects";
     private static final String FIND_REPO_URL = "bitbucket-server-search/findRepositories";
     @ClassRule
     public static BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+
+    @Test
+    public void testFindMirroredRepositories() throws Exception {
+        HudsonResponse<BitbucketPage<BitbucketMirroredRepository>> response =
+                RestAssured.expect()
+                        .statusCode(200)
+                        .log()
+                        .ifError()
+                        .given()
+                        .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .queryParam("repositoryId", 1)
+                        .get(bitbucketJenkinsRule.getURL() + FIND_MIRRORED_REPOS_URL)
+                        .getBody()
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketMirroredRepository>>>() {
+                        });
+
+        assertThat(response.getStatus(), equalTo("ok"));
+        BitbucketPage<BitbucketMirroredRepository> results = response.getData();
+        assertThat(results.getSize(), equalTo(0));
+        assertThat(results.getStart(), equalTo(0));
+        assertThat(results.getLimit(), equalTo(25));
+        List<BitbucketMirroredRepository> values = results.getValues();
+        assertThat(values.size(), equalTo(0));
+    }
 
     @Test
     public void testFindProjects() throws Exception {
@@ -36,7 +62,8 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("name", "proj")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<BitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -62,7 +89,8 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("name", "proj")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<BitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -102,7 +130,8 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("name", "proj")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<BitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
@@ -124,7 +153,8 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("name", "")
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<BitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -149,7 +179,8 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {});
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<BitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -195,7 +226,8 @@ public class BitbucketSearchEndpointIT {
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
+                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -229,7 +261,8 @@ public class BitbucketSearchEndpointIT {
                 .queryParam("filter", "non-existent repo")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
+                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
@@ -252,7 +285,8 @@ public class BitbucketSearchEndpointIT {
                 .queryParam("filter", "rep")
                 .get(bitbucketJenkinsRule.getURL() + FIND_REPO_URL)
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
+                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
@@ -279,7 +313,8 @@ public class BitbucketSearchEndpointIT {
                         .as(
                                 new TypeRef<
                                         HudsonResponse<
-                                                BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                                                BitbucketPage<JenkinsBitbucketRepository>>>() {
+                                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -328,7 +363,8 @@ public class BitbucketSearchEndpointIT {
                         .as(
                                 new TypeRef<
                                         HudsonResponse<
-                                                BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                                                BitbucketPage<JenkinsBitbucketRepository>>>() {
+                                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
@@ -376,7 +412,8 @@ public class BitbucketSearchEndpointIT {
                         .as(
                                 new TypeRef<
                                         HudsonResponse<
-                                                BitbucketPage<JenkinsBitbucketRepository>>>() {});
+                                                BitbucketPage<JenkinsBitbucketRepository>>>() {
+                                });
         assertThat(response.getStatus(), equalTo("ok"));
         BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));

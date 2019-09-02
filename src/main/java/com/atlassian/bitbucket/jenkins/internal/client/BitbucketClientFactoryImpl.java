@@ -62,6 +62,23 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
+    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repoId) {
+        return () -> {
+            HttpUrl url =
+                    bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                            .addPathSegment("rest")
+                            .addPathSegment("mirroring")
+                            .addPathSegment("1.0")
+                            .addPathSegment("repos")
+                            .addPathSegment(String.valueOf(repoId))
+                            .addPathSegment("mirrors")
+                            .build();
+            return bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketMirroredRepositoryDescriptor>>() {
+            }).getBody();
+        };
+    }
+
+    @Override
     public BitbucketProjectClient getProjectClient(String projectKey) {
         return new BitbucketProjectClient() {
             @Override
@@ -116,8 +133,9 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                 HttpUrl.Builder urlBuilder =
                         bitbucketRequestExecutor.getCoreRestPath().newBuilder().addPathSegment("projects");
                 queryParams.forEach(urlBuilder::addQueryParameter);
+                HttpUrl url = urlBuilder.build();
                 return bitbucketRequestExecutor.makeGetRequest(
-                        urlBuilder.build(),
+                        url,
                         new TypeReference<BitbucketPage<BitbucketProject>>() {
                         })
                         .getBody();
@@ -147,8 +165,9 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                         .addPathSegment("repos")
                         .addQueryParameter("projectname", projectName);
                 queryParams.forEach(urlBuilder::addQueryParameter);
+                HttpUrl url = urlBuilder.build();
                 return bitbucketRequestExecutor.makeGetRequest(
-                        urlBuilder.build(),
+                        url,
                         new TypeReference<BitbucketPage<BitbucketRepository>>() {
                         })
                         .getBody();
@@ -182,7 +201,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             if (urlStr == null) {
                 throw new WebhookNotSupportedException(
                         "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                        "Bitbucket server supports webhooks or correct version of it is installed.");
+                                "Bitbucket server supports webhooks or correct version of it is installed.");
             }
 
             HttpUrl url = parse(urlStr);

@@ -13,7 +13,7 @@ public class BitbucketWebhookRequest {
     private final String url;
     private final boolean isActive;
 
-    public BitbucketWebhookRequest(String name, Set<String> events, String url, boolean isActive) {
+    protected BitbucketWebhookRequest(String name, Set<String> events, String url, boolean isActive) {
         this.name = name;
         this.events = events;
         this.url = url;

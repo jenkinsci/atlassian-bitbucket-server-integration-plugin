@@ -1,20 +1,19 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectSearchClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositorySearchClient;
+import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Extension;
 import hudson.model.RootAction;
 import hudson.util.HttpResponses;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import okhttp3.HttpUrl;
+import okhttp3.ResponseBody;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses.HttpResponseException;
@@ -24,12 +23,15 @@ import org.kohsuke.stapler.verb.GET;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.logging.Logger;
 
 import static hudson.security.Permission.CONFIGURE;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static org.kohsuke.stapler.HttpResponses.error;
+import static org.kohsuke.stapler.HttpResponses.errorWithoutStack;
 
 @Extension
 public class BitbucketSearchEndpoint implements RootAction {
@@ -38,8 +40,40 @@ public class BitbucketSearchEndpoint implements RootAction {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSearchEndpoint.class.getName());
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    //Fields are being injected using setters to make integration testing easier
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private HttpRequestExecutor httpRequestExecutor;
+
+    @GET
+    public HttpResponse doFindMirroredRepositories(
+            @Nullable @QueryParameter("serverId") String serverId,
+            @Nullable @QueryParameter("credentialsId") String credentialsId,
+            @Nullable @QueryParameter("repositoryId") Integer repositoryId) {
+        Jenkins.get().checkPermission(CONFIGURE);
+        if (repositoryId == null) {
+            return errorWithoutStack(
+                    HTTP_BAD_REQUEST,
+                    "Repository ID must be provided as a query parameter");
+        }
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> mirroredRepoDescriptors =
+                getMirroredRepoDescriptor(serverId, credentialsId, repositoryId);
+
+        BitbucketPage<BitbucketMirroredRepository> mirroredRepos = mirroredRepoDescriptors.transform(
+                repo -> {
+                    HttpUrl mirrorUrl = HttpUrl.parse(repo.getSelfLink());
+                    try {
+                        return httpRequestExecutor.executeGet(mirrorUrl, BitbucketCredentials.ANONYMOUS_CREDENTIALS, response -> unmarshall(response.body()));
+                    } catch (BitbucketClientException e) {
+                        LOGGER.info("Failed to retrieve repository information from mirror: " + repo.getMirrorServer().getName());
+                        return new BitbucketMirroredRepository(false, Collections.emptyMap(),
+                                repo.getMirrorServer().getName(), repositoryId, BitbucketMirroredRepositoryStatus.NOT_MIRRORED);
+                    }
+                });
+        return HttpResponses.okJSON(JSONObject.fromObject(mirroredRepos));
+    }
 
     @GET
     public HttpResponse doFindProjects(
@@ -72,7 +106,7 @@ public class BitbucketSearchEndpoint implements RootAction {
             @Nullable @QueryParameter("filter") String filter) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (StringUtils.isBlank(projectName)) {
-            throw error(HTTP_BAD_REQUEST, "The projectName must be present");
+            return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
         }
         BitbucketServerConfiguration serverConf = getServer(serverId);
         BitbucketRepositorySearchClient searchClient =
@@ -121,9 +155,13 @@ public class BitbucketSearchEndpoint implements RootAction {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
     }
 
+    @Inject
+    public void setHttpRequestExecutor(HttpRequestExecutor httpRequestExecutor) {
+        this.httpRequestExecutor = httpRequestExecutor;
+    }
+
     @Nullable
-    private static Credentials getCredentials(
-            @QueryParameter("credentialsId") @Nullable String credentialsId)
+    private static Credentials getCredentials(@Nullable String credentialsId)
             throws HttpResponseException {
         Credentials credentials = null;
         if (!StringUtils.isBlank(credentialsId)) {
@@ -137,8 +175,24 @@ public class BitbucketSearchEndpoint implements RootAction {
         return credentials;
     }
 
-    private BitbucketServerConfiguration getServer(
-            @QueryParameter("serverId") @Nullable String serverId) {
+    private BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepoDescriptor(String serverId,
+                                                                                           String credentialsId,
+                                                                                           int repoId) {
+        BitbucketServerConfiguration server = getServer(serverId);
+        BitbucketMirroredRepositoryDescriptorClient client =
+                bitbucketClientFactoryProvider
+                        .getClient(server.getBaseUrl(),
+                                BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), server))
+                        .getMirroredRepositoriesClient(repoId);
+        try {
+            return client.get();
+        } catch (BitbucketClientException e) {
+            LOGGER.severe(e.getMessage());
+            throw error(HTTP_INTERNAL_ERROR, e);
+        }
+    }
+
+    private BitbucketServerConfiguration getServer(@Nullable String serverId) {
         if (StringUtils.isBlank(serverId)) {
             throw error(
                     HTTP_BAD_REQUEST,
@@ -151,5 +205,14 @@ public class BitbucketSearchEndpoint implements RootAction {
                                 error(
                                         HTTP_BAD_REQUEST,
                                         "The provided Bitbucket Server serverId does not exist"));
+    }
+
+    private BitbucketMirroredRepository unmarshall(ResponseBody body) {
+        try {
+            return objectMapper.readValue(body.byteStream(), BitbucketMirroredRepository.class);
+        } catch (IOException e) {
+            LOGGER.severe("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
+            throw new BitbucketClientException(e);
+        }
     }
 }
