@@ -66,6 +66,7 @@ public class BuildStatusPosterTest {
         when(build.isBuilding()).thenReturn(true);
         when(build.getId()).thenReturn("10");
         when(build.getDurationString()).thenReturn("23 sec");
+        when(build.getDisplayName()).thenReturn("Display Name");
         when(build.getProject()).thenReturn(project);
         when(build.getUrl()).thenReturn("job%2FTest%2520Project%2F14%2F");
         when(action.getRevisionSha1()).thenReturn(REVISION_SHA1);
@@ -81,7 +82,7 @@ public class BuildStatusPosterTest {
     public void testBitbucketClientException() {
         when(build.getAction(BitbucketRevisionAction.class)).thenReturn(action);
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
-        when(postClient.post(any(BitbucketBuildStatus.class))).thenThrow(BitbucketClientException.class);
+        doThrow(BitbucketClientException.class).when(postClient).post(any(BitbucketBuildStatus.class));
         buildStatusPoster.postBuildStatus(build, listener);
         verify(postClient).post(any());
     }

@@ -38,7 +38,7 @@ public class BuildStatusPoster {
         if (serverOptional.isPresent()) {
             BitbucketServerConfiguration server = serverOptional.get();
             try {
-                BitbucketBuildStatus buildStatus = new BitbucketBuildStatus(build);
+                BitbucketBuildStatus buildStatus = BitbucketBuildStatusConstructor.fromBuild(build);
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 BitbucketCredentials credentials =
