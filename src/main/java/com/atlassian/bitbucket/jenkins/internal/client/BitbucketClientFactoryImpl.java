@@ -20,7 +20,7 @@ import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
-    private final String BUILD_STATUS_VERSION = "1.0";
+    private static final String BUILD_STATUS_VERSION = "1.0";
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
 
     BitbucketClientFactoryImpl(
