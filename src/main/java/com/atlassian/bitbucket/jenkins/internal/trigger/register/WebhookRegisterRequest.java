@@ -4,11 +4,16 @@ import static java.util.Objects.requireNonNull;
 
 public class WebhookRegisterRequest {
 
+    private final String projectKey;
+    private final String repoSlug;
     private final String name;
     private final String jenkinsUrl;
     private final boolean isMirror;
 
-    private WebhookRegisterRequest(String name, String jenkinsUrl, boolean isMirror) {
+    private WebhookRegisterRequest(String projectKey, String repoSlug, String name, String jenkinsUrl,
+                                   boolean isMirror) {
+        this.projectKey = requireNonNull(projectKey);
+        this.repoSlug = requireNonNull(repoSlug);
         this.name = requireNonNull(name);
         this.jenkinsUrl = requireNonNull(jenkinsUrl);
         this.isMirror = isMirror;
@@ -22,34 +27,50 @@ public class WebhookRegisterRequest {
         return jenkinsUrl;
     }
 
+    public String getProjectKey() {
+        return projectKey;
+    }
+
+    public String getRepoSlug() {
+        return repoSlug;
+    }
+
     public boolean isMirror() {
         return isMirror;
     }
 
-    public static class WebhookRegisterRequestBuilder {
+    public static class Builder {
 
-        private final String jenkinsUrl;
+        private final String projectKey;
+        private final String repoSlug;
+        private String jenkinsUrl;
         private boolean isMirror;
         private String serverId;
 
-        private WebhookRegisterRequestBuilder(String jenkinsUrl) {
-            this.jenkinsUrl = jenkinsUrl;
+        private Builder(String projectKey, String repoSlug) {
+            this.projectKey = projectKey;
+            this.repoSlug = repoSlug;
         }
 
-        public static WebhookRegisterRequestBuilder aRequestFor(String jenkinsUrl) {
-            return new WebhookRegisterRequestBuilder(jenkinsUrl);
+        public static Builder aRequest(String project, String repoSlug) {
+            return new Builder(project, repoSlug);
+        }
+
+        public Builder withJenkinsBaseUrl(String jenkinsUrl) {
+            this.jenkinsUrl = jenkinsUrl;
+            return this;
         }
 
         public WebhookRegisterRequest build() {
-            return new WebhookRegisterRequest(serverId, jenkinsUrl, isMirror);
+            return new WebhookRegisterRequest(projectKey, repoSlug, serverId, jenkinsUrl, isMirror);
         }
 
-        public WebhookRegisterRequestBuilder isMirror(boolean isMirror) {
+        public Builder isMirror(boolean isMirror) {
             this.isMirror = isMirror;
             return this;
         }
 
-        public WebhookRegisterRequestBuilder withName(String serverId) {
+        public Builder withName(String serverId) {
             this.serverId = serverId;
             return this;
         }

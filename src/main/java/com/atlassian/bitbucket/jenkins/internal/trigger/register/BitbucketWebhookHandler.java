@@ -6,31 +6,31 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSuppo
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent;
 
 import java.util.Optional;
 import java.util.Set;
 
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNC;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
 
-public class BitbucketWebhookHandler {
+class BitbucketWebhookHandler implements WebhookHandler {
 
-    private final static String CALLBACK_URL_SUFFIX = "/" + BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL + "/trigger";
+    private static final String CALLBACK_URL_SUFFIX = "/" + BIBUCKET_WEBHOOK_URL + "/trigger";
 
     private final BitbucketCapabilitiesClient serverCapabilities;
     private final BitbucketWebhookClient webhookClient;
 
-    public BitbucketWebhookHandler(
+    BitbucketWebhookHandler(
             BitbucketCapabilitiesClient serverCapabilities,
             BitbucketWebhookClient webhookClient) {
         this.serverCapabilities = serverCapabilities;
         this.webhookClient = webhookClient;
     }
 
+    @Override
     public WebhookRegisterResult register(WebhookRegisterRequest request) {
-        checkSupportsWebhooks();
         return isWebhookAlreadyExists(request, webhookClient)
                 .map(WebhookRegisterResult::alreadyExists)
                 .orElseGet(() -> WebhookRegisterResult.aSuccess(registerWebhook(request, webhookClient)));
@@ -45,14 +45,6 @@ public class BitbucketWebhookHandler {
                 .build());
     }
 
-    private void checkSupportsWebhooks() {
-        BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedClient().get();
-        Set<String> hooks = events.getApplicationWebHooks();
-        if (!hooks.contains(REPO_REF_CHANGE.getEventId())) {
-            throw new WebhookNotSupportedException("Remote server does not support the required events.");
-        }
-    }
-
     private Optional<BitbucketWebhook> isWebhookAlreadyExists(WebhookRegisterRequest request,
                                                               BitbucketWebhookClient webhookClient) {
         BitbucketWebhookEvent event = getEvent(request);
@@ -63,7 +55,18 @@ public class BitbucketWebhookHandler {
     }
 
     private BitbucketWebhookEvent getEvent(WebhookRegisterRequest request) {
-        return request.isMirror() ? MIRROR_SYNC : REPO_REF_CHANGE;
+        if (request.isMirror()) {
+            BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedClient().get();
+            Set<String> hooks = events.getApplicationWebHooks();
+            if (hooks.contains(MIRROR_SYNC.getEventId())) {
+                return MIRROR_SYNC;
+            } else if (!hooks.contains(REPO_REF_CHANGE.getEventId())) {
+                throw new WebhookNotSupportedException("Remote server does not support the required events.");
+            } else {
+                return REPO_REF_CHANGE;
+            }
+        }
+        return REPO_REF_CHANGE;
     }
 
     private String constructCallbackUrl(WebhookRegisterRequest request) {

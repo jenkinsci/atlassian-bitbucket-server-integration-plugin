@@ -1,15 +1,15 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.BitbucketWebhookHandler;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest.WebhookRegisterRequestBuilder;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.RetryingWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest.Builder;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterResult;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -53,12 +53,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class BitbucketSCM extends SCM {
+
+    private static final Logger LOG = Logger.getLogger(BitbucketSCM.class.getName());
 
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
@@ -179,13 +182,22 @@ public class BitbucketSCM extends SCM {
 
     private void registerWebhook(String credentialId, String projectKey, String repoSlug) {
         if (isRegisterWebhooks) {
-            BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(getServer().getBaseUrl(),
-                    BitbucketCredentialsAdaptor.createWithFallback(credentialId, getServer()));
-            BitbucketWebhookClient webhookClient =
-                    client.getProjectClient(projectKey).getRepositoryClient(repoSlug).getWebhookClient();
-            BitbucketWebhookHandler handler = new BitbucketWebhookHandler(client.getCapabilityClient(), webhookClient);
+            BitbucketCredentials credentials =
+                    BitbucketCredentialsAdaptor.createWithFallback(credentialId, getServer());
+            BitbucketCredentials globalAdminCredentials =
+                    BitbucketCredentialsAdaptor.create(getServer().getAdminCredentials());
+            WebhookHandler handler = new RetryingWebhookHandler(bitbucketClientFactoryProvider,
+                    getServer().getBaseUrl(),
+                    credentials, globalAdminCredentials);
             WebhookRegisterResult result =
-                    handler.register(WebhookRegisterRequestBuilder.aRequestFor(jenkinsUrl).isMirror(false).withName(id).build());
+                    handler.register(Builder
+                            .aRequest(projectKey, repoSlug)
+                            .withJenkinsBaseUrl(jenkinsUrl)
+                            .isMirror(false)
+                            .withName(id).build());
+            LOG.info("Webhook register - Is Successful - " + result.isSuccess());
+            LOG.info("Webhook register - Alread added - " + result.isAlreadyRegistered());
+            LOG.info("Webhook register - Webhook id - " + result.getWebhook().getId());
         }
     }
 

@@ -12,9 +12,10 @@ import javax.annotation.Nullable;
 import java.util.Base64;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static java.util.Objects.requireNonNull;
 
-public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
+public final class BitbucketCredentialsAdaptor {
 
     private final Credentials credentials;
 
@@ -30,39 +31,69 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
     public static BitbucketCredentials createWithFallback(@Nullable Credentials credentials,
                                                           BitbucketServerConfiguration configuration) {
         return Optional.ofNullable(credentials)
-                .map(c -> (BitbucketCredentials) new BitbucketCredentialsAdaptor(c))
+                .map(c -> new BitbucketCredentialsAdaptor(c).toBitbucketCredentials())
                 .orElseGet(() -> create(configuration));
     }
 
     public static BitbucketCredentials create(Credentials credentials) {
-        return new BitbucketCredentialsAdaptor(credentials);
+        return new BitbucketCredentialsAdaptor(credentials).toBitbucketCredentials();
     }
 
-    @Override
-    public String toHeaderValue() {
+    public BitbucketCredentials toBitbucketCredentials() {
         if (credentials instanceof StringCredentials) {
-            return "Bearer " + ((StringCredentials) credentials).getSecret().getPlainText();
+            String bearerToken = ((StringCredentials) credentials).getSecret().getPlainText();
+            return new BearerCredentials(bearerToken);
         } else if (credentials instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) credentials;
-            String authorization = upc.getUsername() + ':' + upc.getPassword().getPlainText();
-            return
-                    "Basic "
-                    + Base64.getEncoder()
-                            .encodeToString(authorization.getBytes(Charsets.UTF_8));
+            return new BasicCredentials(upc.getUsername(), upc.getPassword().getPlainText());
         } else if (credentials instanceof BitbucketTokenCredentials) {
-            return
-                    "Bearer "
-                    + ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
+            String bearerToken = ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
+            return new BearerCredentials(bearerToken);
         } else {
-            return ANONYMOUS_CREDENTIALS.toHeaderValue();
+            return ANONYMOUS_CREDENTIALS;
         }
     }
 
     private static BitbucketCredentials create(BitbucketServerConfiguration configuration) {
         if (configuration.getCredentials() != null) {
-            return new BitbucketCredentialsAdaptor(configuration.getCredentials());
+            return new BitbucketCredentialsAdaptor(configuration.getCredentials()).toBitbucketCredentials();
         } else {
             return ANONYMOUS_CREDENTIALS;
+        }
+    }
+
+    public static class BasicCredentials implements BitbucketCredentials {
+
+        private final String username;
+        private final String password;
+
+        public BasicCredentials(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        @Override
+        public String toHeaderValue() {
+            String authorization = username + ':' + password;
+            return
+                    "Basic "
+                    + Base64.getEncoder()
+                            .encodeToString(authorization.getBytes(Charsets.UTF_8));
+        }
+    }
+
+    public static class BearerCredentials implements BitbucketCredentials {
+
+        private final String bearerToken;
+
+        public BearerCredentials(String bearerToken) {
+            this.bearerToken = bearerToken;
+        }
+
+        @Override
+        public String toHeaderValue() {
+            return
+                    "Bearer " + bearerToken;
         }
     }
 }
