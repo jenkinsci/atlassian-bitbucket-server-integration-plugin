@@ -7,8 +7,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest.Builder;
+import okhttp3.Request;
+import okio.Buffer;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -18,6 +21,8 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
+import static org.apache.commons.lang3.StringUtils.deleteWhitespace;
+import static org.apache.commons.lang3.StringUtils.normalizeSpace;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
@@ -78,12 +83,13 @@ public class BitbucketWebhookClientImplTest {
         String mirrorSyncEvent = "mirror:repo_synchronized";
         String response = readFileToString("/webhook/webhook_created_response.json");
         String url = "www.example.com";
+        String requestBody = readFileToString("/webhook/webhook_creation_request.json");
         String registerUrl =
                 format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks",
                         BITBUCKET_BASE_URL,
                         projectKey,
                         repoSlug);
-        fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, readFileToString("/webhook/webhook_creation_request.json"), response);
+        fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, requestBody, response);
 
         BitbucketWebhookRequest request = Builder
                 .aRequestFor(repoRefEvent, mirrorSyncEvent)
@@ -94,6 +100,15 @@ public class BitbucketWebhookClientImplTest {
         BitbucketWebhook result = client.registerWebhook(request);
 
         assertThat(result.getEvents(), hasItems(repoRefEvent, mirrorSyncEvent));
+
+        Request recordedRequest = fakeRemoteHttpServer.getRequest(registerUrl);
+        Buffer b = new Buffer();
+        try {
+            recordedRequest.body().writeTo(b);
+            assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

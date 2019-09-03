@@ -3,11 +3,16 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import okhttp3.Request;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import okio.Buffer;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +28,7 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketClientFactoryImplTest {
 
+    private static final String REVISION = "bc891c29e289e373fbf8daff411480e8da6d5252";
     private static final String MIRROR_SELF_LINK = "https://us-east.bitbucket.example.com/rest/mirroring/1.0/repos/1?" +
                                                    "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9" +
                                                    ".TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
@@ -43,6 +49,27 @@ public class BitbucketClientFactoryImplTest {
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
         assertThat(response.getCapabilities(), hasKey("webhooks"));
+    }
+
+    @Test
+    public void testPostBuildStatus() throws IOException {
+        String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
+        BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
+                .setName("Local BBS Project")
+                .setDescription("#15 in progress")
+                .build();
+
+        String url = BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" + REVISION;
+        String requestString = readFileToString("/build-status-request.json");
+        mockExecutor.mapPostRequestToResult(url, requestString, "");
+        Buffer b = new Buffer();
+
+        BitbucketBuildStatusClient client = anonymousClientFactory.getBuildStatusClient(REVISION);
+        client.post(buildStatus);
+
+        Request clientRequest = mockExecutor.getRequest(url);
+        clientRequest.body().writeTo(b);
+        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(new String(b.readByteArray())));
     }
 
     @Test
