@@ -12,7 +12,6 @@ import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -35,8 +34,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     private BitbucketWebhookConsumer webhookConsumer;
 
     @POST
-    public HttpResponse doTrigger(StaplerRequest request, StaplerResponse response)
-            throws ServletException {
+    public HttpResponse doTrigger(StaplerRequest request, StaplerResponse response) {
         validateContentType(request);
 
         String eventKey = getEventKey(request);
@@ -81,7 +79,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
         return eventKey;
     }
 
-    private <T> T parse(StaplerRequest request, Class<T> type) throws ServletException {
+    private <T> T parse(StaplerRequest request, Class<T> type) {
         try {
             T event = objectMapper.readValue(request.getInputStream(), type);
             LOGGER.fine(String.format("Payload: %s", event));
@@ -93,14 +91,13 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
         }
     }
 
-    private HttpResponse processMirrorSynchronizedEvent(StaplerRequest request)
-            throws ServletException {
+    private HttpResponse processMirrorSynchronizedEvent(StaplerRequest request) {
         MirrorSynchronizedWebhookEvent event = parse(request, MirrorSynchronizedWebhookEvent.class);
         webhookConsumer.process(event);
         return org.kohsuke.stapler.HttpResponses.ok();
     }
 
-    private HttpResponse processRefChangedEvent(StaplerRequest request) throws ServletException {
+    private HttpResponse processRefChangedEvent(StaplerRequest request) {
         RefsChangedWebhookEvent event = parse(request, RefsChangedWebhookEvent.class);
         webhookConsumer.process(event);
         return org.kohsuke.stapler.HttpResponses.ok();

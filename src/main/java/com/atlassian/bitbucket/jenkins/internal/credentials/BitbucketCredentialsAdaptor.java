@@ -10,7 +10,6 @@ import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
 import java.util.Base64;
-import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static java.util.Objects.requireNonNull;
@@ -30,9 +29,10 @@ public final class BitbucketCredentialsAdaptor {
 
     public static BitbucketCredentials createWithFallback(@Nullable Credentials credentials,
                                                           BitbucketServerConfiguration configuration) {
-        return Optional.ofNullable(credentials)
-                .map(c -> new BitbucketCredentialsAdaptor(c).toBitbucketCredentials())
-                .orElseGet(() -> create(configuration));
+        if (credentials == null) {
+            return create(configuration);
+        }
+        return new BitbucketCredentialsAdaptor(credentials).toBitbucketCredentials();
     }
 
     public static BitbucketCredentials create(Credentials credentials) {

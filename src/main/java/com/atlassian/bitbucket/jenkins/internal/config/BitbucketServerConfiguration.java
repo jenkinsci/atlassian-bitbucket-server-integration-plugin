@@ -7,8 +7,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
-import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -22,7 +22,6 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -35,11 +34,15 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -86,7 +89,6 @@ public class BitbucketServerConfiguration
      *
      * @return the bitbucket server base URL
      */
-    @Nullable
     public String getBaseUrl() {
         return baseUrl;
     }
@@ -177,7 +179,7 @@ public class BitbucketServerConfiguration
      * @return FormValidation with Kind.ok if syntactically valid; Kind.error otherwise
      */
     private static FormValidation checkBaseUrl(String baseUrl) {
-        if (StringUtils.isEmpty(baseUrl)) {
+        if (isEmpty(baseUrl)) {
             return FormValidation.error("Enter your Bitbucket instance's URL.");
         }
         try {
@@ -295,7 +297,6 @@ public class BitbucketServerConfiguration
             }
 
             try {
-
                 Optional<String> username =
                         clientFactoryProvider
                                 .getClient(config.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(config.getAdminCredentials(), config))
@@ -310,7 +311,7 @@ public class BitbucketServerConfiguration
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().get();
                 if (credentials instanceof StringCredentials) {
                     if (!client.getUsernameClient().get().isPresent()) {
-                        throw new AuthorizationException("Token did not work", 401, null);
+                        throw new AuthorizationException("Token did not work", HTTP_UNAUTHORIZED, null);
                     }
                 }
 

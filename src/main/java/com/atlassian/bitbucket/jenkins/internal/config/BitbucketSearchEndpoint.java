@@ -63,14 +63,18 @@ public class BitbucketSearchEndpoint implements RootAction {
 
         BitbucketPage<BitbucketMirroredRepository> mirroredRepos = mirroredRepoDescriptors.transform(
                 repo -> {
-                    HttpUrl mirrorUrl = HttpUrl.parse(repo.getSelfLink());
-                    try {
-                        return httpRequestExecutor.executeGet(mirrorUrl, BitbucketCredentials.ANONYMOUS_CREDENTIALS, response -> unmarshall(response.body()));
-                    } catch (BitbucketClientException e) {
-                        LOGGER.info("Failed to retrieve repository information from mirror: " + repo.getMirrorServer().getName());
-                        return new BitbucketMirroredRepository(false, Collections.emptyMap(),
-                                repo.getMirrorServer().getName(), repositoryId, BitbucketMirroredRepositoryStatus.NOT_MIRRORED);
+                    if (repo.getSelfLink() != null) {
+                        HttpUrl mirrorUrl = HttpUrl.parse(repo.getSelfLink());
+                        if (mirrorUrl != null) {
+                            try {
+                                return httpRequestExecutor.executeGet(mirrorUrl, BitbucketCredentials.ANONYMOUS_CREDENTIALS, response -> unmarshall(response.body()));
+                            } catch (BitbucketClientException e) {
+                                LOGGER.info("Failed to retrieve repository information from mirror: " + repo.getMirrorServer().getName());
+                            }
+                        }
                     }
+                    return new BitbucketMirroredRepository(false, Collections.emptyMap(),
+                            repo.getMirrorServer().getName(), repositoryId, BitbucketMirroredRepositoryStatus.NOT_MIRRORED);
                 });
         return HttpResponses.okJSON(JSONObject.fromObject(mirroredRepos));
     }
@@ -175,8 +179,8 @@ public class BitbucketSearchEndpoint implements RootAction {
         return credentials;
     }
 
-    private BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepoDescriptor(String serverId,
-                                                                                           String credentialsId,
+    private BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepoDescriptor(@Nullable String serverId,
+                                                                                           @Nullable String credentialsId,
                                                                                            int repoId) {
         BitbucketServerConfiguration server = getServer(serverId);
         BitbucketMirroredRepositoryDescriptorClient client =

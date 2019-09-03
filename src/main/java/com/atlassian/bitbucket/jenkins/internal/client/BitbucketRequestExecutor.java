@@ -33,9 +33,12 @@ public class BitbucketRequestExecutor {
     public BitbucketRequestExecutor(String bitbucketBaseUrl,
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
                                     BitbucketCredentials credentials) {
-        this.bitbucketBaseUrl = parse(requireNonNull(bitbucketBaseUrl));
-        this.bitbucketCoreRestPathUrl =
-                this.bitbucketBaseUrl.newBuilder().addPathSegment("rest").addPathSegment("api").addPathSegment(API_VERSION).build();
+        this.bitbucketBaseUrl = requireNonNull(parse(requireNonNull(bitbucketBaseUrl)));
+        this.bitbucketCoreRestPathUrl = this.bitbucketBaseUrl.newBuilder()
+                .addPathSegment("rest")
+                .addPathSegment("api")
+                .addPathSegment(API_VERSION)
+                .build();
         this.httpRequestExecutor = httpRequestExecutor;
         this.objectMapper = objectMapper;
         this.credentials = credentials;

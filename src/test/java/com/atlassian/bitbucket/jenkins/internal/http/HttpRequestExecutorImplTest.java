@@ -17,9 +17,9 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.AUTHORIZATION_HEADER_KEY;
 import static java.net.HttpURLConnection.*;
 import static okhttp3.HttpUrl.parse;
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertNull;
@@ -54,7 +54,7 @@ public class HttpRequestExecutorImplTest {
 
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
 
-        assertThat(factory.getHeaderValue(BASE_URL, AUTHORIZATION_HEADER_KEY), is(equalTo("aToken")));
+        assertThat(factory.getHeaderValue(BASE_URL, AUTHORIZATION), is(equalTo("aToken")));
     }
 
     @Test(expected = ServerErrorException.class)
@@ -86,7 +86,7 @@ public class HttpRequestExecutorImplTest {
         factory.mapUrlToResult(BASE_URL, "hello");
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, ANONYMOUS_CREDENTIALS, response -> null);
 
-        assertNull(factory.getHeaderValue(BASE_URL, AUTHORIZATION_HEADER_KEY));
+        assertNull(factory.getHeaderValue(BASE_URL, AUTHORIZATION));
     }
 
     @Test(expected = AuthorizationException.class)

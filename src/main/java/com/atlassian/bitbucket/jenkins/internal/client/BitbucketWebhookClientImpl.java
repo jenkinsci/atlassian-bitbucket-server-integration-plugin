@@ -76,7 +76,7 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
                     new TypeReference<BitbucketPage<BitbucketWebhook>>() {}).getBody();
         }
 
-        private HttpUrl nextPageUrl(BitbucketPage previous) {
+        private HttpUrl nextPageUrl(BitbucketPage<BitbucketWebhook> previous) {
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
         }
     }

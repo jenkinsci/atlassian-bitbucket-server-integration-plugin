@@ -17,7 +17,7 @@ public class BitbucketClientFactoryProvider {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private HttpRequestExecutor httpRequestExecutor;
+    private final HttpRequestExecutor httpRequestExecutor;
 
     @Inject
     public BitbucketClientFactoryProvider(HttpRequestExecutor httpRequestExecutor) {

@@ -24,6 +24,9 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+
 @Singleton
 public class BitbucketWebhookConsumer {
 
@@ -62,14 +65,6 @@ public class BitbucketWebhookConsumer {
         LOGGER.fine("Received mirror synchronized event: " + event);
     }
 
-    private static Set<String> cloneLinks(RefsChangedWebhookEvent event) {
-        return event.getRepository()
-                .getCloneUrls()
-                .stream()
-                .map(BitbucketNamedLink::getHref)
-                .collect(Collectors.toSet());
-    }
-
     private static Set<String> eligibleRefs(RefsChangedWebhookEvent event) {
         return event.getChanges()
                 .stream()
@@ -78,7 +73,7 @@ public class BitbucketWebhookConsumer {
                 .collect(Collectors.toSet());
     }
 
-    private static Collection<? extends SCM> getScms(ParameterizedJobMixIn.ParameterizedJob job) {
+    private static Collection<? extends SCM> getScms(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         SCMTriggerItem triggerItem = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(job);
         if (triggerItem != null) {
             return triggerItem.getSCMs();
@@ -105,18 +100,18 @@ public class BitbucketWebhookConsumer {
                scmRepo.getRepositorySlug().equalsIgnoreCase(repository.getSlug());
     }
 
-    private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob job) {
+    private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         BitbucketWebhookTriggerImpl trigger = triggerFrom(job);
         if (trigger != null) {
-            return Optional.of(new TriggerDetails(job, trigger));
+            return of(new TriggerDetails(job, trigger));
         }
-        return Optional.empty();
+        return empty();
     }
 
     @Nullable
-    private static BitbucketWebhookTriggerImpl triggerFrom(ParameterizedJobMixIn.ParameterizedJob job) {
+    private static BitbucketWebhookTriggerImpl triggerFrom(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         Map<TriggerDescriptor, Trigger<?>> triggers = job.getTriggers();
-        for (Trigger candidate : triggers.values()) {
+        for (Trigger<?> candidate : triggers.values()) {
             if (candidate instanceof BitbucketWebhookTriggerImpl) {
                 return (BitbucketWebhookTriggerImpl) candidate;
             }
@@ -125,7 +120,7 @@ public class BitbucketWebhookConsumer {
     }
 
     private boolean hasMatchingRepository(RefChangedDetails refChangedDetails,
-                                          ParameterizedJobMixIn.ParameterizedJob job) {
+                                          ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         Collection<? extends SCM> scms = getScms(job);
         for (SCM scm : scms) {
             if (scm instanceof GitSCM) {
@@ -166,19 +161,27 @@ public class BitbucketWebhookConsumer {
         public BitbucketRepository getRepository() {
             return repository;
         }
+
+        private static Set<String> cloneLinks(RefsChangedWebhookEvent event) {
+            return event.getRepository()
+                    .getCloneUrls()
+                    .stream()
+                    .map(BitbucketNamedLink::getHref)
+                    .collect(Collectors.toSet());
+        }
     }
 
     private static final class TriggerDetails {
 
-        private final ParameterizedJobMixIn.ParameterizedJob job;
+        private final ParameterizedJobMixIn.ParameterizedJob<?, ?> job;
         private final BitbucketWebhookTrigger trigger;
 
-        private TriggerDetails(ParameterizedJobMixIn.ParameterizedJob job, BitbucketWebhookTrigger trigger) {
+        private TriggerDetails(ParameterizedJobMixIn.ParameterizedJob<?, ?> job, BitbucketWebhookTrigger trigger) {
             this.job = job;
             this.trigger = trigger;
         }
 
-        public ParameterizedJobMixIn.ParameterizedJob getJob() {
+        public ParameterizedJobMixIn.ParameterizedJob<?, ?> getJob() {
             return job;
         }
 

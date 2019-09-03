@@ -3,8 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 
 public class BitbucketWebhookRequest {
 
@@ -39,7 +39,7 @@ public class BitbucketWebhookRequest {
     /**
      * A builder to provide fluent way of building webhook register request.
      */
-    public static class BitbucketWebhookRequestBuilder {
+    public static final class BitbucketWebhookRequestBuilder {
 
         private final Set<String> events;
         private String name;

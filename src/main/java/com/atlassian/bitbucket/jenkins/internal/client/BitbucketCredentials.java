@@ -8,7 +8,6 @@ public interface BitbucketCredentials {
     /**
      * The authorization header key which will be sent with all authorized request.
      */
-    String AUTHORIZATION_HEADER_KEY = "Authorization";
     BitbucketCredentials ANONYMOUS_CREDENTIALS = new AnonymousCredentials();
 
     /**
@@ -18,7 +17,7 @@ public interface BitbucketCredentials {
      */
     String toHeaderValue();
 
-    class AnonymousCredentials implements BitbucketCredentials {
+    final class AnonymousCredentials implements BitbucketCredentials {
 
         private AnonymousCredentials() {
         }
