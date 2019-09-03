@@ -3,10 +3,11 @@ package com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigura
 def f = namespace(lib.FormTagLib)
 def c = namespace(lib.CredentialsTagLib)
 
-
 f.section() {
-    f.entry(title: _("bitbucket.server.id"), field: "id") {
-        f.readOnlyTextbox(clazz: "bbs-server-id-textbox", checkMethod: "post")
+    if (instance != null && instance.id != null) {
+        f.invisibleEntry(field: "id") {
+            f.input(type: "hidden", name: "id", value: "${instance.id}");
+        }
     }
 
     f.entry(title: _("bitbucket.server.name"), field: "serverName") {

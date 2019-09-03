@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM
 
 def f = namespace(lib.FormTagLib)
 def c = namespace(lib.CredentialsTagLib)
-def st = namespace('jelly:stapler')
 
 f.section() {
     f.entry(title: _("bitbucket.scm.credentials"), field: "credentialsId") {
