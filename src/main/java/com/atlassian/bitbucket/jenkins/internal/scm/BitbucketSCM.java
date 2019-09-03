@@ -34,6 +34,7 @@ import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
@@ -43,11 +44,9 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+import static hudson.util.HttpResponses.okJSON;
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -338,6 +337,28 @@ public class BitbucketSCM extends SCM {
                             StandardUsernamePasswordCredentials.class,
                             URIRequirementBuilder.fromUri(baseUrl).build(),
                             CredentialsMatchers.always());
+        }
+
+        @POST
+        public HttpResponse doFillProjectNameItems(@QueryParameter String projectName) {
+            if (isBlank(projectName)) {
+                return okJSON();
+            }
+            // TODO: Wire this up to the project search endpoint in Bitbucket
+            HashMap<String, String> response = new HashMap<>();
+            response.put(projectName + " name result", projectName + "_key_result");
+            return okJSON(JSONObject.fromObject(response));
+        }
+
+        @POST
+        public HttpResponse doFillRepositoryNameItems(@QueryParameter String projectKey, @QueryParameter String repositoryName) {
+            if (isBlank(projectKey) || isBlank(repositoryName)) {
+                return okJSON();
+            }
+            // TODO: Wire this up to the repo search endpoint in Bitbucket
+            HashMap<String, String> response = new HashMap<>();
+            response.put(projectKey + "/" + repositoryName + " name result", repositoryName + "_slug_result");
+            return okJSON(JSONObject.fromObject(response));
         }
 
         @POST

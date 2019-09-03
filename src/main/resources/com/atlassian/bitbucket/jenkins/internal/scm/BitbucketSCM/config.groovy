@@ -2,9 +2,9 @@ package com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM
 
 def f = namespace(lib.FormTagLib)
 def c = namespace(lib.CredentialsTagLib)
-def st = namespace('jelly:stapler')
 
 f.section() {
+
     f.entry(title: _("bitbucket.scm.credentials"), field: "credentialsId") {
         c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
@@ -13,12 +13,20 @@ f.section() {
         f.select(context: app, checkMethod: "post")
     }
 
+    f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
+        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable', resultField: 'projectKey')
+    }
+
     f.entry(title: _("bitbucket.scm.projectKey"), field: "projectKey") {
-        f.textbox(placeholder: "Project key", checkMethod: "post")
+        f.textbox(checkMethod: "post", disabled: true, id: 'projectKey')
+    }
+
+    f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
+        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable', resultField: 'repositorySlug')
     }
 
     f.entry(title: _("bitbucket.scm.repositorySlug"), field: "repositorySlug") {
-        f.textbox(placeholder: "repository slug", checkMethod: "post")
+        f.textbox(checkMethod: "post", disabled: true, id: 'repositorySlug')
     }
 
     f.entry(title: _("Branches to build")) {
@@ -40,4 +48,6 @@ f.section() {
             f.input(type: "hidden", name: "id", value: "${instance.id}")
         }
     }
+
+    script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/project_repo_search.js")
 }
