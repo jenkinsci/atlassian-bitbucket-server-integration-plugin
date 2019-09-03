@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm.extensions;
+package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;

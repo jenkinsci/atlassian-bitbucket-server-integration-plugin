@@ -66,7 +66,6 @@ public class BuildStatusPosterTest {
         when(build.isBuilding()).thenReturn(true);
         when(build.getId()).thenReturn("10");
         when(build.getDurationString()).thenReturn("23 sec");
-        when(build.getDisplayName()).thenReturn("Display Name");
         when(build.getProject()).thenReturn(project);
         when(build.getUrl()).thenReturn("job%2FTest%2520Project%2F14%2F");
         when(action.getRevisionSha1()).thenReturn(REVISION_SHA1);

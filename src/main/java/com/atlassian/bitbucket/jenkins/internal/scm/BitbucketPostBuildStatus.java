@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm.extensions;
+package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
@@ -17,11 +17,7 @@ import org.jenkinsci.plugins.gitclient.GitClient;
 
 import java.util.logging.Logger;
 
-/**
- * Although this class extends the GitSCMExtension, it is only intended for use with the BitbucketSCM, which instantiates
- * it automatically. It is not configurable in the manner of other GitSCMExtensions through the SCM config page.
- */
-public class BitbucketPostBuildStatus extends GitSCMExtension {
+class BitbucketPostBuildStatus extends GitSCMExtension {
 
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private final JenkinsProvider jenkinsProvider;
