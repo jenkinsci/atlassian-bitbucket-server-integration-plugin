@@ -36,14 +36,12 @@ public class BuildStatusPosterTest {
     @ClassRule
     public static JenkinsRule jenkins = new JenkinsRule();
 
+    @Captor
+    private ArgumentCaptor<BitbucketBuildStatus> captor;
     @Mock
     private BitbucketRevisionAction action;
     @Mock
     private AbstractBuild build;
-    @InjectMocks
-    private BuildStatusPoster buildStatusPoster;
-    @Captor
-    private ArgumentCaptor<BitbucketBuildStatus> captor;
     @Mock
     private BitbucketClientFactory factory;
     @Mock
@@ -60,6 +58,8 @@ public class BuildStatusPosterTest {
     private AbstractProject project;
     @Mock
     private BitbucketServerConfiguration server;
+    @InjectMocks
+    private BuildStatusPoster buildStatusPoster;
 
     @Before
     public void setup() {

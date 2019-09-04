@@ -15,11 +15,8 @@ import hudson.plugins.git.util.BuildData;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 
-import java.util.logging.Logger;
-
 class BitbucketPostBuildStatus extends GitSCMExtension {
 
-    private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private final JenkinsProvider jenkinsProvider;
     private final String serverId;
 
@@ -37,12 +34,13 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
                                         CheckoutCommand cmd) throws GitException {
         Injector injector = jenkinsProvider.get().getInjector();
         if (injector == null) {
-            LOGGER.warning("Injector could not be found while creating build status");
+            listener.getLogger().println("Injector could not be found while creating build status");
         }
 
         if (build instanceof AbstractBuild) {
             BuildData buildData = scm.getBuildData(build);
             if (buildData == null || buildData.lastBuild == null) {
+                listener.getLogger().println("Build data was not found while creating a build status");
                 return;
             }
             String revisionSha1 = buildData.lastBuild.getRevision().getSha1String();
@@ -50,7 +48,11 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
             BuildStatusPoster poster = injector.getInstance(BuildStatusPoster.class);
             if (poster != null) {
                 poster.postBuildStatus((AbstractBuild) build, listener);
+            } else {
+                listener.getLogger().println("Build Status Poster instance could not be found while creating a build status");
             }
+        } else {
+            listener.getLogger().println("Could not create build status from provided build");
         }
     }
 }

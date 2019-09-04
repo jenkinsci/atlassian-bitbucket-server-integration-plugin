@@ -2,6 +2,10 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 public class BitbucketBuildStatus {
 
     private final String description;
@@ -10,12 +14,13 @@ public class BitbucketBuildStatus {
     private final BuildState state;
     private final String url;
 
-    public BitbucketBuildStatus(String description, String key, String name, BuildState state, String url) {
+    private BitbucketBuildStatus(@Nullable String description, String key, @Nullable String name, BuildState state,
+                                 String url) {
         this.description = description;
-        this.key = key;
+        this.key = requireNonNull(key, "key");
         this.name = name;
-        this.state = state;
-        this.url = url;
+        this.state = requireNonNull(state, "state");
+        this.url = requireNonNull(url, "url");
     }
 
     @JsonProperty(value = "description")
@@ -23,7 +28,7 @@ public class BitbucketBuildStatus {
         return description;
     }
 
-    @JsonProperty(value = "key", required = true)
+    @JsonProperty(value = "key")
     public String getKey() {
         return key;
     }
@@ -33,12 +38,12 @@ public class BitbucketBuildStatus {
         return name;
     }
 
-    @JsonProperty(value = "state", required = true)
+    @JsonProperty(value = "state")
     public String getState() {
         return state.toString();
     }
 
-    @JsonProperty(value = "url", required = true)
+    @JsonProperty(value = "url")
     public String getUrl() {
         return url;
     }
@@ -57,9 +62,8 @@ public class BitbucketBuildStatus {
             this.url = url;
         }
 
-        public Builder setName(String name) {
-            this.name = name;
-            return this;
+        public BitbucketBuildStatus build() {
+            return new BitbucketBuildStatus(description, key, name, state, url);
         }
 
         public Builder setDescription(String description) {
@@ -67,8 +71,9 @@ public class BitbucketBuildStatus {
             return this;
         }
 
-        public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(description, key, name, state, url);
+        public Builder setName(String name) {
+            this.name = name;
+            return this;
         }
     }
 }

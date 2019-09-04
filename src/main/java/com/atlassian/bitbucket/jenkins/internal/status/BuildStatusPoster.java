@@ -38,7 +38,7 @@ public class BuildStatusPoster {
         if (serverOptional.isPresent()) {
             BitbucketServerConfiguration server = serverOptional.get();
             try {
-                BitbucketBuildStatus buildStatus = BitbucketBuildStatusConstructor.fromBuild(build);
+                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(build);
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 BitbucketCredentials credentials =
@@ -48,7 +48,9 @@ public class BuildStatusPoster {
                         .post(buildStatus);
                 return;
             } catch (RuntimeException e) {
-                LOGGER.info(BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage());
+                String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
+                LOGGER.info(errorMsg);
+                listener.getLogger().println(errorMsg);
                 LOGGER.log(Level.FINE, "Stacktrace from build status failure", e);
             }
         } else {

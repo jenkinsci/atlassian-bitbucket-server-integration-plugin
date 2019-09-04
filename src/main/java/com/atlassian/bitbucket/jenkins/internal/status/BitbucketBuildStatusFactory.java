@@ -9,7 +9,7 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class BitbucketBuildStatusConstructor {
+public class BitbucketBuildStatusFactory {
 
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 

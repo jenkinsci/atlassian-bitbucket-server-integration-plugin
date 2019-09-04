@@ -20,6 +20,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.PrintStream;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
@@ -51,6 +53,8 @@ public class BitbucketPostBuildStatusTest {
     @Mock
     private TaskListener listener;
     @Mock
+    private PrintStream logger;
+    @Mock
     private Run notABuild;
     @Mock
     private Revision revision;
@@ -64,39 +68,42 @@ public class BitbucketPostBuildStatusTest {
         when(lastBuild.getRevision()).thenReturn(revision);
         when(revision.getSha1String()).thenReturn(SHA1);
         when(jenkinsProvider.get()).thenReturn(jenkins);
+        when(jenkins.getInjector()).thenReturn(injector);
+        when(listener.getLogger()).thenReturn(logger);
     }
 
     @Test
     public void testNoBuildData() {
-        when(jenkins.getInjector()).thenReturn(injector);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
         verifyZeroInteractions(buildStatusPoster);
+        verify(logger).println("Build data was not found while creating a build status");
     }
 
     @Test
     public void testNoInjector() {
+        when(jenkins.getInjector()).thenReturn(null);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
         verifyZeroInteractions(build);
         verifyZeroInteractions(buildStatusPoster);
+        verify(logger).println("Injector could not be found while creating build status");
     }
 
     @Test
     public void testNoPoster() {
-        when(jenkins.getInjector()).thenReturn(injector);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
+        verify(logger).println("Build Status Poster instance could not be found while creating a build status");
     }
 
     @Test
     public void testNullBuild() {
-        when(jenkins.getInjector()).thenReturn(injector);
         extension.decorateCheckoutCommand(scm, null, null, listener, null);
         verifyZeroInteractions(buildStatusPoster);
+        verify(logger).println("Could not create build status from provided build");
     }
 
     @Test
     public void testPostStatus() {
-        when(jenkins.getInjector()).thenReturn(injector);
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
@@ -109,7 +116,6 @@ public class BitbucketPostBuildStatusTest {
 
     @Test
     public void testRunNotOfTypeBuild() {
-        when(jenkins.getInjector()).thenReturn(injector);
         extension.decorateCheckoutCommand(scm, notABuild, null, listener, null);
         verifyZeroInteractions(buildStatusPoster);
     }
