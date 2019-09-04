@@ -33,6 +33,8 @@ public class BitbucketSCMIT {
     @ClassRule
     public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
     private static final String PROJECT_KEY = "PROJECT_1";
+    private static final String PROJECT_NAME = "Project 1";
+    private static final String REPO_NAME = "rep 1";
     private static final String REPO_SLUG = "rep_1";
     private FreeStyleProject project;
 
@@ -115,7 +117,9 @@ public class BitbucketSCMIT {
                         bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
                         emptyList(),
                         "",
+                        PROJECT_NAME,
                         PROJECT_KEY,
+                        REPO_NAME,
                         REPO_SLUG,
                         bbJenkinsRule.getBitbucketServerConfiguration().getId());
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));

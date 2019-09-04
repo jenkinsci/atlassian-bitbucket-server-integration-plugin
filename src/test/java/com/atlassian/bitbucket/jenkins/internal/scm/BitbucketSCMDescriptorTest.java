@@ -99,33 +99,33 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testNonEmptyRepositorySlug() {
-        assertEquals(Kind.OK, descriptor.doCheckRepositorySlug("repo").kind);
+    public void testNonEmptyRepositoryName() {
+        assertEquals(Kind.OK, descriptor.doCheckRepositoryName("repo").kind);
     }
 
     @Test
-    public void testProjectKeyEmpty() {
-        assertEquals(Kind.ERROR, descriptor.doCheckProjectKey("").kind);
+    public void testProjectNameEmpty() {
+        assertEquals(Kind.ERROR, descriptor.doCheckProjectName("").kind);
     }
 
     @Test
-    public void testProjectKeyNonEmpty() {
-        assertEquals(Kind.OK, descriptor.doCheckProjectKey("PROJECT").kind);
+    public void testProjectNameNonEmpty() {
+        assertEquals(Kind.OK, descriptor.doCheckProjectName("PROJECT").kind);
     }
 
     @Test
-    public void testProjectKeyNull() {
-        assertEquals(Kind.ERROR, descriptor.doCheckProjectKey(null).kind);
+    public void testProjectNameNull() {
+        assertEquals(Kind.ERROR, descriptor.doCheckProjectName(null).kind);
     }
 
     @Test
-    public void testRepositorySlugEmpty() {
-        assertEquals(Kind.ERROR, descriptor.doCheckRepositorySlug("").kind);
+    public void testRepositoryNameEmpty() {
+        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName("").kind);
     }
 
     @Test
-    public void testRepositorySlugNull() {
-        assertEquals(Kind.ERROR, descriptor.doCheckRepositorySlug(null).kind);
+    public void testRepositoryNameNull() {
+        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName(null).kind);
     }
 
     @Test

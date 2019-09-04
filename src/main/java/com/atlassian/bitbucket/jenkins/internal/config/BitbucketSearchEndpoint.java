@@ -79,56 +79,6 @@ public class BitbucketSearchEndpoint implements RootAction {
         return HttpResponses.okJSON(JSONObject.fromObject(mirroredRepos));
     }
 
-    @GET
-    public HttpResponse doFindProjects(
-            @Nullable @QueryParameter("serverId") String serverId,
-            @Nullable @QueryParameter("credentialsId") String credentialsId,
-            @Nullable @QueryParameter("name") String name) {
-        Jenkins.get().checkPermission(CONFIGURE);
-        BitbucketServerConfiguration serverConf = getServer(serverId);
-        BitbucketProjectSearchClient projectSearchClient =
-                bitbucketClientFactoryProvider
-                        .getClient(serverConf.getBaseUrl(),
-                                BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), serverConf))
-                        .getProjectSearchClient();
-        try {
-            BitbucketPage<BitbucketProject> projects =
-                    projectSearchClient.get(StringUtils.stripToEmpty(name));
-            return HttpResponses.okJSON(JSONObject.fromObject(projects));
-        } catch (BitbucketClientException e) {
-            // Something went wrong with the request to Bitbucket
-            LOGGER.severe(e.getMessage());
-            throw error(HTTP_INTERNAL_ERROR, e);
-        }
-    }
-
-    @GET
-    public HttpResponse doFindRepositories(
-            @Nullable @QueryParameter("serverId") String serverId,
-            @Nullable @QueryParameter("credentialsId") String credentialsId,
-            @Nullable @QueryParameter("projectName") String projectName,
-            @Nullable @QueryParameter("filter") String filter) {
-        Jenkins.get().checkPermission(CONFIGURE);
-        if (StringUtils.isBlank(projectName)) {
-            return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
-        }
-        BitbucketServerConfiguration serverConf = getServer(serverId);
-        BitbucketRepositorySearchClient searchClient =
-                bitbucketClientFactoryProvider
-                        .getClient(serverConf.getBaseUrl(),
-                                BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), serverConf))
-                        .getRepositorySearchClient(projectName);
-        try {
-            BitbucketPage<BitbucketRepository> repositories =
-                    searchClient.get(StringUtils.stripToEmpty(filter));
-            return HttpResponses.okJSON(JSONObject.fromObject(repositories));
-        } catch (BitbucketClientException e) {
-            // Something went wrong with the request to Bitbucket
-            LOGGER.severe(e.getMessage());
-            throw error(HTTP_INTERNAL_ERROR, e);
-        }
-    }
-
     @CheckForNull
     @Override
     public String getDisplayName() {
