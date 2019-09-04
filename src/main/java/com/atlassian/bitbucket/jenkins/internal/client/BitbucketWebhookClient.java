@@ -28,4 +28,19 @@ public interface BitbucketWebhookClient {
      * @return returns the registered webhook
      */
     BitbucketWebhook registerWebhook(BitbucketWebhookRequest request);
+
+    /**
+     * deletes a webhook with given id
+     *
+     * @param webhookId, webhook id.
+     */
+    void deleteWebhook(int webhookId);
+
+    /**
+     * Updates the existing webhook
+     * @param id webhook identifier
+     * @param request webhook with update field
+     * @return updated webhook
+     */
+    BitbucketWebhook updateWebhook(int id, BitbucketWebhookRequest request);
 }

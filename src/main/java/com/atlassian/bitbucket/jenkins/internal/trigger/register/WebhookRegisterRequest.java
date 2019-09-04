@@ -1,14 +1,17 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 public class WebhookRegisterRequest {
 
-    private final String projectKey;
-    private final String repoSlug;
-    private final String name;
+    private static final int MAX_WEBHOOK_NAME_LENGTH = 255;
+
     private final String jenkinsUrl;
     private final boolean isMirror;
+    private final String name;
+    private final String projectKey;
+    private final String repoSlug;
 
     private WebhookRegisterRequest(String projectKey, String repoSlug, String name, String jenkinsUrl,
                                    boolean isMirror) {
@@ -43,8 +46,8 @@ public class WebhookRegisterRequest {
 
         private final String projectKey;
         private final String repoSlug;
-        private String jenkinsUrl;
         private boolean isMirror;
+        private String jenkinsUrl;
         private String serverId;
 
         private Builder(String projectKey, String repoSlug) {
@@ -56,11 +59,6 @@ public class WebhookRegisterRequest {
             return new Builder(project, repoSlug);
         }
 
-        public Builder withJenkinsBaseUrl(String jenkinsUrl) {
-            this.jenkinsUrl = jenkinsUrl;
-            return this;
-        }
-
         public WebhookRegisterRequest build() {
             return new WebhookRegisterRequest(projectKey, repoSlug, serverId, jenkinsUrl, isMirror);
         }
@@ -70,8 +68,16 @@ public class WebhookRegisterRequest {
             return this;
         }
 
-        public Builder withName(String serverId) {
-            this.serverId = serverId;
+        public Builder withJenkinsBaseUrl(String jenkinsUrl) {
+            this.jenkinsUrl = jenkinsUrl;
+            return this;
+        }
+
+        public Builder withName(String name) {
+            if (name.length() > MAX_WEBHOOK_NAME_LENGTH) {
+                throw new IllegalArgumentException(format("Webhook name should be less than %d characters", MAX_WEBHOOK_NAME_LENGTH));
+            }
+            this.serverId = name;
             return this;
         }
     }

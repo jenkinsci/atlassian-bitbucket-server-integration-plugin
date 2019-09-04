@@ -69,6 +69,15 @@ public class HttpRequestExecutorImplTest {
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
     }
 
+    @Test
+    public void testDelete() {
+        factory.mapDeleteUrl(BASE_URL);
+        httpBasedRequestExecutor.executeDelete(PARSED_BASE_URL, credential);
+
+        assertThat(factory.getHeaderValue(BASE_URL, AUTHORIZATION), is(equalTo("xyz")));
+        assertThat(factory.getRequest(BASE_URL).method(), is(equalTo("DELETE")));
+    }
+
     @Test(expected = AuthorizationException.class)
     public void testForbidden() {
         factory.mapUrlToResponseCode(BASE_URL, HTTP_FORBIDDEN);

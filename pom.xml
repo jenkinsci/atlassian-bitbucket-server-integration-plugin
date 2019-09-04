@@ -103,6 +103,12 @@
             <version>2.6</version>
             <scope>provided</scope> <!-- Should really be test scope but that scope does not work due to transitive dependencies -->
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.modules</groupId>
+            <artifactId>instance-identity</artifactId>
+            <version>2.2</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>

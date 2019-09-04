@@ -3,7 +3,9 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 public enum BitbucketWebhookEvent {
 
     REPO_REF_CHANGE("repo:refs_changed"),
-    MIRROR_SYNC("mirror:repo_synchronized");
+    MIRROR_SYNCHRONIZED_EVENT("mirror:repo_synchronized"),
+    DIAGNOSTICS_PING_EVENT("diagnostics:ping"),
+    UNSUPPORTED("");
 
     private final String eventId;
 
@@ -15,4 +17,12 @@ public enum BitbucketWebhookEvent {
         return eventId;
     }
 
+    public static BitbucketWebhookEvent findByEventId(String eventId) {
+        for (BitbucketWebhookEvent event : values()) {
+            if (event.eventId.equals(eventId)) {
+                return event;
+            }
+        }
+        return UNSUPPORTED;
+    }
 }

@@ -94,10 +94,7 @@ public class BitbucketSCMIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         assertEquals(SUCCESS, build.getResult());
 
-        BitbucketUtils.createBranch(PROJECT_KEY,
-                REPO_SLUG,
-                "my-branch",
-                bbJenkinsRule.getBitbucketServerConfiguration());
+        BitbucketUtils.createBranch(PROJECT_KEY, REPO_SLUG, "my-branch");
         waitFor(() -> {
             if (project.isInQueue()) {
                 return Optional.of("Build is queued");

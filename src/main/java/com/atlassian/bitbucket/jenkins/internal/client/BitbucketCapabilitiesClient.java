@@ -9,7 +9,8 @@ public interface BitbucketCapabilitiesClient extends BitbucketClient<AtlassianSe
 
     /**
      * A Client which can be queried for webhook related support.
-     * @return
+     *
+     * @return webhook client
      */
     BitbucketWebhookSupportedEventsClient getWebhookSupportedClient();
 }

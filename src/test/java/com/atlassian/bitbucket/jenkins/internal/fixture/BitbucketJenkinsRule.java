@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.fixture;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
-import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -24,8 +23,6 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 
 public class BitbucketJenkinsRule extends JenkinsRule {
 
-    public static final String BITBUCKET_BASE_URL =
-            System.getProperty("bitbucket.baseurl", TestUtils.BITBUCKET_BASE_URL);
     public static final String SERVER_NAME = "Bitbucket server";
 
     private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();

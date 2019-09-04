@@ -30,7 +30,7 @@ public class WebhookRegisterResult {
         return isAlreadyRegistered;
     }
 
-    public boolean isSuccess() {
+    public boolean isNewlyAdded() {
         return success;
     }
 }

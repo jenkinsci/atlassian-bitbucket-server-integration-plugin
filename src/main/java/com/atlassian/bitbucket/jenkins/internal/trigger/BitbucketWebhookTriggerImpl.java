@@ -70,7 +70,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         @Override
         public String getId() {
-            return "bitbucket_trigger_enabled";
+            return TRIGGER_IDENTIFIER;
         }
 
         @Override

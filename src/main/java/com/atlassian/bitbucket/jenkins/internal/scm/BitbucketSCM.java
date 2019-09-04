@@ -1,15 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookHandler;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.RetryingWebhookHandler;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest.Builder;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterResult;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -35,8 +32,10 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -54,6 +53,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTrigger.TRIGGER_IDENTIFIER;
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -74,6 +74,7 @@ public class BitbucketSCM extends SCM {
     private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private boolean isRegisterWebhooks;
     private transient String jenkinsUrl;
+    private transient InstanceBasedNameGenerator instanceBasedNameGenerator;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
@@ -170,33 +171,12 @@ public class BitbucketSCM extends SCM {
                             new Stash(getRepositoryUrl(repo)),
                             gitTool,
                             extensions);
-            registerWebhook(credentialsId, scmRepository.getProjectKey(), repositorySlug);
+            registerWebhook(scmRepository, false);
         } catch (BitbucketClientException e) {
             throw new BitbucketSCMException(
                     "Failed to save configuration, please use the back button on your browser and try again. "
                     + "Additional information about this failure: "
                     + e.getMessage());
-        }
-    }
-
-    private void registerWebhook(String credentialId, String projectKey, String repoSlug) {
-        if (isRegisterWebhooks) {
-            BitbucketCredentials credentials =
-                    BitbucketCredentialsAdaptor.createWithFallback(credentialId, getServer());
-            BitbucketCredentials globalAdminCredentials =
-                    BitbucketCredentialsAdaptor.create(getServer().getAdminCredentials());
-            WebhookHandler handler = new RetryingWebhookHandler(bitbucketClientFactoryProvider,
-                    getServer().getBaseUrl(),
-                    credentials, globalAdminCredentials);
-            WebhookRegisterResult result =
-                    handler.register(Builder
-                            .aRequest(projectKey, repoSlug)
-                            .withJenkinsBaseUrl(jenkinsUrl)
-                            .isMirror(false)
-                            .withName(id).build());
-            LOG.info("Webhook register - Is Successful - " + result.isSuccess());
-            LOG.info("Webhook register - Alread added - " + result.isAlreadyRegistered());
-            LOG.info("Webhook register - Webhook id - " + result.getWebhook().getId());
         }
     }
 
@@ -246,6 +226,10 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getServerId();
     }
 
+    public void isRegisterWebhooks(boolean isRegister) {
+        this.isRegisterWebhooks = isRegister;
+    }
+
     public void setBitbucketClientFactoryProvider(
             BitbucketClientFactoryProvider bitbucketClientFactoryProvider) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
@@ -259,8 +243,8 @@ public class BitbucketSCM extends SCM {
         this.jenkinsUrl = jenkinsUrl;
     }
 
-    public void isRegisterWebhooks(boolean isRegister) {
-        this.isRegisterWebhooks = isRegister;
+    public void setInstanceBasedNameGenerator(InstanceBasedNameGenerator instanceBasedNameGenerator) {
+        this.instanceBasedNameGenerator = instanceBasedNameGenerator;
     }
 
     private static String getCloneUrl(BitbucketRepository repo) {
@@ -306,6 +290,21 @@ public class BitbucketSCM extends SCM {
         return credentialsId != null ? credentialsId : serverConfiguration.getCredentialsId();
     }
 
+    private void registerWebhook(BitbucketSCMRepository scmRepository, boolean isMirrorSelected) {
+        if (isRegisterWebhooks) {
+            RetryingWebhookHandler handler = new RetryingWebhookHandler(jenkinsUrl,
+                    bitbucketClientFactoryProvider,
+                    getServer(),
+                    instanceBasedNameGenerator,
+                    new JenkinsToBitbucketCredentialsImpl());
+            WebhookRegisterResult result =
+                    handler.register(scmRepository, isMirrorSelected);
+            LOG.info("Webhook register - Is Successful - " + result.isNewlyAdded());
+            LOG.info("Webhook register - Alread added - " + result.isAlreadyRegistered());
+            LOG.info("Webhook register - Webhook id - " + result.getWebhook().getId());
+        }
+    }
+
     @Symbol("BbS")
     @Extension
     @SuppressWarnings({"MethodMayBeStatic", "unused"})
@@ -316,11 +315,14 @@ public class BitbucketSCM extends SCM {
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+        //saved here for unnecessary unique name generation every time a new job is created
+        private final InstanceBasedNameGenerator instanceBasedNameGenerator;
 
         public DescriptorImpl() {
             super(Stash.class);
             gitScmDescriptor = new GitSCM.DescriptorImpl();
             load();
+            instanceBasedNameGenerator = new InstanceBasedNameGenerator(InstanceIdentity.get());
         }
 
         @POST
@@ -439,8 +441,13 @@ public class BitbucketSCM extends SCM {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
                 scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
                 scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
-                scm.setJenkinsUrl(req.getRootPath());
-                scm.isRegisterWebhooks(req.getParameter("bitbucket_trigger_enabled") != null);
+                String jenkinsUrl = JenkinsLocationConfiguration.get().getUrl();
+                if (jenkinsUrl == null) {
+                    jenkinsUrl = req.getRootPath();
+                }
+                scm.setJenkinsUrl(jenkinsUrl);
+                scm.isRegisterWebhooks(req.getParameter(TRIGGER_IDENTIFIER) != null);
+                scm.setInstanceBasedNameGenerator(instanceBasedNameGenerator);
                 scm.createGitSCM();
                 return scm;
             } catch (Error | RuntimeException e) {

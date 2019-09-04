@@ -20,9 +20,6 @@ import java.util.logging.Logger;
 public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
 
     public static final String BIBUCKET_WEBHOOK_URL = "bitbucket-server-webhook";
-    public static final String DIAGNOSTICS_PING_EVENT = "diagnostics:ping";
-    public static final String MIRROR_SYNCHRONIZED_EVENT = "repo:mirror_synchronized";
-    public static final String REFS_CHANGED_EVENT = "repo:refs_changed";
     public static final String X_EVENT_KEY = "X-Event-Key";
 
     private static final String APPLICATION_JSON = "application/json";
@@ -39,10 +36,10 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
 
         String eventKey = getEventKey(request);
 
-        switch (eventKey) {
+        switch (BitbucketWebhookEvent.findByEventId(eventKey)) {
             case DIAGNOSTICS_PING_EVENT:
                 return org.kohsuke.stapler.HttpResponses.ok();
-            case REFS_CHANGED_EVENT:
+            case REPO_REF_CHANGE:
                 return processRefChangedEvent(request);
             case MIRROR_SYNCHRONIZED_EVENT:
                 return processMirrorSynchronizedEvent(request);
@@ -110,10 +107,10 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
             throw org.kohsuke.stapler.HttpResponses.errorWithoutStack(
                     HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
                     "Invalid content type: '"
-                            + contentType
-                            + "'. Content type should be '"
-                            + APPLICATION_JSON
-                            + "'");
+                    + contentType
+                    + "'. Content type should be '"
+                    + APPLICATION_JSON
+                    + "'");
         }
     }
 }

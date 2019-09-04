@@ -27,6 +27,22 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
     }
 
     @Override
+    public void deleteWebhook(int webhookId) {
+        HttpUrl deleteUrl = url.newBuilder()
+                .addPathSegment(String.valueOf(webhookId))
+                .build();
+        bitbucketRequestExecutor.makeDeleteRequest(deleteUrl);
+    }
+
+    @Override
+    public BitbucketWebhook updateWebhook(int id, BitbucketWebhookRequest request) {
+        HttpUrl updateUrl = url.newBuilder()
+                .addPathSegment(String.valueOf(id))
+                .build();
+        return bitbucketRequestExecutor.makePutRequest(updateUrl, request, BitbucketWebhook.class).getBody();
+    }
+
+    @Override
     public Stream<BitbucketWebhook> getWebhooks(String... eventIdFilter) {
         HttpUrl.Builder urlBuilder = url.newBuilder();
         stream(eventIdFilter).forEach(eventId -> urlBuilder.addQueryParameter("event", eventId));
