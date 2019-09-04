@@ -13,6 +13,8 @@
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>5.6.0</bitbucket.version>
+        <cloverVersion>4.3.1</cloverVersion>
+        <disableTestInjection>false</disableTestInjection>
         <java.level>8</java.level>
         <jackson.version>2.9.9</jackson.version>
         <jenkins.version>2.162</jenkins.version>
@@ -169,6 +171,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <consoleForceReload>false</consoleForceReload>
+                    <disabledTestInjection>${disableTestInjection}</disabledTestInjection>
                 </configuration>
             </plugin>
             <plugin>
@@ -227,6 +230,48 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>clover.report</id>
+            <properties>
+                    <disableTestInjection>true</disableTestInjection>
+                <spotbugs.skip>true</spotbugs.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openclover</groupId>
+                        <artifactId>clover-maven-plugin</artifactId>
+                        <version>${cloverVersion}</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>hudson.model/**/*</exclude>
+                                <exclude>it/**/*</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>clover</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>instrument</goal>
+                                    <goal>check</goal>
+                                    <goal>clover</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <reporting>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openclover</groupId>
+                        <artifactId>clover-maven-plugin</artifactId>
+                        <version>${cloverVersion}</version>
+                    </plugin>
+                </plugins>
+            </reporting>
+        </profile>
         <profile>
             <id>it</id>
             <build>
