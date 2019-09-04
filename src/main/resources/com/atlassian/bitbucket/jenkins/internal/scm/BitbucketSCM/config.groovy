@@ -14,7 +14,7 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
-        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable', resultField: 'projectKey')
+        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable', valueField: 'projectKey', valueIdentifier: 'key')
     }
 
     f.entry(title: _("bitbucket.scm.projectKey"), field: "projectKey") {
@@ -22,7 +22,7 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
-        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable', resultField: 'repositorySlug')
+        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable', valueField: 'repositorySlug', valueIdentifier: 'slug')
     }
 
     f.entry(title: _("bitbucket.scm.repositorySlug"), field: "repositorySlug") {

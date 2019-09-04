@@ -1,11 +1,17 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectSearchClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositorySearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -33,10 +39,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
@@ -44,14 +47,24 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.logging.Logger;
 
+import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.util.stream.Collectors.toCollection;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.*;
+import static org.kohsuke.stapler.HttpResponses.error;
+import static org.kohsuke.stapler.HttpResponses.errorWithoutStack;
 
 public class BitbucketSCM extends SCM {
+
+    private static final Logger LOGGER = Logger.getLogger(BitbucketSCM.class.getName());
 
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
@@ -340,25 +353,51 @@ public class BitbucketSCM extends SCM {
         }
 
         @POST
-        public HttpResponse doFillProjectNameItems(@QueryParameter String projectName) {
-            if (isBlank(projectName)) {
-                return okJSON();
+        public HttpResponse doFillProjectNameItems(@Nullable @QueryParameter String serverId,
+                                                   @Nullable @QueryParameter String credentialsId,
+                                                   @Nullable @QueryParameter String projectName) {
+            Jenkins.get().checkPermission(CONFIGURE);
+            BitbucketServerConfiguration serverConf = getServer(serverId);
+            BitbucketProjectSearchClient projectSearchClient =
+                    bitbucketClientFactoryProvider
+                            .getClient(serverConf.getBaseUrl(),
+                                    BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), serverConf))
+                            .getProjectSearchClient();
+            try {
+                BitbucketPage<BitbucketProject> projects =
+                        projectSearchClient.get(stripToEmpty(projectName));
+                return okJSON(JSONObject.fromObject(projects));
+            } catch (BitbucketClientException e) {
+                // Something went wrong with the request to Bitbucket
+                LOGGER.severe(e.getMessage());
+                throw error(HTTP_INTERNAL_ERROR, e);
             }
-            // TODO: Wire this up to the project search endpoint in Bitbucket
-            HashMap<String, String> response = new HashMap<>();
-            response.put(projectName + " name result", projectName + "_key_result");
-            return okJSON(JSONObject.fromObject(response));
         }
 
         @POST
-        public HttpResponse doFillRepositoryNameItems(@QueryParameter String projectKey, @QueryParameter String repositoryName) {
-            if (isBlank(projectKey) || isBlank(repositoryName)) {
-                return okJSON();
+        public HttpResponse doFillRepositoryNameItems(@Nullable @QueryParameter String serverId,
+                                                      @Nullable @QueryParameter String credentialsId,
+                                                      @Nullable @QueryParameter String projectName,
+                                                      @Nullable @QueryParameter String repositoryName) {
+            Jenkins.get().checkPermission(CONFIGURE);
+            if (isBlank(projectName)) {
+                return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
             }
-            // TODO: Wire this up to the repo search endpoint in Bitbucket
-            HashMap<String, String> response = new HashMap<>();
-            response.put(projectKey + "/" + repositoryName + " name result", repositoryName + "_slug_result");
-            return okJSON(JSONObject.fromObject(response));
+            BitbucketServerConfiguration serverConf = getServer(serverId);
+            BitbucketRepositorySearchClient searchClient =
+                    bitbucketClientFactoryProvider
+                            .getClient(serverConf.getBaseUrl(),
+                                    BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), serverConf))
+                            .getRepositorySearchClient(projectName);
+            try {
+                BitbucketPage<BitbucketRepository> repositories =
+                        searchClient.get(stripToEmpty(repositoryName));
+                return okJSON(JSONObject.fromObject(repositories));
+            } catch (BitbucketClientException e) {
+                // Something went wrong with the request to Bitbucket
+                LOGGER.severe(e.getMessage());
+                throw error(HTTP_INTERNAL_ERROR, e);
+            }
         }
 
         @POST
@@ -433,6 +472,36 @@ public class BitbucketSCM extends SCM {
                 } while (cause != null);
                 throw e; // didn't match any known error, so throw it up and let Jenkins handle it
             }
+        }
+
+        @Nullable
+        private static Credentials getCredentials(@Nullable String credentialsId)
+                throws HttpResponses.HttpResponseException {
+            Credentials credentials = null;
+            if (!isBlank(credentialsId)) {
+                credentials = CredentialUtils.getCredentials(credentialsId);
+                if (credentials == null) {
+                    throw error(
+                            HTTP_BAD_REQUEST,
+                            "No corresponding credentials for the provided credentialsId");
+                }
+            }
+            return credentials;
+        }
+
+        private BitbucketServerConfiguration getServer(@Nullable String serverId) {
+            if (isBlank(serverId)) {
+                throw error(
+                        HTTP_BAD_REQUEST,
+                        "A Bitbucket Server serverId must be provided as a query parameter");
+            }
+            return bitbucketPluginConfiguration
+                    .getServerById(serverId)
+                    .orElseThrow(
+                            () ->
+                                    error(
+                                            HTTP_BAD_REQUEST,
+                                            "The provided Bitbucket Server serverId does not exist"));
         }
     }
 }
