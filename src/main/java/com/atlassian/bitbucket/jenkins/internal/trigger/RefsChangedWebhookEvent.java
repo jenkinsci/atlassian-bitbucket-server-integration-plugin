@@ -30,6 +30,10 @@ public class RefsChangedWebhookEvent extends AbstractWebhookEvent {
         this.repository = requireNonNull(repository, "repository");
     }
 
+    protected RefsChangedWebhookEvent(String eventKey, Date date, List<BitbucketRefChange> changes, BitbucketRepository repository) {
+        this(null, eventKey, date, changes, repository);
+    }
+
     public List<BitbucketRefChange> getChanges() {
         return changes;
     }

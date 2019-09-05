@@ -46,7 +46,7 @@ public class BitbucketWebhookConsumer {
 
         try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             BitbucketWebhookTriggerRequest request =
-                    BitbucketWebhookTriggerRequest.builder().actor(event.getActor()).build();
+                    BitbucketWebhookTriggerRequest.builder().actor(event.getActor().orElse(null)).build();
 
             Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                     .stream()

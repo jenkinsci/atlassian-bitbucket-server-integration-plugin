@@ -21,7 +21,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
 
     public static final String BIBUCKET_WEBHOOK_URL = "bitbucket-server-webhook";
     public static final String DIAGNOSTICS_PING_EVENT = "diagnostics:ping";
-    public static final String MIRROR_SYNCHRONIZED_EVENT = "repo:mirror_synchronized";
+    public static final String MIRROR_SYNCHRONIZED_EVENT = "mirror:repo_synchronized";
     public static final String REFS_CHANGED_EVENT = "repo:refs_changed";
     public static final String X_EVENT_KEY = "X-Event-Key";
 
