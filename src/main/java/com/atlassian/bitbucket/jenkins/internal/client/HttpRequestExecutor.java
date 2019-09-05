@@ -17,18 +17,24 @@ public interface HttpRequestExecutor {
     /**
      * Executes a delete call.
      *
-     * @param url,         the delete url
-     * @param credentials, credentials to use for deletion
+     * @param url         the delete url
+     * @param credentials credentials to use for deletion
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException          if the requested url does not exist
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
      */
     void executeDelete(HttpUrl url, BitbucketCredentials credentials);
 
     /**
      * Executes a Get call to a given URL.
      *
-     * @param url        The URL to hit on bitbucket server end.
+     * @param url         The URL to hit on bitbucket server end.
      * @param credentials Credentials that will be used in making calls
-     * @param consumer   on successful execution, {@link Response} will be passed to consumer.
-     * @param <T>        result that consumer wish to return.
+     * @param consumer    on successful execution, {@link Response} will be passed to consumer.
+     * @param <T>         result that consumer wish to return.
      * @return result
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws ConnectionFailureException if the server did not respond

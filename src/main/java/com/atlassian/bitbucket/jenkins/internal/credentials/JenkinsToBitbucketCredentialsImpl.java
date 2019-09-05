@@ -4,7 +4,10 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+
+import java.util.Base64;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 
@@ -20,15 +23,24 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
     public BitbucketCredentials toBitbucketCredentials(Credentials credentials) {
         if (credentials instanceof StringCredentials) {
             String bearerToken = ((StringCredentials) credentials).getSecret().getPlainText();
-            return new BearerCredentials(bearerToken);
+            return getBearerCredentials(bearerToken);
         } else if (credentials instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) credentials;
-            return new BasicCredentials(upc.getUsername(), upc.getPassword().getPlainText());
+            return getBasicCredentials(upc.getUsername(), upc.getPassword().getPlainText());
         } else if (credentials instanceof BitbucketTokenCredentials) {
             String bearerToken = ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
-            return new BearerCredentials(bearerToken);
+            return getBearerCredentials(bearerToken);
         } else {
             return ANONYMOUS_CREDENTIALS;
         }
+    }
+
+    public static BitbucketCredentials getBearerCredentials(String bearerToken) {
+        return () -> "Bearer " + bearerToken;
+    }
+
+    private static BitbucketCredentials getBasicCredentials(String username, String password) {
+        String authorization = username + ':' + password;
+        return () -> "Basic " + Base64.getEncoder().encodeToString(authorization.getBytes(Charsets.UTF_8));
     }
 }

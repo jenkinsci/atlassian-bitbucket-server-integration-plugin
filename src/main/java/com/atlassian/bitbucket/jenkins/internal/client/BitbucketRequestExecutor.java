@@ -108,9 +108,9 @@ public class BitbucketRequestExecutor {
      *
      * @param url             the URL to make the request to
      * @param requestPayload, JSON payload which will be marshalled to send it with POST.
-     * @param returnType,     Class of expected return type
-     * @param <T>             Type of Request payload.
-     * @param <R>             Return type
+     * @param returnType,     class of expected return type
+     * @param <T>             type of Request payload.
+     * @param <R>             return type
      * @return the result
      */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {

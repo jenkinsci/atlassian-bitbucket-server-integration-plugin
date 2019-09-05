@@ -5,14 +5,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BearerCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.InstanceBasedNameGenerator;
 import com.atlassian.bitbucket.jenkins.internal.scm.RetryingWebhookHandler;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterResult;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import org.junit.After;
@@ -26,7 +25,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,14 +47,15 @@ public class RetryingWebhookHandlerIT {
     private BitbucketSCMRepository bitbucketSCMRepository;
     private PersonalToken nonAdminToken;
     private BitbucketCredentials nonAdminCredentials;
+    private BitbucketServerConfiguration serverConfiguration;
 
     @Before
     public void setup() {
         adminToken = createPersonalToken(BitbucketUtils.REPO_ADMIN_PERMISSION);
         nonAdminToken = createPersonalToken(BitbucketUtils.PROJECT_READ_PERMISSION);
-        adminCredentials = new BearerCredentials(adminToken.getSecret());
-        nonAdminCredentials = new BearerCredentials(nonAdminToken.getSecret());
-        bitbucketSCMRepository = new BitbucketSCMRepository(JOB_CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "123");
+        adminCredentials = JenkinsToBitbucketCredentialsImpl.getBearerCredentials(adminToken.getSecret());
+        nonAdminCredentials = JenkinsToBitbucketCredentialsImpl.getBearerCredentials(nonAdminToken.getSecret());
+        bitbucketSCMRepository = new BitbucketSCMRepository(JOB_CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "123", false);
         cleanWebhooks();
     }
 
@@ -70,37 +70,32 @@ public class RetryingWebhookHandlerIT {
     public void testOneWebhookPerRepository() {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
-        WebhookRegisterResult result1 = webhookHandler.register(bitbucketSCMRepository, false);
-        assertTrue(result1.isNewlyAdded());
+        BitbucketWebhook result1 = webhookHandler.register(serverConfiguration, bitbucketSCMRepository);
+        BitbucketWebhook result2 = webhookHandler.register(serverConfiguration, bitbucketSCMRepository);
 
-        WebhookRegisterResult result2 = webhookHandler.register(bitbucketSCMRepository, false);
-        assertFalse(result2.isNewlyAdded());
-        assertTrue(result2.isAlreadyRegistered());
-        assertThat(result1.getWebhook().getId(), is(equalTo(result2.getWebhook().getId())));
+        assertThat(result1.getId(), is(equalTo(result2.getId())));
     }
 
     @Test
     public void testRegisterUsingFallbackCredentials() {
         RetryingWebhookHandler webhookHandler = getInstance(nonAdminCredentials, nonAdminCredentials, adminCredentials);
 
-        WebhookRegisterResult result = webhookHandler.register(bitbucketSCMRepository, false);
+        BitbucketWebhook result = webhookHandler.register(serverConfiguration, bitbucketSCMRepository);
 
-        assertTrue(result.isNewlyAdded());
-        assertThat(result.getWebhook().getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getWebhook().getEvents(), iterableWithSize(1));
-        assertThat(result.getWebhook().getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getUrl(), containsString(JENKINS_URL));
+        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
     @Test
     public void testWebhookRegister() {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
-        WebhookRegisterResult result = webhookHandler.register(bitbucketSCMRepository, false);
+        BitbucketWebhook result = webhookHandler.register(serverConfiguration, bitbucketSCMRepository);
 
-        assertTrue(result.isNewlyAdded());
-        assertThat(result.getWebhook().getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getWebhook().getEvents(), iterableWithSize(1));
-        assertThat(result.getWebhook().getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getUrl(), containsString(JENKINS_URL));
+        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
     private void cleanWebhooks() {
@@ -117,9 +112,9 @@ public class RetryingWebhookHandlerIT {
     private RetryingWebhookHandler getInstance(BitbucketCredentials jobCredentials,
                                                BitbucketCredentials globalCredentials,
                                                BitbucketCredentials globalAdminCredentials) {
-        BitbucketServerConfiguration configuration = mock(BitbucketServerConfiguration.class);
+        serverConfiguration = mock(BitbucketServerConfiguration.class);
         BitbucketTokenCredentials c = mock(BitbucketTokenCredentials.class);
-        when(configuration.getAdminCredentials()).thenReturn(c);
+        when(serverConfiguration.getAdminCredentials()).thenReturn(c);
 
         InstanceBasedNameGenerator instanceBasedNameGenerator = mock(InstanceBasedNameGenerator.class);
         when(instanceBasedNameGenerator.getUniqueName()).thenReturn(WEBHOOK_NAME);
@@ -132,7 +127,6 @@ public class RetryingWebhookHandlerIT {
 
         return new RetryingWebhookHandler(JENKINS_URL,
                 bitbucketClientFactoryProvider,
-                configuration,
                 instanceBasedNameGenerator,
                 converter);
     }

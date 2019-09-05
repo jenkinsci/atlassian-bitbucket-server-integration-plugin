@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,9 +41,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
                     AtlassianServerCapabilities capabilities = get();
                     String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
                     if (urlStr == null) {
-                        throw new WebhookNotSupportedException(
-                                "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                                "Bitbucket server supports webhooks or correct version of it is installed.");
+                        throw new BitbucketMissingCapabilityException("Webhook capability missing");
                     }
 
                     HttpUrl url = parse(urlStr);

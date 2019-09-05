@@ -1,5 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
+
 /**
  * Register a webhook to Bitbucket server if there is not already one.
  */
@@ -11,5 +13,5 @@ public interface WebhookHandler {
      * @param request containing webhook related details
      * @return result of webhook registration.
      */
-    WebhookRegisterResult register(WebhookRegisterRequest request);
+    BitbucketWebhook register(WebhookRegisterRequest request);
 }
