@@ -43,6 +43,42 @@ public class BitbucketWebhookEndpointTest {
     }
 
     @Test
+    public void testMirrorSynchronizedWebhook() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT)
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                .getResource("/webhook/mirrors_synchronized_body.json")
+                                .toURI(),
+                        StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testMirrorSynchronizedWebhook65AndLower() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT)
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                        .getResource("/webhook/mirrors_synchronized_body_65.json")
+                                        .toURI(),
+                                StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
     public void testWebhookShouldFailIfContentTypeNotSet() {
         given().log()
                 .ifValidationFails()
