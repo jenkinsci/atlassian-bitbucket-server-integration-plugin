@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BearerCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
@@ -116,15 +117,15 @@ public class RetryingWebhookHandlerIT {
     private RetryingWebhookHandler getInstance(BitbucketCredentials jobCredentials,
                                                BitbucketCredentials globalCredentials,
                                                BitbucketCredentials globalAdminCredentials) {
-        BitbucketServerConfiguration configuration = new BitbucketServerConfiguration("adminCredentials",
-                BITBUCKET_BASE_URL,
-                "credentialsId",
-                "123");
+        BitbucketServerConfiguration configuration = mock(BitbucketServerConfiguration.class);
+        BitbucketTokenCredentials c = mock(BitbucketTokenCredentials.class);
+        when(configuration.getAdminCredentials()).thenReturn(c);
 
         InstanceBasedNameGenerator instanceBasedNameGenerator = mock(InstanceBasedNameGenerator.class);
         when(instanceBasedNameGenerator.getUniqueName()).thenReturn(WEBHOOK_NAME);
 
         JenkinsToBitbucketCredentials converter = mock(JenkinsToBitbucketCredentials.class);
+        when(converter.toBitbucketCredentials(c)).thenReturn(globalAdminCredentials);
         when(converter.toBitbucketCredentials("adminCredentials")).thenReturn(globalAdminCredentials);
         when(converter.toBitbucketCredentials("credentialsId")).thenReturn(globalCredentials);
         when(converter.toBitbucketCredentials(JOB_CREDENTIAL_ID)).thenReturn(jobCredentials);

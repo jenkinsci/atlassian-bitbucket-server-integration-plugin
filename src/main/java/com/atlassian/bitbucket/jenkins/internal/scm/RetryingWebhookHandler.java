@@ -13,7 +13,10 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Admin permission is needed to add webhooks. It is possible that credentials in job configuration is not admin. This retries
- * adding webhook in with alternate credentials.
+ * adding webhook in with alternate credentials. It retries in following fashion,
+ * 1. First Job credential is used. If failed then,
+ * 2. Global admin is used. If failed then,
+ * 3. Global credentials is used.
  */
 public class RetryingWebhookHandler {
 

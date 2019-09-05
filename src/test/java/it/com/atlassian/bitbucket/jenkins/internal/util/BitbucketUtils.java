@@ -40,7 +40,7 @@ public class BitbucketUtils {
                         .expect()
                         .statusCode(200)
                         .when()
-                        .put(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos" + repo + "/branches")
+                        .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos" + repo + "/branches")
                         .getBody();
     }
 
