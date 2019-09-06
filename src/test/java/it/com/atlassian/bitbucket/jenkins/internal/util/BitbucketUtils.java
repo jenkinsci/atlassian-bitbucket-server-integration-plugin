@@ -28,20 +28,19 @@ public class BitbucketUtils {
         HashMap<String, Object> createBranch = new HashMap<>();
         createBranch.put("name", branchName);
         createBranch.put("startPoint", "refs/heads/master");
-        ResponseBody<Response> response =
-                RestAssured.given()
-                        .log()
-                        .ifValidationFails()
-                        .auth()
-                        .preemptive()
-                        .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                        .contentType(ContentType.JSON)
-                        .body(createBranch)
-                        .expect()
-                        .statusCode(200)
-                        .when()
-                        .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos" + repo + "/branches")
-                        .getBody();
+        RestAssured.given()
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .body(createBranch)
+                .expect()
+                .statusCode(200)
+                .when()
+                .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos/" + repo + "/branches")
+                .getBody();
     }
 
     public static PersonalToken createPersonalToken(String... permissions) {

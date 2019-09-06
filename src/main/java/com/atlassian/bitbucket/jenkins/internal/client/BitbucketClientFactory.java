@@ -8,6 +8,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 public interface BitbucketClientFactory {
 
     /**
+     * Return a client that can post the current status of a build to Bitbucket.
+     *
+     * @return a client that can post a build status
+     */
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1);
+
+    /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client
      * is thread safe and can be used multiple times.
      *

@@ -16,10 +16,7 @@ import hudson.Launcher;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.plugins.git.BranchSpec;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.GitTool;
-import hudson.plugins.git.UserRemoteConfig;
+import hudson.plugins.git.*;
 import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
@@ -43,10 +40,8 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -71,7 +66,7 @@ public class BitbucketSCM extends SCM {
             String id,
             List<BranchSpec> branches,
             String credentialsId,
-            List<GitSCMExtension> extensions,
+            @CheckForNull List<GitSCMExtension> extensions,
             String gitTool,
             String projectKey,
             String repositorySlug,
@@ -93,7 +88,11 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId, false));
         this.gitTool = gitTool;
         this.branches = branches;
-        this.extensions = extensions;
+        this.extensions = new ArrayList<>();
+        if (extensions != null) {
+            this.extensions.addAll(extensions);
+        }
+        this.extensions.add(new BitbucketPostBuildStatus(serverId));
     }
 
     @CheckForNull
@@ -184,7 +183,8 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        return gitSCM.getExtensions();
+        return gitSCM.getExtensions().stream().filter(extension -> extension.getClass() !=
+                                                                   BitbucketPostBuildStatus.class).collect(Collectors.toList());
     }
 
     public String getGitTool() {

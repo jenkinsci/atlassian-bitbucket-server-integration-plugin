@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.trigger.InstanceBasedNameGenerator;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.junit.Before;
 import org.junit.Test;

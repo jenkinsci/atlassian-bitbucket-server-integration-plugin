@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -20,9 +21,21 @@ import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookE
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * The following assumptions is made while handling webhooks,
+ * 1. Separate webhooks will be added for repo ref and mirror sync events
+ * 2. Input name is unique across all jenkins instance and will not shared by any system. Wrong URL with the given name
+ * will be corrected.
+ * 3. The callback URL is unique to this instance. Wrong name for given callback will be corrected.
+ *
+ * Webhook handling is done in following ways,
+ *
+ * 1. If there are no webhooks in the system, a new webhook is registered
+ * 2. Existing webhooks are modified to reflect correct properties of webhooks.
+ */
 public class BitbucketWebhookHandler implements WebhookHandler {
 
-    private static final String CALLBACK_URL_SUFFIX = "/" + BIBUCKET_WEBHOOK_URL + "/trigger";
+    private static final String CALLBACK_URL_SUFFIX = BIBUCKET_WEBHOOK_URL + "/trigger";
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookHandler.class.getName());
 
     private final BitbucketCapabilitiesClient serverCapabilities;
@@ -43,10 +56,9 @@ public class BitbucketWebhookHandler implements WebhookHandler {
 
     private String constructCallbackUrl(WebhookRegisterRequest request) {
         String jenkinsUrl = request.getJenkinsUrl();
-        if (jenkinsUrl.endsWith("/")) {
-            jenkinsUrl = jenkinsUrl.substring(0, jenkinsUrl.length() - 1);
-        }
-        return jenkinsUrl + CALLBACK_URL_SUFFIX;
+        StringBuilder url = new StringBuilder(request.getJenkinsUrl());
+        url = jenkinsUrl.endsWith("/") ? url : url.append("/");
+        return url.append(CALLBACK_URL_SUFFIX).toString();
     }
 
     private BitbucketWebhookRequest createRequest(WebhookRegisterRequest request, BitbucketWebhookEvent event) {
@@ -77,6 +89,19 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .findFirst();
     }
 
+    /**
+     * Returns the correct webhook event to subscribe to.
+     *
+     * For Mirror sync event, the input request should point to mirror.
+     * For Repo ref event,
+     * 1. Input request does not point to mirrors
+     * 2. If webhook capability does not contains mirror sync, we still subscribe to repo ref.
+     *
+     * If the webhook capability is not there, we still subscribe to repo ref event.
+     *
+     * @param request the input request
+     * @return the correct webhook event
+     */
     private BitbucketWebhookEvent getEvent(WebhookRegisterRequest request) {
         if (request.isMirror()) {
             try {
@@ -114,31 +139,35 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         if (ownedHooks.size() == 0 ||
             (webhookWithMirrorSync.size() == 0 && event == MIRROR_SYNCHRONIZED_EVENT) ||
             (webhookWithRepoRefChange.size() == 0 && event == REPO_REF_CHANGE)) {
-            final BitbucketWebhookRequest webhook = createRequest(request, event);
-            LOGGER.info("Registering a new Webhook - " + webhook);
-            return webhookClient.registerWebhook(webhook);
+            BitbucketWebhookRequest webhook = createRequest(request, event);
+            BitbucketWebhook result = webhookClient.registerWebhook(webhook);
+            LOGGER.info("New Webhook registered - " + result);
+            return result;
         }
 
-        BitbucketWebhook mirrorSyncResult = null;
-        BitbucketWebhook repoRefResult = null;
+        BitbucketWebhook mirrorSyncResult =
+                handleExistingWebhook(request, webhookWithMirrorSync, MIRROR_SYNCHRONIZED_EVENT);
 
-        if (webhookWithMirrorSync.size() > 0) {
-            mirrorSyncResult = update(webhookWithMirrorSync, request, MIRROR_SYNCHRONIZED_EVENT);
-            webhookWithMirrorSync.remove(mirrorSyncResult);
-            deleteWebhooks(webhookWithMirrorSync);
-        }
-
-        if (webhookWithRepoRefChange.size() > 0) {
-            repoRefResult = update(webhookWithRepoRefChange, request, REPO_REF_CHANGE);
-            webhookWithRepoRefChange.remove(repoRefResult);
-            deleteWebhooks(webhookWithRepoRefChange);
-        }
+        BitbucketWebhook repoRefResult = handleExistingWebhook(request, webhookWithRepoRefChange, REPO_REF_CHANGE);
 
         if (mirrorSyncResult != null && mirrorSyncResult.getEvents().contains(event.getEventId())) {
             return mirrorSyncResult;
         } else {
             return repoRefResult;
         }
+    }
+
+    @Nullable
+    private BitbucketWebhook handleExistingWebhook(WebhookRegisterRequest request,
+                                                   List<BitbucketWebhook> existingWebhooks,
+                                                   BitbucketWebhookEvent toSubscribe) {
+        BitbucketWebhook result = null;
+        if (existingWebhooks.size() > 0) {
+            result = update(existingWebhooks, request, toSubscribe);
+            existingWebhooks.remove(result);
+            deleteWebhooks(existingWebhooks);
+        }
+        return result;
     }
 
     private BitbucketWebhook update(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
@@ -151,7 +180,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                                                  BitbucketWebhookEvent toSubscribe) {
         BitbucketWebhookRequest r = createRequest(request, toSubscribe);
         BitbucketWebhook updated = webhookClient.updateWebhook(existing.getId(), r);
-        LOGGER.info(format("Updating exising webhook - %s with new webhook %s", existing, r));
+        LOGGER.info(format("Exising webhook updtated - %s with new webhook %s", existing, r));
         return updated;
     }
 }

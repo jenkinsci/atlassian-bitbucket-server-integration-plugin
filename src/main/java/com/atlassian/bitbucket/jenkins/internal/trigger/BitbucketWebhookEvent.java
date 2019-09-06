@@ -19,7 +19,7 @@ public enum BitbucketWebhookEvent {
 
     public static BitbucketWebhookEvent findByEventId(String eventId) {
         for (BitbucketWebhookEvent event : values()) {
-            if (event.eventId.equals(eventId)) {
+            if (event.eventId.equalsIgnoreCase(eventId)) {
                 return event;
             }
         }

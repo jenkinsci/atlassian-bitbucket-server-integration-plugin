@@ -2,10 +2,12 @@ package com.atlassian.bitbucket.jenkins.internal.credentials;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.google.inject.ImplementedBy;
 
 /**
  * Converts Jenkins credentials to Bitbucket Credentials.
  */
+@ImplementedBy(JenkinsToBitbucketCredentialsImpl.class)
 public interface JenkinsToBitbucketCredentials {
 
     /**

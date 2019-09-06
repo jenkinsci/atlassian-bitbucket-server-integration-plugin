@@ -104,6 +104,12 @@
             <scope>provided</scope> <!-- Should really be test scope but that scope does not work due to transitive dependencies -->
         </dependency>
         <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.13</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
             <version>2.2</version>

@@ -20,6 +20,7 @@ import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
+    private static final String BUILD_STATUS_VERSION = "1.0";
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
 
     BitbucketClientFactoryImpl(
@@ -29,6 +30,23 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             HttpRequestExecutor httpRequestExecutor) {
         bitbucketRequestExecutor =
                 new BitbucketRequestExecutor(serverUrl, httpRequestExecutor, objectMapper, credentials);
+    }
+
+    @Override
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1) {
+        return new BitbucketBuildStatusClient() {
+            @Override
+            public void post(BitbucketBuildStatus status) {
+                HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                        .addPathSegment("rest")
+                        .addPathSegment("build-status")
+                        .addPathSegment(BUILD_STATUS_VERSION)
+                        .addPathSegment("commits")
+                        .addPathSegment(revisionSha1)
+                        .build();
+                bitbucketRequestExecutor.makePostRequest(url, status);
+            }
+        };
     }
 
     @Override
