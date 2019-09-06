@@ -1,27 +1,54 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.Kind;
+import hudson.util.JsonResponseFactory;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.HttpResponses;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -34,6 +61,7 @@ public class BitbucketSCMDescriptorTest {
     private static String SERVER_ID_VALID = "ServerID_Valid";
     private static String SERVER_NAME_INVALID = "ServerName_Invalid";
     private static String SERVER_NAME_VALID = "ServerName_Valid";
+    private static String SERVER_BASE_URL_VALID = "ServerBaseUrl_Valid";
     @Mock
     private BitbucketClientFactoryProvider clientFactoryProvider;
     @InjectMocks
@@ -41,18 +69,224 @@ public class BitbucketSCMDescriptorTest {
     @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
+    private BitbucketClientFactory bitbucketClientFactory;
+    @Mock
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
+    @Mock
+    private BitbucketProjectSearchClient projectSearchClient;
 
     @Before
     public void setup() {
         when(serverConfigurationValid.getId()).thenReturn(SERVER_ID_VALID);
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
+        when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
         when(serverConfigurationInvalid.getId()).thenReturn(SERVER_ID_INVALID);
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
+        when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
+
+        when(bitbucketClientFactory.getProjectSearchClient()).thenReturn(projectSearchClient);
+        when(projectSearchClient.get(any())).thenAnswer((Answer<BitbucketPage<BitbucketProject>>) invocation -> {
+            String partialProjectName = invocation.getArgument(0);
+            BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
+            ArrayList<BitbucketProject> results = new ArrayList<>();
+            results.add(new BitbucketProject(partialProjectName + "-key", partialProjectName + "-full-name"));
+            results.add(new BitbucketProject(partialProjectName + "-key2", partialProjectName + "-full-name2"));
+            page.setValues(results);
+            return page;
+        });
+        when(bitbucketClientFactory.getRepositorySearchClient(any()))
+                .thenAnswer((Answer<BitbucketRepositorySearchClient>) invocation -> {
+                    String projectName = invocation.getArgument(0);
+                    BitbucketProject project = new BitbucketProject(projectName + "-key", projectName);
+                    BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
+                    when(client.get(any())).thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) invocation1 -> {
+                        String partialRepositoryName = invocation1.getArgument(0);
+                        BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
+                        ArrayList<BitbucketRepository> results = new ArrayList<>();
+                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name", emptyMap(), project,
+                                partialRepositoryName + "-slug", RepositoryState.AVAILABLE));
+                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name2", emptyMap(), project,
+                                partialRepositoryName + "-slug2", RepositoryState.AVAILABLE));
+                        page.setValues(results);
+                        return page;
+                    });
+                    return client;
+                });
+        when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any(BitbucketCredentials.class)))
+                .thenReturn(bitbucketClientFactory);
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsBitbucketClientException() {
+        String searchTerm = "test";
+        when(projectSearchClient.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception",
+                400, "Some error from Bitbucket"));
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
+        assertEquals("com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException: - response: 400", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsCredentialsIdBlank() {
+        String searchTerm = "test";
+        HttpResponse response = descriptor.doFillProjectNameItems(SERVER_ID_VALID, "", searchTerm);
+        verifyProjectSearchResponse(searchTerm, response);
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsCredentialsIdNull() {
+        String searchTerm = "test";
+        HttpResponse response = descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
+        verifyProjectSearchResponse(searchTerm, response);
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsCustomCredentials() throws Exception {
+        String credentialId = UUID.randomUUID().toString();
+        CredentialsStore store = CredentialsProvider.lookupStores(bbJenkins).iterator().next();
+        Domain domain = Domain.global();
+        Credentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialId,
+                "", "myUsername", "myPassword");
+        store.addCredentials(domain, credentials);
+
+        String searchTerm = "test";
+        HttpResponse response = descriptor.doFillProjectNameItems(SERVER_ID_VALID, credentialId, searchTerm);
+        verifyProjectSearchResponse(searchTerm, response);
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsProjectNameBlank() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "");
+        assertEquals("java.lang.Exception: The project name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsProjectNameNull() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, null);
+        assertEquals("java.lang.Exception: The project name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsProjectNameShort() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "ab");
+        assertEquals("java.lang.Exception: The project name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsServerIdBlank() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("", null, "test");
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsServerIdNull() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(null, null, "test");
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsServerNonexistent() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("non-existent", bbJenkins.getCredentialsId(), "test");
+        assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsBitbucketClientException() {
+        String searchTerm = "test";
+        String myProject = "myProject";
+        BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
+        when(client.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
+        when(bitbucketClientFactory.getRepositorySearchClient(myProject)).thenReturn(client);
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, myProject, searchTerm);
+        assertEquals("com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException: - response: 400", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsCredentialsIdBlank() {
+        String searchTerm = "test";
+        HttpResponse response = descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, "", "myProject", searchTerm);
+        verifyRepositorySearchResponse(searchTerm, "myProject", response);
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsCredentialsIdNull() {
+        String searchTerm = "test";
+        String projectName = "myProject";
+        HttpResponse response = descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, projectName, searchTerm);
+        verifyRepositorySearchResponse(searchTerm, projectName, response);
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsCustomCredentials() throws Exception {
+        String credentialId = UUID.randomUUID().toString();
+        CredentialsStore store = CredentialsProvider.lookupStores(bbJenkins).iterator().next();
+        Domain domain = Domain.global();
+        Credentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialId,
+                "", "myUsername", "myPassword");
+        store.addCredentials(domain, credentials);
+
+        String searchTerm = "test";
+        HttpResponse response = descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, credentialId, "myProject", searchTerm);
+        verifyRepositorySearchResponse(searchTerm, "myProject", response);
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsProjectNameBlank() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "", "test");
+        assertEquals("java.lang.Exception: The projectName must be present", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsProjectNameNull() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, null, "test");
+        assertEquals("java.lang.Exception: The projectName must be present", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsRepositoryNameBlank() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
+        assertEquals("java.lang.Exception: The repository name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsRepositoryNameNull() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", null);
+        assertEquals("java.lang.Exception: The repository name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsRepositoryNameShort() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "ab");
+        assertEquals("java.lang.Exception: The repository name must be at least 3 characters long", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsServerIdBlank() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("", null, "myProject", "test");
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsServerIdNull() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(null, null, "myProject", "test");
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsServerNonexistent() {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("non-existent", bbJenkins.getCredentialsId(), "myProject", "test");
+        assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
+    }
+
+    @Test
+    public void testFillServerIdItemsEmptyList() {
+        when(pluginConfiguration.getServerList()).thenReturn(emptyList());
+        StandardListBoxModel model = (StandardListBoxModel) descriptor.doFillServerIdItems(SERVER_ID_VALID);
+        assertEquals(model.size(), 1);
+        assertTrue(modelContainsEmptyValue(model));
     }
 
     @Test
@@ -65,11 +299,9 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testFillServerIdItemsEmptyList() {
-        when(pluginConfiguration.getServerList()).thenReturn(Collections.emptyList());
-        StandardListBoxModel model = (StandardListBoxModel) descriptor.doFillServerIdItems(SERVER_ID_VALID);
-        assertEquals(model.size(), 1);
-        assertTrue(modelContainsEmptyValue(model));
+    public void testServerIdNoList() {
+        when(pluginConfiguration.getValidServerList()).thenReturn(emptyList());
+        assertEquals(Kind.ERROR, descriptor.doCheckServerId(SERVER_ID_VALID).kind);
     }
 
     @Test
@@ -148,12 +380,6 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testServerIdNoList() {
-        when(pluginConfiguration.getValidServerList()).thenReturn(Collections.emptyList());
-        assertEquals(Kind.ERROR, descriptor.doCheckServerId(SERVER_ID_VALID).kind);
-    }
-
-    @Test
     public void testServerIdNull() {
         when(pluginConfiguration.getValidServerList()).thenReturn(Collections.singletonList(serverConfigurationValid));
         assertEquals(Kind.ERROR, descriptor.doCheckServerId(null).kind);
@@ -164,6 +390,35 @@ public class BitbucketSCMDescriptorTest {
         when(pluginConfiguration.getValidServerList()).thenReturn(Arrays.asList(serverConfigurationValid, serverConfigurationInvalid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
         assertEquals(Kind.OK, descriptor.doCheckServerId(SERVER_ID_VALID).kind);
+    }
+
+    private static void verifyProject(JSONObject v1, String key, String name) {
+        assertEquals(key, v1.get("key"));
+        assertEquals(name, v1.get("name"));
+    }
+
+    private static void verifyProjectSearchResponse(String searchTerm, HttpResponse response) {
+        JSONObject responseBody = JsonResponseFactory.getJsonObject(response);
+        assertEquals("ok", responseBody.get("status"));
+        JSONArray values = responseBody.getJSONObject("data").getJSONArray("values");
+        assertThat(values.size(), equalTo(2));
+        verifyProject((JSONObject) values.get(0), searchTerm + "-key", searchTerm + "-full-name");
+        verifyProject((JSONObject) values.get(1), searchTerm + "-key2", searchTerm + "-full-name2");
+    }
+
+    private static void verifyRepositorySearchResponse(String searchTerm, String projectName, HttpResponse response) {
+        JSONObject responseBody = JsonResponseFactory.getJsonObject(response);
+        assertEquals("ok", responseBody.get("status"));
+        JSONArray values = responseBody.getJSONObject("data").getJSONArray("values");
+        assertThat(values.size(), equalTo(2));
+        JSONObject v1 = (JSONObject) values.get(0);
+        assertEquals(searchTerm + "-slug", v1.get("slug"));
+        assertEquals(searchTerm + "-full-name", v1.get("name"));
+        verifyProject((JSONObject) v1.get("project"), projectName + "-key", projectName);
+        JSONObject v2 = (JSONObject) values.get(1);
+        assertEquals(searchTerm + "-slug2", v2.get("slug"));
+        assertEquals(searchTerm + "-full-name2", v2.get("name"));
+        verifyProject((JSONObject) v2.get("project"), projectName + "-key", projectName);
     }
 
     //Checks for the presence of an option that matches the one on calling model.includeEmptyValue()

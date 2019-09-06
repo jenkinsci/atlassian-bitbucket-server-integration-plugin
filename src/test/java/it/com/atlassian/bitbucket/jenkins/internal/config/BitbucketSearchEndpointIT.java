@@ -7,15 +7,18 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import hudson.model.FreeStyleProject;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class BitbucketSearchEndpointIT {
 
@@ -24,6 +27,12 @@ public class BitbucketSearchEndpointIT {
     private static final String FIND_REPO_URL = "bitbucket-server-search/findRepositories";
     @ClassRule
     public static BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+    private FreeStyleProject project;
+
+    @Before
+    public void setup() throws Exception {
+        project = bitbucketJenkinsRule.createFreeStyleProject();
+    }
 
     @Test
     public void testFindMirroredRepositories() throws Exception {
@@ -59,8 +68,8 @@ public class BitbucketSearchEndpointIT {
                         .given()
                         .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
-                        .queryParam("name", "proj")
-                        .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
+                        .queryParam("projectName", "proj")
+                        .get(getProjectSearchUrl())
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
                         });
@@ -87,7 +96,7 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", "")
                         .queryParam("name", "proj")
-                        .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
+                        .get(getProjectSearchUrl())
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
                         });
@@ -111,7 +120,7 @@ public class BitbucketSearchEndpointIT {
                 .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                 .queryParam("credentialsId", "some-invalid-credentials")
                 .queryParam("name", "proj")
-                .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
+                .get(getProjectSearchUrl());
     }
 
     @Test
@@ -128,7 +137,7 @@ public class BitbucketSearchEndpointIT {
                         .given()
                         .queryParam("serverId", bitbucketServerWithoutCredentials.getId())
                         .queryParam("name", "proj")
-                        .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
+                        .get(getProjectSearchUrl())
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
                         });
@@ -151,7 +160,7 @@ public class BitbucketSearchEndpointIT {
                         .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .queryParam("name", "")
-                        .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
+                        .get(getProjectSearchUrl())
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
                         });
@@ -177,7 +186,7 @@ public class BitbucketSearchEndpointIT {
                         .given()
                         .queryParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                         .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
-                        .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL)
+                        .get(getProjectSearchUrl())
                         .getBody()
                         .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
                         });
@@ -201,7 +210,7 @@ public class BitbucketSearchEndpointIT {
                 .queryParam("serverId", "")
                 .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("name", "proj")
-                .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
+                .get(getProjectSearchUrl());
     }
 
     @Test
@@ -211,7 +220,11 @@ public class BitbucketSearchEndpointIT {
                 .given()
                 .queryParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .queryParam("name", "proj")
-                .get(bitbucketJenkinsRule.getURL() + FIND_PROJECT_URL);
+                .get(getProjectSearchUrl());
+    }
+
+    private String getProjectSearchUrl() throws IOException {
+        return bitbucketJenkinsRule.getURL() + "/job/" + project.getName() + "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillProjectNameItems";
     }
 
     @Test
