@@ -231,10 +231,15 @@
 
     <profiles>
         <profile>
-            <id>clover.report</id>
+            <!--
+            Run with mvn verify -Pclover  -Dmaven.test.failure.ignore=true and then view the html clover report in
+            target/site/clover
+            -->
+            <id>clover</id>
             <properties>
                     <disableTestInjection>true</disableTestInjection>
                 <spotbugs.skip>true</spotbugs.skip>
+                <jenkins.security.ClassFilterImpl.SUPPRESS_ALL>true</jenkins.security.ClassFilterImpl.SUPPRESS_ALL>
             </properties>
             <build>
                 <plugins>
