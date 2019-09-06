@@ -1,8 +1,6 @@
 # Bitbucket Server integration
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-integration/job/master/)
 
-## Bitbucket Server integration
-
 _Note: This plugin is currently in alpha. It should not be used in a production environment. It is an [experimental plugin release](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/) that is for feedback purposes only._
 
 The Bitbucket Server integration plugin is the easiest way to connect [Jenkins](http://jenkins.io/) to [Bitbucket Server](https://www.atlassian.com/software/bitbucket/enterprise/data-center). With a few simple steps you can configure it to automatically create webhooks in Bitbucket to trigger Jenkins builds, allow Jenkins to clone/fetch from Bitbucket to run the builds, and then post the build statuses back to Bitbucket. It streamlines this entire process, removing the need for multiple plugins to achieve the same workflow.
