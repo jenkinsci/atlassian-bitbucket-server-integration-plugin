@@ -237,7 +237,7 @@
             -->
             <id>clover</id>
             <properties>
-                    <disableTestInjection>true</disableTestInjection>
+                <disableTestInjection>true</disableTestInjection>
                 <spotbugs.skip>true</spotbugs.skip>
                 <jenkins.security.ClassFilterImpl.SUPPRESS_ALL>true</jenkins.security.ClassFilterImpl.SUPPRESS_ALL>
             </properties>
