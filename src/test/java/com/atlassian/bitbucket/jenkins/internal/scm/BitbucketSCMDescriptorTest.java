@@ -178,18 +178,18 @@ public class BitbucketSCMDescriptorTest {
     @Test
     public void testDoFillProjectNameItemsServerIdBlank() {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("", null, "test");
-        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided", response.getMessage());
     }
 
     @Test
     public void testDoFillProjectNameItemsServerIdNull() {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(null, null, "test");
-        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided", response.getMessage());
     }
 
     @Test
     public void testDoFillProjectNameItemsServerNonexistent() {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("non-existent", bbJenkins.getCredentialsId(), "test");
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("non-existent", null, "test");
         assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
     }
 
@@ -266,18 +266,18 @@ public class BitbucketSCMDescriptorTest {
     @Test
     public void testDoFillRepositoryNameItemsServerIdBlank() {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("", null, "myProject", "test");
-        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided", response.getMessage());
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerIdNull() {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(null, null, "myProject", "test");
-        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided as a query parameter", response.getMessage());
+        assertEquals("java.lang.Exception: A Bitbucket Server serverId must be provided", response.getMessage());
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerNonexistent() {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("non-existent", bbJenkins.getCredentialsId(), "myProject", "test");
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("non-existent", null, "myProject", "test");
         assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
     }
 

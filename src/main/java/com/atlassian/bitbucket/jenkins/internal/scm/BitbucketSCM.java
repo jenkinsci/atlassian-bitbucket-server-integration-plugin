@@ -38,7 +38,10 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
@@ -378,15 +381,20 @@ public class BitbucketSCM extends SCM {
                                                    @Nullable @QueryParameter String projectName) {
             Jenkins.get().checkPermission(CONFIGURE);
             if (isBlank(serverId)) {
-                return error(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided as a query parameter");
+                return error(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
             }
             if (stripToEmpty(projectName).length() <= 2) {
                 return error(HTTP_BAD_REQUEST, "The project name must be at least 3 characters long");
             }
 
+            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
+            if (!isBlank(credentialsId) && providedCredentials == null) {
+                return error(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
+            }
+
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
-                        BitbucketCredentials credentials = createWithFallback(getCredentials(credentialsId), serverConf);
+                        BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
                         BitbucketProjectSearchClient projectSearchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
                                 .getProjectSearchClient();
@@ -410,7 +418,7 @@ public class BitbucketSCM extends SCM {
             if (isBlank(serverId)) {
                 return error(
                         HTTP_BAD_REQUEST,
-                        "A Bitbucket Server serverId must be provided as a query parameter");
+                        "A Bitbucket Server serverId must be provided");
             }
             if (stripToEmpty(repositoryName).length() <= 2) {
                 return error(HTTP_BAD_REQUEST, "The repository name must be at least 3 characters long");
@@ -419,9 +427,14 @@ public class BitbucketSCM extends SCM {
                 return error(HTTP_BAD_REQUEST, "The projectName must be present");
             }
 
+            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
+            if (!isBlank(credentialsId) && providedCredentials == null) {
+                return error(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
+            }
+
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
-                        BitbucketCredentials credentials = createWithFallback(getCredentials(credentialsId), serverConf);
+                        BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
                         BitbucketRepositorySearchClient searchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
                                 .getRepositorySearchClient(projectName);
@@ -504,13 +517,5 @@ public class BitbucketSCM extends SCM {
             }
         }
 
-        @Nullable
-        private static Credentials getCredentials(@Nullable String credentialsId)
-                throws HttpResponses.HttpResponseException {
-            if (isBlank(credentialsId)) {
-                return null;
-            }
-            return CredentialUtils.getCredentials(credentialsId);
-        }
     }
 }
