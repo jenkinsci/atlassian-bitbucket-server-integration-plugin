@@ -67,6 +67,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.stripToEmpty;
 import static org.kohsuke.stapler.HttpResponses.error;
+import static org.kohsuke.stapler.HttpResponses.errorWithoutStack;
 
 public class BitbucketSCM extends SCM {
 
@@ -381,15 +382,15 @@ public class BitbucketSCM extends SCM {
                                                    @Nullable @QueryParameter String projectName) {
             Jenkins.get().checkPermission(CONFIGURE);
             if (isBlank(serverId)) {
-                return error(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
             }
             if (stripToEmpty(projectName).length() <= 2) {
-                return error(HTTP_BAD_REQUEST, "The project name must be at least 3 characters long");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 3 characters long");
             }
 
             Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
             if (!isBlank(credentialsId) && providedCredentials == null) {
-                return error(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
             }
 
             return bitbucketPluginConfiguration.getServerById(serverId)
@@ -416,20 +417,20 @@ public class BitbucketSCM extends SCM {
                                                       @Nullable @QueryParameter String repositoryName) {
             Jenkins.get().checkPermission(CONFIGURE);
             if (isBlank(serverId)) {
-                return error(
+                return errorWithoutStack(
                         HTTP_BAD_REQUEST,
                         "A Bitbucket Server serverId must be provided");
             }
             if (stripToEmpty(repositoryName).length() <= 2) {
-                return error(HTTP_BAD_REQUEST, "The repository name must be at least 3 characters long");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "The repository name must be at least 3 characters long");
             }
             if (isBlank(projectName)) {
-                return error(HTTP_BAD_REQUEST, "The projectName must be present");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
             }
 
             Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
             if (!isBlank(credentialsId) && providedCredentials == null) {
-                return error(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
+                return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
             }
 
             return bitbucketPluginConfiguration.getServerById(serverId)
