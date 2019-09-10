@@ -110,7 +110,7 @@ public class BitbucketSCM extends SCM {
         }
 
         repositories = new ArrayList<>(1);
-        repositories.add(new BitbucketSCMRepository(credentialsId, projectKey, repositorySlug, serverId, false));
+        repositories.add(new BitbucketSCMRepository(credentialsId, projectName, projectKey, repositoryName, repositorySlug, serverId, false));
         this.gitTool = gitTool;
         this.branches = branches;
         this.extensions = new ArrayList<>();
