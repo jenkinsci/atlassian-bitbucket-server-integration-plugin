@@ -92,9 +92,9 @@ public class BitbucketSCM extends SCM {
             @CheckForNull List<GitSCMExtension> extensions,
             String gitTool,
             String projectName,
-            String projectKey,
+            @Nullable String projectKey,
             String repositoryName,
-            String repositorySlug,
+            @Nullable String repositorySlug,
             String serverId) {
 
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
