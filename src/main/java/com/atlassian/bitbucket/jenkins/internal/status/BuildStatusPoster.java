@@ -1,7 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
@@ -44,8 +44,8 @@ public class BuildStatusPoster {
                 BitbucketCredentials credentials =
                         BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
-                        .getBuildStatusClient(revisionAction.getRevisionSha1())
-                        .post(buildStatus);
+                        .getBuildStatusClient()
+                        .post(revisionAction.getRevisionSha1(), buildStatus);
                 return;
             } catch (RuntimeException e) {
                 String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();

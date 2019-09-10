@@ -105,7 +105,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
     private BitbucketWebhookEvent getEvent(WebhookRegisterRequest request) {
         if (request.isMirror()) {
             try {
-                BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedClient().get();
+                BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
                 Set<String> hooks = events.getApplicationWebHooks();
                 if (hooks.contains(MIRROR_SYNCHRONIZED_EVENT.getEventId())) {
                     return MIRROR_SYNCHRONIZED_EVENT;

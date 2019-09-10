@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -70,14 +71,14 @@ public class BitbucketSearchEndpointTest {
 
         when(bitbucketClientFactoryProvider.getClient(anyString(), any())).thenReturn(bbClientFactory);
         when(bbClientFactory.getProjectSearchClient()).thenReturn(bbProjectSearchClient);
-        when(bbClientFactory.getMirroredRepositoriesClient(REPO_ID)).thenReturn(bbRepoMirrorsClient);
+        when(bbClientFactory.getMirroredRepositoriesClient()).thenReturn(bbRepoMirrorsClient);
         setBitbucketSearchEndpoint();
     }
 
     @Test
     public void testFindMirroredRepository() {
         BitbucketPage<BitbucketMirroredRepositoryDescriptor> page = createMirroredRepoDescriptors(2);
-        when(bbRepoMirrorsClient.get()).thenReturn(page);
+        when(bbRepoMirrorsClient.get(REPO_ID)).thenReturn(page);
 
         Map<String, List<BitbucketNamedLink>> repoLinks = new HashMap<>();
         String repoCloneUrl = "http://mirror1.example.com/scm/stash/jenkins/jenkins.git";

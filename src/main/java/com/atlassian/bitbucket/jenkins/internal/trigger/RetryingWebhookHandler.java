@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
@@ -82,9 +83,7 @@ public class RetryingWebhookHandler {
                                                       WebhookRegisterRequest request) {
         BitbucketClientFactory clientFactory = provider.getClient(serverConfiguration.getBaseUrl(), credentials);
         BitbucketCapabilitiesClient capabilityClient = clientFactory.getCapabilityClient();
-        BitbucketWebhookClient webhookClient =
-                clientFactory.getProjectClient(request.getProjectKey()).getRepositoryClient(request.getRepoSlug())
-                        .getWebhookClient();
+        BitbucketWebhookClient webhookClient = clientFactory.getWebhookClient(request.getProjectKey(), request.getRepoSlug());
         WebhookHandler handler = new BitbucketWebhookHandler(capabilityClient, webhookClient);
         return handler.register(request);
     }

@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -74,16 +75,16 @@ public class BuildStatusPosterTest {
         when(server.getBaseUrl()).thenReturn(SERVER_URL);
         when(factoryProvider.getClient(eq(SERVER_URL), any(BitbucketCredentials.class)))
                 .thenReturn(factory);
-        when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
+        when(factory.getBuildStatusClient()).thenReturn(postClient);
     }
 
     @Test
     public void testBitbucketClientException() {
         when(build.getAction(BitbucketRevisionAction.class)).thenReturn(action);
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
-        doThrow(BitbucketClientException.class).when(postClient).post(any(BitbucketBuildStatus.class));
+        doThrow(BitbucketClientException.class).when(postClient).post(eq(REVISION_SHA1), any(BitbucketBuildStatus.class));
         buildStatusPoster.postBuildStatus(build, listener);
-        verify(postClient).post(any());
+        verify(postClient).post(eq(REVISION_SHA1), any());
     }
 
     @Test
@@ -109,7 +110,7 @@ public class BuildStatusPosterTest {
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
 
         buildStatusPoster.postBuildStatus(build, listener);
-        verify(postClient).post(captor.capture());
+        verify(postClient).post(eq(REVISION_SHA1), captor.capture());
         BitbucketBuildStatus status = captor.getValue();
         assertThat(status.getKey(), equalTo(build.getId()));
     }

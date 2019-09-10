@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -45,7 +46,7 @@ public class BitbucketClientFactoryImplTest {
     public void testGetCapabilities() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
-        AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().get();
+        AtlassianServerCapabilities response = anonymousClientFactory.getCapabilityClient().getServerCapabilities();
         assertTrue(response.isBitbucketServer());
         assertEquals("stash", response.getApplication());
         assertThat(response.getCapabilities(), hasKey("webhooks"));
@@ -76,8 +77,7 @@ public class BitbucketClientFactoryImplTest {
     public void testGetMirroredRepositories() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/mirroring/1.0/repos/1/mirrors", readMirroredRepositoriesResponseFromFile());
-        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage =
-                anonymousClientFactory.getMirroredRepositoriesClient(1).get();
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient().get(1);
         assertEquals(2, repositoryPage.getSize());
         assertEquals(25, repositoryPage.getLimit());
         assertEquals(true, repositoryPage.isLastPage());
@@ -97,9 +97,8 @@ public class BitbucketClientFactoryImplTest {
 
         BitbucketRepository repository =
                 anonymousClientFactory
-                        .getProjectClient("QA")
-                        .getRepositoryClient("qa-resources")
-                        .get();
+                        .getRepositoryClient("QA")
+                        .get("qa-resources");
 
         assertEquals("qa-resources", repository.getSlug());
         assertEquals(
@@ -131,9 +130,8 @@ public class BitbucketClientFactoryImplTest {
 
         BitbucketRepository repository =
                 anonymousClientFactory
-                        .getProjectClient("QA")
-                        .getRepositoryClient("qa-resources")
-                        .get();
+                        .getRepositoryClient("QA")
+                        .get("qa-resources");
 
         assertEquals("qa-resources", repository.getSlug());
         assertEquals(
@@ -159,7 +157,7 @@ public class BitbucketClientFactoryImplTest {
     public void testGetProject() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
-        BitbucketProject project = anonymousClientFactory.getProjectClient("QA").get();
+        BitbucketProject project = anonymousClientFactory.getProjectClient().get("QA");
 
         assertEquals("QA", project.getKey());
     }
@@ -172,7 +170,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
-                anonymousClientFactory.getProjectSearchClient().get();
+                anonymousClientFactory.getProjectSearchClient().get("");
 
         assertThat(projects.getSize(), equalTo(4));
         assertThat(projects.getLimit(), equalTo(25));
@@ -205,7 +203,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("PROJ").get();
+                anonymousClientFactory.getRepositorySearchClient("PROJ").get("");
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));
@@ -268,7 +266,7 @@ public class BitbucketClientFactoryImplTest {
                 BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
 
         BitbucketWebhookSupportedEvents hookSupportedEvents =
-                anonymousClientFactory.getCapabilityClient().getWebhookSupportedClient().get();
+                anonymousClientFactory.getCapabilityClient().getWebhookSupportedEvents();
         assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 

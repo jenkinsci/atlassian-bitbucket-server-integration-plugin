@@ -1,11 +1,11 @@
 package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
@@ -107,9 +107,7 @@ public class RetryingWebhookHandlerIT {
 
     private void cleanWebhooks() {
         bitbucketClientFactoryProvider.getClient(BITBUCKET_BASE_URL, adminCredentials)
-                .getProjectClient(PROJECT_KEY)
-                .getRepositoryClient(REPO_SLUG)
-                .getWebhookClient()
+                .getWebhookClient(PROJECT_KEY, REPO_SLUG)
                 .getWebhooks()
                 .filter(bitbucketWebhook -> bitbucketWebhook.getName().startsWith(WEBHOOK_NAME))
                 .map(BitbucketWebhook::getId)

@@ -3,8 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
-public interface BitbucketRepositorySearchClient
-        extends BitbucketClient<BitbucketPage<BitbucketRepository>> {
+public interface BitbucketRepositorySearchClient {
 
     /**
      * Search for Bitbucket Server repositories whose names match the provided value. Matching is

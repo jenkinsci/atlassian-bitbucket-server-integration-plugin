@@ -308,7 +308,7 @@ public class BitbucketServerConfiguration
                 BitbucketClientFactory client =
                         clientFactoryProvider.getClient(config.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(credentials, config));
 
-                AtlassianServerCapabilities capabilities = client.getCapabilityClient().get();
+                AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {
                     if (!client.getUsernameClient().get().isPresent()) {
                         throw new AuthorizationException("Token did not work", HTTP_UNAUTHORIZED, null);

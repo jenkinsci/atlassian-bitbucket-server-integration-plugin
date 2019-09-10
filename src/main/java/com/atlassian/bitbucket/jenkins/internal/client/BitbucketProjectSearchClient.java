@@ -5,8 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 
 import javax.annotation.CheckForNull;
 
-public interface BitbucketProjectSearchClient
-        extends BitbucketClient<BitbucketPage<BitbucketProject>> {
+public interface BitbucketProjectSearchClient {
 
     /**
      * Search for Bitbucket Server projects whose names contain the provided value. Matching is

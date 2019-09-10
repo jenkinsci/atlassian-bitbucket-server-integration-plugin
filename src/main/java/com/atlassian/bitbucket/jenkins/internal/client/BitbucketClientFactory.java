@@ -1,7 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
-
 /**
  * Factory for Bitbucket Clients.
  */
@@ -12,7 +10,7 @@ public interface BitbucketClientFactory {
      *
      * @return a client that can post a build status
      */
-    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1);
+    BitbucketBuildStatusClient getBuildStatusClient();
 
     /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client
@@ -25,19 +23,16 @@ public interface BitbucketClientFactory {
     /**
      * Construct a client that can retrieve the list of mirrored repositories for a given {@code repoId} from Bitbucket.
      *
-     * @param repoId the ID of the repository
      * @return a client that is ready to use
      */
-    BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repoId);
+    BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient();
 
     /**
      * Return a project client.
      *
-     * @param projectKey key of the project, if a project with this key does not exist all
-     *                   subsequent calls on this client will throw a {@link NotFoundException}
      * @return a client that is ready to use
      */
-    BitbucketProjectClient getProjectClient(String projectKey);
+    BitbucketProjectClient getProjectClient();
 
     /**
      * Return a project search client
@@ -45,6 +40,14 @@ public interface BitbucketClientFactory {
      * @return a client that is ready to use
      */
     BitbucketProjectSearchClient getProjectSearchClient();
+
+    /**
+     * Return a repository search client
+     *
+     * @param projectKey the key of the project to perform the search over
+     * @return a client that is ready to use
+     */
+    BitbucketRepositoryClient getRepositoryClient(String projectKey);
 
     /**
      * Return a repository search client
@@ -60,4 +63,11 @@ public interface BitbucketClientFactory {
      * @return a client that is ready to use
      */
     BitbucketUsernameClient getUsernameClient();
+
+    /**
+     * A client for performing various webhook related operations.
+     *
+     * @return a client.
+     */
+    BitbucketWebhookClient getWebhookClient(String projectKey, String repositorySlug);
 }
