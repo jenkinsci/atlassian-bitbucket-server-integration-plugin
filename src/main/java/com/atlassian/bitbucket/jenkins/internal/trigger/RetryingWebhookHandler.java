@@ -59,9 +59,8 @@ public class RetryingWebhookHandler {
                 .withName(instanceBasedNameGenerator.getUniqueName())
                 .build();
         String jobCredentials = repository.getCredentialsId();
-        BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
         try {
-            return registerWithRetry(serverConfiguration, credentials, request);
+            return registerWithRetry(serverConfiguration, jobCredentials, request);
         } catch (Exception ex) {
             String message =
                     "Failed to register webhook in bitbucket server with url " + serverConfiguration.getBaseUrl();
@@ -90,7 +89,7 @@ public class RetryingWebhookHandler {
 
     private BitbucketWebhook registerWithRetry(
             BitbucketServerConfiguration serverConfiguration,
-            BitbucketCredentials jobCredentials,
+            String jobCredentials,
             WebhookRegisterRequest request) {
         try {
             BitbucketCredentials globalAdminCredentials =
@@ -98,7 +97,8 @@ public class RetryingWebhookHandler {
             return registerUsingCredentials(serverConfiguration, globalAdminCredentials, request);
         } catch (AuthorizationException exception) {
             try {
-                return registerUsingCredentials(serverConfiguration, jobCredentials, request);
+                BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
+                return registerUsingCredentials(serverConfiguration, credentials, request);
             } catch (AuthorizationException ex) {
                 BitbucketCredentials globalCredentials =
                         jenkinsToBitbucketCredentials.toBitbucketCredentials(serverConfiguration.getCredentials());
