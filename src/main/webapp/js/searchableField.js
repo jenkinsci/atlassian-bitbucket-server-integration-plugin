@@ -1,3 +1,12 @@
+/**
+ * Modified from the Jenkins combobox code
+ * https://github.com/jenkinsci/jenkins/blob/master/core/src/main/resources/lib/form/combobox/combobox.js
+ *
+ * The Jenkins combobox only fills items 'onChange' of dependent fields. This means that if a combobox is dependent on
+ * itself (e.g a search field) then it is filled too late. This will fill the combobox options on 'input' and then
+ * when one is selected the human readable value will be in the combobox input and a computer-readable value will go
+ * in the associated value field.
+ **/
 Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
     var results = {};
 

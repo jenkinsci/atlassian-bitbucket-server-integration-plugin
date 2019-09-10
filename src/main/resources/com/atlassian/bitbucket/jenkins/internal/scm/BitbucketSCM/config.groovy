@@ -48,5 +48,5 @@ f.section() {
         f.textbox(id: 'repositorySlug', name:'repositorySlug', clazz: 'hidden', field: 'repositorySlug')
     }
 
-    script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/project_repo_search.js")
+    script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/searchableField.js")
 }
