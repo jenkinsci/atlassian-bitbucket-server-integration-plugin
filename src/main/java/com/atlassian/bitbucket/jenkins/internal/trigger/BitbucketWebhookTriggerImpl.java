@@ -21,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.groupingBy;
 import static jenkins.triggers.SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem;
 
 public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
@@ -61,12 +60,9 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         } else {
             BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
             triggerItem.getSCMs()
-                    .stream().filter(scm -> scm instanceof BitbucketSCM)
-                    .map(scm -> (BitbucketSCM) scm)
-                    .collect(groupingBy(this::getUniqueRepoSlug))
-                    .entrySet()
                     .stream()
-                    .flatMap(entry -> entry.getValue().stream())
+                    .filter(scm -> scm instanceof BitbucketSCM)
+                    .map(scm -> (BitbucketSCM) scm)
                     .forEach(scm -> descriptor.addTrigger(scm));
         }
     }
