@@ -66,7 +66,6 @@ import static org.apache.commons.lang3.StringUtils.firstNonBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.stripToEmpty;
-import static org.kohsuke.stapler.HttpResponses.error;
 import static org.kohsuke.stapler.HttpResponses.errorWithoutStack;
 
 public class BitbucketSCM extends SCM {
@@ -405,9 +404,9 @@ public class BitbucketSCM extends SCM {
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
                             LOGGER.severe(e.getMessage());
-                            return error(HTTP_INTERNAL_ERROR, e);
+                            return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
                         }
-                    }).orElseGet(() -> error(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
+                    }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
         }
 
         @POST
@@ -445,9 +444,9 @@ public class BitbucketSCM extends SCM {
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
                             LOGGER.severe(e.getMessage());
-                            return error(HTTP_INTERNAL_ERROR, e);
+                            return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
                         }
-                    }).orElseGet(() -> error(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
+                    }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
         }
 
         @POST

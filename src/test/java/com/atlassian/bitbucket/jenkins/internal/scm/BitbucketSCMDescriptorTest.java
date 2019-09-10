@@ -33,6 +33,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -123,12 +125,12 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testDoFillProjectNameItemsBitbucketClientException() {
+    public void testDoFillProjectNameItemsBitbucketClientException() throws Exception {
         String searchTerm = "test";
         when(projectSearchClient.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception",
                 400, "Some error from Bitbucket"));
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
-        assertEquals("com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException: - response: 400", response.getMessage());
+        verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
     @Test
@@ -162,58 +164,48 @@ public class BitbucketSCMDescriptorTest {
     @Test
     public void testDoFillProjectNameItemsProjectNameBlank() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The project name must be at least 3 characters long"));
+        verifyBadRequest(response, "The project name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsProjectNameNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, null);
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The project name must be at least 3 characters long"));
+        verifyBadRequest(response, "The project name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsProjectNameShort() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "ab");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The project name must be at least 3 characters long"));
+        verifyBadRequest(response, "The project name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsServerIdBlank() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("", null, "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("A Bitbucket Server serverId must be provided"));
+        verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillProjectNameItemsServerIdNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(null, null, "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("A Bitbucket Server serverId must be provided"));
+        verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
-    public void testDoFillProjectNameItemsServerNonexistent() {
+    public void testDoFillProjectNameItemsServerNonexistent() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems("non-existent", null, "test");
-        assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
+        verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsBitbucketClientException() {
+    public void testDoFillRepositoryNameItemsBitbucketClientException() throws Exception {
         String searchTerm = "test";
         String myProject = "myProject";
         BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
         when(client.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
         when(bitbucketClientFactory.getRepositorySearchClient(myProject)).thenReturn(client);
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, myProject, searchTerm);
-        assertEquals("com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException: - response: 400", response.getMessage());
+        verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
     @Test
@@ -248,63 +240,49 @@ public class BitbucketSCMDescriptorTest {
     @Test
     public void testDoFillRepositoryNameItemsProjectNameBlank() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "", "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The projectName must be present"));
+        verifyBadRequest(response, "The projectName must be present");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsProjectNameNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, null, "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The projectName must be present"));
+        verifyBadRequest(response, "The projectName must be present");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameBlank() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The repository name must be at least 3 characters long"));
+        verifyBadRequest(response, "The repository name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", null);
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The repository name must be at least 3 characters long"));
+        verifyBadRequest(response, "The repository name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameShort() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "ab");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("The repository name must be at least 3 characters long"));
+        verifyBadRequest(response, "The repository name must be at least 3 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerIdBlank() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("", null, "myProject", "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("A Bitbucket Server serverId must be provided"));
+        verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerIdNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(null, null, "myProject", "test");
-        StaplerResponse resp = mock(StaplerResponse.class);
-        response.generateResponse(null, resp, null);
-        verify(resp).sendError(eq(400), eq("A Bitbucket Server serverId must be provided"));
+        verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsServerNonexistent() {
+    public void testDoFillRepositoryNameItemsServerNonexistent() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems("non-existent", null, "myProject", "test");
-        assertEquals("java.lang.Exception: The provided Bitbucket Server serverId does not exist", response.getMessage());
+        verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
     }
 
     @Test
@@ -416,6 +394,16 @@ public class BitbucketSCMDescriptorTest {
         when(pluginConfiguration.getValidServerList()).thenReturn(Arrays.asList(serverConfigurationValid, serverConfigurationInvalid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
         assertEquals(Kind.OK, descriptor.doCheckServerId(SERVER_ID_VALID).kind);
+    }
+
+    private static void verifyBadRequest(HttpResponses.HttpResponseException response, String message) throws IOException, ServletException {
+        verifyErrorRequest(response, 400, message);
+    }
+
+    private static void verifyErrorRequest(HttpResponses.HttpResponseException response, int responseCode, String message) throws IOException, ServletException {
+        StaplerResponse resp = mock(StaplerResponse.class);
+        response.generateResponse(null, resp, null);
+        verify(resp).sendError(eq(responseCode), eq(message));
     }
 
     private static void verifyProject(JSONObject v1, String key, String name) {

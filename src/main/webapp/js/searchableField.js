@@ -27,8 +27,8 @@ Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
             parameters: parameters,
             onSuccess: function(rsp) {
                 var valueIdentifier = el.getAttribute("valueIdentifier");
-                results = (rsp.responseJSON.data && rsp.responseJSON.data.values || {})
-                    .reduce(function(flattened, result) {
+                results = (rsp.responseJSON.data && rsp.responseJSON.data.values || [])
+                    .reduce(function (flattened, result) {
                         flattened[result.name] = result[valueIdentifier];
                         return flattened;
                     }, {});
