@@ -2,8 +2,12 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.Kind;
@@ -17,6 +21,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -30,10 +35,19 @@ public class BitbucketSCMDescriptorTest {
     @ClassRule
     public static BitbucketMockJenkinsRule bbJenkins =
             new BitbucketMockJenkinsRule("token", wireMockConfig().dynamicPort());
-    private static String SERVER_ID_INVALID = "ServerID_Invalid";
-    private static String SERVER_ID_VALID = "ServerID_Valid";
-    private static String SERVER_NAME_INVALID = "ServerName_Invalid";
-    private static String SERVER_NAME_VALID = "ServerName_Valid";
+    private static final String SERVER_ID_INVALID = "ServerID_Invalid";
+    private static final String SERVER_ID_VALID = "ServerID_Valid";
+    private static final String SERVER_NAME_INVALID = "ServerName_Invalid";
+    private static final String SERVER_NAME_VALID = "ServerName_Valid";
+    private static final String CREDENTIALS_ID = "Credentials";
+    private static final int REPOSITORY_ID = 203;
+    private static final String SERVER_URL_VALID = "https://localhost:7990/bitbucket";
+    private static final String MIRROR_NAME_1 = "Mirror #1";
+    private static final String MIRROR_NAME_2 = "Mirror #2";
+    @Mock
+    private BitbucketMirroredRepository MIRROR_1;
+    @Mock
+    private BitbucketMirroredRepository MIRROR_2;
     @Mock
     private BitbucketClientFactoryProvider clientFactoryProvider;
     @InjectMocks
@@ -41,9 +55,13 @@ public class BitbucketSCMDescriptorTest {
     @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
+    private BitbucketSearchEndpoint searchEndpoint;
+    @Mock
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
+    @Mock
+    private BitbucketRepository repository;
 
     @Before
     public void setup() {
@@ -96,6 +114,35 @@ public class BitbucketSCMDescriptorTest {
         StandardListBoxModel model = (StandardListBoxModel) descriptor.doFillServerIdItems(SERVER_ID_VALID);
         assertEquals(model.size(), 1);
         assertTrue(modelContains(model, serverConfigurationValid, true));
+    }
+
+    @Test
+    public void testFillMirrorNameItemsMultipleMirrors() {
+        when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(Optional.of(serverConfigurationValid));
+        when(serverConfigurationValid.getBaseUrl()).thenReturn()
+        when(repository.getId()).thenReturn(REPOSITORY_ID);
+        when(MIRROR_1.getMirrorName()).thenReturn(MIRROR_NAME_1);
+        when(MIRROR_2.getMirrorName()).thenReturn(MIRROR_NAME_2);
+        BitbucketPage page = new BitbucketPage<BitbucketMirroredRepository>();
+        page.setValues(Arrays.asList(MIRROR_1, MIRROR_2));
+        when(searchEndpoint.getBitbucketMirroredRepository(SERVER_ID_VALID, CREDENTIALS_ID, REPOSITORY_ID)).thenReturn(page);
+        when(clientFactoryProvider.getClient())
+        StandardListBoxModel model = (StandardListBoxModel) descriptor.doFillMirrorNameItems(SERVER_ID_VALID, null, "", "", MIRROR_NAME_1);
+        assertEquals(model.size(), 3);
+        assertTrue(model.stream().anyMatch(option -> option.name.equals("Primary Server")));
+        assertTrue(model.stream().anyMatch(option -> option.name.equals(MIRROR_NAME_1)));
+        assertTrue(model.stream().anyMatch(option -> option.name.equals(MIRROR_NAME_2)));
+    }
+
+    @Test
+    public void testFillMirrorNameItemsNoRepo() {
+        when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(Optional.of(serverConfigurationValid));
+        when(repository.getId()).thenReturn(REPOSITORY_ID);
+    }
+
+    @Test
+    public void testFillMirrorNameItemsNoServerConfig() {
+
     }
 
     @Test

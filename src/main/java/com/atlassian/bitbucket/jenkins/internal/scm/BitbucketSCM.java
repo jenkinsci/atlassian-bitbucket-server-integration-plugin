@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -431,7 +432,7 @@ public class BitbucketSCM extends SCM {
                         .getProjectClient(projectKey)
                         .getRepositoryClient(repositorySlug)
                         .get();
-            } catch (NotFoundException e) {
+            } catch (NotFoundException | AuthorizationException e) {
                 return options;
             }
             BitbucketPage<BitbucketMirroredRepository> mirroredRepository = bitbucketSearchEndpoint.getBitbucketMirroredRepository(serverId, credentialsId, bitbucketRepository.getId());
