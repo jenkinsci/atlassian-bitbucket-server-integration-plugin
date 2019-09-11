@@ -48,13 +48,15 @@ public class RetryingWebhookHandler {
 
     public BitbucketWebhook register(BitbucketSCMRepository repository) {
         BitbucketServerConfiguration serverConfiguration = getServer(repository.getServerId());
+        String jenkinsUrl = jenkinsProvider.get().getRootUrl();
         requireNonNull(serverConfiguration);
         requireNonNull(repository);
         requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base URL not available");
+        requireNonNull(jenkinsUrl, "Jenkins root URL not available");
 
         WebhookRegisterRequest request = WebhookRegisterRequest.Builder
                 .aRequest(repository.getProjectKey(), repository.getRepositorySlug())
-                .withJenkinsBaseUrl(jenkinsProvider.get().getRootUrl())
+                .withJenkinsBaseUrl(jenkinsUrl)
                 .isMirror(repository.isMirror())
                 .withName(instanceBasedNameGenerator.getUniqueName())
                 .build();
