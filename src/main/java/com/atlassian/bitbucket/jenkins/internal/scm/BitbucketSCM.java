@@ -16,6 +16,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -375,6 +376,8 @@ public class BitbucketSCM extends SCM {
             return gitScmDescriptor.doFillGitToolItems();
         }
 
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE",
+                            justification = "stripToEmpty(projectName).length() <= 2 will ensure that projectName is not null")
         @POST
         public HttpResponse doFillProjectNameItems(@Nullable @QueryParameter String serverId,
                                                    @Nullable @QueryParameter String credentialsId,
@@ -409,6 +412,9 @@ public class BitbucketSCM extends SCM {
                     }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
         }
 
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE",
+                            justification = "stripToEmpty(repositoryName).length() <= 2 will ensure that repositoryName" +
+                                            " is not null and isBlank(projectName) ensures that projectName is nonnull")
         @POST
         public HttpResponse doFillRepositoryNameItems(@Nullable @QueryParameter String serverId,
                                                       @Nullable @QueryParameter String credentialsId,
