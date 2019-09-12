@@ -34,8 +34,10 @@ public class BitbucketWebhookConsumerTest {
             "http://bitbucket.example.com/scm/jenkins/jenkins.git";
     private static final BitbucketUser BITBUCKET_USER =
             new BitbucketUser("admin", "admin@example.com", "Admin User");
-    private static final String JENKINS_PROJECT_KEY = "jenkins_key";
-    private static final String JENKINS_REPO_SLUG = "jenkins_slug";
+    private static final String JENKINS_PROJECT_KEY = "jenkins_project_key";
+    private static final String JENKINS_PROJECT_NAME = "jenkins project name";
+    private static final String JENKINS_REPO_NAME = "jenkins repo name";
+    private static final String JENKINS_REPO_SLUG = "jenkins_repo_slug";
     private static final String serverId = "serverId";
 
     @ClassRule
@@ -82,8 +84,8 @@ public class BitbucketWebhookConsumerTest {
         refsChangedEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
 
-        BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_KEY.toUpperCase(),
-                JENKINS_REPO_SLUG.toUpperCase(), serverId, false);
+        BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_NAME,
+                JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, false);
         when(bitbucketSCM.getRepositories())
                 .thenReturn(Collections.singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);

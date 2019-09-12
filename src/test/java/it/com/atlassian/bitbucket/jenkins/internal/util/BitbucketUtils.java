@@ -18,9 +18,11 @@ public class BitbucketUtils {
     public static final String BITBUCKET_BASE_URL =
             System.getProperty("bitbucket.baseurl", TestUtils.BITBUCKET_BASE_URL);
     public static final String PROJECT_KEY = "PROJECT_1";
+    public static final String PROJECT_NAME = "Project 1";
     public static final String PROJECT_READ_PERMISSION = "PROJECT_READ";
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
+    public static final String REPO_NAME = "rep 1";
 
     public static void createBranch(String project,
                                     String repo,

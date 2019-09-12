@@ -117,7 +117,7 @@ public class HttpRequestExecutorImplTest {
     public void testPut() throws IOException {
         String requestBody = "aRequest";
         String responseBody = "response";
-        factory.mapPostRequestToResult(BASE_URL, requestBody, responseBody);
+        factory.mapPutRequestToResult(BASE_URL, requestBody, responseBody);
         Response r =
                 httpBasedRequestExecutor.executePut(PARSED_BASE_URL, credential, requestBody, response -> response);
 

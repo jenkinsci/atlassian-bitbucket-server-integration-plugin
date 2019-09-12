@@ -4,6 +4,7 @@ def f = namespace(lib.FormTagLib)
 def c = namespace(lib.CredentialsTagLib)
 
 f.section() {
+
     f.entry(title: _("bitbucket.scm.credentials"), field: "credentialsId") {
         c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
@@ -12,12 +13,14 @@ f.section() {
         f.select(context: app, checkMethod: "post")
     }
 
-    f.entry(title: _("bitbucket.scm.projectKey"), field: "projectKey") {
-        f.textbox(placeholder: "Project key", checkMethod: "post")
+    f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
+        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable',
+                valueField: 'projectKey', valueIdentifier: 'key')
     }
 
-    f.entry(title: _("bitbucket.scm.repositorySlug"), field: "repositorySlug") {
-        f.textbox(placeholder: "repository slug", checkMethod: "post")
+    f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
+        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable',
+                valueField: 'repositorySlug', valueIdentifier: 'slug')
     }
 
     f.entry(title: _("Branches to build")) {
@@ -39,4 +42,11 @@ f.section() {
             f.input(type: "hidden", name: "id", value: "${instance.id}")
         }
     }
+
+    f.invisibleEntry() {
+        f.textbox(id: 'projectKey', name: 'projectKey', clazz: 'hidden', field: 'projectKey')
+        f.textbox(id: 'repositorySlug', name:'repositorySlug', clazz: 'hidden', field: 'repositorySlug')
+    }
+
+    script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/searchableField.js")
 }

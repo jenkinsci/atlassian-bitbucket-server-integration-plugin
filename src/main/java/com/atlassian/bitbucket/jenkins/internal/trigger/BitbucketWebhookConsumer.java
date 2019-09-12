@@ -45,8 +45,8 @@ public class BitbucketWebhookConsumer {
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
 
         try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-            BitbucketWebhookTriggerRequest request =
-                    BitbucketWebhookTriggerRequest.builder().actor(event.getActor()).build();
+            BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
+            event.getActor().ifPresent(requestBuilder::actor);
 
             Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                     .stream()
@@ -56,7 +56,7 @@ public class BitbucketWebhookConsumer {
                     .filter(triggerDetails -> hasMatchingRepository(refChangedDetails, triggerDetails.getJob()))
                     .forEach(triggerDetails -> {
                         LOGGER.fine("Triggering " + triggerDetails.getJob().getFullDisplayName());
-                        triggerDetails.getTrigger().trigger(request);
+                        triggerDetails.getTrigger().trigger(requestBuilder.build());
                     });
         }
     }

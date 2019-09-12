@@ -23,11 +23,15 @@ import java.util.Optional;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
 import static java.util.Collections.emptyList;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class BitbucketProjectConfigurationIT {
 
     private static final String PROJECT_KEY = "PROJECT_1";
+    private static final String PROJECT_NAME = "Project 1";
+    private static final String REPO_NAME = "rep 1";
     private static final String REPO_SLUG = "rep_1";
     private static final String JENKINS_PROJECT_NAME = "bitbucket";
 
@@ -62,7 +66,7 @@ public class BitbucketProjectConfigurationIT {
         webClient.waitForBackgroundJavaScript(2000);
 
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
-        waitTillItemIsRendered(() -> credential.getOptions());
+        waitTillItemIsRendered(credential::getOptions);
         Optional<HtmlOption> configuredCredential = credential.getOptions().stream()
                 .filter(option -> option.getValueAttribute().equals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId()))
                 .findFirst();
@@ -70,18 +74,20 @@ public class BitbucketProjectConfigurationIT {
         configuredCredential.get().click();
 
         HtmlSelect serverId = form.getSelectByName("_.serverId");
-        waitTillItemIsRendered(() -> serverId.getOptions());
+        waitTillItemIsRendered(serverId::getOptions);
         Optional<HtmlOption> configuredServer = serverId.getOptions().stream()
                 .filter(option -> option.getValueAttribute().equals(bbJenkinsRule.getBitbucketServerConfiguration().getId()))
                 .findFirst();
         assertTrue("Bitbucket server should be configured", configuredServer.isPresent());
         configuredServer.get().click();
 
-        HtmlInput projectKeyInput = form.getInputByName("_.projectKey");
+        // It would be better to actually type the value in the project/repo name inputs, do the search and select the
+        // corresponding result to check that the search works. But I haven't put in the time to figure out how to do it
+        form.getInputByName("_.projectName").setValueAttribute(PROJECT_NAME);
+        form.getInputByName("projectKey").setValueAttribute(PROJECT_KEY);
+        form.getInputByName("_.repositoryName").setValueAttribute(REPO_NAME);
+        form.getInputByName("repositorySlug").setValueAttribute(REPO_SLUG);
 
-        projectKeyInput.setValueAttribute(PROJECT_KEY);
-        HtmlInput repoNameInput = form.getInputByName("_.repositorySlug");
-        repoNameInput.setValueAttribute(REPO_SLUG);
         HtmlPage submit = bbJenkinsRule.submit(form);
         assertNotNull(submit);
 
@@ -108,17 +114,17 @@ public class BitbucketProjectConfigurationIT {
         HtmlForm form = configurePage.getFormByName("config");
 
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
-        waitTillItemIsRendered(() -> credential.getOptions());
+        waitTillItemIsRendered(credential::getOptions);
         assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), credential.getSelectedOptions().get(0).getValueAttribute());
 
         HtmlSelect serverId = form.getSelectByName("_.serverId");
-        waitTillItemIsRendered(() -> serverId.getOptions());
+        waitTillItemIsRendered(serverId::getOptions);
         assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), serverId.getSelectedOptions().get(0).getValueAttribute());
 
-        HtmlInput projectKeyInput = form.getInputByName("_.projectKey");
-        assertEquals(PROJECT_KEY, projectKeyInput.getValueAttribute());
-        HtmlInput repoNameInput = form.getInputByName("_.repositorySlug");
-        assertEquals(REPO_SLUG, repoNameInput.getValueAttribute());
+        assertEquals(PROJECT_NAME, form.getInputByName("_.projectName").getValueAttribute());
+        assertEquals(PROJECT_KEY, form.getInputByName("projectKey").getValueAttribute());
+        assertEquals(REPO_NAME, form.getInputByName("_.repositoryName").getValueAttribute());
+        assertEquals(REPO_SLUG, form.getInputByName("repositorySlug").getValueAttribute());
     }
 
     @Test
@@ -129,17 +135,19 @@ public class BitbucketProjectConfigurationIT {
         HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
 
-        HtmlInput projectKeyInput = form.getInputByName("_.projectKey");
+        form.getInputByName("projectKey").setValueAttribute("");
+        form.getInputByName("repositorySlug").setValueAttribute("");
+        HtmlInput projectKeyInput = form.getInputByName("_.projectName");
         projectKeyInput.click();
         projectKeyInput.setValueAttribute("");
-        HtmlInput repoNameInput = form.getInputByName("_.repositorySlug");
+        HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
         repoNameInput.setValueAttribute("");
-        projectKeyInput.click();
+        form.click();
 
         webClient.waitForBackgroundJavaScript(2000);
-        assertNotNull(getDivByText(form, "Please specify a valid project key"));
-        assertNotNull(getDivByText(form, "Please specify a valid repository slug"));
+        assertNotNull(getDivByText(form, "Please specify a project name."));
+        assertNotNull(getDivByText(form, "Please specify a repository name."));
     }
 
     private void setupBitbucketSCM() throws IOException {
@@ -149,7 +157,9 @@ public class BitbucketProjectConfigurationIT {
                 bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
                 emptyList(),
                 "",
+                PROJECT_NAME,
                 PROJECT_KEY,
+                REPO_NAME,
                 REPO_SLUG,
                 bbJenkinsRule.getBitbucketServerConfiguration().getId());
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
