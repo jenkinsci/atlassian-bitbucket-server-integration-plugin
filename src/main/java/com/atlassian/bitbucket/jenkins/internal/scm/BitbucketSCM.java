@@ -376,9 +376,9 @@ public class BitbucketSCM extends SCM {
         }
 
         @POST
-        public HttpResponse doFillProjectNameItems(@CheckForNull @QueryParameter String serverId,
-                                                   @CheckForNull @QueryParameter String credentialsId,
-                                                   @CheckForNull @QueryParameter String projectName) {
+        public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
+                                                   @QueryParameter String credentialsId,
+                                                   @QueryParameter String projectName) {
             Jenkins.get().checkPermission(CONFIGURE);
             if (isBlank(serverId)) {
                 return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
@@ -410,10 +410,10 @@ public class BitbucketSCM extends SCM {
         }
 
         @POST
-        public HttpResponse doFillRepositoryNameItems(@CheckForNull @QueryParameter String serverId,
-                                                      @CheckForNull @QueryParameter String credentialsId,
-                                                      @CheckForNull @QueryParameter String projectName,
-                                                      @CheckForNull @QueryParameter String repositoryName) {
+        public HttpResponse doFillRepositoryNameItems(@QueryParameter String serverId,
+                                                      @QueryParameter String credentialsId,
+                                                      @QueryParameter String projectName,
+                                                      @QueryParameter String repositoryName) {
             Jenkins.get().checkPermission(CONFIGURE);
             if (isBlank(serverId)) {
                 return errorWithoutStack(
