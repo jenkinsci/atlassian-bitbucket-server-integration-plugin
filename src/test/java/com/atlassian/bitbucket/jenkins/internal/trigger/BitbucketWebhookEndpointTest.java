@@ -47,14 +47,14 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testMirrorSynchronizedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(
                         IOUtils.toString(
                                 getClass()
-                                .getResource("/webhook/mirrors_synchronized_body.json")
-                                .toURI(),
+                                    .getResource("/webhook/mirrors_synchronized_body.json")
+                                    .toURI(),
                         StandardCharsets.UTF_8))
                 .when()
                 .post(BB_WEBHOOK_URL)
@@ -65,7 +65,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testMirrorSynchronizedWebhook65AndLower() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(
