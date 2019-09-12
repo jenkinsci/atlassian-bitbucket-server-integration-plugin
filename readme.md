@@ -1,4 +1,4 @@
-# Bitbucket Server and Jenkins integration
+# Bitbucket Server and Jenkins integration 
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-integration/job/master/)
 
 ## Introduction

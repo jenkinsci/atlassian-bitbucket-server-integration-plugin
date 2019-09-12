@@ -2,23 +2,15 @@ package com.atlassian.bitbucket.jenkins.internal.credentials;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import org.apache.commons.codec.Charsets;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
-import java.util.Base64;
 
-import static java.util.Objects.requireNonNull;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 
-public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
+public final class BitbucketCredentialsAdaptor {
 
-    private final Credentials credentials;
-
-    private BitbucketCredentialsAdaptor(Credentials credentials) {
-        this.credentials = requireNonNull(credentials);
+    private BitbucketCredentialsAdaptor() {
     }
 
     public static BitbucketCredentials createWithFallback(@Nullable String credentials,
@@ -31,36 +23,16 @@ public final class BitbucketCredentialsAdaptor implements BitbucketCredentials {
         if (credentials == null) {
             return create(configuration);
         }
-        return new BitbucketCredentialsAdaptor(credentials);
+        return create(credentials);
     }
 
     public static BitbucketCredentials create(Credentials credentials) {
-        return new BitbucketCredentialsAdaptor(credentials);
-    }
-
-    @Override
-    public String toHeaderValue() {
-        if (credentials instanceof StringCredentials) {
-            return "Bearer " + ((StringCredentials) credentials).getSecret().getPlainText();
-        } else if (credentials instanceof UsernamePasswordCredentials) {
-            UsernamePasswordCredentials upc = (UsernamePasswordCredentials) credentials;
-            String authorization = upc.getUsername() + ':' + upc.getPassword().getPlainText();
-            return
-                    "Basic "
-                    + Base64.getEncoder()
-                            .encodeToString(authorization.getBytes(Charsets.UTF_8));
-        } else if (credentials instanceof BitbucketTokenCredentials) {
-            return
-                    "Bearer "
-                    + ((BitbucketTokenCredentials) credentials).getSecret().getPlainText();
-        } else {
-            return ANONYMOUS_CREDENTIALS.toHeaderValue();
-        }
+        return new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(credentials);
     }
 
     private static BitbucketCredentials create(BitbucketServerConfiguration configuration) {
         if (configuration.getCredentials() != null) {
-            return new BitbucketCredentialsAdaptor(configuration.getCredentials());
+            return create(configuration.getCredentials());
         } else {
             return ANONYMOUS_CREDENTIALS;
         }

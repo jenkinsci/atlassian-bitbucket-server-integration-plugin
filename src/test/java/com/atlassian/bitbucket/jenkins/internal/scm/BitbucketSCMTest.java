@@ -18,13 +18,15 @@ import java.nio.file.Paths;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.PROJECT_KEY;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.REPO_SLUG;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 
 public class BitbucketSCMTest {
 
-    private static final String PROJECT_KEY = "PROJECT_1";
-    private static final String REPO_SLUG = "rep_1";
+    private static final String PROJECT_NAME = "Project 1";
+    private static final String REPO_NAME = "rep 1";
 
     @Rule
     public final BitbucketMockJenkinsRule bbJenkinsRule =
@@ -53,7 +55,9 @@ public class BitbucketSCMTest {
                         bbJenkinsRule.getCredentialsId(),
                         emptyList(),
                         "",
+                        PROJECT_NAME,
                         PROJECT_KEY,
+                        REPO_NAME,
                         REPO_SLUG,
                         bbJenkinsRule.getServerId());
         scm.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));

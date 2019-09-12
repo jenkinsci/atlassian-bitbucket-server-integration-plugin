@@ -63,6 +63,15 @@ public class BitbucketRequestExecutor {
     }
 
     /**
+     * Make a DELETE request to given URL.
+     *
+     * @param url, the delete URL
+     */
+    public void makeDeleteRequest(HttpUrl url) {
+        httpRequestExecutor.executeDelete(url, credentials);
+    }
+
+    /**
      * Make a GET request to the url given. This method will add authentication headers as needed.
      * If the requested resource is paged, or the return type is generified use this method,
      * otherwise the {@link #makeGetRequest(HttpUrl, Class)} is most likely a better choice.
@@ -99,9 +108,9 @@ public class BitbucketRequestExecutor {
      *
      * @param url             the URL to make the request to
      * @param requestPayload, JSON payload which will be marshalled to send it with POST.
-     * @param returnType,     Class of expected return type
-     * @param <T>             Type of Request payload.
-     * @param <R>             Return type
+     * @param returnType,     class of expected return type
+     * @param <T>             type of Request payload.
+     * @param <R>             return type
      * @return the result
      */
     public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
@@ -119,6 +128,22 @@ public class BitbucketRequestExecutor {
      */
     public <T> void makePostRequest(HttpUrl url, T requestPayload) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
+    }
+
+    /**
+     * Makes a PUT request to the the given URL with given request payload
+     *
+     * @param url            the URL to make the request to
+     * @param requestPayload JSON payload which will be marshalled to send it with PUT
+     * @param returnType,    Class of expected return type
+     * @param <T>            Type of result
+     * @param <R>            Type of return
+     * @return the result
+     */
+    public <T, R> BitbucketResponse<R> makePutRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
+        ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
+        return httpRequestExecutor.executePut(url, credentials, marshall(requestPayload), response ->
+                new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
     }
 
     private void ensureNonEmptyBody(Response response) {

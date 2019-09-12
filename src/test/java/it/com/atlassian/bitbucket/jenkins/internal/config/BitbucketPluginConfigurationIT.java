@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.BITBUCKET_BASE_URL;
 import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

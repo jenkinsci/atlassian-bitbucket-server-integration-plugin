@@ -11,10 +11,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.List;
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.BITBUCKET_BASE_URL;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.REFS_CHANGED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.OBJECT_MAPPER;
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.readFileToString;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -26,8 +24,8 @@ import static org.junit.Assert.*;
 public class BitbucketClientFactoryImplTest {
 
     private static final String MIRROR_SELF_LINK = "https://us-east.bitbucket.example.com/rest/mirroring/1.0/repos/1?" +
-            "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9" +
-            ".TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
+                                                   "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9" +
+                                                   ".TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
 
     private BitbucketClientFactoryImpl anonymousClientFactory;
     private final FakeRemoteHttpServer mockExecutor = new FakeRemoteHttpServer();
@@ -51,7 +49,8 @@ public class BitbucketClientFactoryImplTest {
     public void testGetMirroredRepositories() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/mirroring/1.0/repos/1/mirrors", readMirroredRepositoriesResponseFromFile());
-        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient(1).get();
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage =
+                anonymousClientFactory.getMirroredRepositoriesClient(1).get();
         assertEquals(2, repositoryPage.getSize());
         assertEquals(25, repositoryPage.getLimit());
         assertEquals(true, repositoryPage.isLastPage());
@@ -242,8 +241,8 @@ public class BitbucketClientFactoryImplTest {
                 BITBUCKET_BASE_URL + "/rest/capabilities", readCapabilitiesResponseFromFile());
 
         BitbucketWebhookSupportedEvents hookSupportedEvents =
-                anonymousClientFactory.getWebhookCapabilities().get();
-        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REFS_CHANGED_EVENT));
+                anonymousClientFactory.getCapabilityClient().getWebhookSupportedClient().get();
+        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
     private BitbucketClientFactoryImpl getClientFactory(

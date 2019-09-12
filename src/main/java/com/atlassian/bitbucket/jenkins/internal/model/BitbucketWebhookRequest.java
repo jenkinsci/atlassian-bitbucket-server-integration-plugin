@@ -39,26 +39,26 @@ public class BitbucketWebhookRequest {
     /**
      * A builder to provide fluent way of building webhook register request.
      */
-    public static final class BitbucketWebhookRequestBuilder {
+    public static final class Builder {
 
         private final Set<String> events;
         private String name;
         private String url;
         private boolean isActive = true;
 
-        private BitbucketWebhookRequestBuilder(Set<String> events) {
+        private Builder(Set<String> events) {
             this.events = events;
         }
 
-        public static BitbucketWebhookRequestBuilder aRequestFor(String event, String... events) {
+        public static Builder aRequestFor(String event, String... events) {
             Set<String> eventSet = new LinkedHashSet<>();
             eventSet.add(event);
             eventSet.addAll(asList(events));
             return aRequestFor(eventSet);
         }
 
-        static BitbucketWebhookRequestBuilder aRequestFor(Set<String> eventSet) {
-            return new BitbucketWebhookRequestBuilder(eventSet);
+        static Builder aRequestFor(Set<String> eventSet) {
+            return new Builder(eventSet);
         }
 
         public BitbucketWebhookRequest build() {
@@ -68,17 +68,17 @@ public class BitbucketWebhookRequest {
             return new BitbucketWebhookRequest(name, events, url, isActive);
         }
 
-        public BitbucketWebhookRequestBuilder withIsActive(boolean isActive) {
+        public Builder withIsActive(boolean isActive) {
             this.isActive = isActive;
             return this;
         }
 
-        public BitbucketWebhookRequestBuilder name(String name) {
+        public Builder name(String name) {
             this.name = name;
             return this;
         }
 
-        public BitbucketWebhookRequestBuilder withCallbackTo(String url) {
+        public Builder withCallbackTo(String url) {
             this.url = url;
             return this;
         }

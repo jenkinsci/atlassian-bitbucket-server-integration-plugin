@@ -16,14 +16,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
 import static java.net.HttpURLConnection.*;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private static final int BAD_REQUEST_FAMILY = 4;
-    private static final int SERVER_ERROR_FAMILY = 5;
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
+    private static final int SERVER_ERROR_FAMILY = 5;
 
     private final Call.Factory httpCallFactory;
 
@@ -37,25 +39,38 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
-    public <T> T executeGet(HttpUrl url, BitbucketCredentials credential, ResponseConsumer<T> consumer) {
+    public void executeDelete(HttpUrl url, BitbucketCredentials credentials) {
+        Request.Builder requestBuilder = new Request.Builder().url(url).delete();
+        executeRequest(requestBuilder, credentials, EMPTY_RESPONSE);
+    }
+
+    @Override
+    public <T> T executeGet(HttpUrl url, BitbucketCredentials credentials, ResponseConsumer<T> consumer) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        addAuthentication(credential, requestBuilder);
-        return executeRequest(requestBuilder.build(), consumer);
+        return executeRequest(requestBuilder, credentials, consumer);
     }
 
     @Override
     public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
                              ResponseConsumer<T> consumer) {
-        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
         Request.Builder requestBuilder =
-                new Request.Builder().post(RequestBody.create(mediaType, requestBodyAsJson)).url(url);
-        addAuthentication(credential, requestBuilder);
-        return executeRequest(requestBuilder.build(), consumer);
+                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url);
+        return executeRequest(requestBuilder, credential, consumer);
     }
 
-    private <T> T executeRequest(Request request, ResponseConsumer<T> consumer) {
+    @Override
+    public <T> T executePut(HttpUrl url, BitbucketCredentials credentials, String requestBodyAsJson,
+                            ResponseConsumer<T> consumer) {
+        Request.Builder requestBuilder =
+                new Request.Builder().put(RequestBody.create(JSON, requestBodyAsJson)).url(url);
+        return executeRequest(requestBuilder, credentials, consumer);
+    }
+
+    private <T> T executeRequest(Request.Builder requestBuilder, BitbucketCredentials credentials,
+                                 ResponseConsumer<T> consumer) {
         try {
-            Response response = httpCallFactory.newCall(request).execute();
+            addAuthentication(credentials, requestBuilder);
+            Response response = httpCallFactory.newCall(requestBuilder.build()).execute();
             int responseCode = response.code();
 
             try (ResponseBody body = response.body()) {
