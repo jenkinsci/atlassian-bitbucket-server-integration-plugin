@@ -5,8 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import okhttp3.HttpUrl;
-import okhttp3.Response;
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +18,6 @@ import java.net.SocketTimeoutException;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static java.net.HttpURLConnection.*;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static okhttp3.HttpUrl.parse;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.core.Is.is;
@@ -111,18 +108,6 @@ public class HttpRequestExecutorImplTest {
     public void testNotFound() {
         factory.mapUrlToResponseCode(BASE_URL, HTTP_NOT_FOUND);
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, credential, response -> null);
-    }
-
-    @Test
-    public void testPut() throws IOException {
-        String requestBody = "aRequest";
-        String responseBody = "response";
-        factory.mapPostRequestToResult(BASE_URL, requestBody, responseBody);
-        Response r =
-                httpBasedRequestExecutor.executePut(PARSED_BASE_URL, credential, requestBody, response -> response);
-
-        assertThat(factory.getRequest(BASE_URL).method(), is(equalTo("PUT")));
-        assertThat(IOUtils.toString(r.body().byteStream(), UTF_8), is(equalTo(responseBody)));
     }
 
     @Test(expected = UnhandledErrorException.class)

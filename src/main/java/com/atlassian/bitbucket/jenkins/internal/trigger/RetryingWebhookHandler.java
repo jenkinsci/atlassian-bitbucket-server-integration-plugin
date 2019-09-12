@@ -48,21 +48,20 @@ public class RetryingWebhookHandler {
 
     public BitbucketWebhook register(BitbucketSCMRepository repository) {
         BitbucketServerConfiguration serverConfiguration = getServer(repository.getServerId());
-        String jenkinsUrl = jenkinsProvider.get().getRootUrl();
         requireNonNull(serverConfiguration);
         requireNonNull(repository);
         requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base URL not available");
-        requireNonNull(jenkinsUrl, "Jenkins root URL not available");
 
         WebhookRegisterRequest request = WebhookRegisterRequest.Builder
                 .aRequest(repository.getProjectKey(), repository.getRepositorySlug())
-                .withJenkinsBaseUrl(jenkinsUrl)
+                .withJenkinsBaseUrl(jenkinsProvider.get().getRootUrl())
                 .isMirror(repository.isMirror())
                 .withName(instanceBasedNameGenerator.getUniqueName())
                 .build();
         String jobCredentials = repository.getCredentialsId();
+        BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
         try {
-            return registerWithRetry(serverConfiguration, jobCredentials, request);
+            return registerWithRetry(serverConfiguration, credentials, request);
         } catch (Exception ex) {
             String message =
                     "Failed to register webhook in bitbucket server with url " + serverConfiguration.getBaseUrl();
@@ -91,7 +90,7 @@ public class RetryingWebhookHandler {
 
     private BitbucketWebhook registerWithRetry(
             BitbucketServerConfiguration serverConfiguration,
-            String jobCredentials,
+            BitbucketCredentials jobCredentials,
             WebhookRegisterRequest request) {
         try {
             BitbucketCredentials globalAdminCredentials =
@@ -99,8 +98,7 @@ public class RetryingWebhookHandler {
             return registerUsingCredentials(serverConfiguration, globalAdminCredentials, request);
         } catch (AuthorizationException exception) {
             try {
-                BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
-                return registerUsingCredentials(serverConfiguration, credentials, request);
+                return registerUsingCredentials(serverConfiguration, jobCredentials, request);
             } catch (AuthorizationException ex) {
                 BitbucketCredentials globalCredentials =
                         jenkinsToBitbucketCredentials.toBitbucketCredentials(serverConfiguration.getCredentials());

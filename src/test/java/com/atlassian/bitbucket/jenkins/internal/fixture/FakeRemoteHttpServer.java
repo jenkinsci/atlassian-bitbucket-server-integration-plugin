@@ -36,9 +36,8 @@ public class FakeRemoteHttpServer implements Call.Factory {
             return mockCallToThrowException(url);
         } else {
             String result = urlToResult.get(url);
-            String method = request.method();
-            if (method.equalsIgnoreCase("POST") || method.equalsIgnoreCase("PUT")) {
-                ensureCorrectRequestBody(request, url);
+            if (request.method().equalsIgnoreCase("POST")) {
+                ensureCorrectPostRequestBody(request, url);
             }
             FakeResponseBody body = mockResponseBody(result);
             urlToResponseBody.put(url, body);
@@ -66,11 +65,8 @@ public class FakeRemoteHttpServer implements Call.Factory {
     }
 
     public void mapPostRequestToResult(String url, String requestBody, String responseBody) {
-        requestWithBody(url, requestBody, responseBody);
-    }
-
-    public void mapPutRequestToResult(String url, String requestBody, String responseBody) {
-        requestWithBody(url, requestBody, responseBody);
+        urlToRequestBody.put(url, requestBody);
+        mapUrlToResult(url, responseBody);
     }
 
     public void mapUrlToException(String url, Exception exception) {
@@ -99,7 +95,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
         urlToReturnCode.put(url, 200);
     }
 
-    private void ensureCorrectRequestBody(Request request, String url) {
+    private void ensureCorrectPostRequestBody(Request request, String url) {
         Buffer b = new Buffer();
         try {
             request.body().writeTo(b);
@@ -148,11 +144,6 @@ public class FakeRemoteHttpServer implements Call.Factory {
             body = new FakeResponseBody(result);
         }
         return body;
-    }
-
-    private void requestWithBody(String url, String requestBody, String responseBody) {
-        urlToRequestBody.put(url, requestBody);
-        mapUrlToResult(url, responseBody);
     }
 
     private class FakeResponseBody extends ResponseBody {
