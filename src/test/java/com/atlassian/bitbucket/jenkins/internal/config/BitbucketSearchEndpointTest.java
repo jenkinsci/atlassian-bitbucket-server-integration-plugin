@@ -42,7 +42,6 @@ public class BitbucketSearchEndpointTest {
     private static final String MIRROR_URL = "http://mirror%d.example.com";
 
     private final String BB_SEARCH_URL = jenkins.getInstance().getRootUrl() + BITBUCKET_SERVER_SEARCH_URL;
-    private final String BB_FIND_PROJECT_URL = BB_SEARCH_URL + "/findProjects/";
     private final String BB_FIND_MIRRORED_REPOS_URL = BB_SEARCH_URL + "/findMirroredRepositories/";
     @Mock
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
@@ -171,30 +170,6 @@ public class BitbucketSearchEndpointTest {
                 .body(containsString("No corresponding credentials for the provided credentialsId"));
     }
 
-    @Test
-    public void testProjectSearchWithoutName() {
-        BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
-        List<BitbucketProject> projects = new ArrayList<>();
-        BitbucketProject project = new BitbucketProject("stash", "STASH");
-        projects.add(project);
-        page.setValues(projects);
-        page.setSize(1);
-        page.setLastPage(true);
-        when(bbProjectSearchClient.get("")).thenReturn(page);
-
-        given().contentType(ContentType.JSON)
-                .log()
-                .ifValidationFails()
-                .when()
-                .param("credentialId", credentialId)
-                .param("serverId", serverId)
-                .get(BB_FIND_PROJECT_URL)
-                .then()
-                .statusCode(StaplerResponse.SC_OK)
-                .body("data.values[0].key", equalTo("stash"))
-                .body("data.values[0].name", equalTo("STASH"));
-    }
-
     private BitbucketPage<BitbucketMirroredRepositoryDescriptor> createMirroredRepoDescriptors(int count) {
         BitbucketPage<BitbucketMirroredRepositoryDescriptor> page = new BitbucketPage<>();
         List<BitbucketMirroredRepositoryDescriptor> mirroredRepoDescs = new ArrayList<>();
@@ -204,7 +179,7 @@ public class BitbucketSearchEndpointTest {
             String mirrorName = String.format(MIRROR_NAME, i);
             String mirrorUrl = String.format(MIRROR_URL, i);
             links.put("self", Collections.singletonList(new BitbucketNamedLink("self", repoMirrorLink)));
-            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror("mirror", mirrorUrl,
+            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror(mirrorUrl,
                     true, mirrorName)));
         }
         page.setValues(mirroredRepoDescs);

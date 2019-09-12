@@ -12,7 +12,9 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.*;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.X_EVENT_KEY;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.*;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 
@@ -27,13 +29,49 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testRefsChangedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, REFS_CHANGED_EVENT)
+                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(
                         IOUtils.toString(
                                 getClass()
                                         .getResource("/webhook/refs_changed_body.json")
+                                        .toURI(),
+                                StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testMirrorSynchronizedWebhook() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventId())
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                    .getResource("/webhook/mirrors_synchronized_body.json")
+                                    .toURI(),
+                        StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testMirrorSynchronizedWebhook65AndLower() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventId())
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                        .getResource("/webhook/mirrors_synchronized_body_65.json")
                                         .toURI(),
                                 StandardCharsets.UTF_8))
                 .when()
@@ -70,7 +108,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testWebhookShouldFailIfInvalidJsonBody() {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, REFS_CHANGED_EVENT)
+                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(Collections.emptyMap())
@@ -84,7 +122,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testWebhookTestConnection() {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, DIAGNOSTICS_PING_EVENT)
+                .header(X_EVENT_KEY, DIAGNOSTICS_PING_EVENT.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(Collections.emptyMap())

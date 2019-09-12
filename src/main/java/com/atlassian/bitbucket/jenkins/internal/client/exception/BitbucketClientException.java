@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.client.exception;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -18,8 +17,7 @@ public class BitbucketClientException extends RuntimeException {
     private final String body;
     private final int responseCode;
 
-    public BitbucketClientException(
-            @Nonnull String message, int responseCode, @Nullable String body) {
+    public BitbucketClientException(String message, int responseCode, @Nullable String body) {
         this(message, null, responseCode, body);
     }
 

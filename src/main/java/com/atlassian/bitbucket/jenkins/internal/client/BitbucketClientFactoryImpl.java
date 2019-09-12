@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,16 +10,17 @@ import org.apache.commons.lang3.StringUtils;
 import javax.annotation.CheckForNull;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 import static okhttp3.HttpUrl.parse;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
+    private static final String BUILD_STATUS_VERSION = "1.0";
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
 
     BitbucketClientFactoryImpl(
@@ -32,14 +33,70 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha1) {
+        return new BitbucketBuildStatusClient() {
+            @Override
+            public void post(BitbucketBuildStatus status) {
+                HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                        .addPathSegment("rest")
+                        .addPathSegment("build-status")
+                        .addPathSegment(BUILD_STATUS_VERSION)
+                        .addPathSegment("commits")
+                        .addPathSegment(revisionSha1)
+                        .build();
+                bitbucketRequestExecutor.makePostRequest(url, status);
+            }
+        };
+    }
+
+    @Override
     public BitbucketCapabilitiesClient getCapabilityClient() {
+        return new BitbucketCapabilitiesClient() {
+
+            @Override
+            public BitbucketWebhookSupportedEventsClient getWebhookSupportedClient() {
+                return () -> {
+                    AtlassianServerCapabilities capabilities = get();
+                    String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
+                    if (urlStr == null) {
+                        throw new BitbucketMissingCapabilityException("Webhook capability missing");
+                    }
+
+                    HttpUrl url = parse(urlStr);
+                    if (url == null) {
+                        throw new IllegalStateException(
+                                "URL to fetch supported webhook supported event is wrong. URL: " + urlStr);
+                    }
+                    return bitbucketRequestExecutor.makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
+                };
+            }
+
+            @Override
+            public AtlassianServerCapabilities get() {
+                HttpUrl url =
+                        bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                                .addPathSegment("rest")
+                                .addPathSegment("capabilities")
+                                .build();
+                return bitbucketRequestExecutor.makeGetRequest(url, AtlassianServerCapabilities.class).getBody();
+            }
+        };
+    }
+
+    @Override
+    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repoId) {
         return () -> {
             HttpUrl url =
                     bitbucketRequestExecutor.getBaseUrl().newBuilder()
                             .addPathSegment("rest")
-                            .addPathSegment("capabilities")
+                            .addPathSegment("mirroring")
+                            .addPathSegment("1.0")
+                            .addPathSegment("repos")
+                            .addPathSegment(String.valueOf(repoId))
+                            .addPathSegment("mirrors")
                             .build();
-            return bitbucketRequestExecutor.makeGetRequest(url, AtlassianServerCapabilities.class).getBody();
+            return bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketMirroredRepositoryDescriptor>>() {
+            }).getBody();
         };
     }
 
@@ -171,27 +228,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
             if (usernames != null) {
                 return usernames.stream().findFirst();
             }
-            return Optional.empty();
-        };
-    }
-
-    @Override
-    public BitbucketWebhookSupportedEventsClient getWebhookCapabilities() {
-        return () -> {
-            AtlassianServerCapabilities capabilities = getCapabilityClient().get();
-            String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
-            if (urlStr == null) {
-                throw new WebhookNotSupportedException(
-                        "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                                "Bitbucket server supports webhooks or correct version of it is installed.");
-            }
-
-            HttpUrl url = parse(urlStr);
-            if (url == null) {
-                throw new IllegalStateException(
-                        "URL to fetch supported webhook supported event is wrong. URL: " + urlStr);
-            }
-            return bitbucketRequestExecutor.makeGetRequest(url, BitbucketWebhookSupportedEvents.class).getBody();
+            return empty();
         };
     }
 }

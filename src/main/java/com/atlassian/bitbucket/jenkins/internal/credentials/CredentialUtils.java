@@ -15,7 +15,7 @@ import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
-public class CredentialUtils {
+public final class CredentialUtils {
 
     private CredentialUtils() {
         throw new UnsupportedOperationException(
@@ -34,7 +34,7 @@ public class CredentialUtils {
     }
 
     @CheckForNull
-    private static Credentials getCredentials(Class type, String credentialsId) {
+    private static <C extends Credentials> C getCredentials(Class<C> type, @Nullable String credentialsId) {
         return firstOrNull(
                 lookupCredentials(type, Jenkins.get(), ACL.SYSTEM, Collections.emptyList()),
                 withId(trimToEmpty(credentialsId)));

@@ -1,17 +1,24 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.*;
 import hudson.util.SequentialExecutionQueue;
 import jenkins.triggers.SCMTriggerItem;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -20,9 +27,17 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketWebhookTriggerImplTest {
 
-    private SequentialExecutionQueue queue = mock(SequentialExecutionQueue.class);
-    private BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor descriptor =
-            new BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor(queue);
+    @Mock
+    private SequentialExecutionQueue queue;
+    @Mock
+    private RetryingWebhookHandler webhookHandler;
+
+    private BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor descriptor;
+
+    @Before
+    public void setup() {
+        this.descriptor = new BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor(queue, webhookHandler);
+    }
 
     @Test
     public void testDescriptorIsApplicableForNonSCMTriggerItem() {
@@ -41,7 +56,8 @@ public class BitbucketWebhookTriggerImplTest {
 
     @Test
     public void testTrigger() {
-        BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor mockDescriptor = mock(BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor.class);
+        BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor mockDescriptor =
+                mock(BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor.class);
         BitbucketWebhookTriggerImpl trigger =
                 new BitbucketWebhookTriggerImpl() {
 
@@ -84,6 +100,42 @@ public class BitbucketWebhookTriggerImplTest {
         verify(queue).execute(argThat((ArgumentMatcher<BitbucketTriggerWorker>) argument -> deepEqual(expectedValue, argument)));
     }
 
+    @Test
+    public void testWebhookRegisterOnStartForNewInstance() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        Hudson itemGroup = mock(Hudson.class);
+        when(itemGroup.getFullName()).thenReturn("Item name");
+        when(project.getParent()).thenReturn(itemGroup);
+        when(project.getName()).thenReturn("Project name");
+
+        BitbucketWebhookTriggerImpl trigger =
+                new BitbucketWebhookTriggerImpl() {
+
+                    @Override
+                    public BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor
+                    getDescriptor() {
+                        // There is no running Jenkins instance, so Trigger.getDescriptor won't work in
+                        // the test.
+                        return descriptor;
+                    }
+                };
+
+        BitbucketSCM scm = mock(BitbucketSCM.class);
+        Collection<BitbucketSCM> scms = Collections.singletonList(scm);
+        doAnswer(mock -> scms).when(project).getSCMs();
+
+        BitbucketSCMRepository scmRepository1 = mock(BitbucketSCMRepository.class);
+        when(scmRepository1.getServerId()).thenReturn("server1");
+        BitbucketSCMRepository scmRepository2 = mock(BitbucketSCMRepository.class);
+        when(scmRepository2.getServerId()).thenReturn("server1");
+
+        when(scm.getRepositories()).thenReturn(asList(scmRepository1, scmRepository2));
+
+        trigger.start(project, true);
+        verify(webhookHandler).register(scmRepository1);
+        verify(webhookHandler).register(scmRepository2);
+    }
+
     /**
      * Since the BitbucketTriggerWorker has a specific requirement around equals that does not consider all the things in the
      * class this method is a substitute to compare everything we need for testing purposes.
@@ -103,8 +155,8 @@ public class BitbucketWebhookTriggerImplTest {
                 return false;
             }
             boolean equals = Objects.equals(action.getDisplayName(), thatAction.getDisplayName()) &&
-                    Objects.equals(action.getIconFileName(), thatAction.getIconFileName()) &&
-                    Objects.equals(action.getUrlName(), thatAction.getUrlName());
+                             Objects.equals(action.getIconFileName(), thatAction.getIconFileName()) &&
+                             Objects.equals(action.getUrlName(), thatAction.getUrlName());
             if (!equals) {
                 return false;
             }
@@ -116,6 +168,6 @@ public class BitbucketWebhookTriggerImplTest {
             }
         }
         return Objects.equals(expected.getJob(), actual.getJob()) &&
-                Objects.equals(expected.getTriggerItem(), actual.getTriggerItem());
+               Objects.equals(expected.getTriggerItem(), actual.getTriggerItem());
     }
 }

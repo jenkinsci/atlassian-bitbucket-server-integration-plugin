@@ -3,13 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal.client.paging;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
  * Provides a way to return Stream of page based on first page and {@link NextPageFetcher}.
  */
-public class BitbucketPageStreamUtil {
+public final class BitbucketPageStreamUtil {
 
     /**
      * Returns a Stream of Bitbucket Pages. {@link NextPageFetcher} provides a way for individual client to provide a way
@@ -49,7 +50,7 @@ public class BitbucketPageStreamUtil {
         @Override
         public BitbucketPage<T> next() {
             if (currentPage == null) {
-                throw new IllegalStateException();
+                throw new NoSuchElementException("The current page is null");
             }
             BitbucketPage<T> result;
             if (currentPage.isLastPage()) {

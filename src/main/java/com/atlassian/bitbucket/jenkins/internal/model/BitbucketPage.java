@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Function;
 
@@ -73,8 +72,7 @@ public class BitbucketPage<T> {
         this.lastPage = lastPage;
     }
 
-    @Nonnull
-    public <E> BitbucketPage<E> transform(@Nonnull Function<? super T, ? extends E> transformFunction) {
+    public <E> BitbucketPage<E> transform(Function<? super T, ? extends E> transformFunction) {
         List<E> list = values.stream()
                 .map(transformFunction)
                 .collect(toList());

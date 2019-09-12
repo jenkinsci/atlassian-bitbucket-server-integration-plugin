@@ -11,7 +11,7 @@ public interface BitbucketRepositoryClient extends BitbucketClient<BitbucketRepo
     /**
      * A client for performing various webhook related operations.
      *
-     * @return, a client.
+     * @return a client.
      */
     BitbucketWebhookClient getWebhookClient();
 }

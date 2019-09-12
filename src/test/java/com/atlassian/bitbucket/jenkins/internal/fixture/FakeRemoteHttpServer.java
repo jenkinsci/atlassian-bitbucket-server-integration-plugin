@@ -46,18 +46,22 @@ public class FakeRemoteHttpServer implements Call.Factory {
         }
     }
 
-    private void ensureCorrectPostRequestBody(Request request, String url) {
-        Buffer b = new Buffer();
-        try {
-            request.body().writeTo(b);
-            assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(urlToRequestBody.get(url))), new String(b.readByteArray()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public void ensureResponseBodyClosed() {
         urlToResponseBody.values().stream().filter(Objects::nonNull).forEach(b -> assertTrue(b.isClosed()));
+    }
+
+    public String getHeaderValue(String url, String headerName) {
+        return urlToRequest.get(url).header(headerName);
+    }
+
+    public Request getRequest(String url) {
+        return urlToRequest.get(url);
+    }
+
+    public void mapDeleteUrl(String url) {
+        urlToResult.put(url, "success");
+        urlToReturnCode.put(url, 204);
+        headers.put(url, emptyMap());
     }
 
     public void mapPostRequestToResult(String url, String requestBody, String responseBody) {
@@ -91,8 +95,14 @@ public class FakeRemoteHttpServer implements Call.Factory {
         urlToReturnCode.put(url, 200);
     }
 
-    public String getHeaderValue(String url, String headerName) {
-        return urlToRequest.get(url).header(headerName);
+    private void ensureCorrectPostRequestBody(Request request, String url) {
+        Buffer b = new Buffer();
+        try {
+            request.body().writeTo(b);
+            assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(urlToRequestBody.get(url))), new String(b.readByteArray()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Response getResponse(String url, int responseCode, Map<String, String> headers, ResponseBody body) {
@@ -108,7 +118,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
 
     private Call mockCallToReturnResult(String url, ResponseBody mockBody) {
         try {
-            int returnCode = requireNonNull(urlToReturnCode.get(url));
+            int returnCode = requireNonNull(urlToReturnCode.get(url), "Input URL " + url);
             Map<String, String> headers = requireNonNull(this.headers.get(url));
             Call mockCall = mock(Call.class);
             when(mockCall.execute()).thenReturn(getResponse(url, returnCode, headers, mockBody));

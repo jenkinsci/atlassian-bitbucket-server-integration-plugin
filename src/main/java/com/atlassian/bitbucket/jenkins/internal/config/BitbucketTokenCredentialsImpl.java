@@ -10,14 +10,12 @@ import org.jenkins.ui.icon.IconType;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 public class BitbucketTokenCredentialsImpl extends BaseStandardCredentials
         implements BitbucketTokenCredentials {
 
     private static final long serialVersionUID = 1L;
 
-    @Nonnull
     private final Secret secret;
 
     @DataBoundConstructor
@@ -25,7 +23,7 @@ public class BitbucketTokenCredentialsImpl extends BaseStandardCredentials
             @CheckForNull CredentialsScope scope,
             @CheckForNull String id,
             @CheckForNull String description,
-            @Nonnull Secret secret) {
+            Secret secret) {
         super(scope, id, description);
         this.secret = secret;
     }

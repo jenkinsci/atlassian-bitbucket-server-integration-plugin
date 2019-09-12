@@ -31,7 +31,7 @@ public class BitbucketMirroredRepositoryDescriptor {
     @Nullable
     public String getSelfLink() {
         List<BitbucketNamedLink> link = links.get("self");
-        if (link != null && link.size() > 0) {
+        if (link != null && !link.isEmpty()) {
             return link.get(0).getHref();
         }
         return null;

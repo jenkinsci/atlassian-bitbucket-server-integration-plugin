@@ -2,20 +2,33 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import javax.annotation.Nullable;
 
+import static com.google.common.base.Objects.firstNonNull;
+
 public class BitbucketSCMRepository {
 
     private final String credentialsId;
     private final String projectKey;
+    private final String projectName;
+    private final String repositoryName;
     private final String repositorySlug;
     private final String serverId;
     private final String mirrorName;
+    private final boolean isMirror;
 
-    public BitbucketSCMRepository(String credentialsId, String projectKey,
-                                  String repositorySlug, String serverId, String mirrorName) {
+    public BitbucketSCMRepository(String credentialsId,
+                                  String projectName,
+                                  @Nullable String projectKey,
+                                  String repositoryName,
+                                  @Nullable String repositorySlug,
+                                  String serverId,
+                                  boolean isMirror, String mirrorName) {
         this.credentialsId = credentialsId;
-        this.projectKey = projectKey;
-        this.repositorySlug = repositorySlug;
+        this.projectName = projectName;
+        this.projectKey = firstNonNull(projectKey, projectName);
+        this.repositoryName = repositoryName;
+        this.repositorySlug = firstNonNull(repositorySlug, repositoryName);
         this.serverId = serverId;
+        this.isMirror = isMirror;
         this.mirrorName = mirrorName;
     }
 
@@ -25,6 +38,14 @@ public class BitbucketSCMRepository {
 
     public String getProjectKey() {
         return projectKey;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public String getRepositoryName() {
+        return repositoryName;
     }
 
     public String getRepositorySlug() {
@@ -38,5 +59,9 @@ public class BitbucketSCMRepository {
     @Nullable
     public String getMirrorName() {
         return mirrorName;
+    }
+
+    public boolean isMirror() {
+        return isMirror;
     }
 }

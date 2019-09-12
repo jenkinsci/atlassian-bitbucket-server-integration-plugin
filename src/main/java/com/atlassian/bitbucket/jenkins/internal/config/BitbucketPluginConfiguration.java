@@ -8,10 +8,14 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 
 @Extension
 @SuppressWarnings(
@@ -42,7 +46,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {
         if (serverId == null) {
-            return Optional.empty();
+            return empty();
         }
         return serverList.stream().filter(server -> server.getId().equals(serverId)).findFirst();
     }
