@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class RefsChangedWebhookEvent extends AbstractWebhookEvent {
 
     @JsonCreator
     public RefsChangedWebhookEvent(
-            @JsonProperty(value = "actor") BitbucketUser actor,
+            @JsonProperty(value = "actor") @Nullable BitbucketUser actor,
             @JsonProperty(value = "eventKey", required = true) String eventKey,
             @JsonProperty(value = "date", required = true) Date date,
             @JsonProperty(value = "changes", required = true) List<BitbucketRefChange> changes,
