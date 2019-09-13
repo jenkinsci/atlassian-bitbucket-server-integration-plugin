@@ -37,13 +37,7 @@ Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
     }, {});
 
     el.addEventListener('input', debounce(function (e) {
-        // Clear fields dependent on this
-        document.querySelectorAll('[filldependson~="' + e.target.name.replace("_.", "") + '"]').forEach(function (el) {
-            if (el.name !== e.target.name) {
-                el.value = "";
-                document.getElementById(el.getAttribute('valueField')).value = "";
-            }
-        });
+        // Clear the value field
         document.getElementById(el.getAttribute('valueField')).value = "";
 
         if (el.value.length < 2) { // Only perform a search if there are enough characters
@@ -80,10 +74,19 @@ Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
         });
     }, 300));
 
-    el.addEventListener('change', function(e) {
+    el.addEventListener('blur', function (e) {
         // Set the value field (e.g. projectKey if we're in the projectName field)
         var valueField = document.getElementById(el.getAttribute('valueField'));
         valueField.value = results[e.target.value] || e.target.value; // default to this field's value if the result isn't in the list
         valueField.dispatchEvent(new Event('change')); // trigger validation for the value field
+
+        // Clear the dependent fields
+        document.querySelectorAll('[filldependson~="' + e.target.name.replace("_.", "") + '"]').forEach(function (el) {
+            if (el.name !== e.target.name) {
+                el.value = "";
+                document.getElementById(el.getAttribute('valueField')).value = "";
+            }
+        });
     });
+
 });
