@@ -48,6 +48,7 @@ Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
 
         if (el.value.length < 2) { // Only perform a search if there are enough characters
             results = {};
+            combobox.valueChanged();
             return;
         }
 
@@ -70,13 +71,14 @@ Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
                         flattened[result.name] = result[valueIdentifier];
                         return flattened;
                     }, {});
+                combobox.valueChanged();
             },
-            onError: function (rsp) {
+            onFailure: function (rsp) {
                 results = {};
+                combobox.valueChanged();
             }
         });
-        combobox.showDropdown();
-    }, 200));
+    }, 300));
 
     el.addEventListener('change', function(e) {
         // Set the value field (e.g. projectKey if we're in the projectName field)
