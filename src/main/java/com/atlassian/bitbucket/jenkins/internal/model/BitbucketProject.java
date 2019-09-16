@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.CheckForNull;
 import java.util.List;
 import java.util.Map;
 
@@ -19,13 +20,15 @@ public class BitbucketProject {
     @JsonCreator
     public BitbucketProject(
             @JsonProperty(value = "key", required = true) String key,
-            @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
+            @CheckForNull @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
             @JsonProperty(value = "name", required = true) String name) {
         this.key = requireNonNull(key, "key");
         this.name = requireNonNull(name, "name");
-        List<BitbucketNamedLink> link = requireNonNull(links, "links").get("self");
-        if (link != null && !link.isEmpty()) { // there should always be exactly one self link.
-            selfLink = link.get(0).getHref();
+        if (links != null) {
+            List<BitbucketNamedLink> self = requireNonNull(links, "links").get("self");
+            if (self != null && !self.isEmpty()) { // there should always be exactly one self link.
+                selfLink = self.get(0).getHref();
+            }
         }
     }
 
@@ -37,6 +40,7 @@ public class BitbucketProject {
         return name;
     }
 
+    @CheckForNull
     public String getSelfLink() {
         return selfLink;
     }
