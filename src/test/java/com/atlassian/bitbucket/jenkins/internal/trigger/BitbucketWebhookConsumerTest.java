@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -199,7 +201,9 @@ public class BitbucketWebhookConsumerTest {
         List<BitbucketNamedLink> cloneLinks = Collections.singletonList(cloneLink);
         Map<String, List<BitbucketNamedLink>> links =
                 Maps.of("clone", cloneLinks, "self", Collections.singletonList(selfLink));
-        BitbucketProject project = new BitbucketProject(projectKey, projectKey);
+        BitbucketProject project = new BitbucketProject(projectKey,
+                singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey))),
+                projectKey);
         return new BitbucketRepository(
                 repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
     }

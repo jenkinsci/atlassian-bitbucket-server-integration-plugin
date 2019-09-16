@@ -14,13 +14,11 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
-        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable',
-                valueField: 'projectKey', valueIdentifier: 'key')
+        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable')
     }
 
     f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
-        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable',
-                valueField: 'repositorySlug', valueIdentifier: 'slug')
+        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable')
     }
 
     f.entry(title: _("Branches to build")) {
@@ -41,11 +39,6 @@ f.section() {
         f.invisibleEntry(field: "id") {
             f.input(type: "hidden", name: "id", value: "${instance.id}")
         }
-    }
-
-    f.invisibleEntry() {
-        f.textbox(id: 'projectKey', name: 'projectKey', clazz: 'hidden', field: 'projectKey')
-        f.textbox(id: 'repositorySlug', name:'repositorySlug', clazz: 'hidden', field: 'repositorySlug')
     }
 
     script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/searchableField.js")

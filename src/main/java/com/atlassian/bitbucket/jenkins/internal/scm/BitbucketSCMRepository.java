@@ -2,8 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Objects.firstNonNull;
-
 public class BitbucketSCMRepository {
 
     private final String credentialsId;
@@ -14,18 +12,19 @@ public class BitbucketSCMRepository {
     private final String serverId;
     private final boolean isMirror;
 
-    public BitbucketSCMRepository(String credentialsId, String projectName, @Nullable String projectKey,
-                                  String repositoryName, @Nullable String repositorySlug, String serverId,
+    public BitbucketSCMRepository(@Nullable String credentialsId, String projectName, String projectKey,
+                                  String repositoryName, String repositorySlug, @Nullable String serverId,
                                   boolean isMirror) {
         this.credentialsId = credentialsId;
         this.projectName = projectName;
-        this.projectKey = firstNonNull(projectKey, projectName);
+        this.projectKey = projectKey;
         this.repositoryName = repositoryName;
-        this.repositorySlug = firstNonNull(repositorySlug, repositoryName);
+        this.repositorySlug = repositorySlug;
         this.serverId = serverId;
         this.isMirror = isMirror;
     }
 
+    @Nullable
     public String getCredentialsId() {
         return credentialsId;
     }
@@ -46,6 +45,7 @@ public class BitbucketSCMRepository {
         return repositorySlug;
     }
 
+    @Nullable
     public String getServerId() {
         return serverId;
     }

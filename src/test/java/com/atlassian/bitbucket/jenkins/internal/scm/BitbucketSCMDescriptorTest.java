@@ -5,10 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -35,14 +32,13 @@ import org.mockito.stubbing.Answer;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -97,15 +93,15 @@ public class BitbucketSCMDescriptorTest {
             String partialProjectName = invocation.getArgument(0);
             BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
             ArrayList<BitbucketProject> results = new ArrayList<>();
-            results.add(new BitbucketProject(partialProjectName + "-key", partialProjectName + "-full-name"));
-            results.add(new BitbucketProject(partialProjectName + "-key2", partialProjectName + "-full-name2"));
+            results.add(new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name"));
+            results.add(new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key2"), partialProjectName + "-full-name2"));
             page.setValues(results);
             return page;
         });
         when(bitbucketClientFactory.getRepositorySearchClient(any()))
                 .thenAnswer((Answer<BitbucketRepositorySearchClient>) invocation -> {
                     String projectName = invocation.getArgument(0);
-                    BitbucketProject project = new BitbucketProject(projectName + "-key", projectName);
+                    BitbucketProject project = new BitbucketProject(projectName + "-key", getSelfLink(projectName + "-key"), projectName);
                     BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
                     when(client.get(any())).thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) invocation1 -> {
                         String partialRepositoryName = invocation1.getArgument(0);
@@ -122,6 +118,26 @@ public class BitbucketSCMDescriptorTest {
                 });
         when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any(BitbucketCredentials.class)))
                 .thenReturn(bitbucketClientFactory);
+        when(bitbucketClientFactory.getProjectClient(any())).thenAnswer((Answer<BitbucketProjectClient>) getProjectClientArgs -> {
+            String projectKey = getProjectClientArgs.getArgument(0);
+            BitbucketProject project = new BitbucketProject(projectKey, getSelfLink(projectKey), projectKey + "-name");
+            BitbucketProjectClient projectClient = mock(BitbucketProjectClient.class);
+            when(projectClient.get()).thenReturn(project);
+            when(projectClient.getRepositoryClient(any())).thenAnswer((Answer<BitbucketRepositoryClient>) getRepositoryClientArgs -> {
+                String repositoryKey = getRepositoryClientArgs.getArgument(0);
+                BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
+                when(repositoryClient.get()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
+                        new BitbucketRepository(repositoryKey + "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
+                return repositoryClient;
+            });
+            return projectClient;
+        });
+    }
+
+    @Test
+    public void testDoFillProjectNameItemsProjectNameBlank() throws Exception {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "");
+        verifyBadRequest(response, "The project name must be at least 2 characters long");
     }
 
     @Test
@@ -162,21 +178,21 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testDoFillProjectNameItemsProjectNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "");
-        verifyBadRequest(response, "The project name must be at least 3 characters long");
-    }
-
-    @Test
     public void testDoFillProjectNameItemsProjectNameNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, null);
-        verifyBadRequest(response, "The project name must be at least 3 characters long");
+        verifyBadRequest(response, "The project name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsProjectNameShort() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "ab");
-        verifyBadRequest(response, "The project name must be at least 3 characters long");
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, "a");
+        verifyBadRequest(response, "The project name must be at least 2 characters long");
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsRepositoryNameBlank() throws Exception {
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
+        verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
@@ -250,21 +266,15 @@ public class BitbucketSCMDescriptorTest {
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsRepositoryNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
-        verifyBadRequest(response, "The repository name must be at least 3 characters long");
-    }
-
-    @Test
     public void testDoFillRepositoryNameItemsRepositoryNameNull() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", null);
-        verifyBadRequest(response, "The repository name must be at least 3 characters long");
+        verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameShort() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "ab");
-        verifyBadRequest(response, "The repository name must be at least 3 characters long");
+        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "a");
+        verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
@@ -336,32 +346,32 @@ public class BitbucketSCMDescriptorTest {
 
     @Test
     public void testNonEmptyRepositoryName() {
-        assertEquals(Kind.OK, descriptor.doCheckRepositoryName("repo").kind);
+        assertEquals(Kind.OK, descriptor.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", "repo").kind);
     }
 
     @Test
     public void testProjectNameEmpty() {
-        assertEquals(Kind.ERROR, descriptor.doCheckProjectName("").kind);
+        assertEquals(Kind.ERROR, descriptor.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "").kind);
     }
 
     @Test
     public void testProjectNameNonEmpty() {
-        assertEquals(Kind.OK, descriptor.doCheckProjectName("PROJECT").kind);
+        assertEquals(Kind.OK, descriptor.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT").kind);
     }
 
     @Test
     public void testProjectNameNull() {
-        assertEquals(Kind.ERROR, descriptor.doCheckProjectName(null).kind);
+        assertEquals(Kind.ERROR, descriptor.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), null).kind);
     }
 
     @Test
     public void testRepositoryNameEmpty() {
-        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName("").kind);
+        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", "").kind);
     }
 
     @Test
     public void testRepositoryNameNull() {
-        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName(null).kind);
+        assertEquals(Kind.ERROR, descriptor.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", null).kind);
     }
 
     @Test
@@ -394,6 +404,10 @@ public class BitbucketSCMDescriptorTest {
         when(pluginConfiguration.getValidServerList()).thenReturn(Arrays.asList(serverConfigurationValid, serverConfigurationInvalid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
         assertEquals(Kind.OK, descriptor.doCheckServerId(SERVER_ID_VALID).kind);
+    }
+
+    private Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {
+        return singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey)));
     }
 
     private static void verifyBadRequest(HttpResponses.HttpResponseException response, String message) throws IOException, ServletException {

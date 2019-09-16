@@ -52,16 +52,13 @@ public class BitbucketSCMTest {
                 new BitbucketSCM(
                         "",
                         emptyList(),
-                        bbJenkinsRule.getCredentialsId(),
                         emptyList(),
                         "",
-                        PROJECT_NAME,
-                        PROJECT_KEY,
-                        REPO_NAME,
-                        REPO_SLUG,
                         bbJenkinsRule.getServerId());
         scm.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         scm.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
+        scm.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getCredentialsId(), PROJECT_NAME, PROJECT_KEY,
+                REPO_NAME, REPO_SLUG, bbJenkinsRule.getServerId(), false));
         scm.createGitSCM();
         bbJenkinsRule
                 .service()

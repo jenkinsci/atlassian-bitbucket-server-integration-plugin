@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
@@ -31,7 +32,7 @@ public class BitbucketProjectConfigurationIT {
 
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String PROJECT_NAME = "Project 1";
-    private static final String REPO_NAME = "rep 1";
+    private static final String REPO_NAME = "rep_1";
     private static final String REPO_SLUG = "rep_1";
     private static final String JENKINS_PROJECT_NAME = "bitbucket";
 
@@ -84,9 +85,7 @@ public class BitbucketProjectConfigurationIT {
         // It would be better to actually type the value in the project/repo name inputs, do the search and select the
         // corresponding result to check that the search works. But I haven't put in the time to figure out how to do it
         form.getInputByName("_.projectName").setValueAttribute(PROJECT_NAME);
-        form.getInputByName("projectKey").setValueAttribute(PROJECT_KEY);
         form.getInputByName("_.repositoryName").setValueAttribute(REPO_NAME);
-        form.getInputByName("repositorySlug").setValueAttribute(REPO_SLUG);
 
         HtmlPage submit = bbJenkinsRule.submit(form);
         assertNotNull(submit);
@@ -122,48 +121,95 @@ public class BitbucketProjectConfigurationIT {
         assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), serverId.getSelectedOptions().get(0).getValueAttribute());
 
         assertEquals(PROJECT_NAME, form.getInputByName("_.projectName").getValueAttribute());
-        assertEquals(PROJECT_KEY, form.getInputByName("projectKey").getValueAttribute());
         assertEquals(REPO_NAME, form.getInputByName("_.repositoryName").getValueAttribute());
-        assertEquals(REPO_SLUG, form.getInputByName("repositorySlug").getValueAttribute());
     }
 
     @Test
-    public void testRequiredFields() throws IOException, SAXException {
+    public void testProjectEmpty() throws IOException, SAXException {
         setupBitbucketSCM();
 
         JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
         HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
 
-        form.getInputByName("projectKey").setValueAttribute("");
-        form.getInputByName("repositorySlug").setValueAttribute("");
-        HtmlInput projectKeyInput = form.getInputByName("_.projectName");
-        projectKeyInput.click();
-        projectKeyInput.setValueAttribute("");
+        HtmlInput projectNameInput = form.getInputByName("_.projectName");
+        projectNameInput.click();
+        projectNameInput.setValueAttribute("");
+        form.click();
+        webClient.waitForBackgroundJavaScript(2000);
+        assertNotNull(getDivByText(form, "Please specify a project name."));
+    }
+
+    @Test
+    public void testProjectNotExist() throws IOException, SAXException {
+        setupBitbucketSCM();
+
+        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
+        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlForm form = configurePage.getFormByName("config");
+
+        HtmlInput projectNameInput = form.getInputByName("_.projectName");
+        projectNameInput.click();
+        projectNameInput.setValueAttribute("non-existent-project");
+        form.click();
+        webClient.waitForBackgroundJavaScript(2000);
+        assertNotNull(getDivByText(form, "The project 'non-existent-project' does not exist or you do not have permission to access it."));
+    }
+
+    @Test
+    public void testRepositoryEmpty() throws Exception {
+        setupBitbucketSCM();
+
+        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
+        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlForm form = configurePage.getFormByName("config");
+        HtmlInput projectNameInput = form.getInputByName("_.projectName");
+        projectNameInput.click();
+        projectNameInput.setValueAttribute(PROJECT_NAME);
+        form.click();
+
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
         repoNameInput.setValueAttribute("");
         form.click();
-
         webClient.waitForBackgroundJavaScript(2000);
-        assertNotNull(getDivByText(form, "Please specify a project name."));
+
         assertNotNull(getDivByText(form, "Please specify a repository name."));
     }
 
+    @Test
+    public void testRepositoryNotExist() throws Exception {
+        setupBitbucketSCM();
+
+        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
+        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlForm form = configurePage.getFormByName("config");
+        HtmlInput projectNameInput = form.getInputByName("_.projectName");
+        projectNameInput.click();
+        projectNameInput.setValueAttribute(PROJECT_NAME);
+        form.click();
+
+        HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
+        repoNameInput.click();
+        repoNameInput.setValueAttribute("non-existent-repo");
+        form.click();
+        webClient.waitForBackgroundJavaScript(2000);
+
+        assertNotNull(getDivByText(form, "The repository 'non-existent-repo' does not exist or you do not have permission to access it."));
+    }
+
     private void setupBitbucketSCM() throws IOException {
+        String serverId = bbJenkinsRule.getBitbucketServerConfiguration().getId();
         BitbucketSCM bitbucketSCM = new BitbucketSCM(
                 "",
                 Collections.singletonList(new BranchSpec("*/master")),
-                bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
                 emptyList(),
                 "",
-                PROJECT_NAME,
-                PROJECT_KEY,
-                REPO_NAME,
-                REPO_SLUG,
-                bbJenkinsRule.getBitbucketServerConfiguration().getId());
+                serverId);
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
+        bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
+                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, false));
         bitbucketSCM.createGitSCM();
         project.setScm(bitbucketSCM);
         project.save();
