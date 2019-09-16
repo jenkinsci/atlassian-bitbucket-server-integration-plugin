@@ -2,13 +2,15 @@ package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirroredRepositoryDescriptorClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
-import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Extension;
