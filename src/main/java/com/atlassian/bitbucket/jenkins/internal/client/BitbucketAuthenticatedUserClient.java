@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * Client to retrieve the username for the credentials used.
  */
-public interface BitbucketUsernameClient {
+public interface BitbucketAuthenticatedUserClient {
 
     /**
      * Get the username associated with the provided credentials.
@@ -21,5 +21,5 @@ public interface BitbucketUsernameClient {
      * @throws ServerErrorException if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    Optional<String> get();
+    Optional<String> getAuthenticatedUser();
 }

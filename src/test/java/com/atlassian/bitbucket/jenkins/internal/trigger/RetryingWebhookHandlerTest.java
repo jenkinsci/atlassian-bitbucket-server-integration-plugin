@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationEx
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
@@ -23,13 +24,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.PROJECT;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.REPO;
 import static java.util.Collections.emptySet;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RetryingWebhookHandlerTest {

@@ -77,7 +77,7 @@ public class BitbucketClientFactoryImplTest {
     public void testGetMirroredRepositories() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/mirroring/1.0/repos/1/mirrors", readMirroredRepositoriesResponseFromFile());
-        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient().get(1);
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient(1).getMirroredRepositoryDescriptors();
         assertEquals(2, repositoryPage.getSize());
         assertEquals(25, repositoryPage.getLimit());
         assertEquals(true, repositoryPage.isLastPage());
@@ -97,8 +97,9 @@ public class BitbucketClientFactoryImplTest {
 
         BitbucketRepository repository =
                 anonymousClientFactory
-                        .getRepositoryClient("QA")
-                        .get("qa-resources");
+                        .getProjectClient("QA")
+                        .getRepositoryClient("qa-resources")
+                        .getRepository();
 
         assertEquals("qa-resources", repository.getSlug());
         assertEquals(
@@ -130,8 +131,9 @@ public class BitbucketClientFactoryImplTest {
 
         BitbucketRepository repository =
                 anonymousClientFactory
-                        .getRepositoryClient("QA")
-                        .get("qa-resources");
+                        .getProjectClient("QA")
+                        .getRepositoryClient("qa-resources")
+                        .getRepository();
 
         assertEquals("qa-resources", repository.getSlug());
         assertEquals(
@@ -157,7 +159,7 @@ public class BitbucketClientFactoryImplTest {
     public void testGetProject() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/api/1.0/projects/QA", readProjectFromFile());
-        BitbucketProject project = anonymousClientFactory.getProjectClient().get("QA");
+        BitbucketProject project = anonymousClientFactory.getProjectClient("QA").getProject();
 
         assertEquals("QA", project.getKey());
     }
@@ -170,7 +172,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
-                anonymousClientFactory.getProjectSearchClient().get("");
+                anonymousClientFactory.getSearchClient("").findProjects();
 
         assertThat(projects.getSize(), equalTo(4));
         assertThat(projects.getLimit(), equalTo(25));
@@ -186,7 +188,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketProject> projects =
-                anonymousClientFactory.getProjectSearchClient().get("myFilter");
+                anonymousClientFactory.getSearchClient("myFilter").findProjects();
 
         assertThat(projects.getSize(), equalTo(1));
         assertThat(projects.getLimit(), equalTo(25));
@@ -203,7 +205,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("PROJ").get("");
+                anonymousClientFactory.getSearchClient("PROJ").findRepositories("");
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));
@@ -229,7 +231,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapUrlToResult(url, projectPage);
 
         BitbucketPage<BitbucketRepository> repositories =
-                anonymousClientFactory.getRepositorySearchClient("my project name").get("rep");
+                anonymousClientFactory.getSearchClient("my project name").findRepositories("rep");
 
         assertThat(repositories.getSize(), equalTo(1));
         assertThat(repositories.getLimit(), equalTo(25));
@@ -255,7 +257,7 @@ public class BitbucketClientFactoryImplTest {
                 readCapabilitiesResponseFromFile(),
                 singletonMap("X-AUSERNAME", username));
 
-        assertEquals(username, anonymousClientFactory.getUsernameClient().get().get());
+        assertEquals(username, anonymousClientFactory.getAuthenticatedUserClient().getAuthenticatedUser().get());
     }
 
     @Test

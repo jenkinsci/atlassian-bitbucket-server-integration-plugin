@@ -1,6 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirroredRepositoryDescriptorClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchClient;
+import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
@@ -136,9 +139,9 @@ public class BitbucketSearchEndpoint implements RootAction {
         BitbucketServerConfiguration server = getServer(serverId);
         BitbucketMirroredRepositoryDescriptorClient client = bitbucketClientFactoryProvider
                 .getClient(server.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), server))
-                .getMirroredRepositoriesClient();
+                .getMirroredRepositoriesClient(repoId);
         try {
-            return client.get(repoId);
+            return client.getMirroredRepositoryDescriptors();
         } catch (BitbucketClientException e) {
             LOGGER.severe(e.getMessage());
             throw error(HTTP_INTERNAL_ERROR, e);

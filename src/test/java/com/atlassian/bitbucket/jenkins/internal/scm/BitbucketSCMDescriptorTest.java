@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -74,8 +75,6 @@ public class BitbucketSCMDescriptorTest {
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
-    @Mock
-    private BitbucketProjectSearchClient projectSearchClient;
 
     @Before
     public void setup() {
@@ -88,23 +87,25 @@ public class BitbucketSCMDescriptorTest {
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
 
-        when(bitbucketClientFactory.getProjectSearchClient()).thenReturn(projectSearchClient);
-        when(projectSearchClient.get(any())).thenAnswer((Answer<BitbucketPage<BitbucketProject>>) invocation -> {
-            String partialProjectName = invocation.getArgument(0);
-            BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
-            ArrayList<BitbucketProject> results = new ArrayList<>();
-            results.add(new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name"));
-            results.add(new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key2"), partialProjectName + "-full-name2"));
-            page.setValues(results);
-            return page;
-        });
-        when(bitbucketClientFactory.getRepositorySearchClient(any()))
-                .thenAnswer((Answer<BitbucketRepositorySearchClient>) invocation -> {
-                    String projectName = invocation.getArgument(0);
-                    BitbucketProject project = new BitbucketProject(projectName + "-key", getSelfLink(projectName + "-key"), projectName);
-                    BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
-                    when(client.get(any())).thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) invocation1 -> {
-                        String partialRepositoryName = invocation1.getArgument(0);
+        when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
+            String partialProjectName = getSearchClientInvocation.getArgument(0);
+            BitbucketProject project = new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name");
+
+            BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
+
+            when(searchClient.findProjects()).thenAnswer((Answer<BitbucketPage<BitbucketProject>>) findProjectsInvocation -> {
+                BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
+                ArrayList<BitbucketProject> results = new ArrayList<>();
+                results.add(project);
+                BitbucketProject extraMatchingProject = new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name2");
+                results.add(extraMatchingProject);
+                page.setValues(results);
+                return page;
+            });
+
+            when(searchClient.findRepositories(any()))
+                    .thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) findRepositoriesInvocation -> {
+                        String partialRepositoryName = findRepositoriesInvocation.getArgument(0);
                         BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
                         ArrayList<BitbucketRepository> results = new ArrayList<>();
                         results.add(new BitbucketRepository(partialRepositoryName + "-full-name", emptyMap(), project,
@@ -114,19 +115,20 @@ public class BitbucketSCMDescriptorTest {
                         page.setValues(results);
                         return page;
                     });
-                    return client;
-                });
+            return searchClient;
+        });
+
         when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any(BitbucketCredentials.class)))
                 .thenReturn(bitbucketClientFactory);
         when(bitbucketClientFactory.getProjectClient(any())).thenAnswer((Answer<BitbucketProjectClient>) getProjectClientArgs -> {
             String projectKey = getProjectClientArgs.getArgument(0);
             BitbucketProject project = new BitbucketProject(projectKey, getSelfLink(projectKey), projectKey + "-name");
             BitbucketProjectClient projectClient = mock(BitbucketProjectClient.class);
-            when(projectClient.get()).thenReturn(project);
+            when(projectClient.getProject()).thenReturn(project);
             when(projectClient.getRepositoryClient(any())).thenAnswer((Answer<BitbucketRepositoryClient>) getRepositoryClientArgs -> {
                 String repositoryKey = getRepositoryClientArgs.getArgument(0);
                 BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
-                when(repositoryClient.get()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
+                when(repositoryClient.getRepository()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
                         new BitbucketRepository(repositoryKey + "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
                 return repositoryClient;
             });
@@ -143,7 +145,9 @@ public class BitbucketSCMDescriptorTest {
     @Test
     public void testDoFillProjectNameItemsBitbucketClientException() throws Exception {
         String searchTerm = "test";
-        when(projectSearchClient.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception",
+        BitbucketSearchClient badSearchClient = mock(BitbucketSearchClient.class);
+        when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(badSearchClient);
+        when(badSearchClient.findProjects()).thenThrow(new BitbucketClientException("Bitbucket had an exception",
                 400, "Some error from Bitbucket"));
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
         verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
@@ -217,9 +221,9 @@ public class BitbucketSCMDescriptorTest {
     public void testDoFillRepositoryNameItemsBitbucketClientException() throws Exception {
         String searchTerm = "test";
         String myProject = "myProject";
-        BitbucketRepositorySearchClient client = mock(BitbucketRepositorySearchClient.class);
-        when(client.get(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
-        when(bitbucketClientFactory.getRepositorySearchClient(myProject)).thenReturn(client);
+        BitbucketSearchClient client = mock(BitbucketSearchClient.class);
+        when(client.findRepositories(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
+        when(bitbucketClientFactory.getSearchClient(myProject)).thenReturn(client);
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) descriptor.doFillRepositoryNameItems(SERVER_ID_VALID, null, myProject, searchTerm);
         verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
     }
@@ -442,11 +446,11 @@ public class BitbucketSCMDescriptorTest {
         JSONObject v1 = (JSONObject) values.get(0);
         assertEquals(searchTerm + "-slug", v1.get("slug"));
         assertEquals(searchTerm + "-full-name", v1.get("name"));
-        verifyProject((JSONObject) v1.get("project"), projectName + "-key", projectName);
+        verifyProject((JSONObject) v1.get("project"), projectName + "-key", projectName + "-full-name");
         JSONObject v2 = (JSONObject) values.get(1);
         assertEquals(searchTerm + "-slug2", v2.get("slug"));
         assertEquals(searchTerm + "-full-name2", v2.get("name"));
-        verifyProject((JSONObject) v2.get("project"), projectName + "-key", projectName);
+        verifyProject((JSONObject) v2.get("project"), projectName + "-key", projectName + "-full-name");
     }
 
     //Checks for the presence of an option that matches the one on calling model.includeEmptyValue()

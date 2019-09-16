@@ -6,11 +6,11 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 public interface BitbucketClientFactory {
 
     /**
-     * Return a client that can post the current status of a build to Bitbucket.
+     * Return a client that can return the username for the credentials used.
      *
-     * @return a client that can post a build status
+     * @return a client that is ready to use
      */
-    BitbucketBuildStatusClient getBuildStatusClient();
+    BitbucketAuthenticatedUserClient getAuthenticatedUserClient();
 
     /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client
@@ -21,53 +21,34 @@ public interface BitbucketClientFactory {
     BitbucketCapabilitiesClient getCapabilityClient();
 
     /**
+     * Return a client that can post the current status of a build to Bitbucket.
+     *
+     * @param revisionSha the revision for the build status
+     * @return a client that can post a build status
+     */
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha);
+
+    /**
      * Construct a client that can retrieve the list of mirrored repositories for a given {@code repoId} from Bitbucket.
      *
+     * @param repositoryId the repositoryId
      * @return a client that is ready to use
      */
-    BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient();
+    BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repositoryId);
 
     /**
      * Return a project client.
      *
      * @return a client that is ready to use
      */
-    BitbucketProjectClient getProjectClient();
+    BitbucketProjectClient getProjectClient(String projectKey);
 
     /**
-     * Return a project search client
+     * Return a search client
+     *
+     * @param projectName the project name to search for
      *
      * @return a client that is ready to use
      */
-    BitbucketProjectSearchClient getProjectSearchClient();
-
-    /**
-     * Return a repository search client
-     *
-     * @param projectKey the key of the project to perform the search over
-     * @return a client that is ready to use
-     */
-    BitbucketRepositoryClient getRepositoryClient(String projectKey);
-
-    /**
-     * Return a repository search client
-     *
-     * @param projectName The project name to scope the repository search
-     * @return a client that it ready to use
-     */
-    BitbucketRepositorySearchClient getRepositorySearchClient(String projectName);
-
-    /**
-     * Return a client that can return the username for the credentials used.
-     *
-     * @return a client that is ready to use
-     */
-    BitbucketUsernameClient getUsernameClient();
-
-    /**
-     * A client for performing various webhook related operations.
-     *
-     * @return a client.
-     */
-    BitbucketWebhookClient getWebhookClient(String projectKey, String repositorySlug);
+    BitbucketSearchClient getSearchClient(String projectName);
 }

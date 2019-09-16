@@ -9,16 +9,16 @@ import java.util.Optional;
 
 import static java.util.Optional.empty;
 
-public class BitbucketUsernameClientImpl implements BitbucketUsernameClient {
+public class BitbucketAuthenticatedUserClientImpl implements BitbucketAuthenticatedUserClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
 
-    BitbucketUsernameClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor) {
+    BitbucketAuthenticatedUserClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
     }
 
     @Override
-    public Optional<String> get() {
+    public Optional<String> getAuthenticatedUser() {
         HttpUrl url =
                 bitbucketRequestExecutor.getBaseUrl().newBuilder()
                         .addPathSegment("rest")

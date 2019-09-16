@@ -5,16 +5,20 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
+import static java.util.Objects.requireNonNull;
+
 public class BitbucketMirroredRepositoryDescriptorClientImpl implements BitbucketMirroredRepositoryDescriptorClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final int repositoryId;
 
-    BitbucketMirroredRepositoryDescriptorClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor) {
-        this.bitbucketRequestExecutor = bitbucketRequestExecutor;
+    BitbucketMirroredRepositoryDescriptorClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, int repositoryId) {
+        this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
+        this.repositoryId = repositoryId;
     }
 
     @Override
-    public BitbucketPage<BitbucketMirroredRepositoryDescriptor> get(int repositoryId) {
+    public BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepositoryDescriptors() {
         HttpUrl url =
                 bitbucketRequestExecutor.getBaseUrl().newBuilder()
                         .addPathSegment("rest")

@@ -21,5 +21,5 @@ public interface BitbucketMirroredRepositoryDescriptorClient {
      * @throws ServerErrorException if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    BitbucketPage<BitbucketMirroredRepositoryDescriptor> get(int repositoryId);
+    BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepositoryDescriptors();
 }

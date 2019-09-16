@@ -7,5 +7,5 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
  */
 public interface BitbucketBuildStatusClient {
 
-    void post(String revisionSha, BitbucketBuildStatus buildStatus);
+    void post(BitbucketBuildStatus buildStatus);
 }

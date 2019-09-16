@@ -20,5 +20,13 @@ public interface BitbucketProjectClient {
      * @throws ServerErrorException if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    BitbucketProject get(String projectKey);
+    BitbucketProject getProject();
+
+    /**
+     * Return a repository search client
+     *
+     * @param repositorySlug the repository slug
+     * @return a client that is ready to use
+     */
+    BitbucketRepositoryClient getRepositoryClient(String repositorySlug);
 }

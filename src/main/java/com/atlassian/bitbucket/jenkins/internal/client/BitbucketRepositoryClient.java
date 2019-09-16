@@ -21,5 +21,12 @@ public interface BitbucketRepositoryClient {
      * @throws ServerErrorException if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    BitbucketRepository get(String repositorySlug);
+    BitbucketRepository getRepository();
+
+    /**
+     * A client for performing various webhook related operations.
+     *
+     * @return a client.
+     */
+    BitbucketWebhookClient getWebhookClient();
 }

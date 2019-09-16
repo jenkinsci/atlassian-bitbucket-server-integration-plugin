@@ -107,7 +107,9 @@ public class RetryingWebhookHandlerIT {
 
     private void cleanWebhooks() {
         bitbucketClientFactoryProvider.getClient(BITBUCKET_BASE_URL, adminCredentials)
-                .getWebhookClient(PROJECT_KEY, REPO_SLUG)
+                .getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getWebhookClient()
                 .getWebhooks()
                 .filter(bitbucketWebhook -> bitbucketWebhook.getName().startsWith(WEBHOOK_NAME))
                 .map(BitbucketWebhook::getId)

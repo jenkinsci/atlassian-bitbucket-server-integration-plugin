@@ -14,8 +14,8 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketBuildStatusClient getBuildStatusClient() {
-        return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor);
+    public BitbucketAuthenticatedUserClient getAuthenticatedUserClient() {
+        return new BitbucketAuthenticatedUserClientImpl(bitbucketRequestExecutor);
     }
 
     @Override
@@ -24,37 +24,22 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient() {
-        return new BitbucketMirroredRepositoryDescriptorClientImpl(bitbucketRequestExecutor);
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha) {
+        return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }
 
     @Override
-    public BitbucketProjectClient getProjectClient() {
-        return new BitbucketProjectClientImpl(bitbucketRequestExecutor);
+    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repositoryId) {
+        return new BitbucketMirroredRepositoryDescriptorClientImpl(bitbucketRequestExecutor, repositoryId);
     }
 
     @Override
-    public BitbucketProjectSearchClient getProjectSearchClient() {
-        return new BitbucketProjectSearchClientImpl(bitbucketRequestExecutor);
+    public BitbucketProjectClient getProjectClient(String projectKey) {
+        return new BitbucketProjectClientImpl(bitbucketRequestExecutor, projectKey);
     }
 
     @Override
-    public BitbucketRepositoryClient getRepositoryClient(String projectKey) {
-        return new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, projectKey);
-    }
-
-    @Override
-    public BitbucketRepositorySearchClient getRepositorySearchClient(String projectName) {
-        return new BitbucketRepositorySearchClientImpl(bitbucketRequestExecutor, projectName);
-    }
-
-    @Override
-    public BitbucketUsernameClient getUsernameClient() {
-        return new BitbucketUsernameClientImpl(bitbucketRequestExecutor);
-    }
-
-    @Override
-    public BitbucketWebhookClient getWebhookClient(String projectKey, String repositorySlug) {
-        return new BitbucketWebhookClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    public BitbucketSearchClient getSearchClient(String projectName) {
+        return new BitbucketSearchClientImpl(bitbucketRequestExecutor, projectName);
     }
 }

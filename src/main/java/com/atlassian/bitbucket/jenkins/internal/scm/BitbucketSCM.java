@@ -1,10 +1,13 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
@@ -267,7 +270,7 @@ public class BitbucketSCM extends SCM {
                 .getClient(server.getBaseUrl(), createWithFallback(credentialsId, server))
                 .getProjectClient(projectKey)
                 .getRepositoryClient(repositorySlug)
-                .get();
+                .getRepository();
     }
 
     private BitbucketServerConfiguration getServer() {
@@ -442,10 +445,10 @@ public class BitbucketSCM extends SCM {
                     .map(serverConf -> {
                         try {
                             BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
-                            BitbucketProjectSearchClient projectSearchClient = bitbucketClientFactoryProvider
+                            BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
                                     .getClient(serverConf.getBaseUrl(), credentials)
-                                    .getProjectSearchClient();
-                            latestProjects = projectSearchClient.get(stripToEmpty(projectName));
+                                    .getSearchClient(stripToEmpty(projectName));
+                            latestProjects = searchClient.findProjects();
                             return okJSON(JSONObject.fromObject(latestProjects));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
@@ -479,11 +482,11 @@ public class BitbucketSCM extends SCM {
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
                         BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
-                        BitbucketRepositorySearchClient searchClient = bitbucketClientFactoryProvider
+                        BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
-                                .getRepositorySearchClient(projectName);
+                                .getSearchClient(projectName);
                         try {
-                            latestRepositories = searchClient.get(stripToEmpty(repositoryName));
+                            latestRepositories = searchClient.findRepositories(stripToEmpty(repositoryName));
                             return okJSON(JSONObject.fromObject(latestRepositories));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
@@ -606,15 +609,15 @@ public class BitbucketSCM extends SCM {
                     .findAny()
                     // It wasn't in our cache so we need to call out to Bitbucket
                     .orElseGet(() -> clientFactory
-                            .getProjectSearchClient()
-                            .get(projectNameOrKey)
+                            .getSearchClient(projectNameOrKey)
+                            .findProjects()
                             .getValues()
                             .stream()
                             .filter(p -> projectNameOrKey.equalsIgnoreCase(p.getName()))
                             // Project names are unique so there will only be one
                             .findAny()
                             // We didn't find the project so maybe they gave us a project key instead of name
-                            .orElseGet(() -> clientFactory.getProjectClient(projectNameOrKey).get()));
+                            .orElseGet(() -> clientFactory.getProjectClient(projectNameOrKey).getProject()));
         }
 
         private BitbucketRepository getRepositoryByNameOrSlug(String projectNameOrKey, String repositoryNameOrSlug,
@@ -624,8 +627,8 @@ public class BitbucketSCM extends SCM {
                     // There should only be one repository with this name in the project
                     .findAny()
                     // It wasn't in our cache so we need to call out to Bitbucket
-                    .orElseGet(() -> clientFactory.getRepositorySearchClient(getProjectByNameOrKey(projectNameOrKey, clientFactory).getName())
-                            .get(repositoryNameOrSlug)
+                    .orElseGet(() -> clientFactory.getSearchClient(getProjectByNameOrKey(projectNameOrKey, clientFactory).getName())
+                            .findRepositories(repositoryNameOrSlug)
                             .getValues()
                             .stream()
                             .filter(r -> repositoryNameOrSlug.equalsIgnoreCase(r.getName()))
@@ -635,7 +638,7 @@ public class BitbucketSCM extends SCM {
                             .orElseGet(() -> clientFactory
                                     .getProjectClient(getProjectByNameOrKey(projectNameOrKey, clientFactory).getKey())
                                     .getRepositoryClient(repositoryNameOrSlug)
-                                    .get()));
+                                    .getRepository()));
         }
     }
 }

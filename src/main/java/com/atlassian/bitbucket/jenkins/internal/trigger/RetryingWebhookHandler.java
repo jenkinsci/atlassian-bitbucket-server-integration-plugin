@@ -83,7 +83,10 @@ public class RetryingWebhookHandler {
                                                       WebhookRegisterRequest request) {
         BitbucketClientFactory clientFactory = provider.getClient(serverConfiguration.getBaseUrl(), credentials);
         BitbucketCapabilitiesClient capabilityClient = clientFactory.getCapabilityClient();
-        BitbucketWebhookClient webhookClient = clientFactory.getWebhookClient(request.getProjectKey(), request.getRepoSlug());
+        BitbucketWebhookClient webhookClient = clientFactory
+                .getProjectClient(request.getProjectKey())
+                .getRepositoryClient(request.getRepoSlug())
+                .getWebhookClient();
         WebhookHandler handler = new BitbucketWebhookHandler(capabilityClient, webhookClient);
         return handler.register(request);
     }

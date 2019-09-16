@@ -44,8 +44,8 @@ public class BuildStatusPoster {
                 BitbucketCredentials credentials =
                         BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
-                        .getBuildStatusClient()
-                        .post(revisionAction.getRevisionSha1(), buildStatus);
+                        .getBuildStatusClient(revisionAction.getRevisionSha1())
+                        .post(buildStatus);
                 return;
             } catch (RuntimeException e) {
                 String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
