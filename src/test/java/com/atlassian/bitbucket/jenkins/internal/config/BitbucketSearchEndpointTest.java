@@ -25,6 +25,7 @@ import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint.BITBUCKET_SERVER_SEARCH_URL;
 import static io.restassured.RestAssured.given;
+import static java.lang.String.valueOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.*;
@@ -179,7 +180,7 @@ public class BitbucketSearchEndpointTest {
             String mirrorName = String.format(MIRROR_NAME, i);
             String mirrorUrl = String.format(MIRROR_URL, i);
             links.put("self", Collections.singletonList(new BitbucketNamedLink("self", repoMirrorLink)));
-            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror(mirrorUrl,
+            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror(valueOf(i), mirrorUrl,
                     true, mirrorName)));
         }
         page.setValues(mirroredRepoDescs);

@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirroredRepositoryDescriptorClient;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.logging.Logger;
 
+import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static hudson.security.Permission.CONFIGURE;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
@@ -144,7 +144,7 @@ public class BitbucketSearchEndpoint implements RootAction {
         BitbucketMirroredRepositoryDescriptorClient client =
                 bitbucketClientFactoryProvider
                         .getClient(server.getBaseUrl(),
-                                BitbucketCredentialsAdaptor.createWithFallback(getCredentials(credentialsId), server))
+                                createWithFallback(getCredentials(credentialsId), server))
                         .getMirroredRepositoriesClient(repoId);
         try {
             return client.get();

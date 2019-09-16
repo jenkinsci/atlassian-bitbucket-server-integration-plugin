@@ -4,15 +4,11 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositorySearchClient;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
-import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.MirrorRequest.BitbucketRepoDetail;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -60,6 +56,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
+import static com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils.getCredentials;
 import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
@@ -82,7 +79,6 @@ public class BitbucketSCM extends SCM {
 
     private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
-    private transient BitbucketSearchEndpoint bitbucketSearchEndpoint;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
@@ -168,7 +164,7 @@ public class BitbucketSCM extends SCM {
         try {
             BitbucketRepository repo = getRepository(server, scmRepository.getProjectKey(),
                     repositorySlug, credentialsId);
-            String cloneUrl = getCloneUrl(server, credentialsId, repo, scmRepository.getMirrorName());
+            String cloneUrl = getCloneUrl(server, credentialsId, scmRepository);
             UserRemoteConfig remoteConfig =
                     new UserRemoteConfig(
                             cloneUrl,
@@ -258,16 +254,15 @@ public class BitbucketSCM extends SCM {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
     }
 
-    public void setBitbucketSearchEndpoint(BitbucketSearchEndpoint bitbucketSearchEndpoint) {
-        this.bitbucketSearchEndpoint = bitbucketSearchEndpoint;
-    }
-
     private String getCloneUrl(BitbucketServerConfiguration server, String credentialsId,
-                               BitbucketRepository repo, String mirrorName) {
+                               BitbucketSCMRepository scmRepository) {
+        String mirrorName = scmRepository.getMirrorName();
         if (StringUtils.isEmpty(mirrorName)) {
+            BitbucketRepository repo = getRepository(server, scmRepository.getProjectKey(),
+                    scmRepository.getProjectKey(), credentialsId);
             return getUpstreamCloneUrl(repo);
         } else {
-            return getMirrorCloneUrl(server, credentialsId, repo, mirrorName);
+            return getMirrorCloneUrl(credentialsId, scmRepository, mirrorName);
         }
     }
 
@@ -285,11 +280,15 @@ public class BitbucketSCM extends SCM {
                 .getHref();
     }
 
-    private String getMirrorCloneUrl(BitbucketServerConfiguration server, String credentialsId,
-                                     BitbucketRepository repo, String mirrorName) {
-        BitbucketPage<BitbucketMirroredRepository> mirroredRepositories = bitbucketSearchEndpoint
-                .getBitbucketMirroredRepository(server.getId(), credentialsId, repo.getId());
-        List<BitbucketNamedLink> cloneUrls = mirroredRepositories.getValues()
+    private String getMirrorCloneUrl(String credentialsId,
+                                     BitbucketSCMRepository scmRepository,
+                                     String mirrorName) {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        final List<BitbucketMirroredRepository> mirroredRepositories =
+                descriptor.bitbucketMirrorHandler.fetchRepositores(
+                        new MirrorRequest(scmRepository.getServerId(), credentialsId,
+                                new BitbucketRepoDetail(scmRepository.getProjectKey(), scmRepository.getRepositorySlug())));
+        List<BitbucketNamedLink> cloneUrls = mirroredRepositories
                 .stream()
                 .filter(mRepo -> mRepo.getMirrorName().equals(mirrorName))
                 .map(mRepo -> mRepo.getCloneUrls())
@@ -343,7 +342,7 @@ public class BitbucketSCM extends SCM {
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         @Inject
-        private BitbucketSearchEndpoint bitbucketSearchEndpoint;
+        private BitbucketMirrorHandler bitbucketMirrorHandler;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -426,7 +425,7 @@ public class BitbucketSCM extends SCM {
                 return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 3 characters long");
             }
 
-            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
+            Credentials providedCredentials = getCredentials(credentialsId);
             if (!isBlank(credentialsId) && providedCredentials == null) {
                 return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
             }
@@ -468,7 +467,7 @@ public class BitbucketSCM extends SCM {
                 return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
             }
 
-            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
+            Credentials providedCredentials = getCredentials(credentialsId);
             if (!isBlank(credentialsId) && providedCredentials == null) {
                 return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
             }
@@ -521,31 +520,16 @@ public class BitbucketSCM extends SCM {
                                                   @QueryParameter String mirrorName) {
             Jenkins.get().checkPermission(CONFIGURE);
             StandardListBoxModel options = new StandardListBoxModel();
-            options.add(new Option("Primary Server", ""));
-            if (StringUtils.isEmpty(serverId) || StringUtils.isEmpty(projectKey) ||
+            addDefaultUpstreamOption(options);
+            if (StringUtils.isEmpty(serverId) ||
+                StringUtils.isEmpty(projectKey) ||
                 StringUtils.isEmpty(repositorySlug)) {
                 return options;
             }
-            BitbucketServerConfiguration server = bitbucketPluginConfiguration.getServerById(serverId)
-                    .orElseThrow(() -> new RuntimeException("Server config not found"));
-            BitbucketRepository bitbucketRepository;
-            try {
-                bitbucketRepository =
-                        bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), BitbucketCredentialsAdaptor.createWithFallback(credentialsId, server))
-                                .getProjectClient(projectKey)
-                                .getRepositoryClient(repositorySlug)
-                                .get();
-            } catch (NotFoundException | AuthorizationException e) {
-                return options;
-            }
-            BitbucketPage<BitbucketMirroredRepository> mirroredRepository =
-                    bitbucketSearchEndpoint.getBitbucketMirroredRepository(serverId, credentialsId, bitbucketRepository.getId());
-            List<Option> mirrorOptions = mirroredRepository.getValues()
-                    .stream()
-                    .map(mirroredRepo -> new Option(mirroredRepo.getMirrorName(),
-                            mirroredRepo.getMirrorName(), mirroredRepo.getMirrorName().equals(mirrorName)))
-                    .collect(Collectors.toList());
-            options.addAll(mirrorOptions);
+            List<Option> values = bitbucketMirrorHandler.fetchOptions(
+                    new MirrorRequest(serverId, credentialsId, new BitbucketRepoDetail(projectKey, repositorySlug)),
+                    mirrorName);
+            options.addAll(values);
             return options;
         }
 
@@ -581,7 +565,6 @@ public class BitbucketSCM extends SCM {
                 BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
                 scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
                 scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
-                scm.setBitbucketSearchEndpoint(bitbucketSearchEndpoint);
                 scm.createGitSCM();
                 return scm;
             } catch (Error | RuntimeException e) {
@@ -595,6 +578,10 @@ public class BitbucketSCM extends SCM {
                 } while (cause != null);
                 throw e; // didn't match any known error, so throw it up and let Jenkins handle it
             }
+        }
+
+        private void addDefaultUpstreamOption(StandardListBoxModel options) {
+            options.add(new Option("Primary Server", ""));
         }
     }
 }

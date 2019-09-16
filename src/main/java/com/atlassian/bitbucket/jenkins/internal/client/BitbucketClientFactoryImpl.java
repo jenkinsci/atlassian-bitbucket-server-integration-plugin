@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -85,35 +86,33 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repoId) {
-        return () -> {
-            HttpUrl url =
-                    bitbucketRequestExecutor.getBaseUrl().newBuilder()
-                            .addPathSegment("rest")
-                            .addPathSegment("mirroring")
-                            .addPathSegment("1.0")
-                            .addPathSegment("repos")
-                            .addPathSegment(String.valueOf(repoId))
-                            .addPathSegment("mirrors")
-                            .build();
-            return bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketMirroredRepositoryDescriptor>>() {
-            }).getBody();
-        };
-    }
+        return new BitbucketMirroredRepositoryDescriptorClient() {
 
-    @Override
-    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repoId) {
-        return () -> {
-            HttpUrl url =
-                    bitbucketRequestExecutor.getBaseUrl().newBuilder()
-                            .addPathSegment("rest")
-                            .addPathSegment("mirroring")
-                            .addPathSegment("1.0")
-                            .addPathSegment("repos")
-                            .addPathSegment(String.valueOf(repoId))
-                            .addPathSegment("mirrors")
-                            .build();
-            return bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketMirroredRepositoryDescriptor>>() {
-            }).getBody();
+            @Override
+            public BitbucketPage<BitbucketMirroredRepositoryDescriptor> get() {
+                HttpUrl url =
+                        bitbucketRequestExecutor.getBaseUrl().newBuilder()
+                                .addPathSegment("rest")
+                                .addPathSegment("mirroring")
+                                .addPathSegment("1.0")
+                                .addPathSegment("repos")
+                                .addPathSegment(String.valueOf(repoId))
+                                .addPathSegment("mirrors")
+                                .build();
+                return bitbucketRequestExecutor.makeGetRequest(url,
+                        new TypeReference<BitbucketPage<BitbucketMirroredRepositoryDescriptor>>() {}).getBody();
+            }
+
+            @Override
+            public BitbucketMirroredRepository getRepositoryDetails(String repoUrl) {
+                HttpUrl mirrorUrl = HttpUrl.parse(repoUrl);
+                if (mirrorUrl == null) {
+                    throw new BitbucketClientException("Invalid repo URL " + repoUrl);
+                }
+
+                return bitbucketRequestExecutor.makeGetRequest(mirrorUrl,
+                        BitbucketMirroredRepository.class).getBody();
+            }
         };
     }
 
