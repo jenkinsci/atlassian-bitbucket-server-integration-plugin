@@ -144,7 +144,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "")
                 .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characterslong"));
+        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characterslong"));
+        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
     }
 
     @Test
@@ -387,7 +387,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .post(getReposUrl());
-        assertThat(response.getBody().print(), containsString("The repository name must be at least 2 characterslong"));
+        assertThat(response.getBody().print(), containsString("The repository name must be at least 2 characters long"));
     }
 
     @Test
