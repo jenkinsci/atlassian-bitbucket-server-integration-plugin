@@ -78,7 +78,7 @@ public class BitbucketWebhookClientImplTest {
     }
 
     @Test
-    public void testRegisterWebhook() {
+    public void testRegisterWebhook() throws IOException {
         String repoRefEvent = "repo:refs_changed";
         String mirrorSyncEvent = "mirror:repo_synchronized";
         String response = readFileToString("/webhook/webhook_created_response.json");
@@ -103,12 +103,8 @@ public class BitbucketWebhookClientImplTest {
 
         Request recordedRequest = fakeRemoteHttpServer.getRequest(registerUrl);
         Buffer b = new Buffer();
-        try {
-            recordedRequest.body().writeTo(b);
-            assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        recordedRequest.body().writeTo(b);
+        assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
     }
 
     @Test
