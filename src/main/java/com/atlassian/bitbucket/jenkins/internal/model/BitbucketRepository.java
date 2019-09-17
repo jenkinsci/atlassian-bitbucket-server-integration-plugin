@@ -4,11 +4,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.CheckForNull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
+import static org.apache.commons.lang3.StringUtils.stripToEmpty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketRepository {
@@ -17,13 +20,13 @@ public class BitbucketRepository {
     private final BitbucketProject project;
     private final String slug;
     private final RepositoryState state;
-    private List<BitbucketNamedLink> cloneUrls;
+    private List<BitbucketNamedLink> cloneUrls = new ArrayList<>();
     private String selfLink;
 
     @JsonCreator
     public BitbucketRepository(
             @JsonProperty("name") String name,
-            @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
+            @CheckForNull @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
             @JsonProperty("project") BitbucketProject project,
             @JsonProperty("slug") String slug,
             @JsonProperty("state") RepositoryState state) {
@@ -31,7 +34,9 @@ public class BitbucketRepository {
         this.project = project;
         this.slug = slug;
         this.state = state;
-        setLinks(links);
+        if (links != null) {
+            setLinks(links);
+        }
     }
 
     public List<BitbucketNamedLink> getCloneUrls() {
@@ -47,7 +52,7 @@ public class BitbucketRepository {
     }
 
     public String getSelfLink() {
-        return selfLink;
+        return stripToEmpty(selfLink);
     }
 
     public String getSlug() {
