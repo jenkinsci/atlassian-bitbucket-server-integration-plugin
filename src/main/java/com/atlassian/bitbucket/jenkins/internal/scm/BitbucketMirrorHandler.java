@@ -1,11 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirroredRepositoryDescriptorClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.util.ListBoxModel.Option;
@@ -43,19 +43,20 @@ class BitbucketMirrorHandler {
                         .orElseThrow(() -> new MirrorFetchException("Server config not found"));
         String bitbucketBaseUrl = requireNonNull(server.getBaseUrl(), "Bitbucket base Url not found");
 
-        BitbucketCredentials jobOrGlobalConf = bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(request.getJobCredentials(), server);
+        BitbucketCredentials jobOrGlobalConf =
+                bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(request.getJobCredentials(), server);
         BitbucketRepository bitbucketRepository =
                 bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf)
                         .getProjectClient(request.getBitbucketRepoDetail().getProjectKey())
                         .getRepositoryClient(request.getBitbucketRepoDetail().getRepoSlug())
-                        .get();
+                        .getRepository();
         int repositoryId = bitbucketRepository.getId();
         BitbucketMirroredRepositoryDescriptorClient mirrorClient =
                 bitbucketClientFactoryProvider
                         .getClient(bitbucketBaseUrl, jobOrGlobalConf)
                         .getMirroredRepositoriesClient(repositoryId);
         BitbucketPage<BitbucketMirroredRepository> result =
-                mirrorClient.get().transform(repoDescriptor -> fetchMirroredRepo(mirrorClient, repoDescriptor, repositoryId));
+                mirrorClient.getMirroredRepositoryDescriptors().transform(repoDescriptor -> fetchMirroredRepo(mirrorClient, repoDescriptor, repositoryId));
         return result.getValues();
     }
 

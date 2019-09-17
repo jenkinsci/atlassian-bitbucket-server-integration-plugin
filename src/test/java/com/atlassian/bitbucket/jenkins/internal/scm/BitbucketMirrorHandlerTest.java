@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.MirrorRequest.BitbucketRepoDetail;
@@ -121,7 +122,7 @@ public class BitbucketMirrorHandlerTest {
         when(bitbucketProjectClient.getRepositoryClient(REPO)).thenReturn(bitbucketRepositoryClient);
         BitbucketRepository repo = mock(BitbucketRepository.class);
         when(repo.getId()).thenReturn(REPO_ID);
-        when(bitbucketRepositoryClient.get()).thenReturn(repo);
+        when(bitbucketRepositoryClient.getRepository()).thenReturn(repo);
     }
 
     private void createInstance(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
@@ -155,6 +156,6 @@ public class BitbucketMirrorHandlerTest {
                     true, mirrorName)));
         }
         page.setValues(mirroredRepoDescs);
-        when(bbRepoMirrorsClient.get()).thenReturn(page);
+        when(bbRepoMirrorsClient.getMirroredRepositoryDescriptors()).thenReturn(page);
     }
 }

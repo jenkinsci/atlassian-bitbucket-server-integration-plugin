@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.google.inject.ImplementedBy;
 import okhttp3.HttpUrl;

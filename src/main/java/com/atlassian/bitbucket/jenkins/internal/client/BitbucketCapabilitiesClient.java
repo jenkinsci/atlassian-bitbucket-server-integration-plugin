@@ -1,18 +1,39 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 
 /**
  * Client to get capabilities from the remote server.
  */
-public interface BitbucketCapabilitiesClient extends BitbucketClient<AtlassianServerCapabilities> {
+public interface BitbucketCapabilitiesClient {
 
     /**
-     * A Client which can be queried for webhook related support.
+     * Get the server capabilities
      *
-     * @return webhook client
-     * @throws BitbucketMissingCapabilityException thorwn if the capability is missing.
+     * @return the capabilities of the linked Bitbucket Server
+     * @throws AuthorizationException if the credentials did not allow access to the given url
+     * @throws NoContentException if the server did not respond with a body
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException if the requested url does not exist
+     * @throws BadRequestException if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException if the server failed to process the request
+     * @throws BitbucketClientException for all errors not already captured
      */
-    BitbucketWebhookSupportedEventsClient getWebhookSupportedClient() throws BitbucketMissingCapabilityException;
+    AtlassianServerCapabilities getServerCapabilities();
+
+    /**
+     * Make the supported webhook events for the linked Bitbucket Server.
+     *
+     * @return the supported events
+     * @throws AuthorizationException if the credentials did not allow access to the given url
+     * @throws NoContentException if the server did not respond with a body
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException if the requested url does not exist
+     * @throws BadRequestException if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException if the server failed to process the request
+     * @throws BitbucketClientException for all errors not already captured
+     */
+    BitbucketWebhookSupportedEvents getWebhookSupportedEvents() throws BitbucketMissingCapabilityException;
 }

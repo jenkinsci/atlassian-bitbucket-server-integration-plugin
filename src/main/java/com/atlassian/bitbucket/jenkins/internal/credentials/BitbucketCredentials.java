@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.client;
+package com.atlassian.bitbucket.jenkins.internal.credentials;
 
 /**
  * Represents Bitbucket credential that will be used to make remote calls to Bitbucket server.

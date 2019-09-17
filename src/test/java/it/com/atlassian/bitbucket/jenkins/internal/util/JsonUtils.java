@@ -1,7 +1,6 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
@@ -23,15 +22,36 @@ public class JsonUtils {
         }
     }
 
-    // We wrap the actual BitbucketRepository response and hide the 'links' field behind a
-    // 'cloneUrls' field so the
+    // We wrap the actual BitbucketProject response and hide the 'links' field behind a 'selfLink' field so the
+    // response from Jenkins is actually different to the one from Bitbucket
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class JenkinsBitbucketProject {
+
+        private String key;
+        private String name;
+        private String selfLink;
+
+        public String getKey() {
+            return key;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getSelfLink() {
+            return selfLink;
+        }
+    }
+
+    // We wrap the actual BitbucketRepository response and hide the 'links' field behind a 'cloneUrls' field so the
     // response from Jenkins is actually different to the one from Bitbucket
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class JenkinsBitbucketRepository {
 
         private List<BitbucketNamedLink> cloneUrls;
         private String name;
-        private BitbucketProject project;
+        private JenkinsBitbucketProject project;
         private String slug;
 
         public List<BitbucketNamedLink> getCloneUrls() {
@@ -42,7 +62,7 @@ public class JsonUtils {
             return name;
         }
 
-        public BitbucketProject getProject() {
+        public JenkinsBitbucketProject getProject() {
             return project;
         }
 

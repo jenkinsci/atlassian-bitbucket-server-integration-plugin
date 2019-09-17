@@ -1,11 +1,11 @@
 package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;

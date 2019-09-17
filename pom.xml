@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>1.0-alpha-3-SNAPSHOT</version>
+    <version>1.0-alpha-4-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>5.6.0</bitbucket.version>
@@ -332,6 +332,21 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>versionUpdate</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jenkins-ci.main</groupId>
+                    <artifactId>jenkins-core</artifactId>
+                    <version>${jenkins.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.atlassian.bitbucket.server</groupId>
+                    <artifactId>bitbucket-parent</artifactId>
+                    <version>${bitbucket.version}</version>
+                </dependency>
+            </dependencies>
         </profile>
     </profiles>
 

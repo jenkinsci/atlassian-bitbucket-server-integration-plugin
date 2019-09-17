@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.annotation.concurrent.ThreadSafe;

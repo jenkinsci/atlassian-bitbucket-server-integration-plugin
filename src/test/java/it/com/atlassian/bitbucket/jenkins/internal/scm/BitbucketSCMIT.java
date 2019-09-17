@@ -5,12 +5,17 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
+import io.restassured.RestAssured;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
+import org.hamcrest.Matchers;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -106,25 +111,44 @@ public class BitbucketSCMIT {
         assertThat(project.getBuilds(), hasSize(2));
     }
 
+    @Test
+    public void testPostBuildStatus() throws Exception {
+        project.setScm(createSCM("*/master"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+
+        RestAssured
+                .given()
+                .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                .statusCode(200)
+                .body("values[0].key", Matchers.equalTo(build.getId()))
+                .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
+                .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
+                .when()
+                .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" +
+                     revisionAction.getRevisionSha1());
+    }
+
     private BitbucketSCM createSCM(String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
+        String serverId = bbJenkinsRule.getBitbucketServerConfiguration().getId();
         BitbucketSCM bitbucketSCM =
                 new BitbucketSCM(
                         "",
                         branchSpecs,
-                        bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
                         emptyList(),
                         "",
-                        PROJECT_NAME,
-                        PROJECT_KEY,
-                        REPO_NAME,
-                        REPO_SLUG,
-                        null,
-                        bbJenkinsRule.getBitbucketServerConfiguration().getId());
+                        "",
+                        serverId);
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
+        bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
+                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, false, ""));
         bitbucketSCM.createGitSCM();
         return bitbucketSCM;
     }

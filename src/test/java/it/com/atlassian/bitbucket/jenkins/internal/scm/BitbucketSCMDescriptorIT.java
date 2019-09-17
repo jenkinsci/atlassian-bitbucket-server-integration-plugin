@@ -4,12 +4,12 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import hudson.model.FreeStyleProject;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.response.Response;
-import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils;
+import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketProject;
+import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketRepository;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjects() throws Exception {
-        HudsonResponse<BitbucketPage<BitbucketProject>> response =
+        HudsonResponse<BitbucketPage<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
                         .statusCode(200)
                         .log()
@@ -50,23 +50,23 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("projectName", "proj")
                         .post(getProjectSearchUrl())
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketProject>>>() {
                         });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<BitbucketProject> results = response.getData();
+        BitbucketPage<JenkinsBitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<BitbucketProject> values = results.getValues();
+        List<JenkinsBitbucketProject> values = results.getValues();
         assertThat(values.size(), equalTo(1));
-        BitbucketProject project = values.get(0);
+        JenkinsBitbucketProject project = values.get(0);
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
     }
 
     @Test
     public void testFindProjectsCredentialsIdBlank() throws Exception {
-        HudsonResponse<BitbucketPage<BitbucketProject>> response =
+        HudsonResponse<BitbucketPage<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
                         .statusCode(200)
                         .log()
@@ -78,16 +78,16 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("projectName", "proj")
                         .post(getProjectSearchUrl())
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketProject>>>() {
                         });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<BitbucketProject> results = response.getData();
+        BitbucketPage<JenkinsBitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<BitbucketProject> values = results.getValues();
+        List<JenkinsBitbucketProject> values = results.getValues();
         assertThat(values.size(), equalTo(1));
-        BitbucketProject project = values.get(0);
+        JenkinsBitbucketProject project = values.get(0);
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
     }
@@ -111,7 +111,7 @@ public class BitbucketSCMDescriptorIT {
                 bitbucketJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
                 bitbucketJenkinsRule.getBitbucketServerConfiguration().getBaseUrl(), null, null);
         bitbucketJenkinsRule.addBitbucketServer(bitbucketServerWithoutCredentials);
-        HudsonResponse<BitbucketPage<BitbucketProject>> response =
+        HudsonResponse<BitbucketPage<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
                         .statusCode(200)
                         .log()
@@ -122,10 +122,10 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("projectName", "proj")
                         .post(getProjectSearchUrl())
                         .getBody()
-                        .as(new TypeRef<HudsonResponse<BitbucketPage<BitbucketProject>>>() {
+                        .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketProject>>>() {
                         });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<BitbucketProject> results = response.getData();
+        BitbucketPage<JenkinsBitbucketProject> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
@@ -144,7 +144,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "")
                 .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("The project name must be at least 3 characters long"));
+        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("The project name must be at least 3 characters long"));
+        assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
     }
 
     @Test
@@ -188,7 +188,7 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindRepo() throws Exception {
-        HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>> response = RestAssured.expect().statusCode(200)
+        HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>> response = RestAssured.expect().statusCode(200)
                 .log()
                 .all()
                 .given()
@@ -199,16 +199,16 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl())
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>>>() {
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<JsonUtils.JenkinsBitbucketRepository> results = response.getData();
+        BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<JsonUtils.JenkinsBitbucketRepository> values = results.getValues();
+        List<JenkinsBitbucketRepository> values = results.getValues();
         assertThat(values.size(), equalTo(1));
-        JsonUtils.JenkinsBitbucketRepository repo = values.get(0);
+        JenkinsBitbucketRepository repo = values.get(0);
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
@@ -216,14 +216,14 @@ public class BitbucketSCMDescriptorIT {
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
         assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
-        BitbucketProject project = repo.getProject();
+        JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
     }
 
     @Test
     public void testFindRepoNotExist() throws Exception {
-        HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>> response = RestAssured.expect()
+        HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>> response = RestAssured.expect()
                 .statusCode(200)
                 .log()
                 .ifError()
@@ -235,20 +235,20 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("repositoryName", "non-existent repo")
                 .post(getReposUrl())
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>>>() {
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<JsonUtils.JenkinsBitbucketRepository> results = response.getData();
+        BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<JsonUtils.JenkinsBitbucketRepository> values = results.getValues();
+        List<JenkinsBitbucketRepository> values = results.getValues();
         assertThat(values.size(), equalTo(0));
     }
 
     @Test
     public void testFindRepoProjectNotExist() throws Exception {
-        HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>> response = RestAssured.expect()
+        HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>> response = RestAssured.expect()
                 .statusCode(200)
                 .log()
                 .ifError()
@@ -260,20 +260,20 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl())
                 .getBody()
-                .as(new TypeRef<HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>>>() {
+                .as(new TypeRef<HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<JsonUtils.JenkinsBitbucketRepository> results = response.getData();
+        BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(0));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<JsonUtils.JenkinsBitbucketRepository> values = results.getValues();
+        List<JenkinsBitbucketRepository> values = results.getValues();
         assertThat(values.size(), equalTo(0));
     }
 
     @Test
     public void testFindReposCredentialsIdBlank() throws Exception {
-        HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>> response =
+        HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>> response =
                 RestAssured.expect()
                         .statusCode(200)
                         .log()
@@ -289,16 +289,16 @@ public class BitbucketSCMDescriptorIT {
                         .as(
                                 new TypeRef<
                                         HudsonResponse<
-                                                BitbucketPage<JsonUtils.JenkinsBitbucketRepository>>>() {
+                                                BitbucketPage<JenkinsBitbucketRepository>>>() {
                                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<JsonUtils.JenkinsBitbucketRepository> results = response.getData();
+        BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<JsonUtils.JenkinsBitbucketRepository> values = results.getValues();
+        List<JenkinsBitbucketRepository> values = results.getValues();
         assertThat(values.size(), equalTo(1));
-        JsonUtils.JenkinsBitbucketRepository repo = values.get(0);
+        JenkinsBitbucketRepository repo = values.get(0);
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
@@ -306,7 +306,7 @@ public class BitbucketSCMDescriptorIT {
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
         assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
-        BitbucketProject project = repo.getProject();
+        JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
     }
@@ -326,7 +326,7 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindReposCredentialsMissing() throws Exception {
-        HudsonResponse<BitbucketPage<JsonUtils.JenkinsBitbucketRepository>> response =
+        HudsonResponse<BitbucketPage<JenkinsBitbucketRepository>> response =
                 RestAssured.expect()
                         .statusCode(200)
                         .log()
@@ -341,16 +341,16 @@ public class BitbucketSCMDescriptorIT {
                         .as(
                                 new TypeRef<
                                         HudsonResponse<
-                                                BitbucketPage<JsonUtils.JenkinsBitbucketRepository>>>() {
+                                                BitbucketPage<JenkinsBitbucketRepository>>>() {
                                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        BitbucketPage<JsonUtils.JenkinsBitbucketRepository> results = response.getData();
+        BitbucketPage<JenkinsBitbucketRepository> results = response.getData();
         assertThat(results.getSize(), equalTo(1));
         assertThat(results.getStart(), equalTo(0));
         assertThat(results.getLimit(), equalTo(25));
-        List<JsonUtils.JenkinsBitbucketRepository> values = results.getValues();
+        List<JenkinsBitbucketRepository> values = results.getValues();
         assertThat(values.size(), equalTo(1));
-        JsonUtils.JenkinsBitbucketRepository repo = values.get(0);
+        JenkinsBitbucketRepository repo = values.get(0);
         assertThat(repo.getSlug(), equalTo("rep_1"));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
@@ -358,7 +358,7 @@ public class BitbucketSCMDescriptorIT {
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
         assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
-        BitbucketProject project = repo.getProject();
+        JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
     }
@@ -387,7 +387,7 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .post(getReposUrl());
-        assertThat(response.getBody().print(), containsString("The repository name must be at least 3 characters long"));
+        assertThat(response.getBody().print(), containsString("The repository name must be at least 2 characters long"));
     }
 
     @Test

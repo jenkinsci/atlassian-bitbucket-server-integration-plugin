@@ -1,13 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.cloudbees.plugins.credentials.Credentials;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 
 /**
  * For every Bitbucket instance configured on Jenkins, we have

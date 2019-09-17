@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NoContentException;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;

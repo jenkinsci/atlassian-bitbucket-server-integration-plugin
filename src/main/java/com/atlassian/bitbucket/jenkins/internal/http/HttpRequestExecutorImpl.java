@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.http;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import hudson.Plugin;
@@ -15,8 +15,8 @@ import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
+import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static java.net.HttpURLConnection.*;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 

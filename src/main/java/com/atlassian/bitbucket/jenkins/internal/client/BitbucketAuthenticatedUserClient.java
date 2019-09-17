@@ -2,17 +2,17 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 
+import java.util.Optional;
+
 /**
- * Basic Bitbucket client. A client is normally threadsafe and can be used multiple times.
- *
- * @param <T> the type to return
+ * Client to retrieve the username for the credentials used.
  */
-public interface BitbucketClient<T> {
+public interface BitbucketAuthenticatedUserClient {
 
     /**
-     * Make the call out to Bitbucket and read the response.
+     * Get the username associated with the provided credentials.
      *
-     * @return the result of the call
+     * @return The associated username, or {@link Optional#empty} if there is none
      * @throws AuthorizationException if the credentials did not allow access to the given url
      * @throws NoContentException if the server did not respond with a body
      * @throws ConnectionFailureException if the server did not respond
@@ -21,5 +21,5 @@ public interface BitbucketClient<T> {
      * @throws ServerErrorException if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    T get();
+    Optional<String> getAuthenticatedUser();
 }

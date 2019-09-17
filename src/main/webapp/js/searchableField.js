@@ -1,4 +1,23 @@
 /**
+ * Call the function if it hasn't been called recently
+ * @param func the function to call
+ * @param wait the timeout period in millis
+ * @returns {Function}
+ */
+var debounce = function (func, wait) {
+    var timeout;
+    return function () {
+        var context = this, args = arguments;
+        var later = function () {
+            timeout = null;
+            func.apply(context, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+/**
  * Modified from the Jenkins combobox code
  * https://github.com/jenkinsci/jenkins/blob/master/core/src/main/resources/lib/form/combobox/combobox.js
  *
@@ -7,38 +26,60 @@
  * when one is selected the human readable value will be in the combobox input and a computer-readable value will go
  * in the associated value field.
  **/
-Behaviour.specify(".searchable", 'searchableField', 200, function(el) {
-    var results = {};
+Behaviour.specify('.searchable', 'searchableField', 200, function (el) {
+    var results = [];
 
-    new ComboBox(el, function(query) {
-        return Object.keys(results);
+    /**
+     * This combobox comes from https://github.com/jenkinsci/jenkins/blob/master/war/src/main/webapp/scripts/combobox.js
+     */
+    var combobox = new ComboBox(el, function(query) {
+        return results;
     }, {});
 
-    el.addEventListener('input', function(e) {
-        var parameters = (el.getAttribute("fillDependsOn") || "").split(" ")
-            .reduce(function(params, fieldName) {
+    el.addEventListener('input', debounce(function (e) {
+        if (el.value.length < 2) { // Only perform a search if there are enough characters
+            results = [];
+            combobox.valueChanged();
+            return;
+        }
+
+        // Get the values of the field this depends on
+        var parameters = (el.getAttribute('fillDependsOn') || '').split(' ')
+            .reduce(function (params, fieldName) {
                 var dependentField = findNearBy(el, fieldName);
                 if (dependentField) {
                     params[fieldName] = dependentField.value;
                 }
                 return params;
             }, {});
-        new Ajax.Request(el.getAttribute("fillUrl"), {
+        // Request the search results
+        new Ajax.Request(el.getAttribute('fillUrl'), {
             parameters: parameters,
-            onSuccess: function(rsp) {
-                var valueIdentifier = el.getAttribute("valueIdentifier");
+            onSuccess: function (rsp) {
                 results = (rsp.responseJSON.data && rsp.responseJSON.data.values || [])
-                    .reduce(function (flattened, result) {
-                        flattened[result.name] = result[valueIdentifier];
-                        return flattened;
-                    }, {});
+                    .map(function (value) {
+                        return value.name;
+                    });
+                combobox.valueChanged();
+            },
+            onFailure: function (rsp) {
+                results = [];
+                combobox.valueChanged();
+            }
+        });
+    }, 300));
+
+    el.addEventListener('blur', function (e) {
+        results = [];
+        // Clear the dependent fields
+        document.querySelectorAll('[filldependson~="' + e.target.name.replace('_.', '') + '"]')
+            .forEach(function (dependentField) {
+                if (dependentField.name !== e.target.name) {
+                    dependentField.value = '';
+                    dependentField.setAttribute('value', '');
+                    dependentField.dispatchEvent(new Event('change'))
             }
         });
     });
 
-    el.addEventListener('change', function(e) {
-        var valueField = document.getElementById(el.getAttribute('valueField'));
-        valueField.value = results[e.target.value] || e.target.value; // default to the field value if not found
-        valueField.dispatchEvent(new Event('change')); // trigger validation
-    });
 });

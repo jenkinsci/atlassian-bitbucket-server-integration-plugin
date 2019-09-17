@@ -13,17 +13,25 @@ import java.util.stream.Stream;
 
 import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
+import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final HttpUrl url;
 
-    public BitbucketWebhookClientImpl(String projectKey,
-                                      String repoSlug,
-                                      BitbucketRequestExecutor bitbucketRequestExecutor) {
+    BitbucketWebhookClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor,
+                               String projectKey,
+                               String repoSlug) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
-        this.url = getWebhookUrl(projectKey, repoSlug);
+        url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(requireNonNull(stripToNull(projectKey), "projectKey"))
+                .addPathSegment("repos")
+                .addPathSegment(requireNonNull(stripToNull(repoSlug), "repoSlug"))
+                .addPathSegment("webhooks")
+                .build();
     }
 
     @Override
@@ -59,16 +67,6 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
                 url,
                 request,
                 BitbucketWebhook.class).getBody();
-    }
-
-    private HttpUrl getWebhookUrl(String projectSlug, String repoSlug) {
-        return bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectSlug)
-                .addPathSegment("repos")
-                .addPathSegment(repoSlug)
-                .addPathSegment("webhooks")
-                .build();
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketWebhook> {

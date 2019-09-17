@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -20,7 +21,7 @@ public class BitbucketPage<T> {
     private int limit;
     private int size;
     private int start;
-    private List<T> values;
+    private List<T> values = new ArrayList<>();
     private int nextPageStart;
 
     public int getLimit() {

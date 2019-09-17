@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCapabilitiesClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookSupportedEventsClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
@@ -44,14 +43,11 @@ public class BitbucketWebhookHandlerTest {
     private final WebhookRegisterRequest.Builder defaultBuilder = getRequestBuilder();
     private BitbucketWebhookHandler handler;
     @Mock
-    private BitbucketWebhookSupportedEventsClient webhookSupportedEventsClient;
-    @Mock
     private BitbucketWebhookClient webhookClient;
 
     @Before
     public void setup() {
-        when(capabilitiesClient.getWebhookSupportedClient()).thenReturn(webhookSupportedEventsClient);
-        when(webhookSupportedEventsClient.get()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>(asList(MIRROR_SYNCHRONIZED_EVENT.getEventId(), REPO_REF_CHANGE.getEventId()))));
+        when(capabilitiesClient.getWebhookSupportedEvents()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>(asList(MIRROR_SYNCHRONIZED_EVENT.getEventId(), REPO_REF_CHANGE.getEventId()))));
         doAnswer(answer -> create((BitbucketWebhookRequest) answer.getArguments()[0])).when(webhookClient).registerWebhook(any(BitbucketWebhookRequest.class));
         doAnswer(answer -> create((Integer) answer.getArguments()[0], (BitbucketWebhookRequest) answer.getArguments()[1])).when(webhookClient).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
         handler = new BitbucketWebhookHandler(capabilitiesClient, webhookClient);
@@ -212,7 +208,7 @@ public class BitbucketWebhookHandlerTest {
 
     @Test
     public void testUnsupportedMirrorEvent() {
-        when(capabilitiesClient.getWebhookSupportedClient().get()).thenThrow(BitbucketMissingCapabilityException.class);
+        when(capabilitiesClient.getWebhookSupportedEvents()).thenThrow(BitbucketMissingCapabilityException.class);
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
 
@@ -235,14 +231,14 @@ public class BitbucketWebhookHandlerTest {
 
     @Test(expected = WebhookNotSupportedException.class)
     public void testCapabilitiesNeedToAtleastSupportRepoRef() {
-        when(webhookSupportedEventsClient.get()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>()));
+        when(capabilitiesClient.getWebhookSupportedEvents()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>()));
 
         handler.register(defaultBuilder.isMirror(true).build());
     }
 
     @Test
     public void testMirrorRequestWillBeRepoRefSubscribedIfUnsupported() {
-        when(webhookSupportedEventsClient.get()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>(asList(REPO_REF_CHANGE.getEventId()))));
+        when(capabilitiesClient.getWebhookSupportedEvents()).thenReturn(new BitbucketWebhookSupportedEvents(new HashSet<>(asList(REPO_REF_CHANGE.getEventId()))));
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
 
         assertThat(result.getEvents(), iterableWithSize(1));

@@ -7,17 +7,22 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest.Builder;
+import okhttp3.Request;
+import okio.Buffer;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
+import static org.apache.commons.lang3.StringUtils.deleteWhitespace;
+import static org.apache.commons.lang3.StringUtils.normalizeSpace;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
@@ -25,6 +30,7 @@ import static org.junit.Assert.*;
 
 public class BitbucketWebhookClientImplTest {
 
+    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/webhooks";
     private static final String projectKey = "proj";
     private static final String repoSlug = "repo";
 
@@ -33,12 +39,12 @@ public class BitbucketWebhookClientImplTest {
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
             requestExecutor, OBJECT_MAPPER, ANONYMOUS_CREDENTIALS);
     private BitbucketWebhookClientImpl client =
-            new BitbucketWebhookClientImpl(projectKey, repoSlug, bitbucketRequestExecutor);
+            new BitbucketWebhookClientImpl(bitbucketRequestExecutor, projectKey, repoSlug);
 
     @Test
     public void testFetchingOfExistingWebhooks() {
         String response = readFileToString("/webhook/web_hooks_in_system.json");
-        String url = format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks", BITBUCKET_BASE_URL, projectKey, repoSlug);
+        String url = format(WEBHOOK_URL, BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
         List<BitbucketWebhook> webhooks = client.getWebhooks().collect(toList());
@@ -55,7 +61,7 @@ public class BitbucketWebhookClientImplTest {
         String mirrorSyncEvent = "mirror:repo_synchronized";
         String response = readFileToString("/webhook/web_hooks_in_system.json");
         String url =
-                format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks?event=%s&event=%s",
+                format(WEBHOOK_URL + "?event=%s&event=%s",
                         BITBUCKET_BASE_URL,
                         projectKey,
                         repoSlug,
@@ -73,17 +79,18 @@ public class BitbucketWebhookClientImplTest {
     }
 
     @Test
-    public void testRegisterWebhook() {
+    public void testRegisterWebhook() throws IOException {
         String repoRefEvent = "repo:refs_changed";
         String mirrorSyncEvent = "mirror:repo_synchronized";
         String response = readFileToString("/webhook/webhook_created_response.json");
         String url = "www.example.com";
+        String requestBody = readFileToString("/webhook/webhook_creation_request.json");
         String registerUrl =
-                format("%s/rest/api/1.0/projects/%s/repos/%s/webhooks",
+                format(WEBHOOK_URL,
                         BITBUCKET_BASE_URL,
                         projectKey,
                         repoSlug);
-        fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, readFileToString("/webhook/webhook_creation_request.json"), response);
+        fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, requestBody, response);
 
         BitbucketWebhookRequest request = Builder
                 .aRequestFor(repoRefEvent, mirrorSyncEvent)
@@ -94,6 +101,11 @@ public class BitbucketWebhookClientImplTest {
         BitbucketWebhook result = client.registerWebhook(request);
 
         assertThat(result.getEvents(), hasItems(repoRefEvent, mirrorSyncEvent));
+
+        Request recordedRequest = fakeRemoteHttpServer.getRequest(registerUrl);
+        Buffer b = new Buffer();
+        recordedRequest.body().writeTo(b);
+        assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
     }
 
     @Test

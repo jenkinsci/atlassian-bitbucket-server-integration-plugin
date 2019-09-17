@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -85,7 +87,7 @@ public class BitbucketWebhookConsumerTest {
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
 
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_NAME,
-                JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, false, null);
+                JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, false, "");
         when(bitbucketSCM.getRepositories())
                 .thenReturn(Collections.singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);
@@ -199,8 +201,10 @@ public class BitbucketWebhookConsumerTest {
         List<BitbucketNamedLink> cloneLinks = Collections.singletonList(cloneLink);
         Map<String, List<BitbucketNamedLink>> links =
                 Maps.of("clone", cloneLinks, "self", Collections.singletonList(selfLink));
-        BitbucketProject project = new BitbucketProject(projectKey, projectKey);
-        return new BitbucketRepository(1,
-                repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
+        BitbucketProject project = new BitbucketProject(projectKey,
+                singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey))),
+                projectKey);
+        return new BitbucketRepository(
+                1, repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
     }
 }
