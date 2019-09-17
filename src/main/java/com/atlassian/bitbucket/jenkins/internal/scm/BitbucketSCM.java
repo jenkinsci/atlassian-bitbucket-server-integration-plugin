@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositorySearch
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.MirrorRequest.BitbucketRepoDetail;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -55,7 +56,6 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils.getCredentials;
 import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
@@ -312,8 +312,9 @@ public class BitbucketSCM extends SCM {
             String projectKey,
             String repositorySlug,
             String credentialsId) {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
         return bitbucketClientFactoryProvider
-                .getClient(server.getBaseUrl(), createWithFallback(credentialsId, server))
+                .getClient(server.getBaseUrl(), descriptor.bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server))
                 .getProjectClient(projectKey)
                 .getRepositoryClient(repositorySlug)
                 .get();
@@ -343,6 +344,8 @@ public class BitbucketSCM extends SCM {
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         @Inject
         private BitbucketMirrorHandler bitbucketMirrorHandler;
+        @Inject
+        private BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -432,7 +435,8 @@ public class BitbucketSCM extends SCM {
 
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
-                        BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
+                        BitbucketCredentials credentials =
+                                bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf);
                         BitbucketProjectSearchClient projectSearchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
                                 .getProjectSearchClient();
@@ -474,7 +478,8 @@ public class BitbucketSCM extends SCM {
 
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
-                        BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
+                        BitbucketCredentials credentials =
+                                bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf);
                         BitbucketRepositorySearchClient searchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
                                 .getRepositorySearchClient(projectName);
@@ -526,7 +531,7 @@ public class BitbucketSCM extends SCM {
                 StringUtils.isEmpty(repositorySlug)) {
                 return options;
             }
-            List<Option> values = bitbucketMirrorHandler.fetchOptions(
+            List<Option> values = bitbucketMirrorHandler.fetchAsListBoxOptions(
                     new MirrorRequest(serverId, credentialsId, new BitbucketRepoDetail(projectKey, repositorySlug)),
                     mirrorName);
             options.addAll(values);

@@ -27,6 +27,8 @@ public class BuildStatusPoster {
     BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
     private BitbucketPluginConfiguration pluginConfiguration;
+    @Inject
+    private BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
 
     public void postBuildStatus(AbstractBuild build, TaskListener listener) {
         BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
@@ -42,7 +44,7 @@ public class BuildStatusPoster {
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 BitbucketCredentials credentials =
-                        BitbucketCredentialsAdaptor.createWithFallback(server.getCredentials(), server);
+                        bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(server.getCredentials(), server);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
                         .getBuildStatusClient(revisionAction.getRevisionSha1())
                         .post(buildStatus);

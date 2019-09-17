@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketSearchEndpoint;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -75,8 +74,6 @@ public class BitbucketSCMDescriptorTest {
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private BitbucketClientFactory bitbucketClientFactory;
-    @Mock
-    private BitbucketSearchEndpoint searchEndpoint;
     @Mock
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock

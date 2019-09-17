@@ -5,34 +5,47 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.cloudbees.plugins.credentials.Credentials;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 
-public final class BitbucketCredentialsAdaptor {
+/**
+ * For every Bitbucket instance configured on Jenkins, we have
+ * 1. Job credentials for bitbucket server which is configured by user while creating/modifying new jobs.
+ * 2. Global credentials for bitbucket server which is configured by global admin
+ *
+ * It is possible to not specify Job credentials while configuring a job. For bitbucket operation, we
+ * fall back to global configuration. This class gives the way to create bitbucket credentials based on
+ * given optional job credentials and server configuration.
+ */
+public class BitbucketCredentialsAdaptor {
 
-    private BitbucketCredentialsAdaptor() {
+    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+
+    @Inject
+    public BitbucketCredentialsAdaptor(JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
     }
 
-    public static BitbucketCredentials createWithFallback(@Nullable String credentials,
-                                                          BitbucketServerConfiguration configuration) {
-        return createWithFallback(CredentialUtils.getCredentials(credentials), configuration);
-    }
-
-    public static BitbucketCredentials createWithFallback(@Nullable Credentials credentials,
-                                                          BitbucketServerConfiguration configuration) {
-        if (credentials == null) {
-            return create(configuration);
+    public BitbucketCredentials asBitbucketCredentialWithFallback(@Nullable String credentials,
+                                                                  BitbucketServerConfiguration configuration) {
+        if (credentials != null) {
+            return jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials);
         }
-        return create(credentials);
+        return usingGlobalCredentials(configuration);
     }
 
-    public static BitbucketCredentials create(Credentials credentials) {
-        return new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(credentials);
+    public BitbucketCredentials asBitbucketCredentialWithFallback(@Nullable Credentials credentials,
+                                                                  BitbucketServerConfiguration configuration) {
+        if (credentials != null) {
+            return jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials);
+        }
+        return usingGlobalCredentials(configuration);
     }
 
-    private static BitbucketCredentials create(BitbucketServerConfiguration configuration) {
+    private BitbucketCredentials usingGlobalCredentials(BitbucketServerConfiguration configuration) {
         if (configuration.getCredentials() != null) {
-            return create(configuration.getCredentials());
+            return jenkinsToBitbucketCredentials.toBitbucketCredentials(configuration.getCredentials());
         } else {
             return ANONYMOUS_CREDENTIALS;
         }

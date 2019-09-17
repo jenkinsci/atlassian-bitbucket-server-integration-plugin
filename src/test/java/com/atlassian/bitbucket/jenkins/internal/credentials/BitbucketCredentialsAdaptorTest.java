@@ -53,7 +53,7 @@ public class BitbucketCredentialsAdaptorTest {
         Secret tokenSecret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
         when(cred.getSecret()).thenReturn(tokenSecret);
 
-        BitbucketCredentials bbCreds = BitbucketCredentialsAdaptor.createWithFallback(cred, conf);
+        BitbucketCredentials bbCreds = createInstance().asBitbucketCredentialWithFallback(cred, conf);
 
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
         verifyZeroInteractions(conf);
@@ -70,7 +70,7 @@ public class BitbucketCredentialsAdaptorTest {
         when(conf.getCredentials()).thenReturn(userNamePasswordCred);
 
         Credentials credentials = null;
-        BitbucketCredentials bbCreds = BitbucketCredentialsAdaptor.createWithFallback(credentials, conf);
+        BitbucketCredentials bbCreds = createInstance().asBitbucketCredentialWithFallback(credentials, conf);
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
     }
 
@@ -80,7 +80,7 @@ public class BitbucketCredentialsAdaptorTest {
         when(conf.getCredentials()).thenReturn(null);
         Credentials c = null;
 
-        BitbucketCredentials bitbucketCredentials = BitbucketCredentialsAdaptor.createWithFallback(c, conf);
+        BitbucketCredentials bitbucketCredentials = createInstance().asBitbucketCredentialWithFallback(c, conf);
 
         assertThat(bitbucketCredentials, is(BitbucketCredentials.ANONYMOUS_CREDENTIALS));
     }
@@ -96,6 +96,10 @@ public class BitbucketCredentialsAdaptorTest {
     }
 
     private String toHeaderValue(Credentials cred) {
-        return BitbucketCredentialsAdaptor.createWithFallback(cred, mock(BitbucketServerConfiguration.class)).toHeaderValue();
+        return createInstance().asBitbucketCredentialWithFallback(cred, mock(BitbucketServerConfiguration.class)).toHeaderValue();
+    }
+
+    private BitbucketCredentialsAdaptor createInstance() {
+        return new BitbucketCredentialsAdaptor(new JenkinsToBitbucketCredentialsImpl());
     }
 }

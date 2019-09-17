@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirroredReposito
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.util.ListBoxModel.Option;
 
@@ -15,31 +16,34 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 
-public class BitbucketMirrorHandler {
+class BitbucketMirrorHandler {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketMirrorHandler.class.getName());
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private final BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
 
     @Inject
-    public BitbucketMirrorHandler(
+    BitbucketMirrorHandler(
             BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-            BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+            BitbucketPluginConfiguration bitbucketPluginConfiguration,
+            BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
+        this.bitbucketCredentialsAdaptor = bitbucketCredentialsAdaptor;
     }
 
     public List<BitbucketMirroredRepository> fetchRepositores(MirrorRequest request) {
-        BitbucketServerConfiguration server = bitbucketPluginConfiguration.getServerById(request.getServerId())
-                .orElseThrow(() -> new MirrorFetchException("Server config not found"));
+        BitbucketServerConfiguration server =
+                bitbucketPluginConfiguration.getServerById(request.getServerId())
+                        .orElseThrow(() -> new MirrorFetchException("Server config not found"));
         String bitbucketBaseUrl = requireNonNull(server.getBaseUrl(), "Bitbucket base Url not found");
 
-        BitbucketCredentials jobOrGlobalConf = createWithFallback(request.getJobCredentials(), server);
+        BitbucketCredentials jobOrGlobalConf = bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(request.getJobCredentials(), server);
         BitbucketRepository bitbucketRepository =
                 bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf)
                         .getProjectClient(request.getBitbucketRepoDetail().getProjectKey())
@@ -55,7 +59,7 @@ public class BitbucketMirrorHandler {
         return result.getValues();
     }
 
-    public List<Option> fetchOptions(MirrorRequest request, String mirrorSelection) {
+    public List<Option> fetchAsListBoxOptions(MirrorRequest request, String mirrorSelection) {
         List<BitbucketMirroredRepository> mirroredRepository = fetchRepositoriesQuietly(request);
         List<Option> mirrorOptions = mirroredRepository
                 .stream()
