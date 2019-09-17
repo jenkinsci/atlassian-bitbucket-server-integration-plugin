@@ -25,7 +25,7 @@ public class BitbucketProject {
         this.key = requireNonNull(key, "key");
         this.name = requireNonNull(name, "name");
         if (links != null) {
-            List<BitbucketNamedLink> self = requireNonNull(links, "links").get("self");
+            List<BitbucketNamedLink> self = links.get("self");
             if (self != null && !self.isEmpty()) { // there should always be exactly one self link.
                 selfLink = self.get(0).getHref();
             }
