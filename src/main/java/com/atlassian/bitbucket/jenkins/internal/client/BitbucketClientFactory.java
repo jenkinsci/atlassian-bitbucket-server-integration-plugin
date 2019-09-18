@@ -34,7 +34,7 @@ public interface BitbucketClientFactory {
      * @param repositoryId the repositoryId
      * @return a client that is ready to use
      */
-    BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repositoryId);
+    BitbucketMirrorClient getMirroredRepositoriesClient(int repositoryId);
 
     /**
      * Return a project client.

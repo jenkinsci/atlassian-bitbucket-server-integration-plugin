@@ -41,7 +41,7 @@ public class BitbucketClientException extends RuntimeException {
     }
 
     public BitbucketClientException(String message) {
-        this(message, null);
+        this(message, null, -1, null);
     }
 
     @Override

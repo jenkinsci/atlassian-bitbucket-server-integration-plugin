@@ -1,11 +1,15 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBuildStatusClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
@@ -59,6 +63,8 @@ public class BuildStatusPosterTest {
     private AbstractProject project;
     @Mock
     private BitbucketServerConfiguration server;
+    @Mock
+    private BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
     @InjectMocks
     private BuildStatusPoster buildStatusPoster;
 
@@ -76,6 +82,11 @@ public class BuildStatusPosterTest {
         when(factoryProvider.getClient(eq(SERVER_URL), any(BitbucketCredentials.class)))
                 .thenReturn(factory);
         when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
+        BitbucketCredentials credentials = mock(BitbucketCredentials.class);
+        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(any(Credentials.class),
+                any(BitbucketServerConfiguration.class))).thenReturn(credentials);
+        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback((Credentials) isNull(),
+                any(BitbucketServerConfiguration.class))).thenReturn(credentials);
     }
 
     @Test

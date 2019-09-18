@@ -58,7 +58,7 @@ public class RetryingWebhookHandler {
         WebhookRegisterRequest request = WebhookRegisterRequest.Builder
                 .aRequest(repository.getProjectKey(), repository.getRepositorySlug())
                 .withJenkinsBaseUrl(jenkinsUrl)
-                .isMirror(repository.isMirror())
+                .isMirror(repository.isMirrorConfigured())
                 .withName(instanceBasedNameGenerator.getUniqueName())
                 .build();
         String jobCredentials = repository.getCredentialsId();

@@ -29,8 +29,8 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketMirroredRepositoryDescriptorClient getMirroredRepositoriesClient(int repositoryId) {
-        return new BitbucketMirroredRepositoryDescriptorClientImpl(bitbucketRequestExecutor, repositoryId);
+    public BitbucketMirrorClient getMirroredRepositoriesClient(int repositoryId) {
+        return new BitbucketMirrorClientImpl(bitbucketRequestExecutor, repositoryId);
     }
 
     @Override

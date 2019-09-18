@@ -9,13 +9,13 @@ import okhttp3.HttpUrl;
 
 import static java.util.Objects.requireNonNull;
 
-public class BitbucketMirroredRepositoryDescriptorClientImpl implements BitbucketMirroredRepositoryDescriptorClient {
+public class BitbucketMirrorClientImpl implements BitbucketMirrorClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final int repositoryId;
 
-    BitbucketMirroredRepositoryDescriptorClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor,
-                                                    int repositoryId) {
+    BitbucketMirrorClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor,
+                              int repositoryId) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.repositoryId = repositoryId;
     }
@@ -42,7 +42,6 @@ public class BitbucketMirroredRepositoryDescriptorClientImpl implements Bitbucke
             throw new BitbucketClientException("Invalid repo URL " + repoUrl);
         }
 
-        return bitbucketRequestExecutor.makeGetRequest(mirrorUrl,
-                BitbucketMirroredRepository.class).getBody();
+        return bitbucketRequestExecutor.makeGetRequest(mirrorUrl, BitbucketMirroredRepository.class).getBody();
     }
 }

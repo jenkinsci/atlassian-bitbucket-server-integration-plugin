@@ -1,12 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.*;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirrorClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.atlassian.bitbucket.jenkins.internal.scm.MirrorRequest.BitbucketRepoDetail;
 import hudson.util.ListBoxModel;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,13 +14,16 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus.AVAILABLE;
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
+import static com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus.NOT_MIRRORED;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static java.lang.String.format;
-import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
@@ -40,10 +43,11 @@ public class BitbucketMirrorHandlerTest {
     private static final String MIRROR_NAME = "Mirror%d";
     private static final String MIRROR_URL = "http://mirror%d.example.com";
     private static final String CREDENTIAL_ID = "credential_id";
-    private static final String SERVER_ID = "server_id";
 
     @Mock
-    private BitbucketMirroredRepositoryDescriptorClient bbRepoMirrorsClient;
+    private BitbucketMirrorClient bbRepoMirrorsClient;
+    @Mock
+    private BitbucketServerConfiguration serverConfiguration;
     private BitbucketMirrorHandler bitbucketMirrorHandler;
 
     @Before
@@ -51,22 +55,23 @@ public class BitbucketMirrorHandlerTest {
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider = mock(BitbucketClientFactoryProvider.class);
         mockClientFactory(bitbucketClientFactoryProvider);
 
-        BitbucketPluginConfiguration bitbucketPluginConfiguration = mock(BitbucketPluginConfiguration.class);
-        BitbucketServerConfiguration serverConfiguration = mockServerConfig(bitbucketPluginConfiguration);
+        serverConfiguration = mockServerConfig();
         BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor = mockCredentialAdaptor(serverConfiguration);
 
-        createInstance(bitbucketClientFactoryProvider, bitbucketPluginConfiguration, bitbucketCredentialsAdaptor);
+        createInstance(bitbucketClientFactoryProvider, bitbucketCredentialsAdaptor);
     }
 
     @Test
-    public void testFindMirroredRepository() {
-        createMirroredRepoDescriptors(1);
-        String mirrorName = "Mirror0";
+    public void testDoesNotFetchUnAvailableRepository() {
+        createMirroredRepoDescriptors(2);
 
-        String repoCloneUrl = mockMirroredRepo(mirrorName);
+        String mirrorName = "Mirror0";
+        String repoCloneUrl = mockMirroredRepo(mirrorName, AVAILABLE);
+        mockMirroredRepo("Mirror1", NOT_MIRRORED);
 
         List<BitbucketMirroredRepository> repositories =
-                bitbucketMirrorHandler.fetchRepositores(new MirrorRequest(SERVER_ID, CREDENTIAL_ID, new BitbucketRepoDetail(PROJECT, REPO)));
+                bitbucketMirrorHandler.fetchRepositores(REPO_ID, CREDENTIAL_ID, serverConfiguration);
+
         assertThat(repositories.size(), is(equalTo(1)));
 
         BitbucketMirroredRepository repository = repositories.get(0);
@@ -85,26 +90,42 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo("Mirror1");
 
         List<ListBoxModel.Option> options =
-                bitbucketMirrorHandler.fetchAsListBoxOptions(
-                        new MirrorRequest(SERVER_ID, CREDENTIAL_ID, new BitbucketRepoDetail(PROJECT, REPO)),
-                        "Mirror0");
+                bitbucketMirrorHandler.fetchAsListBoxOptions(REPO_ID, CREDENTIAL_ID, serverConfiguration, "Mirror0");
 
         assertThat(options.size(), is(equalTo(2)));
 
         assertThat(options.stream().map(ListBoxModel.Option::toString).collect(Collectors.toList()), hasItems("Mirror0=Mirror0[selected]", "Mirror1=Mirror1"));
     }
 
+    @Test
+    public void testFindMirroredRepository() {
+        createMirroredRepoDescriptors(1);
+        String mirrorName = "Mirror0";
+
+        String repoCloneUrl = mockMirroredRepo(mirrorName);
+
+        List<BitbucketMirroredRepository> repositories =
+                bitbucketMirrorHandler.fetchRepositores(REPO_ID, CREDENTIAL_ID, serverConfiguration);
+        assertThat(repositories.size(), is(equalTo(1)));
+
+        BitbucketMirroredRepository repository = repositories.get(0);
+
+        assertThat(repository.getMirrorName(), is(equalTo(mirrorName)));
+        assertThat(repository.getStatus(), is(equalTo(AVAILABLE)));
+        assertThat(repository.isAvailable(), is(equalTo(true)));
+        assertThat(repository.getCloneUrls(), iterableWithSize(1));
+        assertThat(repository.getCloneUrls().get(0).getHref(), is(equalTo(repoCloneUrl)));
+    }
+
     private void mockClientFactory(BitbucketClientFactoryProvider bitbucketClientFactoryProvider) {
         BitbucketClientFactory bbClientFactory = mock(BitbucketClientFactory.class);
         when(bitbucketClientFactoryProvider.getClient(anyString(), any())).thenReturn(bbClientFactory);
         when(bbClientFactory.getMirroredRepositoriesClient(REPO_ID)).thenReturn(bbRepoMirrorsClient);
-        mockRepositoryClient(bbClientFactory);
     }
 
-    private BitbucketServerConfiguration mockServerConfig(BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+    private BitbucketServerConfiguration mockServerConfig() {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
-        when(bitbucketPluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(serverConfiguration));
         return serverConfiguration;
     }
 
@@ -115,29 +136,23 @@ public class BitbucketMirrorHandlerTest {
         return bitbucketCredentialsAdaptor;
     }
 
-    private void mockRepositoryClient(BitbucketClientFactory bbClientFactory) {
-        BitbucketProjectClient bitbucketProjectClient = mock(BitbucketProjectClient.class);
-        BitbucketRepositoryClient bitbucketRepositoryClient = mock(BitbucketRepositoryClient.class);
-        when(bbClientFactory.getProjectClient(PROJECT)).thenReturn(bitbucketProjectClient);
-        when(bitbucketProjectClient.getRepositoryClient(REPO)).thenReturn(bitbucketRepositoryClient);
-        BitbucketRepository repo = mock(BitbucketRepository.class);
-        when(repo.getId()).thenReturn(REPO_ID);
-        when(bitbucketRepositoryClient.getRepository()).thenReturn(repo);
-    }
-
     private void createInstance(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                                BitbucketPluginConfiguration bitbucketPluginConfiguration,
                                 BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor) {
         bitbucketMirrorHandler = new BitbucketMirrorHandler(bitbucketClientFactoryProvider,
-                bitbucketPluginConfiguration, bitbucketCredentialsAdaptor);
+                bitbucketCredentialsAdaptor);
     }
 
     private String mockMirroredRepo(String mirrorName) {
+        return this.mockMirroredRepo(mirrorName, AVAILABLE);
+    }
+
+    private String mockMirroredRepo(String mirrorName, BitbucketMirroredRepositoryStatus status) {
         Map<String, List<BitbucketNamedLink>> repoLinks = new HashMap<>();
         String repoCloneUrl = "http://mirror.example.com/scm/stash/jenkins/jenkins.git";
         repoLinks.put("clone", singletonList(new BitbucketNamedLink("http", repoCloneUrl)));
         BitbucketMirroredRepository
-                mirroredRepo = new BitbucketMirroredRepository(true, repoLinks, mirrorName, REPO_ID, AVAILABLE);
+                mirroredRepo =
+                new BitbucketMirroredRepository(status == AVAILABLE, repoLinks, mirrorName, REPO_ID, status);
 
         when(bbRepoMirrorsClient.getRepositoryDetails(format(REPO_MIRROR_LINK, mirrorName))).thenReturn(mirroredRepo);
         return repoCloneUrl;
@@ -152,7 +167,7 @@ public class BitbucketMirrorHandlerTest {
             String repoMirrorLink = format(REPO_MIRROR_LINK, mirrorName);
             String mirrorUrl = format(MIRROR_URL, i);
             links.put("self", singletonList(new BitbucketNamedLink("self", repoMirrorLink)));
-            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror(valueOf(i), mirrorUrl,
+            mirroredRepoDescs.add(new BitbucketMirroredRepositoryDescriptor(links, new BitbucketMirror(mirrorUrl,
                     true, mirrorName)));
         }
         page.setValues(mirroredRepoDescs);

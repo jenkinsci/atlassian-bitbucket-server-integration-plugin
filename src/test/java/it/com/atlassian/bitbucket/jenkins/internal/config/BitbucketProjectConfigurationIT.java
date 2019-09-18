@@ -203,12 +203,11 @@ public class BitbucketProjectConfigurationIT {
                 Collections.singletonList(new BranchSpec("*/master")),
                 emptyList(),
                 "",
-                "",
                 serverId);
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, false, ""));
+                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, ""));
         bitbucketSCM.createGitSCM();
         project.setScm(bitbucketSCM);
         project.save();

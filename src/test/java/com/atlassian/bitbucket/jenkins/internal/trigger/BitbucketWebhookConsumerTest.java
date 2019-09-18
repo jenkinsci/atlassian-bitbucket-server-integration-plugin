@@ -87,7 +87,7 @@ public class BitbucketWebhookConsumerTest {
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
 
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_NAME,
-                JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, false, "");
+                JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, "");
         when(bitbucketSCM.getRepositories())
                 .thenReturn(Collections.singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);

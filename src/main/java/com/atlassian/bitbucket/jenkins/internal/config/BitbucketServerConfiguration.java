@@ -216,7 +216,7 @@ public class BitbucketServerConfiguration
         @Inject
         private BitbucketClientFactoryProvider clientFactoryProvider;
         @Inject
-        private BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
+        private BitbucketCredentialsAdaptor bbCredentialAdaptor;
 
         @SuppressWarnings("MethodMayBeStatic")
         @POST
@@ -301,14 +301,14 @@ public class BitbucketServerConfiguration
             try {
                 Optional<String> username =
                         clientFactoryProvider
-                                .getClient(config.getBaseUrl(), bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(config.getAdminCredentials(), config))
+                                .getClient(config.getBaseUrl(), bbCredentialAdaptor.asBitbucketCredentialWithFallback(config.getAdminCredentials(), config))
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
                     return FormValidation.error("The admin credentials are invalid");
                 }
                 BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(config.getBaseUrl(), bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(credentials, config));
+                        clientFactoryProvider.getClient(config.getBaseUrl(), bbCredentialAdaptor.asBitbucketCredentialWithFallback(credentials, config));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {

@@ -9,25 +9,18 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketMirror {
 
-    private final String id;
     private final String baseUrl;
     private final boolean enabled;
     private final String name;
 
     @JsonCreator
     public BitbucketMirror(
-            @JsonProperty(value = "id", required = true) String id,
             @JsonProperty(value = "baseUrl", required = true) String baseUrl,
             @JsonProperty(value = "enabled", required = true) boolean enabled,
             @JsonProperty(value = "name", required = true) String name) {
-        this.id = requireNonNull(id, "id");
         this.baseUrl = requireNonNull(baseUrl, "baseUrl");
         this.enabled = enabled;
         this.name = requireNonNull(name, "name");
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String getBaseUrl() {

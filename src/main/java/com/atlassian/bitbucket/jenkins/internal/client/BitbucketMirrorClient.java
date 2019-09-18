@@ -6,29 +6,29 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositor
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 
 /**
- * Client to get the mirrored repository descriptor for a given repository.
+ * Client to do the mirror related operation for a given repository
  */
-public interface BitbucketMirroredRepositoryDescriptorClient {
+public interface BitbucketMirrorClient {
 
     /**
      * Retrieve a page of mirrored repository descriptors for the given repository ID
      *
      * @return The mirrored repository descriptors for the given repository
-     * @throws AuthorizationException if the credentials did not allow access to the given url
-     * @throws NoContentException if the server did not respond with a body
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws NoContentException         if the server did not respond with a body
      * @throws ConnectionFailureException if the server did not respond
-     * @throws NotFoundException if the requested url does not exist
-     * @throws BadRequestException if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException if the server failed to process the request
-     * @throws BitbucketClientException for all errors not already captured
+     * @throws NotFoundException          if the requested url does not exist
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
      */
     BitbucketPage<BitbucketMirroredRepositoryDescriptor> getMirroredRepositoryDescriptors();
 
     /**
-     * Returns the repository details for the given url.
+     * Returns the mirrored repository details for the given repository url.
+     *
      * @param repoUrl the url in the {@link BitbucketMirroredRepositoryDescriptor#getSelfLink()}
      * @return mirrored repository details
      */
     BitbucketMirroredRepository getRepositoryDetails(String repoUrl);
-
 }
