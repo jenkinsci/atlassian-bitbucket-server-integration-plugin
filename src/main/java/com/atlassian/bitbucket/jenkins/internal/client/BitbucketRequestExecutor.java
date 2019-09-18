@@ -149,7 +149,7 @@ public class BitbucketRequestExecutor {
 
     private void ensureNonEmptyBody(Response response) {
         if (response.body() == null) {
-            log.severe("Bitbucket - No content in response");
+            log.info("Bitbucket - No content in response");
             throw new NoContentException(
                     "Remote side did not send a response body", response.code());
         }
@@ -170,7 +170,7 @@ public class BitbucketRequestExecutor {
         try {
             return objectMapper.writeValueAsString(requestPayload);
         } catch (JsonProcessingException e) {
-            log.severe("Programming error while marshalling webhook model." + e.getMessage());
+            log.info("Programming error while marshalling webhook model." + e.getMessage());
             throw new BitbucketClientException(e);
         }
     }
@@ -180,7 +180,7 @@ public class BitbucketRequestExecutor {
         try {
             return reader.readObject(body.byteStream());
         } catch (IOException e) {
-            log.severe("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
+            log.info("Bitbucket - io exception while unmarshalling the body, Reason " + e.getMessage());
             throw new BitbucketClientException(e);
         }
     }

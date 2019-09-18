@@ -81,10 +81,10 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                 handleError(responseCode, body == null ? null : body.string());
             }
         } catch (ConnectException | SocketTimeoutException e) {
-            log.log(Level.SEVERE, "Bitbucket - Connection failed", e);
+            log.log(Level.FINE, "Bitbucket - Connection failed", e);
             throw new ConnectionFailureException(e);
         } catch (IOException e) {
-            log.log(Level.SEVERE, "Bitbucket - io exception", e);
+            log.log(Level.FINE, "Bitbucket - io exception", e);
             throw new BitbucketClientException(e);
         }
         throw new UnhandledErrorException("Unhandled error", -1, null);
@@ -112,20 +112,20 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         switch (responseCode) {
             case HTTP_FORBIDDEN: // fall through to same handling.
             case HTTP_UNAUTHORIZED:
-                log.severe("Bitbucket - responded with not authorized ");
+                log.info("Bitbucket - responded with not authorized ");
                 throw new AuthorizationException(
                         "Provided credentials cannot access the resource", responseCode, body);
             case HTTP_NOT_FOUND:
-                log.severe("Bitbucket - Path not found");
+                log.info("Bitbucket - Path not found");
                 throw new NotFoundException("The requested resource does not exist", body);
         }
         int family = responseCode / 100;
         switch (family) {
             case BAD_REQUEST_FAMILY:
-                log.severe("Bitbucket - did not accept the request");
+                log.info("Bitbucket - did not accept the request");
                 throw new BadRequestException("The request is malformed", responseCode, body);
             case SERVER_ERROR_FAMILY:
-                log.severe("Bitbucket - failed to service request");
+                log.info("Bitbucket - failed to service request");
                 throw new ServerErrorException(
                         "The server failed to service request", responseCode, body);
         }

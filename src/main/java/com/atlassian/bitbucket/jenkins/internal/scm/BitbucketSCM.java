@@ -58,6 +58,7 @@ import java.util.stream.Collectors;
 import static com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils.getCredentials;
 import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
+import static java.lang.Math.max;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.util.stream.Collectors.toCollection;
@@ -88,19 +89,18 @@ public class BitbucketSCM extends SCM {
             String gitTool,
             String mirrorName,
             String serverId) {
-        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         if (isBlank(serverId)) {
-            throw new BitbucketSCMException("A server is required", "serverId");
+            LOGGER.info("Error creating the Bitbucket SCM: the server ID must not be blank");
         }
-
-        repositories = new ArrayList<>(1);
-        this.gitTool = gitTool;
         this.branches = branches;
+        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.extensions = new ArrayList<>();
         if (extensions != null) {
             this.extensions.addAll(extensions);
         }
         this.extensions.add(new BitbucketPostBuildStatus(serverId));
+        this.gitTool = gitTool;
+        repositories = new ArrayList<>(1);
     }
 
     public void addRepositories(BitbucketSCMRepository... repositories) {
@@ -151,31 +151,19 @@ public class BitbucketSCM extends SCM {
         BitbucketServerConfiguration server = getServer();
         String repositorySlug = scmRepository.getRepositorySlug();
         String credentialsId = scmRepository.getCredentialsId();
-
+        BitbucketRepository repo;
         try {
-            BitbucketRepository repo = getRepository(server, scmRepository.getProjectKey(),
-                    repositorySlug, credentialsId);
-            String cloneUrl = getCloneUrl(server, credentialsId, scmRepository);
-            UserRemoteConfig remoteConfig =
-                    new UserRemoteConfig(
-                            cloneUrl,
-                            repositorySlug,
-                            null,
-                            pickCredentialsId(server, credentialsId));
-            gitSCM =
-                    new GitSCM(
-                            Collections.singletonList(remoteConfig),
-                            branches,
-                            false,
-                            Collections.emptyList(),
-                            new Stash(getRepositoryUrl(repo)),
-                            gitTool,
-                            extensions);
+            repo = getRepository(server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
         } catch (BitbucketClientException e) {
-            throw new BitbucketSCMException(
-                    "Failed to save configuration. Reason: " + firstNonBlank(e.getMessage(), "unknown") +
-                    ". Please use the back button on your browser and try again.");
+            LOGGER.info("Error creating the Bitbucket SCM. Reason: " + firstNonBlank(e.getMessage(), "unknown"));
+            repo = new BitbucketRepository(scmRepository.getRepositoryName(), null,
+                    new BitbucketProject(scmRepository.getProjectKey(), null, scmRepository.getProjectName()),
+                    scmRepository.getRepositorySlug(), RepositoryState.AVAILABLE);
         }
+        UserRemoteConfig remoteConfig = new UserRemoteConfig(getCloneUrl(repo), repositorySlug, null,
+                pickCredentialsId(server, credentialsId));
+        gitSCM = new GitSCM(Collections.singletonList(remoteConfig), branches, false, Collections.emptyList(),
+                new Stash(getRepositoryUrl(repo)), gitTool, extensions);
     }
 
     public List<BranchSpec> getBranches() {
@@ -289,20 +277,16 @@ public class BitbucketSCM extends SCM {
     }
 
     private static String getRepositoryUrl(BitbucketRepository repository) {
-        String selfLink =
-                repository.getSelfLink(); // self-link include /browse which needs to be trimmed
-        return selfLink.substring(0, selfLink.length() - "/browse".length());
+        String selfLink = repository.getSelfLink(); // self-link include /browse which needs to be trimmed
+        return selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {
         return repositories.get(0);
     }
 
-    private BitbucketRepository getRepository(
-            BitbucketServerConfiguration server,
-            String projectKey,
-            String repositorySlug,
-            String credentialsId) {
+    private BitbucketRepository getRepository(BitbucketServerConfiguration server, String projectKey,
+                                              String repositorySlug, @Nullable String credentialsId) {
         DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
         return bitbucketClientFactoryProvider
                 .getClient(server.getBaseUrl(), descriptor.bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server))
@@ -318,9 +302,8 @@ public class BitbucketSCM extends SCM {
     }
 
     @Nullable
-    private String pickCredentialsId(
-            BitbucketServerConfiguration serverConfiguration, @Nullable String credentialsId) {
-        return StringUtils.isNoneEmpty(credentialsId) ? credentialsId : serverConfiguration.getCredentialsId();
+    private String pickCredentialsId(BitbucketServerConfiguration serverConfiguration, @Nullable String credentialsId) {
+        return credentialsId != null ? credentialsId : serverConfiguration.getCredentialsId();
     }
 
     @Symbol("BbS")
@@ -501,7 +484,7 @@ public class BitbucketSCM extends SCM {
                             return okJSON(JSONObject.fromObject(latestProjects));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
-                            LOGGER.severe(e.getMessage());
+                            LOGGER.info(e.getMessage());
                             return errorWithoutStack(HTTP_INTERNAL_ERROR,
                                     "An error occurred in Bitbucket: " + e.getMessage());
                         }
@@ -541,7 +524,7 @@ public class BitbucketSCM extends SCM {
                             return okJSON(JSONObject.fromObject(latestRepositories));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
-                            LOGGER.severe(e.getMessage());
+                            LOGGER.info(e.getMessage());
                             return errorWithoutStack(HTTP_INTERNAL_ERROR,
                                     "An error occurred in Bitbucket: " + e.getMessage());
                         }
@@ -616,68 +599,78 @@ public class BitbucketSCM extends SCM {
          * @throws FormException if any data is missing
          */
         @Override
-        public SCM newInstance(@Nullable StaplerRequest req, JSONObject formData)
-                throws FormException {
-            try {
-                BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
-                scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
-                scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
+        public SCM newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
+            BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
+            scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
+            scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
 
-                String serverId = formData.getString("serverId");
-                BitbucketServerConfiguration serverConf = bitbucketPluginConfiguration.getServerById(serverId)
-                        .orElseThrow(() -> new FormException("No server with ID " + serverId, "serverId"));
+            String serverId = formData.getString("serverId");
+            if (isBlank(serverId)) {
+                LOGGER.info("Error creating the Bitbucket SCM: The serverId cannot be blank");
+                return scm;
+            }
+            Optional<BitbucketServerConfiguration> maybeServerConf =
+                    bitbucketPluginConfiguration.getServerById(serverId);
+            if (!maybeServerConf.isPresent()) {
+                LOGGER.info("Error creating the Bitbucket SCM: No server configuration for the given server id " +
+                            serverId);
+                return scm;
+            }
+            BitbucketServerConfiguration serverConf = maybeServerConf.get();
 
-                String credentialsId = formData.getString("credentialsId");
-                BitbucketCredentials credentials =
-                        bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(CredentialUtils.getCredentials(credentialsId), serverConf);
-                BitbucketClientFactory clientFactory =
-                        bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials);
+            String credentialsId = formData.getString("credentialsId");
+            BitbucketCredentials credentials =
+                    createWithFallback(CredentialUtils.getCredentials(credentialsId), serverConf);
+            BitbucketClientFactory clientFactory =
+                    bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials);
 
-                String projectName = formData.getString("projectName");
-                if (isBlank(projectName)) {
-                    throw new BitbucketSCMException("A project is required", "projectName");
-                }
-                BitbucketProject project;
+            String projectName = formData.getString("projectName");
+            String repositoryName = formData.getString("repositoryName");
+            BitbucketProject project;
+            if (isBlank(projectName)) {
+                LOGGER.info("Error creating the Bitbucket SCM: The projectName must not be blank");
+                project = new BitbucketProject("", null, "");
+            } else {
                 try {
                     project = getProjectByNameOrKey(projectName, clientFactory);
                 } catch (NotFoundException e) {
-                    throw new FormException("Cannot find the project " + projectName, "projectName");
+                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the project " + projectName);
+                    project = new BitbucketProject(projectName, null, projectName);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    throw new FormException("Something went wrong when trying to contact Bitbucket Server: " +
-                                            e.getMessage(), "projectName");
+                    LOGGER.info(
+                            "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " +
+                            e.getMessage());
+                    project = new BitbucketProject(projectName, null, projectName);
                 }
+            }
 
-                String repositoryName = formData.getString("repositoryName");
-                if (isBlank(repositoryName)) {
-                    throw new BitbucketSCMException("A repository is required", "repositoryName");
-                }
-                BitbucketRepository repository;
+            BitbucketRepository repository;
+            if (isBlank(repositoryName)) {
+                LOGGER.info("Error creating the Bitbucket SCM: The repositoryName must not be blank");
+                repository =
+                        new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
+            } else {
                 try {
                     repository = getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                 } catch (NotFoundException e) {
-                    throw new FormException(
-                            "Cannot find the repository " + projectName + "/" + repositoryName, "repositoryName");
+                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the repository " + projectName + "/" +
+                                repositoryName);
+                    repository =
+                            new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    throw new FormException("Something went wrong when trying to contact Bitbucket Server: " +
-                                            e.getMessage(), "repositoryName");
+                    LOGGER.info(
+                            "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " +
+                            e.getMessage());
+                    repository =
+                            new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 }
-
-                scm.addRepositories(new BitbucketSCMRepository(credentialsId, projectName, project.getKey(), repositoryName, repository.getSlug(), serverId, false, ""));
-                scm.createGitSCM();
-                return scm;
-            } catch (Error | RuntimeException e) {
-                Throwable cause = e;
-                do {
-                    if (cause instanceof BitbucketSCMException) {
-                        throw new FormException(
-                                cause.getMessage(), ((BitbucketSCMException) cause).getField());
-                    }
-                    cause = cause.getCause();
-                } while (cause != null);
-                throw e; // didn't match any known error, so throw it up and let Jenkins handle it
             }
+
+            scm.addRepositories(new BitbucketSCMRepository(credentialsId, projectName, project.getKey(), repositoryName, repository.getSlug(), serverId, false));
+            scm.createGitSCM();
+            return scm;
         }
 
         private void addDefaultUpstreamOption(StandardListBoxModel options) {
