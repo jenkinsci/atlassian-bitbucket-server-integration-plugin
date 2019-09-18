@@ -92,7 +92,7 @@ public class BitbucketSCM extends SCM {
             String gitTool,
             String serverId) {
         if (isBlank(serverId)) {
-            LOGGER.severe("Error creating the Bitbucket SCM: the server ID must not be blank");
+            LOGGER.info("Error creating the Bitbucket SCM: the server ID must not be blank");
         }
         this.branches = branches;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
@@ -157,7 +157,7 @@ public class BitbucketSCM extends SCM {
         try {
             repo = getRepository(server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
         } catch (BitbucketClientException e) {
-            LOGGER.severe("Error creating the Bitbucket SCM. Reason: " + firstNonBlank(e.getMessage(), "unknown"));
+            LOGGER.info("Error creating the Bitbucket SCM. Reason: " + firstNonBlank(e.getMessage(), "unknown"));
             repo = new BitbucketRepository(scmRepository.getRepositoryName(), null,
                     new BitbucketProject(scmRepository.getProjectKey(), null, scmRepository.getProjectName()),
                     scmRepository.getRepositorySlug(), RepositoryState.AVAILABLE);
@@ -435,7 +435,7 @@ public class BitbucketSCM extends SCM {
                             return okJSON(JSONObject.fromObject(latestProjects));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
-                            LOGGER.severe(e.getMessage());
+                            LOGGER.info(e.getMessage());
                             return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
                         }
                     }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
@@ -473,7 +473,7 @@ public class BitbucketSCM extends SCM {
                             return okJSON(JSONObject.fromObject(latestRepositories));
                         } catch (BitbucketClientException e) {
                             // Something went wrong with the request to Bitbucket
-                            LOGGER.severe(e.getMessage());
+                            LOGGER.info(e.getMessage());
                             return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
                         }
                     }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
@@ -533,12 +533,12 @@ public class BitbucketSCM extends SCM {
 
             String serverId = formData.getString("serverId");
             if (isBlank(serverId)) {
-                LOGGER.severe("Error creating the Bitbucket SCM: The serverId cannot be blank");
+                LOGGER.info("Error creating the Bitbucket SCM: The serverId cannot be blank");
                 return scm;
             }
             Optional<BitbucketServerConfiguration> maybeServerConf = bitbucketPluginConfiguration.getServerById(serverId);
             if (!maybeServerConf.isPresent()) {
-                LOGGER.severe("Error creating the Bitbucket SCM: No server configuration for the given server id " + serverId);
+                LOGGER.info("Error creating the Bitbucket SCM: No server configuration for the given server id " + serverId);
                 return scm;
             }
             BitbucketServerConfiguration serverConf = maybeServerConf.get();
@@ -551,34 +551,34 @@ public class BitbucketSCM extends SCM {
             String repositoryName = formData.getString("repositoryName");
                 BitbucketProject project;
             if (isBlank(projectName)) {
-                LOGGER.severe("Error creating the Bitbucket SCM: The projectName must not be blank");
+                LOGGER.info("Error creating the Bitbucket SCM: The projectName must not be blank");
                 project = new BitbucketProject("", null, "");
             } else {
                 try {
                     project = getProjectByNameOrKey(projectName, clientFactory);
                 } catch (NotFoundException e) {
-                    LOGGER.severe("Error creating the Bitbucket SCM: Cannot find the project " + projectName);
+                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the project " + projectName);
                     project = new BitbucketProject(projectName, null, projectName);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    LOGGER.severe("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
+                    LOGGER.info("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
                     project = new BitbucketProject(projectName, null, projectName);
                 }
             }
 
             BitbucketRepository repository;
             if (isBlank(repositoryName)) {
-                LOGGER.severe("Error creating the Bitbucket SCM: The repositoryName must not be blank");
+                LOGGER.info("Error creating the Bitbucket SCM: The repositoryName must not be blank");
                 repository = new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
             } else {
                 try {
                     repository = getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                 } catch (NotFoundException e) {
-                    LOGGER.severe("Error creating the Bitbucket SCM: Cannot find the repository " + projectName + "/" + repositoryName);
+                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the repository " + projectName + "/" + repositoryName);
                     repository = new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    LOGGER.severe("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
+                    LOGGER.info("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
                     repository = new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 }
             }

@@ -75,7 +75,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
             try (ResponseBody body = response.body()) {
                 if (response.isSuccessful()) {
-                    log.finer("Bitbucket - call successful");
+                    log.fine("Bitbucket - call successful");
                     return consumer.consume(response);
                 }
                 handleError(responseCode, body == null ? null : body.string());
@@ -112,20 +112,20 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         switch (responseCode) {
             case HTTP_FORBIDDEN: // fall through to same handling.
             case HTTP_UNAUTHORIZED:
-                log.fine("Bitbucket - responded with not authorized ");
+                log.info("Bitbucket - responded with not authorized ");
                 throw new AuthorizationException(
                         "Provided credentials cannot access the resource", responseCode, body);
             case HTTP_NOT_FOUND:
-                log.fine("Bitbucket - Path not found");
+                log.info("Bitbucket - Path not found");
                 throw new NotFoundException("The requested resource does not exist", body);
         }
         int family = responseCode / 100;
         switch (family) {
             case BAD_REQUEST_FAMILY:
-                log.fine("Bitbucket - did not accept the request");
+                log.info("Bitbucket - did not accept the request");
                 throw new BadRequestException("The request is malformed", responseCode, body);
             case SERVER_ERROR_FAMILY:
-                log.fine("Bitbucket - failed to service request");
+                log.info("Bitbucket - failed to service request");
                 throw new ServerErrorException(
                         "The server failed to service request", responseCode, body);
         }
