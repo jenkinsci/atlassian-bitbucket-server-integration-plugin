@@ -149,16 +149,31 @@ public class BitbucketSCM extends SCM {
         String repositorySlug = scmRepository.getRepositorySlug();
         String credentialsId = scmRepository.getCredentialsId();
         BitbucketRepository repo;
+        String cloneUrl;
         try {
-            repo = getRepository(server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
+            if (scmRepository.isMirrorConfigured()) {
+                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+                EnrichedBitbucketMirroredRepository mirroredRepository =
+                        descriptor.createMirrorHandler().fetchRepostiory(
+                                new MirrorFetchRequest(scmRepository.getServerId(),
+                                        scmRepository.getCredentialsId(),
+                                        new BitbucketRepo(scmRepository.getProjectKey(), scmRepository.getRepositorySlug()),
+                                        scmRepository.getMirrorName()));
+                cloneUrl = getHttpCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
+                repo = mirroredRepository.getRepository();
+            } else {
+                repo = getRepository(server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
+                cloneUrl = getUpstreamCloneUrl(repo);
+            }
         } catch (BitbucketClientException e) {
             LOGGER.info("Error creating the Bitbucket SCM. Reason: " + firstNonBlank(e.getMessage(), "unknown"));
             repo = new BitbucketRepository(-1, scmRepository.getRepositoryName(), null,
                     new BitbucketProject(scmRepository.getProjectKey(), null, scmRepository.getProjectName()),
                     scmRepository.getRepositorySlug(), RepositoryState.AVAILABLE);
+            cloneUrl = null;
         }
         UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(getCloneUrl(server, repo, credentialsId, scmRepository.getMirrorName()), repositorySlug, null,
+                new UserRemoteConfig(cloneUrl, repositorySlug, null,
                         pickCredentialsId(server, credentialsId));
         gitSCM = new GitSCM(Collections.singletonList(remoteConfig), branches, false, Collections.emptyList(),
                 new Stash(getRepositoryUrl(repo)), gitTool, extensions);
@@ -231,17 +246,6 @@ public class BitbucketSCM extends SCM {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
     }
 
-    private String getCloneUrl(BitbucketServerConfiguration server,
-                               BitbucketRepository repository,
-                               String jobCredentials,
-                               String mirrorName) {
-        if (isEmpty(mirrorName)) {
-            return getUpstreamCloneUrl(repository);
-        } else {
-            return getMirrorCloneUrl(server, repository, jobCredentials, mirrorName);
-        }
-    }
-
     private static String getUpstreamCloneUrl(BitbucketRepository repo) {
         List<BitbucketNamedLink> cloneUrls = repo.getCloneUrls();
         return getHttpCloneUrl(cloneUrls);
@@ -254,22 +258,6 @@ public class BitbucketSCM extends SCM {
                 .findFirst()
                 .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -1, null))
                 .getHref();
-    }
-
-    private String getMirrorCloneUrl(BitbucketServerConfiguration serverConfiguration,
-                                     BitbucketRepository repository,
-                                     String jobCredentials,
-                                     String mirrorName) {
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        final List<BitbucketMirroredRepository> mirroredRepositories =
-                descriptor.bitbucketMirrorHandler.fetchRepositores(repository.getId(), jobCredentials, serverConfiguration);
-        List<BitbucketNamedLink> cloneUrls = mirroredRepositories
-                .stream()
-                .filter(mRepo -> mRepo.getMirrorName().equals(mirrorName))
-                .map(mRepo -> mRepo.getCloneUrls())
-                .findFirst()
-                .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -404, null));
-        return getHttpCloneUrl(cloneUrls);
     }
 
     private static String getRepositoryUrl(BitbucketRepository repository) {
@@ -310,8 +298,6 @@ public class BitbucketSCM extends SCM {
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         private BitbucketPage<BitbucketProject> latestProjects = new BitbucketPage<>();
         private BitbucketPage<BitbucketRepository> latestRepositories = new BitbucketPage<>();
-        @Inject
-        private BitbucketMirrorHandler bitbucketMirrorHandler;
         @Inject
         private BitbucketCredentialsAdaptor bbCredentialsAdaptor;
 
@@ -558,14 +544,11 @@ public class BitbucketSCM extends SCM {
                 isEmpty(repositoryName)) {
                 return options;
             }
-            BitbucketServerConfiguration server =
-                    bitbucketPluginConfiguration.getServerById(serverId)
-                            .orElseThrow(() -> new MirrorFetchException("Server config not found"));
-            BitbucketClientFactory client =
-                    bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), bbCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server));
-            BitbucketRepository repository = getRepositoryByNameOrSlug(projectName, repositoryName, client);
+
+            BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
             List<Option> values =
-                    bitbucketMirrorHandler.fetchAsListBoxOptions(repository.getId(), credentialsId, server, mirrorName);
+                    bitbucketMirrorHandler.fetchAsListBoxOptions(
+                            new MirrorFetchRequest(serverId, credentialsId, new BitbucketRepo(projectName, repositoryName), mirrorName));
             options.addAll(values);
             return options;
         }
@@ -712,11 +695,26 @@ public class BitbucketSCM extends SCM {
 
         private BitbucketRepository getRepository(BitbucketServerConfiguration server, String projectKey,
                                                   String repositorySlug, @Nullable String credentialsId) {
-            return bitbucketClientFactoryProvider
-                    .getClient(server.getBaseUrl(), bbCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server))
-                    .getProjectClient(projectKey)
-                    .getRepositoryClient(repositorySlug)
+            BitbucketClientFactory client = bitbucketClientFactoryProvider
+                    .getClient(server.getBaseUrl(), bbCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server));
+            return getRepository(projectKey, repositorySlug, client);
+        }
+
+        private BitbucketRepository getRepository(String projectKey, String repoSlug,
+                                                  BitbucketClientFactory clientFactory) {
+            return clientFactory.getProjectClient(projectKey)
+                    .getRepositoryClient(repoSlug)
                     .getRepository();
+        }
+
+        private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, bbCredentialsAdaptor,
+                    (client, bbRepo) -> this.getRepositoryByNameOrSlug(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
+        }
+
+        private BitbucketMirrorHandler createMirrorHandler() {
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, bbCredentialsAdaptor,
+                    (client, bbRepo) -> this.getRepository(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
         }
     }
 }
