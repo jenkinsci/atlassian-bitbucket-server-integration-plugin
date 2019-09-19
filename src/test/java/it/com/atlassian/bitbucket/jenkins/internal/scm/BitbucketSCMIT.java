@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
+import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
@@ -17,10 +18,7 @@ import io.restassured.RestAssured;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -70,31 +68,18 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    @Ignore
     public void testCheckoutAndPush() throws Exception {
-        project.setScm(createSCM("*/master"));
         String uniqueMessage = UUID.randomUUID().toString();
-        Shell postScript = new Shell("git checkout master\n" +
-                                     "echo \"Hello, World!\" >> test.txt\n" +
-                                     "git add test.txt\n" +
-                                     "git commit -m \"" + uniqueMessage + "\"\n" +
-                                     "git push");
+        Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh").replaceFirst("uniqueMessage", uniqueMessage));
 
+        project.setScm(createSCM("*/master"));
         project.getBuildersList().add(postScript);
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
-
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
-        String restPath = new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
-                .append("/rest/api/1.0/projects/")
-                .append(BitbucketUtils.PROJECT_KEY)
-                .append("/repos/")
-                .append(BitbucketUtils.REPO_SLUG)
-                .append("/commits?since=")
-                .append(revisionAction.getRevisionSha1())
-                .toString();
-
         assertEquals(SUCCESS, build.getResult());
+
         RestAssured
                 .given()
                     .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
@@ -103,7 +88,14 @@ public class BitbucketSCMIT {
                     .body("values.size", equalTo(1))
                     .body("values[0].message", equalTo(uniqueMessage))
                 .when()
-                    .get(restPath);
+                    .get(new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
+                            .append("/rest/api/1.0/projects/")
+                            .append(BitbucketUtils.PROJECT_KEY)
+                            .append("/repos/")
+                            .append(BitbucketUtils.REPO_SLUG)
+                            .append("/commits?since=")
+                            .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
+                            .toString());
     }
 
     @Test
