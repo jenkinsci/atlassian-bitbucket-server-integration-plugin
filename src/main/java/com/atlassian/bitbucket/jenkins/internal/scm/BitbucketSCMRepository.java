@@ -13,7 +13,7 @@ public class BitbucketSCMRepository {
     private final boolean isMirror;
 
     public BitbucketSCMRepository(@Nullable String credentialsId, String projectName, String projectKey,
-                                  String repositoryName, String repositorySlug, @Nullable String serverId,
+                                  String repositoryName, String repositorySlug, String serverId,
                                   boolean isMirror) {
         this.credentialsId = credentialsId;
         this.projectName = projectName;
@@ -45,7 +45,6 @@ public class BitbucketSCMRepository {
         return repositorySlug;
     }
 
-    @Nullable
     public String getServerId() {
         return serverId;
     }

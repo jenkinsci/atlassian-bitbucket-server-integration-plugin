@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Extension
 @SuppressWarnings(
@@ -45,7 +46,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     }
 
     public Optional<BitbucketServerConfiguration> getServerById(@CheckForNull String serverId) {
-        if (serverId == null) {
+        if (isBlank(serverId)) {
             return empty();
         }
         return serverList.stream().filter(server -> server.getId().equals(serverId)).findFirst();

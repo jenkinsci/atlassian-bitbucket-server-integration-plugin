@@ -56,7 +56,7 @@ Behaviour.specify('.searchable', 'searchableField', 200, function (el) {
         new Ajax.Request(el.getAttribute('fillUrl'), {
             parameters: parameters,
             onSuccess: function (rsp) {
-                results = (rsp.responseJSON.data && rsp.responseJSON.data.values || [])
+                results = (rsp.responseJSON.data || [])
                     .map(function (value) {
                         return value.name;
                     });
