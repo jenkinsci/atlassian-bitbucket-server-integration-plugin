@@ -537,20 +537,9 @@ public class BitbucketSCM extends SCM {
                                                   @QueryParameter String repositoryName,
                                                   @QueryParameter String mirrorName) {
             Jenkins.get().checkPermission(CONFIGURE);
-            StandardListBoxModel options = new StandardListBoxModel();
-            options.add(new Option("Primary Server", ""));
-            if (isEmpty(serverId) ||
-                isEmpty(projectName) ||
-                isEmpty(repositoryName)) {
-                return options;
-            }
-
             BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
-            List<Option> values =
-                    bitbucketMirrorHandler.fetchAsListBoxOptions(
-                            new MirrorFetchRequest(serverId, credentialsId, new BitbucketRepo(projectName, repositoryName), mirrorName));
-            options.addAll(values);
-            return options;
+            return bitbucketMirrorHandler.fetchAsListBox(
+                    new MirrorFetchRequest(serverId, credentialsId, new BitbucketRepo(projectName, repositoryName), mirrorName));
         }
 
         @Override

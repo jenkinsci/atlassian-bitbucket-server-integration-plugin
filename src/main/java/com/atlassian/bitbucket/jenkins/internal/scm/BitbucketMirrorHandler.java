@@ -12,6 +12,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositor
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import hudson.util.ListBoxModel.Option;
 
 import java.util.Collections;
@@ -21,10 +22,11 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 class BitbucketMirrorHandler {
 
+    public static final String DEFAULT_UPSTREAM_SERVER = "Primary Server";
     private static final Logger LOGGER = Logger.getLogger(BitbucketMirrorHandler.class.getName());
 
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -52,14 +54,22 @@ class BitbucketMirrorHandler {
                         "Unable to find the mirror" + mirrorFetchRequest.getExistingMirrorSelection()));
     }
 
-    public List<Option> fetchAsListBoxOptions(MirrorFetchRequest mirrorFetchRequest) {
-        List<EnrichedBitbucketMirroredRepository> mirroredRepository = fetchRepositoriesQuietly(mirrorFetchRequest);
+    public StandardListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
+        StandardListBoxModel options = new StandardListBoxModel();
+        options.add(new Option(DEFAULT_UPSTREAM_SERVER, ""));
+        if (isEmpty(mirrorFetchRequest.getServerId()) ||
+            isEmpty(mirrorFetchRequest.getBitbucketRepo().getProjectNameOrKey()) ||
+            isEmpty(mirrorFetchRequest.getBitbucketRepo().getRepoNameOrSlug())) {
+            return options;
+        }
+
         String existingSelection = mirrorFetchRequest.getExistingMirrorSelection();
-        List<Option> mirrorOptions = mirroredRepository
+        fetchRepositoriesQuietly(mirrorFetchRequest)
                 .stream()
                 .map(mirroredRepo -> createOption(existingSelection, mirroredRepo))
-                .collect(toList());
-        return mirrorOptions;
+                .forEach(option -> options.add(option));
+
+        return options;
     }
 
     private List<EnrichedBitbucketMirroredRepository> fetchRepositores(MirrorFetchRequest mirrorFetchRequest) {

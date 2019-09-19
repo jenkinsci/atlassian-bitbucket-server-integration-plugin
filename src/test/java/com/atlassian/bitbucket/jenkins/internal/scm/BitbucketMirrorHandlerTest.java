@@ -82,17 +82,19 @@ public class BitbucketMirrorHandlerTest {
     }
 
     @Test
-    public void testFetchOptions() {
+    public void testFetchAsListBox() {
         createMirroredRepoDescriptors(2);
         mockMirroredRepo("Mirror0");
         mockMirroredRepo("Mirror1");
 
         List<ListBoxModel.Option> options =
-                bitbucketMirrorHandler.fetchAsListBoxOptions(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, BITBUCKET_REPO, "Mirror0"));
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, BITBUCKET_REPO, "Mirror0"));
 
-        assertThat(options.size(), is(equalTo(2)));
+        assertThat(options.size(), is(equalTo(3)));
 
-        assertThat(options.stream().map(ListBoxModel.Option::toString).collect(Collectors.toList()), hasItems("Mirror0=Mirror0[selected]", "Mirror1=Mirror1"));
+        assertThat(options.stream()
+                .map(ListBoxModel.Option::toString)
+                .collect(Collectors.toList()), hasItems("Primary Server=", "Mirror0=Mirror0[selected]", "Mirror1=Mirror1"));
     }
 
     @Test
@@ -123,7 +125,7 @@ public class BitbucketMirrorHandlerTest {
 
     private BitbucketServerConfiguration mockServerConfig() {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
-//        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
         return serverConfiguration;
     }
 
