@@ -110,7 +110,7 @@ public class BitbucketSCM extends SCM {
                 repositorySlug, serverId, false));
         UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repositorySlug, null, credentialsId);
         gitSCM = new GitSCM(singletonList(remoteConfig), this.branches, false, emptyList(), new Stash(repositoryUrl),
-                gitTool, extensions);
+                this.gitTool, this.extensions);
     }
 
     @CheckForNull
