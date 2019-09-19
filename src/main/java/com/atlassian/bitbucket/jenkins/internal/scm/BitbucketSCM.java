@@ -235,6 +235,7 @@ public class BitbucketSCM extends SCM {
         @Override
         @POST
         public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formValidation.doCheckCredentialsId(credentialsId);
         }
 
@@ -242,6 +243,7 @@ public class BitbucketSCM extends SCM {
         @POST
         public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
         }
 
@@ -251,12 +253,14 @@ public class BitbucketSCM extends SCM {
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
         public FormValidation doCheckServerId(@QueryParameter String serverId) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formValidation.doCheckServerId(serverId);
         }
 
@@ -264,6 +268,7 @@ public class BitbucketSCM extends SCM {
         @POST
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
         }
 
@@ -278,6 +283,7 @@ public class BitbucketSCM extends SCM {
         public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
                                                    @QueryParameter String credentialsId,
                                                    @QueryParameter String projectName) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
         }
 
@@ -287,27 +293,32 @@ public class BitbucketSCM extends SCM {
                                                       @QueryParameter String credentialsId,
                                                       @QueryParameter String projectName,
                                                       @QueryParameter String repositoryName) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillRepositoryNameItems(serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
         public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
+            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillServerIdItems(serverId);
         }
 
         @Override
         public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.getExtensionDescriptors();
         }
 
         @Override
         public List<GitTool> getGitTools() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.getGitTools();
         }
 
         @Override
         public boolean getShowGitToolOptions() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.showGitToolOptions();
         }
 
