@@ -12,6 +12,7 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
+import hudson.tasks.Shell;
 import io.restassured.RestAssured;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
@@ -25,11 +26,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.emptyList;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -64,6 +67,43 @@ public class BitbucketSCMIT {
 
         assertEquals(SUCCESS, build.getResult());
         assertTrue(build.getWorkspace().child("add_file").isDirectory());
+    }
+
+    @Test
+    public void testCheckoutAndPush() throws Exception {
+        project.setScm(createSCM("*/master"));
+        String uniqueMessage = UUID.randomUUID().toString();
+        Shell postScript = new Shell("git checkout master\n" +
+                                     "echo \"Hello, World!\" >> test.txt\n" +
+                                     "git add test.txt\n" +
+                                     "git commit -m \"" + uniqueMessage + "\"\n" +
+                                     "git push");
+
+        project.getBuildersList().add(postScript);
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+        String restPath = new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
+                .append("/rest/api/1.0/projects/")
+                .append(BitbucketUtils.PROJECT_KEY)
+                .append("/repos/")
+                .append(BitbucketUtils.REPO_SLUG)
+                .append("/commits?since=")
+                .append(revisionAction.getRevisionSha1())
+                .toString();
+
+        assertEquals(SUCCESS, build.getResult());
+        RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                    .statusCode(200)
+                    .body("values.size", equalTo(1))
+                    .body("values[0].message", equalTo(uniqueMessage))
+                .when()
+                    .get(restPath);
     }
 
     @Test
