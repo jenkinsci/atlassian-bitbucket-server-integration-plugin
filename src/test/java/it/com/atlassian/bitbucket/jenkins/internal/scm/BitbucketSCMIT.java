@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.REPO_FORK_NAME;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.REPO_FORK_SLUG;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -68,12 +70,11 @@ public class BitbucketSCMIT {
     }
 
     @Test
-    @Ignore
     public void testCheckoutAndPush() throws Exception {
         String uniqueMessage = UUID.randomUUID().toString();
         Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh").replaceFirst("uniqueMessage", uniqueMessage));
 
-        project.setScm(createSCM("*/master"));
+        project.setScm(createCustomRepoSCM(REPO_FORK_NAME, REPO_FORK_SLUG, "*/master"));
         project.getBuildersList().add(postScript);
         project.save();
 
@@ -92,7 +93,7 @@ public class BitbucketSCMIT {
                             .append("/rest/api/1.0/projects/")
                             .append(BitbucketUtils.PROJECT_KEY)
                             .append("/repos/")
-                            .append(BitbucketUtils.REPO_SLUG)
+                            .append(BitbucketUtils.REPO_FORK_SLUG)
                             .append("/commits?since=")
                             .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
                             .toString());
@@ -166,6 +167,10 @@ public class BitbucketSCMIT {
     }
 
     private BitbucketSCM createSCM(String... refs) {
+        return createCustomRepoSCM(REPO_NAME, REPO_SLUG, refs);
+    }
+
+    private BitbucketSCM createCustomRepoSCM(String repoName, String repoSlug, String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
@@ -180,7 +185,7 @@ public class BitbucketSCMIT {
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, false));
+                PROJECT_NAME, PROJECT_KEY, repoName, repoSlug, serverId, false));
         bitbucketSCM.createGitSCM();
         return bitbucketSCM;
     }
