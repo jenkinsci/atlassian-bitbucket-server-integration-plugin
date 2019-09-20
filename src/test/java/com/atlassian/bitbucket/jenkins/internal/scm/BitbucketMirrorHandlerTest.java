@@ -6,7 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirrorClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.util.ListBoxModel;
 import org.junit.Before;
@@ -45,8 +45,6 @@ public class BitbucketMirrorHandlerTest {
     @Mock
     private BitbucketMirrorClient bbRepoMirrorsClient;
     @Mock
-    private BitbucketServerConfiguration serverConfiguration;
-    @Mock
     private BitbucketRepository bitbucketRepository;
     private BitbucketMirrorHandler bitbucketMirrorHandler;
 
@@ -55,19 +53,18 @@ public class BitbucketMirrorHandlerTest {
         BitbucketPluginConfiguration bitbucketPluginConfiguration = mock(BitbucketPluginConfiguration.class);
         BitbucketServerConfiguration serverConfiguration = mockServerConfig(bitbucketPluginConfiguration);
         BitbucketCredentials bitbucketCredentials = mock(BitbucketCredentials.class);
-        this.serverConfiguration = mockServerConfig();
 
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider = mock(BitbucketClientFactoryProvider.class);
         BitbucketClientFactory clientFactory = mockClientFactory(bitbucketClientFactoryProvider, bitbucketCredentials);
 
-        BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor =
-                mockCredentialAdaptor(serverConfiguration, bitbucketCredentials);
+        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials =
+                mockCredentialConversion(serverConfiguration, bitbucketCredentials);
 
         BitbucketRepoFetcher repoFetcher = mock(BitbucketRepoFetcher.class);
         when(repoFetcher.fetchRepo(clientFactory, BITBUCKET_REPO)).thenReturn(bitbucketRepository);
         when(bitbucketRepository.getId()).thenReturn(REPO_ID);
 
-        createInstance(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, bitbucketCredentialsAdaptor, repoFetcher);
+        createInstance(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials, repoFetcher);
     }
 
     @Test(expected = MirrorFetchException.class)
@@ -129,20 +126,20 @@ public class BitbucketMirrorHandlerTest {
         return serverConfiguration;
     }
 
-    private BitbucketCredentialsAdaptor mockCredentialAdaptor(BitbucketServerConfiguration serverConfiguration,
-                                                              BitbucketCredentials credentials) {
-        BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor = mock(BitbucketCredentialsAdaptor.class);
-        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(CREDENTIAL_ID, serverConfiguration)).thenReturn(credentials);
-        return bitbucketCredentialsAdaptor;
+    private JenkinsToBitbucketCredentials mockCredentialConversion(BitbucketServerConfiguration serverConfiguration,
+                                                                   BitbucketCredentials credentials) {
+        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, serverConfiguration)).thenReturn(credentials);
+        return jenkinsToBitbucketCredentials;
     }
 
     private void createInstance(BitbucketPluginConfiguration bitbucketPluginConfiguration,
                                 BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                                BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor,
+                                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
                                 BitbucketRepoFetcher repoFetcher) {
         bitbucketMirrorHandler =
                 new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider,
-                        bitbucketCredentialsAdaptor, repoFetcher);
+                        jenkinsToBitbucketCredentials, repoFetcher);
     }
 
     private String mockMirroredRepo(String mirrorName) {

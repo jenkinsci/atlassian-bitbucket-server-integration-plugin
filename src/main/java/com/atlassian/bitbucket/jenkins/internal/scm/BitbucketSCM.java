@@ -8,8 +8,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -299,7 +299,7 @@ public class BitbucketSCM extends SCM {
         private BitbucketPage<BitbucketProject> latestProjects = new BitbucketPage<>();
         private BitbucketPage<BitbucketRepository> latestRepositories = new BitbucketPage<>();
         @Inject
-        private BitbucketCredentialsAdaptor bbCredentialsAdaptor;
+        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -335,7 +335,7 @@ public class BitbucketSCM extends SCM {
                             BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
                                     .getClient(
                                             serverConf.getBaseUrl(),
-                                            bbCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf));
+                                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
                             BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
                             return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
                         } catch (NotFoundException e) {
@@ -372,7 +372,7 @@ public class BitbucketSCM extends SCM {
                             BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
                                     .getClient(
                                             serverConf.getBaseUrl(),
-                                            bbCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf));
+                                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
                             BitbucketRepository repository =
                                     getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                             return FormValidation.ok(
@@ -454,7 +454,7 @@ public class BitbucketSCM extends SCM {
                     .map(serverConf -> {
                         try {
                             BitbucketCredentials credentials =
-                                    bbCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf);
+                                    jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
                             BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
                                     .getClient(serverConf.getBaseUrl(), credentials)
                                     .getSearchClient(stripToEmpty(projectName));
@@ -493,7 +493,7 @@ public class BitbucketSCM extends SCM {
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> {
                         BitbucketCredentials credentials =
-                                bbCredentialsAdaptor.asBitbucketCredentialWithFallback(providedCredentials, serverConf);
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
                         BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
                                 .getClient(serverConf.getBaseUrl(), credentials)
                                 .getSearchClient(projectName);
@@ -589,7 +589,7 @@ public class BitbucketSCM extends SCM {
 
             String credentialsId = formData.getString("credentialsId");
             BitbucketCredentials credentials =
-                    bbCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, serverConf);
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, serverConf);
             BitbucketClientFactory clientFactory =
                     bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials);
 
@@ -685,7 +685,7 @@ public class BitbucketSCM extends SCM {
         private BitbucketRepository getRepository(BitbucketServerConfiguration server, String projectKey,
                                                   String repositorySlug, @Nullable String credentialsId) {
             BitbucketClientFactory client = bitbucketClientFactoryProvider
-                    .getClient(server.getBaseUrl(), bbCredentialsAdaptor.asBitbucketCredentialWithFallback(credentialsId, server));
+                    .getClient(server.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, server));
             return getRepository(projectKey, repositorySlug, client);
         }
 
@@ -697,12 +697,12 @@ public class BitbucketSCM extends SCM {
         }
 
         private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, bbCredentialsAdaptor,
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
                     (client, bbRepo) -> this.getRepositoryByNameOrSlug(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
         }
 
         private BitbucketMirrorHandler createMirrorHandler() {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, bbCredentialsAdaptor,
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
                     (client, bbRepo) -> this.getRepository(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
         }
     }

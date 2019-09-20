@@ -6,8 +6,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationEx
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -216,7 +216,7 @@ public class BitbucketServerConfiguration
         @Inject
         private BitbucketClientFactoryProvider clientFactoryProvider;
         @Inject
-        private BitbucketCredentialsAdaptor bbCredentialAdaptor;
+        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         @SuppressWarnings("MethodMayBeStatic")
         @POST
@@ -301,14 +301,14 @@ public class BitbucketServerConfiguration
             try {
                 Optional<String> username =
                         clientFactoryProvider
-                                .getClient(config.getBaseUrl(), bbCredentialAdaptor.asBitbucketCredentialWithFallback(config.getAdminCredentials(), config))
+                                .getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config))
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
                     return FormValidation.error("The admin credentials are invalid");
                 }
                 BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(config.getBaseUrl(), bbCredentialAdaptor.asBitbucketCredentialWithFallback(credentials, config));
+                        clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {

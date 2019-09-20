@@ -7,7 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus;
@@ -31,17 +31,17 @@ class BitbucketMirrorHandler {
 
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    private final BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
+    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final BitbucketRepoFetcher bitbucketRepoFetcher;
 
     BitbucketMirrorHandler(
             BitbucketPluginConfiguration bitbucketPluginConfiguration,
             BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-            BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor,
+            JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
             BitbucketRepoFetcher bitbucketRepoFetcher) {
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
-        this.bitbucketCredentialsAdaptor = bitbucketCredentialsAdaptor;
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.bitbucketRepoFetcher = bitbucketRepoFetcher;
     }
 
@@ -79,7 +79,7 @@ class BitbucketMirrorHandler {
         String bitbucketBaseUrl = requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base Url not found");
 
         BitbucketCredentials jobOrGlobalConf =
-                bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(mirrorFetchRequest.getJobCredentials(), serverConfiguration);
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getJobCredentials(), serverConfiguration);
         BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf);
         BitbucketRepository repository =
                 bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getBitbucketRepo());

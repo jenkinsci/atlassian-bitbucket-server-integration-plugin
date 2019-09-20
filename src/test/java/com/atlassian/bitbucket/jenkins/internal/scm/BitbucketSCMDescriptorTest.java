@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -80,7 +80,7 @@ public class BitbucketSCMDescriptorTest {
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
     @Mock
-    private BitbucketCredentialsAdaptor bitbucketCredentialsAdaptor;
+    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Before
     public void setup() {
@@ -93,11 +93,11 @@ public class BitbucketSCMDescriptorTest {
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
         BitbucketCredentials credentials = mock(BitbucketCredentials.class);
-        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(anyString(), any(BitbucketServerConfiguration.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(anyString(), any(BitbucketServerConfiguration.class)))
                 .thenReturn(credentials);
-        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback(any(Credentials.class), any(BitbucketServerConfiguration.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(any(Credentials.class), any(BitbucketServerConfiguration.class)))
                 .thenReturn(credentials);
-        when(bitbucketCredentialsAdaptor.asBitbucketCredentialWithFallback((Credentials) isNull(), any(BitbucketServerConfiguration.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials((Credentials) isNull(), any(BitbucketServerConfiguration.class)))
                 .thenReturn(credentials);
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
@@ -149,7 +149,7 @@ public class BitbucketSCMDescriptorTest {
                 BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
                 when(repositoryClient.getRepository()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
                         new BitbucketRepository(1, repositoryKey +
-                                                "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
+                                                   "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
                 return repositoryClient;
             });
             return projectClient;
