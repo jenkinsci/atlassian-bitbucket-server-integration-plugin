@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.IOException;
 import java.util.*;
 
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -174,6 +175,24 @@ public class BitbucketWebhookConsumerTest {
         verify(bitbucketTrigger, never()).trigger(any());
     }
 
+    @Test
+    public void testRefsChangedShouldNotTriggerBitbucketSCMIfMirrorNameDoesNotMatch() {
+        BitbucketRepository repository =
+                repository("http://bitbucket.example.com/scm/readme/readme.git", "readme", "readme");
+        MirrorSynchronizedWebhookEvent event = new MirrorSynchronizedWebhookEvent(
+                BITBUCKET_USER,
+                new BitbucketMirrorServer("1", "mirror1"),
+                MIRROR_SYNCHRONIZED_EVENT.getEventId(),
+                new Date(),
+                refChanges(),
+                repository,
+                BitbucketRepositorySynchronizationType.INCREMENTAL);
+
+        consumer.process(event);
+
+        verify(bitbucketTrigger, never()).trigger(any());
+    }
+
     private List<RemoteConfig> createRemoteConfig() {
         RemoteConfig remoteConfig = mock(RemoteConfig.class);
         URIish uri = mock(URIish.class);
@@ -202,7 +221,8 @@ public class BitbucketWebhookConsumerTest {
         Map<String, List<BitbucketNamedLink>> links =
                 Maps.of("clone", cloneLinks, "self", Collections.singletonList(selfLink));
         BitbucketProject project = new BitbucketProject(projectKey,
-                singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey))),
+                singletonMap("self", singletonList(new BitbucketNamedLink(null,
+                        "http://localhost:7990/bitbucket/projects/" + projectKey))),
                 projectKey);
         return new BitbucketRepository(
                 1, repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
