@@ -21,6 +21,12 @@ public interface BitbucketScmFormFill {
 
     ListBoxModel doFillServerIdItems(String serverId);
 
+    ListBoxModel doFillMirrorNameItems(String serverId,
+                                       String credentialsId,
+                                       String projectName,
+                                       String repositoryName,
+                                       String mirrorName);
+
     default List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
         return Collections.emptyList();
     }

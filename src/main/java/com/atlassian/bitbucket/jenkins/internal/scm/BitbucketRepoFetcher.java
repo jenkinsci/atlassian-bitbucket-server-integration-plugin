@@ -5,5 +5,5 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
 public interface BitbucketRepoFetcher {
 
-    BitbucketRepository fetchRepo(BitbucketClientFactory client, BitbucketRepo bitbucketRepo);
+    BitbucketRepository fetchRepo(BitbucketClientFactory client, String projectNameOrRepo, String repoNameOrSlug);
 }

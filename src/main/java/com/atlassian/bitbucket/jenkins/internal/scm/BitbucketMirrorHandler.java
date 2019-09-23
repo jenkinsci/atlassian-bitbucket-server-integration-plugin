@@ -58,8 +58,8 @@ class BitbucketMirrorHandler {
         StandardListBoxModel options = new StandardListBoxModel();
         options.add(new Option(DEFAULT_UPSTREAM_SERVER, ""));
         if (isEmpty(mirrorFetchRequest.getServerId()) ||
-            isEmpty(mirrorFetchRequest.getBitbucketRepo().getProjectNameOrKey()) ||
-            isEmpty(mirrorFetchRequest.getBitbucketRepo().getRepoNameOrSlug())) {
+            isEmpty(mirrorFetchRequest.getProjectNameOrKey()) ||
+            isEmpty(mirrorFetchRequest.getRepoNameOrSlug())) {
             return options;
         }
 
@@ -82,7 +82,7 @@ class BitbucketMirrorHandler {
                 jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getJobCredentials(), serverConfiguration);
         BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf);
         BitbucketRepository repository =
-                bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getBitbucketRepo());
+                bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getProjectNameOrKey(), mirrorFetchRequest.getRepoNameOrSlug());
         BitbucketMirrorClient mirrorClient = client.getMirroredRepositoriesClient(repository.getId());
         return mirrorClient.getMirroredRepositoryDescriptors()
                 .getValues()

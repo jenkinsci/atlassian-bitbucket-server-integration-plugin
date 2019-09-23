@@ -1,10 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -27,7 +29,6 @@ import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
@@ -45,11 +46,18 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Inject
-    public BitbucketScmFormFillDelegate(BitbucketClientFactoryProvider bitbucketClientFactoryProvider, BitbucketPluginConfiguration bitbucketPluginConfiguration) {
-        this.bitbucketClientFactoryProvider = requireNonNull(bitbucketClientFactoryProvider, "bitbucketClientFactoryProvider");
-        this.bitbucketPluginConfiguration = requireNonNull(bitbucketPluginConfiguration, "bitbucketPluginConfiguration");
+    public BitbucketScmFormFillDelegate(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                                        BitbucketPluginConfiguration bitbucketPluginConfiguration,
+                                        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
+        this.bitbucketClientFactoryProvider =
+                requireNonNull(bitbucketClientFactoryProvider, "bitbucketClientFactoryProvider");
+        this.bitbucketPluginConfiguration =
+                requireNonNull(bitbucketPluginConfiguration, "bitbucketPluginConfiguration");
+        this.jenkinsToBitbucketCredentials =
+                requireNonNull(jenkinsToBitbucketCredentials, "jenkinsToBitbucketCredentils");
     }
 
     @Override
@@ -94,20 +102,23 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConf -> {
                     try {
-                        BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
+                        BitbucketCredentials credentials =
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
                         Collection<BitbucketProject> projects = findProjects(projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
                         return okJSON(JSONArray.fromObject(projects));
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
-                        return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
+                        return errorWithoutStack(HTTP_INTERNAL_ERROR,
+                                "An error occurred in Bitbucket: " + e.getMessage());
                     }
                 }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
     }
 
     @Override
-    public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName, String repositoryName) {
+    public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName,
+                                                  String repositoryName) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
@@ -126,7 +137,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConf -> {
-                    BitbucketCredentials credentials = createWithFallback(providedCredentials, serverConf);
+                    BitbucketCredentials credentials =
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
                     try {
                         Collection<BitbucketRepository> repositories = findRepositories(repositoryName, projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
@@ -134,7 +146,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
-                        return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
+                        return errorWithoutStack(HTTP_INTERNAL_ERROR,
+                                "An error occurred in Bitbucket: " + e.getMessage());
                     }
                 }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
     }
@@ -158,5 +171,19 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             model.includeEmptyValue();
         }
         return model;
+    }
+
+    @Override
+    public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
+                                              String repositoryName, String mirrorName) {
+        Jenkins.get().checkPermission(CONFIGURE);
+        BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
+        return bitbucketMirrorHandler.fetchAsListBox(
+                new MirrorFetchRequest(serverId, credentialsId, projectName, repositoryName, mirrorName));
+    }
+
+    private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {
+        return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
+                (client, project, repo) -> BitbucketSearchHelper.getRepositoryByNameOrSlug(project, repo, client));
     }
 }

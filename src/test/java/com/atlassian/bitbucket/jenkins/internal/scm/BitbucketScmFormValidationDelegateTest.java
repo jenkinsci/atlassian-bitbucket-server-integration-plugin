@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.util.FormValidation;
@@ -22,10 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.Optional.of;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +38,7 @@ public class BitbucketScmFormValidationDelegateTest {
     public static BitbucketMockJenkinsRule bbJenkins =
             new BitbucketMockJenkinsRule("token", wireMockConfig().dynamicPort());
 
+    private static String CREDENTIAL_ID = "credential_id";
     private static String SERVER_BASE_URL_VALID = "ServerBaseUrl_Valid";
     private static String SERVER_ID_INVALID = "ServerID_Invalid";
     private static String SERVER_ID_VALID = "ServerID_Valid";
@@ -57,6 +56,8 @@ public class BitbucketScmFormValidationDelegateTest {
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
+    @Mock
+    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Before
     public void setup() {
@@ -64,14 +65,18 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
+        when(serverConfigurationValid.getCredentialsId()).thenReturn(CREDENTIAL_ID);
         when(serverConfigurationInvalid.getId()).thenReturn(SERVER_ID_INVALID);
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, serverConfigurationValid)).thenReturn(mock(BitbucketCredentials.class));
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
             String partialProjectName = getSearchClientInvocation.getArgument(0);
-            BitbucketProject project = new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name");
+            BitbucketProject project = new BitbucketProject(
+                    partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"),
+                    partialProjectName + "-full-name");
 
             BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
 
@@ -79,7 +84,9 @@ public class BitbucketScmFormValidationDelegateTest {
                 BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
                 ArrayList<BitbucketProject> results = new ArrayList<>();
                 results.add(project);
-                BitbucketProject extraMatchingProject = new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name2");
+                BitbucketProject extraMatchingProject = new BitbucketProject(
+                        partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"),
+                        partialProjectName + "-full-name2");
                 results.add(extraMatchingProject);
                 page.setValues(results);
                 return page;
@@ -90,9 +97,11 @@ public class BitbucketScmFormValidationDelegateTest {
                         String partialRepositoryName = findRepositoriesInvocation.getArgument(0);
                         BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
                         ArrayList<BitbucketRepository> results = new ArrayList<>();
-                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name", emptyMap(), project,
+                        results.add(new BitbucketRepository(0,
+                                partialRepositoryName + "-full-name", emptyMap(), project,
                                 partialRepositoryName + "-slug", RepositoryState.AVAILABLE));
-                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name2", emptyMap(), project,
+                        results.add(new BitbucketRepository(0,
+                                partialRepositoryName + "-full-name2", emptyMap(), project,
                                 partialRepositoryName + "-slug2", RepositoryState.AVAILABLE));
                         page.setValues(results);
                         return page;
@@ -111,7 +120,8 @@ public class BitbucketScmFormValidationDelegateTest {
                 String repositoryKey = getRepositoryClientArgs.getArgument(0);
                 BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
                 when(repositoryClient.getRepository()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
-                        new BitbucketRepository(repositoryKey + "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
+                        new BitbucketRepository(0, repositoryKey +
+                                                   "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
                 return repositoryClient;
             });
             return projectClient;
@@ -135,6 +145,7 @@ public class BitbucketScmFormValidationDelegateTest {
 
     @Test
     public void testRepositoryNameEmpty() {
+        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", "").kind);
     }
 
@@ -145,6 +156,7 @@ public class BitbucketScmFormValidationDelegateTest {
 
     @Test
     public void testRepositoryNameNull() {
+        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", null).kind);
     }
 
@@ -187,6 +199,7 @@ public class BitbucketScmFormValidationDelegateTest {
     }
 
     private static Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {
-        return singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey)));
+        return singletonMap("self", singletonList(new BitbucketNamedLink(null,
+                "http://localhost:7990/bitbucket/projects/" + projectKey)));
     }
 }

@@ -4,21 +4,20 @@ class MirrorFetchRequest {
 
     private final String serverId;
     private final String jobCredentials;
-    private final BitbucketRepo bitbucketRepo;
+    private final String projectNameOrKey;
+    private final String repoNameOrSlug;
     private final String existingMirrorSelection;
 
     MirrorFetchRequest(String serverId,
                        String jobCredentials,
-                       BitbucketRepo bitbucketRepo,
+                       String projectNameOrKey,
+                       String repoNameOrSlug,
                        String existingMirrorSelection) {
         this.serverId = serverId;
         this.jobCredentials = jobCredentials;
-        this.bitbucketRepo = bitbucketRepo;
+        this.projectNameOrKey = projectNameOrKey;
+        this.repoNameOrSlug = repoNameOrSlug;
         this.existingMirrorSelection = existingMirrorSelection;
-    }
-
-    public BitbucketRepo getBitbucketRepo() {
-        return bitbucketRepo;
     }
 
     public String getExistingMirrorSelection() {
@@ -27,6 +26,14 @@ class MirrorFetchRequest {
 
     public String getJobCredentials() {
         return jobCredentials;
+    }
+
+    public String getProjectNameOrKey() {
+        return projectNameOrKey;
+    }
+
+    public String getRepoNameOrSlug() {
+        return repoNameOrSlug;
     }
 
     public String getServerId() {

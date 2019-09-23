@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -35,10 +36,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -47,9 +45,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketScmFormFillDelegateTest {
@@ -74,6 +70,8 @@ public class BitbucketScmFormFillDelegateTest {
     private BitbucketServerConfiguration serverConfigurationInvalid;
     @Mock
     private BitbucketServerConfiguration serverConfigurationValid;
+    @Mock
+    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Before
     public void setup() {
@@ -81,6 +79,10 @@ public class BitbucketScmFormFillDelegateTest {
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), any(BitbucketServerConfiguration.class)))
+                .thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(Credentials.class), any(BitbucketServerConfiguration.class)))
+                .thenReturn(mock(BitbucketCredentials.class));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
 
         when(serverConfigurationInvalid.getId()).thenReturn(SERVER_ID_INVALID);
@@ -90,7 +92,9 @@ public class BitbucketScmFormFillDelegateTest {
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
             String partialProjectName = getSearchClientInvocation.getArgument(0);
-            BitbucketProject project = new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name");
+            BitbucketProject project = new BitbucketProject(
+                    partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"),
+                    partialProjectName + "-full-name");
 
             BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
 
@@ -98,7 +102,9 @@ public class BitbucketScmFormFillDelegateTest {
                 BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
                 ArrayList<BitbucketProject> results = new ArrayList<>();
                 results.add(project);
-                BitbucketProject extraMatchingProject = new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name2");
+                BitbucketProject extraMatchingProject = new BitbucketProject(
+                        partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"),
+                        partialProjectName + "-full-name2");
                 results.add(extraMatchingProject);
                 page.setValues(results);
                 return page;
@@ -109,9 +115,11 @@ public class BitbucketScmFormFillDelegateTest {
                         String partialRepositoryName = findRepositoriesInvocation.getArgument(0);
                         BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
                         ArrayList<BitbucketRepository> results = new ArrayList<>();
-                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name", emptyMap(), project,
+                        results.add(new BitbucketRepository(0,
+                                partialRepositoryName + "-full-name", emptyMap(), project,
                                 partialRepositoryName + "-slug", RepositoryState.AVAILABLE));
-                        results.add(new BitbucketRepository(partialRepositoryName + "-full-name2", emptyMap(), project,
+                        results.add(new BitbucketRepository(0,
+                                partialRepositoryName + "-full-name2", emptyMap(), project,
                                 partialRepositoryName + "-slug2", RepositoryState.AVAILABLE));
                         page.setValues(results);
                         return page;
@@ -130,7 +138,8 @@ public class BitbucketScmFormFillDelegateTest {
                 String repositoryKey = getRepositoryClientArgs.getArgument(0);
                 BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
                 when(repositoryClient.getRepository()).thenAnswer((Answer<BitbucketRepository>) repositoryClientArgs ->
-                        new BitbucketRepository(repositoryKey + "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
+                        new BitbucketRepository(0, repositoryKey +
+                                                   "-full-name", emptyMap(), project, repositoryKey, RepositoryState.AVAILABLE));
                 return repositoryClient;
             });
             return projectClient;
@@ -144,7 +153,8 @@ public class BitbucketScmFormFillDelegateTest {
         when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(badSearchClient);
         when(badSearchClient.findProjects()).thenThrow(new BitbucketClientException("Bitbucket had an exception",
                 400, "Some error from Bitbucket"));
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, searchTerm);
         verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
@@ -178,37 +188,43 @@ public class BitbucketScmFormFillDelegateTest {
 
     @Test
     public void testDoFillProjectNameItemsProjectNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, "");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, "");
         verifyBadRequest(response, "The project name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsProjectNameNull() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, null);
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, null);
         verifyBadRequest(response, "The project name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsProjectNameShort() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, "a");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(SERVER_ID_VALID, null, "a");
         verifyBadRequest(response, "The project name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillProjectNameItemsServerIdBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems("", null, "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems("", null, "test");
         verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillProjectNameItemsServerIdNull() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(null, null, "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(null, null, "test");
         verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillProjectNameItemsServerNonexistent() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems("non-existent", null, "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems("non-existent", null, "test");
         verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
     }
 
@@ -219,7 +235,8 @@ public class BitbucketScmFormFillDelegateTest {
         BitbucketSearchClient client = mock(BitbucketSearchClient.class);
         when(client.findRepositories(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
         when(bitbucketClientFactory.getSearchClient(myProject)).thenReturn(client);
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, myProject, searchTerm);
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, myProject, searchTerm);
         verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
@@ -248,55 +265,64 @@ public class BitbucketScmFormFillDelegateTest {
         store.addCredentials(domain, credentials);
 
         String searchTerm = "test";
-        HttpResponse response = delegate.doFillRepositoryNameItems(SERVER_ID_VALID, credentialId, "myProject", searchTerm);
+        HttpResponse response =
+                delegate.doFillRepositoryNameItems(SERVER_ID_VALID, credentialId, "myProject", searchTerm);
         verifyRepositorySearchResponse(searchTerm, "myProject", response);
     }
 
     @Test
     public void testDoFillRepositoryNameItemsProjectNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "", "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "", "test");
         verifyBadRequest(response, "The projectName must be present");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsProjectNameNull() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, null, "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, null, "test");
         verifyBadRequest(response, "The projectName must be present");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "");
         verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameNull() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", null);
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", null);
         verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsRepositoryNameShort() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "a");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(SERVER_ID_VALID, null, "myProject", "a");
         verifyBadRequest(response, "The repository name must be at least 2 characters long");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerIdBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems("", null, "myProject", "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems("", null, "myProject", "test");
         verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerIdNull() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(null, null, "myProject", "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(null, null, "myProject", "test");
         verifyBadRequest(response, "A Bitbucket Server serverId must be provided");
     }
 
     @Test
     public void testDoFillRepositoryNameItemsServerNonexistent() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems("non-existent", null, "myProject", "test");
+        HttpResponses.HttpResponseException response =
+                (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems("non-existent", null, "myProject", "test");
         verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
     }
 
@@ -347,11 +373,13 @@ public class BitbucketScmFormFillDelegateTest {
         return values.stream()
                 .map(v -> (JSONObject) v)
                 .filter(v -> value.equalsIgnoreCase((String) v.get(key)))
-                .findAny().orElseThrow(() -> new AssertionError("Expected there to be a value with " + key + "=" + value + ", but there was not: " + values));
+                .findAny().orElseThrow(() -> new AssertionError(
+                        "Expected there to be a value with " + key + "=" + value + ", but there was not: " + values));
     }
 
     private static Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {
-        return singletonMap("self", singletonList(new BitbucketNamedLink(null, "http://localhost:7990/bitbucket/projects/" + projectKey)));
+        return singletonMap("self", singletonList(new BitbucketNamedLink(null,
+                "http://localhost:7990/bitbucket/projects/" + projectKey)));
     }
 
     //Checks for the presence of an option that matches one created from a server configuration
@@ -368,11 +396,13 @@ public class BitbucketScmFormFillDelegateTest {
                 option.name.equals("- none -") && isEmpty(option.value));
     }
 
-    private static void verifyBadRequest(HttpResponses.HttpResponseException response, String message) throws IOException, ServletException {
+    private static void verifyBadRequest(HttpResponses.HttpResponseException response,
+                                         String message) throws IOException, ServletException {
         verifyErrorRequest(response, 400, message);
     }
 
-    private static void verifyErrorRequest(HttpResponses.HttpResponseException response, int responseCode, String message) throws IOException, ServletException {
+    private static void verifyErrorRequest(HttpResponses.HttpResponseException response, int responseCode,
+                                           String message) throws IOException, ServletException {
         StaplerResponse resp = mock(StaplerResponse.class);
         response.generateResponse(null, resp, null);
         verify(resp).sendError(eq(responseCode), eq(message));

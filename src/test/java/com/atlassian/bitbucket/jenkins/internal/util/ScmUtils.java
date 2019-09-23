@@ -3,7 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.util;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
@@ -13,7 +13,6 @@ import hudson.plugins.git.BranchSpec;
 
 import java.util.List;
 
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -30,12 +29,15 @@ public final class ScmUtils {
 
     public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule, List<BranchSpec> branchSpecs) {
         BitbucketServerConfiguration serverConfiguration = bbJenkinsRule.getBitbucketServerConfiguration();
-        BitbucketClientFactoryProvider bitbucketClientFactoryProvider = new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
-        BitbucketCredentials credentials = createWithFallback(CredentialUtils.getCredentials(serverConfiguration.getCredentialsId()), serverConfiguration);
-        BitbucketRepository repository = bitbucketClientFactoryProvider.getClient(serverConfiguration.getBaseUrl(), credentials)
-                .getProjectClient(PROJECT_KEY)
-                .getRepositoryClient(REPO_SLUG)
-                .getRepository();
+        BitbucketClientFactoryProvider bitbucketClientFactoryProvider =
+                new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
+        BitbucketCredentials credentials =
+                new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(serverConfiguration.getCredentialsId(), serverConfiguration);
+        BitbucketRepository repository =
+                bitbucketClientFactoryProvider.getClient(serverConfiguration.getBaseUrl(), credentials)
+                        .getProjectClient(PROJECT_KEY)
+                        .getRepositoryClient(REPO_SLUG)
+                        .getRepository();
         return new BitbucketSCM(
                 "",
                 branchSpecs,
@@ -53,6 +55,7 @@ public final class ScmUtils {
                 REPO_NAME,
                 REPO_SLUG,
                 repository.getSelfLink().replace("/browse", ""),
-                serverConfiguration.getId());
+                serverConfiguration.getId(),
+                "");
     }
 }

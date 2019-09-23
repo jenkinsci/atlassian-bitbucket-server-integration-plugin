@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -17,7 +18,6 @@ import javax.inject.Singleton;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static hudson.security.Permission.CONFIGURE;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -27,12 +27,15 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Inject
     public BitbucketScmFormValidationDelegate(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                                              BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+                                              BitbucketPluginConfiguration bitbucketPluginConfiguration,
+                                              JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
         this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
     }
 
     @Override
@@ -59,7 +62,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                 .map(serverConf -> {
                     try {
                         BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                .getClient(serverConf.getBaseUrl(), createWithFallback(providedCredentials, serverConf));
+                                .getClient(serverConf.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
                         BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
                         return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
                     } catch (NotFoundException e) {
@@ -74,7 +77,8 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     }
 
     @Override
-    public FormValidation doCheckRepositoryName(String serverId, String credentialsId, String projectName, String repositoryName) {
+    public FormValidation doCheckRepositoryName(String serverId, String credentialsId, String projectName,
+                                                String repositoryName) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(projectName)) {
             return FormValidation.ok(); // There will be an error on the projectName field
@@ -91,8 +95,9 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                 .map(serverConf -> {
                     try {
                         BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                .getClient(serverConf.getBaseUrl(), createWithFallback(providedCredentials, serverConf));
-                        BitbucketRepository repository = getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
+                                .getClient(serverConf.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
+                        BitbucketRepository repository =
+                                getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                         return FormValidation.ok("Using '" + repository.getName() + "' at " + repository.getSelfLink());
                     } catch (NotFoundException e) {
                         return FormValidation.error("The repository '" + repositoryName + "' does not " +
