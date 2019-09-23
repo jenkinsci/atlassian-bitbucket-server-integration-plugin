@@ -215,7 +215,7 @@ public class BitbucketSCMDescriptorIT {
         BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
-        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(httpCloneUrl.getHref().replace("admin@", ""), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
@@ -305,7 +305,7 @@ public class BitbucketSCMDescriptorIT {
         BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
-        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(httpCloneUrl.getHref().replace("admin@", ""), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
@@ -357,7 +357,7 @@ public class BitbucketSCMDescriptorIT {
         BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
                 .findAny()
                 .orElseThrow(() -> new AssertionError("There should be an http clone url"));
-        assertThat(httpCloneUrl.getHref(), equalTo("http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(httpCloneUrl.getHref().replace("admin@", ""), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
         JenkinsBitbucketProject project = repo.getProject();
         assertThat(project.getKey(), equalTo("PROJECT_1"));
         assertThat(project.getName(), equalTo("Project 1"));
