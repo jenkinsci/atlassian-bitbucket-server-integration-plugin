@@ -60,17 +60,10 @@ public class BitbucketJenkinsRule extends JenkinsRule {
                 "", BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
         addCredentials(readCredentials);
 
-        createRepoFork();
-
         bitbucketServerConfiguration =
                 new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
         bitbucketServerConfiguration.setServerName(SERVER_NAME);
         addBitbucketServer(bitbucketServerConfiguration);
-    }
-
-    @Override
-    public void after() {
-        deleteRepoFork();
     }
 
     public BitbucketServerConfiguration getBitbucketServerConfiguration() {

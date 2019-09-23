@@ -15,7 +15,7 @@ import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
 import hudson.tasks.Shell;
 import io.restassured.RestAssured;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
+import it.com.atlassian.bitbucket.jenkins.internal.util.*;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.REPO_FORK_NAME;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.REPO_FORK_SLUG;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -48,6 +46,11 @@ public class BitbucketSCMIT {
     private static final String REPO_SLUG = "rep_1";
     private FreeStyleProject project;
 
+    @BeforeClass
+    public static void init() {
+        BitbucketUtils.createRepoFork();
+    }
+
     @Before
     public void setup() throws Exception {
         project = bbJenkinsRule.createFreeStyleProject();
@@ -56,6 +59,11 @@ public class BitbucketSCMIT {
     @After
     public void tearDown() throws IOException, InterruptedException {
         project.delete();
+    }
+
+    @AfterClass
+    public static void onComplete() {
+        BitbucketUtils.deleteRepoFork();
     }
 
     @Test
@@ -74,7 +82,7 @@ public class BitbucketSCMIT {
         String uniqueMessage = UUID.randomUUID().toString();
         Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh").replaceFirst("uniqueMessage", uniqueMessage));
 
-        project.setScm(createCustomRepoSCM(REPO_FORK_NAME, REPO_FORK_SLUG, "*/master"));
+        project.setScm(createCustomRepoSCM(BitbucketUtils.REPO_FORK_NAME, BitbucketUtils.REPO_FORK_SLUG, "*/master"));
         project.getBuildersList().add(postScript);
         project.save();
 

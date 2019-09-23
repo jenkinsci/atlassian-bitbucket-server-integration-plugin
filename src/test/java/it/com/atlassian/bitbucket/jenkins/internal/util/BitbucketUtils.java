@@ -23,12 +23,14 @@ public class BitbucketUtils {
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
     public static final String REPO_NAME = "rep 1";
-    public static final String REPO_FORK_SLUG = "rep_1_fork";
-    public static final String REPO_FORK_NAME = "rep_1_fork";
+    public static String REPO_FORK_SLUG = "";
+    public static String REPO_FORK_NAME = "";
 
     public static void createRepoFork() {
         HashMap<String, Object> createForkRequest = new HashMap<>();
         HashMap<String, Object> projectProperties = new HashMap<>();
+        REPO_FORK_NAME = REPO_FORK_SLUG = UUID.randomUUID().toString();
+
         projectProperties.put("key", PROJECT_KEY);
         createForkRequest.put("name", REPO_FORK_SLUG);
         createForkRequest.put("project", projectProperties);
