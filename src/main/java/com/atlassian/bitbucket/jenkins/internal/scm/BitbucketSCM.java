@@ -154,7 +154,7 @@ public class BitbucketSCM extends SCM {
             if (scmRepository.isMirrorConfigured()) {
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
                 EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler().fetchRepostiory(
+                        descriptor.createMirrorHandler().fetchRepository(
                                 new MirrorFetchRequest(scmRepository.getServerId(),
                                         scmRepository.getCredentialsId(),
                                         new BitbucketRepo(scmRepository.getProjectKey(), scmRepository.getRepositorySlug()),

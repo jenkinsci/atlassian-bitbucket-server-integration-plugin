@@ -1,16 +1,16 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-public class MirrorFetchRequest {
+class MirrorFetchRequest {
 
     private final String serverId;
     private final String jobCredentials;
     private final BitbucketRepo bitbucketRepo;
     private final String existingMirrorSelection;
 
-    public MirrorFetchRequest(String serverId,
-                              String jobCredentials,
-                              BitbucketRepo bitbucketRepo,
-                              String existingMirrorSelection) {
+    MirrorFetchRequest(String serverId,
+                       String jobCredentials,
+                       BitbucketRepo bitbucketRepo,
+                       String existingMirrorSelection) {
         this.serverId = serverId;
         this.jobCredentials = jobCredentials;
         this.bitbucketRepo = bitbucketRepo;

@@ -27,8 +27,8 @@ public interface BitbucketMirrorClient {
     /**
      * Returns the mirrored repository details for the given repository url.
      *
-     * @param repoUrl the url in the {@link BitbucketMirroredRepositoryDescriptor#getSelfLink()}
+     * @param repositoryDescriptor the descriptor of repository.
      * @return mirrored repository details
      */
-    BitbucketMirroredRepository getRepositoryDetails(String repoUrl);
+    BitbucketMirroredRepository getRepositoryDetails(BitbucketMirroredRepositoryDescriptor repositoryDescriptor);
 }

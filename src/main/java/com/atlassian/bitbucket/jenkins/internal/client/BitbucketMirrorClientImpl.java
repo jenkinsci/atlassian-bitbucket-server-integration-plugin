@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class BitbucketMirrorClientImpl implements BitbucketMirrorClient {
 
@@ -36,7 +37,13 @@ public class BitbucketMirrorClientImpl implements BitbucketMirrorClient {
     }
 
     @Override
-    public BitbucketMirroredRepository getRepositoryDetails(String repoUrl) {
+    public BitbucketMirroredRepository getRepositoryDetails(
+            BitbucketMirroredRepositoryDescriptor repositoryDescriptor) {
+        String repoUrl = repositoryDescriptor.getSelfLink();
+        if (isEmpty(repoUrl)) {
+            throw new BitbucketClientException("Empty Repo URL");
+        }
+
         HttpUrl mirrorUrl = HttpUrl.parse(repoUrl);
         if (mirrorUrl == null) {
             throw new BitbucketClientException("Invalid repo URL " + repoUrl);

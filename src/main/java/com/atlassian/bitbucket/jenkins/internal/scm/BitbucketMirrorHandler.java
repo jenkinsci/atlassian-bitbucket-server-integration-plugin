@@ -26,7 +26,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 class BitbucketMirrorHandler {
 
-    public static final String DEFAULT_UPSTREAM_SERVER = "Primary Server";
+    private static final String DEFAULT_UPSTREAM_SERVER = "Primary Server";
     private static final Logger LOGGER = Logger.getLogger(BitbucketMirrorHandler.class.getName());
 
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -45,7 +45,7 @@ class BitbucketMirrorHandler {
         this.bitbucketRepoFetcher = bitbucketRepoFetcher;
     }
 
-    public EnrichedBitbucketMirroredRepository fetchRepostiory(MirrorFetchRequest mirrorFetchRequest) {
+    public EnrichedBitbucketMirroredRepository fetchRepository(MirrorFetchRequest mirrorFetchRequest) {
         return this.fetchRepositores(mirrorFetchRequest)
                 .stream()
                 .filter(r -> r.getMirroringDetails().getMirrorName().equals(mirrorFetchRequest.getExistingMirrorSelection()))
@@ -110,14 +110,11 @@ class BitbucketMirrorHandler {
     private BitbucketMirroredRepository fetchMirroredRepo(BitbucketMirrorClient client,
                                                           BitbucketMirroredRepositoryDescriptor repoDescriptor,
                                                           int repositoryId) {
-        String repoLink = repoDescriptor.getSelfLink();
-        if (repoLink != null) {
-            try {
-                return client.getRepositoryDetails(repoLink);
-            } catch (BitbucketClientException e) {
-                LOGGER.info("Failed to retrieve repository information from mirror: " +
-                            repoDescriptor.getMirrorServer().getName());
-            }
+        try {
+            return client.getRepositoryDetails(repoDescriptor);
+        } catch (BitbucketClientException e) {
+            LOGGER.info("Failed to retrieve repository information from mirror: " +
+                        repoDescriptor.getMirrorServer().getName());
         }
         return new BitbucketMirroredRepository(false, emptyMap(),
                 repoDescriptor.getMirrorServer().getName(), repositoryId, BitbucketMirroredRepositoryStatus.NOT_MIRRORED);
