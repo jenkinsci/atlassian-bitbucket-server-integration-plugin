@@ -2,20 +2,15 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -30,14 +25,11 @@ import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.*;
-import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import hudson.util.ListBoxModel.Option;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -49,19 +41,23 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils.getCredentials;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
+import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
+import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentialsAdaptor.createWithFallback;
 import static hudson.security.Permission.CONFIGURE;
-import static hudson.util.HttpResponses.okJSON;
 import static java.lang.Math.max;
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.util.stream.Collectors.toCollection;
-import static org.apache.commons.lang3.StringUtils.*;
-import static org.kohsuke.stapler.HttpResponses.errorWithoutStack;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.apache.commons.lang3.StringUtils.firstNonBlank;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.stripToEmpty;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class BitbucketSCM extends SCM {
 
@@ -74,23 +70,35 @@ public class BitbucketSCM extends SCM {
     private final String id;
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
-
-    private transient BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    private transient BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private GitSCM gitSCM;
 
     @DataBoundConstructor
     public BitbucketSCM(
-            String id,
-            List<BranchSpec> branches,
+            @CheckForNull String id,
+            @CheckForNull List<BranchSpec> branches,
+            @CheckForNull String cloneUrl,
+            @CheckForNull String credentialsId,
             @CheckForNull List<GitSCMExtension> extensions,
-            String gitTool,
-            String serverId) {
-        if (isBlank(serverId)) {
-            LOGGER.info("Error creating the Bitbucket SCM: the server ID must not be blank");
+            @CheckForNull String gitTool,
+            @CheckForNull String projectName,
+            @CheckForNull String projectKey,
+            @CheckForNull String repositoryName,
+            @CheckForNull String repositorySlug,
+            @CheckForNull String repositoryUrl,
+            @CheckForNull String serverId) {
+        cloneUrl = stripToEmpty(cloneUrl);
+        credentialsId = stripToEmpty(credentialsId);
+        projectName = stripToEmpty(projectName);
+        projectKey = stripToEmpty(projectKey);
+        repositoryName = stripToEmpty(repositoryName);
+        repositorySlug = stripToEmpty(repositorySlug);
+        repositoryUrl = stripToEmpty(repositoryUrl);
+        serverId = stripToEmpty(serverId);
+        this.id = firstNonBlank(id, UUID.randomUUID().toString());
+        this.branches = new ArrayList<>();
+        if (branches != null) {
+            this.branches.addAll(branches);
         }
-        this.branches = branches;
-        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.extensions = new ArrayList<>();
         if (extensions != null) {
             this.extensions.addAll(extensions);
@@ -98,10 +106,16 @@ public class BitbucketSCM extends SCM {
         this.extensions.add(new BitbucketPostBuildStatus(serverId));
         this.gitTool = gitTool;
         repositories = new ArrayList<>(1);
+        repositories.add(new BitbucketSCMRepository(credentialsId, projectName, projectKey, repositoryName,
+                repositorySlug, serverId, false));
+        UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repositorySlug, null, credentialsId);
+        gitSCM = new GitSCM(singletonList(remoteConfig), this.branches, false, emptyList(), new Stash(repositoryUrl),
+                this.gitTool, this.extensions);
     }
 
-    public void addRepositories(BitbucketSCMRepository... repositories) {
-        this.repositories.addAll(Arrays.asList(repositories));
+    @CheckForNull
+    public String getGitTool() {
+        return gitTool;
     }
 
     @CheckForNull
@@ -143,42 +157,6 @@ public class BitbucketSCM extends SCM {
         return gitSCM.createChangeLogParser();
     }
 
-    public void createGitSCM() {
-        BitbucketSCMRepository scmRepository = getBitbucketSCMRepository();
-        BitbucketServerConfiguration server = getServer();
-        String repositorySlug = scmRepository.getRepositorySlug();
-        String credentialsId = scmRepository.getCredentialsId();
-        BitbucketRepository repo;
-        String cloneUrl;
-        try {
-            if (scmRepository.isMirrorConfigured()) {
-                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-                EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler().fetchRepository(
-                                new MirrorFetchRequest(scmRepository.getServerId(),
-                                        scmRepository.getCredentialsId(),
-                                        new BitbucketRepo(scmRepository.getProjectKey(), scmRepository.getRepositorySlug()),
-                                        scmRepository.getMirrorName()));
-                cloneUrl = getHttpCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
-                repo = mirroredRepository.getRepository();
-            } else {
-                repo = getRepository(server, scmRepository.getProjectKey(), repositorySlug, credentialsId);
-                cloneUrl = getUpstreamCloneUrl(repo);
-            }
-        } catch (BitbucketClientException e) {
-            LOGGER.info("Error creating the Bitbucket SCM. Reason: " + firstNonBlank(e.getMessage(), "unknown"));
-            repo = new BitbucketRepository(-1, scmRepository.getRepositoryName(), null,
-                    new BitbucketProject(scmRepository.getProjectKey(), null, scmRepository.getProjectName()),
-                    scmRepository.getRepositorySlug(), RepositoryState.AVAILABLE);
-            cloneUrl = null;
-        }
-        UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, repositorySlug, null,
-                        pickCredentialsId(server, credentialsId));
-        gitSCM = new GitSCM(Collections.singletonList(remoteConfig), branches, false, Collections.emptyList(),
-                new Stash(getRepositoryUrl(repo)), gitTool, extensions);
-    }
-
     public List<BranchSpec> getBranches() {
         return gitSCM.getBranches();
     }
@@ -197,10 +175,6 @@ public class BitbucketSCM extends SCM {
     public List<GitSCMExtension> getExtensions() {
         return gitSCM.getExtensions().stream().filter(extension -> extension.getClass() !=
                                                                    BitbucketPostBuildStatus.class).collect(Collectors.toList());
-    }
-
-    public String getGitTool() {
-        return gitTool;
     }
 
     public String getId() {
@@ -223,11 +197,6 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getRepositorySlug();
     }
 
-    @CheckForNull
-    public String getMirrorName() {
-        return getBitbucketSCMRepository().getMirrorName();
-    }
-
     public String getRepositoryName() {
         return getBitbucketSCMRepository().getRepositoryName();
     }
@@ -237,69 +206,25 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getServerId();
     }
 
-    public void setBitbucketClientFactoryProvider(
-            BitbucketClientFactoryProvider bitbucketClientFactoryProvider) {
-        this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
-    }
-
-    public void setBitbucketPluginConfiguration(BitbucketPluginConfiguration bitbucketPluginConfiguration) {
-        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
-    }
-
-    private static String getUpstreamCloneUrl(BitbucketRepository repo) {
-        List<BitbucketNamedLink> cloneUrls = repo.getCloneUrls();
-        return getHttpCloneUrl(cloneUrls);
-    }
-
-    private static String getHttpCloneUrl(List<BitbucketNamedLink> cloneUrls) {
-        return cloneUrls
-                .stream()
-                .filter(link -> "http".equals(link.getName()))
-                .findFirst()
-                .orElseThrow(() -> new BitbucketClientException("No HttpClone url", -1, null))
-                .getHref();
-    }
-
-    private static String getRepositoryUrl(BitbucketRepository repository) {
-        String selfLink = repository.getSelfLink(); // self-link include /browse which needs to be trimmed
-        return selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
-    }
-
     private BitbucketSCMRepository getBitbucketSCMRepository() {
         return repositories.get(0);
     }
 
-    private BitbucketRepository getRepository(BitbucketServerConfiguration server, String projectKey,
-                                              String repositorySlug, @Nullable String credentialsId) {
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        return descriptor.getRepository(server, projectKey, repositorySlug, credentialsId);
-    }
-
-    private BitbucketServerConfiguration getServer() {
-        return bitbucketPluginConfiguration
-                .getServerById(getBitbucketSCMRepository().getServerId())
-                .orElseThrow(() -> new RuntimeException("Server config not found"));
-    }
-
-    @Nullable
-    private String pickCredentialsId(BitbucketServerConfiguration serverConfiguration, @Nullable String credentialsId) {
-        return credentialsId != null ? credentialsId : serverConfiguration.getCredentialsId();
-    }
-
     @Symbol("BbS")
     @Extension
-    @SuppressWarnings({"MethodMayBeStatic", "unused"})
-    public static class DescriptorImpl extends SCMDescriptor<BitbucketSCM> {
+    @SuppressWarnings({"unused"})
+    public static class DescriptorImpl extends SCMDescriptor<BitbucketSCM> implements BitbucketScmFormValidation,
+            BitbucketScmFormFill {
 
         private final GitSCM.DescriptorImpl gitScmDescriptor;
         @Inject
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
-        private BitbucketPluginConfiguration bitbucketPluginConfiguration;
-        private BitbucketPage<BitbucketProject> latestProjects = new BitbucketPage<>();
-        private BitbucketPage<BitbucketRepository> latestRepositories = new BitbucketPage<>();
+        private BitbucketScmFormFillDelegate formFill;
         @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private BitbucketScmFormValidationDelegate formValidation;
+        @Inject
+        private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
         public DescriptorImpl() {
             super(Stash.class);
@@ -307,124 +232,44 @@ public class BitbucketSCM extends SCM {
             load();
         }
 
+        @Override
         @POST
         public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
-            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
-            if (!isBlank(credentialsId) && providedCredentials == null) {
-                return FormValidation.error("No credentials exist for the provided credentialsId");
-            }
-            return FormValidation.ok();
+            Jenkins.get().checkPermission(CONFIGURE);
+            return formValidation.doCheckCredentialsId(credentialsId);
         }
 
+        @Override
         @POST
-        public FormValidation doCheckProjectName(@QueryParameter String serverId,
-                                                 @QueryParameter String credentialsId,
+        public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
             Jenkins.get().checkPermission(CONFIGURE);
-            if (isBlank(projectName)) {
-                return FormValidation.error("Please specify a project name.");
-            }
-            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
-            if (!isBlank(credentialsId) && providedCredentials == null) {
-                return FormValidation.ok(); // There will be an error in the credentials field
-            }
-
-            return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> {
-                        try {
-                            BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                    .getClient(
-                                            serverConf.getBaseUrl(),
-                                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
-                            BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
-                            return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
-                        } catch (NotFoundException e) {
-                            return FormValidation.error("The project '" + projectName + "' does not exist or " +
-                                                        "you do not have permission to access it.");
-                        } catch (BitbucketClientException e) {
-                            // Something went wrong with the request to Bitbucket
-                            return FormValidation.error("Something went wrong when trying to contact " +
-                                                        "Bitbucket Server: " + e.getMessage());
-                        }
-                    }).orElse(FormValidation.ok()); // There will be an error on the server field
+            return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
         }
 
+        @Override
         @POST
         public FormValidation doCheckRepositoryName(@QueryParameter String serverId,
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
             Jenkins.get().checkPermission(CONFIGURE);
-            if (isBlank(projectName)) {
-                return FormValidation.ok(); // There will be an error on the projectName field
-            }
-            Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
-            if (!isBlank(credentialsId) && providedCredentials == null) {
-                return FormValidation.ok(); // There will be an error in the credentials field
-            }
-            if (isEmpty(repositoryName)) {
-                return FormValidation.error("Please specify a repository name.");
-            }
-
-            return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> {
-                        try {
-                            BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                    .getClient(
-                                            serverConf.getBaseUrl(),
-                                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
-                            BitbucketRepository repository =
-                                    getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
-                            return FormValidation.ok(
-                                    "Using '" + repository.getName() + "' at " + repository.getSelfLink());
-                        } catch (NotFoundException e) {
-                            return FormValidation.error("The repository '" + repositoryName + "' does not " +
-                                                        "exist or you do not have permission to access it.");
-                        } catch (BitbucketClientException e) {
-                            // Something went wrong with the request to Bitbucket
-                            return FormValidation.error("Something went wrong when trying to contact " +
-                                                        "Bitbucket Server: " + e.getMessage());
-                        }
-                    }).orElse(FormValidation.ok()); // There will be an error on the server field
+            return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
         }
 
+        @Override
         @POST
         public FormValidation doCheckServerId(@QueryParameter String serverId) {
             Jenkins.get().checkPermission(CONFIGURE);
-            // Users can only demur in providing a server name if none are available to select
-            if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
-                return FormValidation.error("Please specify a valid Bitbucket Server.");
-            }
-            if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
-                return FormValidation.warning("Some servers have been incorrectly configured, and are not displayed.");
-            }
-            return FormValidation.ok();
+            return formValidation.doCheckServerId(serverId);
         }
 
-        @SuppressWarnings("MethodMayBeStatic")
+        @Override
         @POST
-        public ListBoxModel doFillCredentialsIdItems(
-                @QueryParameter String baseUrl, @QueryParameter String credentialsId) {
-            Jenkins instance = Jenkins.get();
-            instance.checkPermission(CONFIGURE);
-            if (!instance.hasPermission(Jenkins.ADMINISTER)) {
-                return new StandardListBoxModel().includeCurrentValue(credentialsId);
-            }
-
-            return new StandardListBoxModel()
-                    .includeEmptyValue()
-                    .includeMatchingAs(
-                            ACL.SYSTEM,
-                            instance,
-                            StringCredentials.class,
-                            URIRequirementBuilder.fromUri(baseUrl).build(),
-                            CredentialsMatchers.always())
-                    .includeMatchingAs(
-                            ACL.SYSTEM,
-                            instance,
-                            StandardUsernamePasswordCredentials.class,
-                            URIRequirementBuilder.fromUri(baseUrl).build(),
-                            CredentialsMatchers.always());
+        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
+                                                     @QueryParameter String credentialsId) {
+            Jenkins.get().checkPermission(CONFIGURE);
+            return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
         }
 
         @POST
@@ -433,129 +278,47 @@ public class BitbucketSCM extends SCM {
             return gitScmDescriptor.doFillGitToolItems();
         }
 
+        @Override
         @POST
         public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
                                                    @QueryParameter String credentialsId,
                                                    @QueryParameter String projectName) {
             Jenkins.get().checkPermission(CONFIGURE);
-            if (isBlank(serverId)) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
-            }
-            if (stripToEmpty(projectName).length() < 2) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 2 characters long");
-            }
-
-            Credentials providedCredentials = getCredentials(credentialsId);
-            if (!isBlank(credentialsId) && providedCredentials == null) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
-            }
-
-            return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> {
-                        try {
-                            BitbucketCredentials credentials =
-                                    jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
-                            BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
-                                    .getClient(serverConf.getBaseUrl(), credentials)
-                                    .getSearchClient(stripToEmpty(projectName));
-                            latestProjects = searchClient.findProjects();
-                            return okJSON(JSONObject.fromObject(latestProjects));
-                        } catch (BitbucketClientException e) {
-                            // Something went wrong with the request to Bitbucket
-                            LOGGER.info(e.getMessage());
-                            return errorWithoutStack(HTTP_INTERNAL_ERROR,
-                                    "An error occurred in Bitbucket: " + e.getMessage());
-                        }
-                    }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
+            return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
         }
 
+        @Override
         @POST
         public HttpResponse doFillRepositoryNameItems(@QueryParameter String serverId,
                                                       @QueryParameter String credentialsId,
                                                       @QueryParameter String projectName,
                                                       @QueryParameter String repositoryName) {
             Jenkins.get().checkPermission(CONFIGURE);
-            if (isBlank(serverId)) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
-            }
-            if (stripToEmpty(repositoryName).length() < 2) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "The repository name must be at least 2 characters long");
-            }
-            if (isBlank(projectName)) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
-            }
-
-            Credentials providedCredentials = getCredentials(credentialsId);
-            if (!isBlank(credentialsId) && providedCredentials == null) {
-                return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
-            }
-
-            return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> {
-                        BitbucketCredentials credentials =
-                                jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
-                        BitbucketSearchClient searchClient = bitbucketClientFactoryProvider
-                                .getClient(serverConf.getBaseUrl(), credentials)
-                                .getSearchClient(projectName);
-                        try {
-                            latestRepositories = searchClient.findRepositories(stripToEmpty(repositoryName));
-                            return okJSON(JSONObject.fromObject(latestRepositories));
-                        } catch (BitbucketClientException e) {
-                            // Something went wrong with the request to Bitbucket
-                            LOGGER.info(e.getMessage());
-                            return errorWithoutStack(HTTP_INTERNAL_ERROR,
-                                    "An error occurred in Bitbucket: " + e.getMessage());
-                        }
-                    }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
-        }
-
-        @POST
-        public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            //Filtered to only include valid server configurations
-            StandardListBoxModel model =
-                    bitbucketPluginConfiguration.getServerList()
-                            .stream()
-                            .filter(server -> server.getId().equals(serverId) ||
-                                              server.validate().kind == FormValidation.Kind.OK)
-                            .map(server ->
-                                    new Option(
-                                            server.getServerName(),
-                                            server.getId(),
-                                            server.getId().equals(serverId)))
-                            .collect(toCollection(StandardListBoxModel::new));
-            if (model.isEmpty() || model.stream().noneMatch(server -> server.value.equals(serverId))) {
-                model.includeEmptyValue();
-            }
-            return model;
-        }
-
-        @POST
-        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
-                                                  @QueryParameter String credentialsId,
-                                                  @QueryParameter String projectName,
-                                                  @QueryParameter String repositoryName,
-                                                  @QueryParameter String mirrorName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
-            return bitbucketMirrorHandler.fetchAsListBox(
-                    new MirrorFetchRequest(serverId, credentialsId, new BitbucketRepo(projectName, repositoryName), mirrorName));
+            return formFill.doFillRepositoryNameItems(serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
-        public String getDisplayName() {
-            return "Bitbucket Server";
+        @POST
+        public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
+            Jenkins.get().checkPermission(CONFIGURE);
+            return formFill.doFillServerIdItems(serverId);
         }
 
+        @Override
         public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.getExtensionDescriptors();
         }
 
+        @Override
         public List<GitTool> getGitTools() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.getGitTools();
         }
 
+        @Override
         public boolean getShowGitToolOptions() {
+            Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.showGitToolOptions();
         }
 
@@ -565,37 +328,38 @@ public class BitbucketSCM extends SCM {
          * @param req      request
          * @param formData json data
          * @return a new BitbucketSCM instance
-         * @throws FormException if any data is missing
          */
         @Override
         public SCM newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
-            BitbucketSCM scm = (BitbucketSCM) super.newInstance(req, formData);
-            scm.setBitbucketClientFactoryProvider(bitbucketClientFactoryProvider);
-            scm.setBitbucketPluginConfiguration(bitbucketPluginConfiguration);
+            bitbucketPluginConfiguration.getServerById(formData.getString("serverId")).ifPresent(serverConf -> {
+                String credentialsId = stripToNull(formData.getString("credentialsId"));
+                if (credentialsId == null) {
+                    credentialsId = serverConf.getCredentialsId();
+                    formData.put("credentialsId", credentialsId);
+                }
+                BitbucketCredentials credentials = createWithFallback(CredentialUtils.getCredentials(credentialsId), serverConf);
+                BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials);
 
-            String serverId = formData.getString("serverId");
-            if (isBlank(serverId)) {
-                LOGGER.info("Error creating the Bitbucket SCM: The serverId cannot be blank");
-                return scm;
-            }
-            Optional<BitbucketServerConfiguration> maybeServerConf =
-                    bitbucketPluginConfiguration.getServerById(serverId);
-            if (!maybeServerConf.isPresent()) {
-                LOGGER.info("Error creating the Bitbucket SCM: No server configuration for the given server id " +
-                            serverId);
-                return scm;
-            }
-            BitbucketServerConfiguration serverConf = maybeServerConf.get();
+                String projectName = formData.getString("projectName");
+                String repositoryName = formData.getString("repositoryName");
+                BitbucketProject project = getBitbucketProject(projectName, clientFactory);
+                formData.put("projectKey", project.getKey());
+                BitbucketRepository repository = getBitbucketRepository(projectName, repositoryName, clientFactory, project);
+                formData.put("repositorySlug", repository.getSlug());
+                repository.getCloneUrls()
+                        .stream()
+                        .filter(link -> "http".equals(link.getName()))
+                        .findFirst()
+                        .map(BitbucketNamedLink::getHref)
+                        .ifPresent(cloneUrl -> formData.put("cloneUrl", cloneUrl));
+                String selfLink = repository.getSelfLink();
+                selfLink = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0)); // self-link include /browse which needs to be trimmed
+                formData.put("repositoryUrl", selfLink);
+            });
+            return super.newInstance(req, formData);
+        }
 
-            String credentialsId = formData.getString("credentialsId");
-            BitbucketCredentials credentials =
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, serverConf);
-            BitbucketClientFactory clientFactory =
-                    bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials);
-
-            String projectName = formData.getString("projectName");
-            String repositoryName = formData.getString("repositoryName");
-            String mirrorName = formData.getString("mirrorName");
+        private static BitbucketProject getBitbucketProject(String projectName, BitbucketClientFactory clientFactory) {
             BitbucketProject project;
             if (isBlank(projectName)) {
                 LOGGER.info("Error creating the Bitbucket SCM: The projectName must not be blank");
@@ -608,102 +372,31 @@ public class BitbucketSCM extends SCM {
                     project = new BitbucketProject(projectName, null, projectName);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    LOGGER.info(
-                            "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " +
-                            e.getMessage());
+                    LOGGER.info("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
                     project = new BitbucketProject(projectName, null, projectName);
                 }
             }
+            return project;
+        }
 
+        private static BitbucketRepository getBitbucketRepository(String projectName, String repositoryName, BitbucketClientFactory clientFactory, BitbucketProject project) {
             BitbucketRepository repository;
             if (isBlank(repositoryName)) {
                 LOGGER.info("Error creating the Bitbucket SCM: The repositoryName must not be blank");
-                repository =
-                        new BitbucketRepository(-1, repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
+                repository = new BitbucketRepository("", null, project, "", RepositoryState.AVAILABLE);
             } else {
                 try {
                     repository = getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                 } catch (NotFoundException e) {
-                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the repository " + projectName + "/" +
-                                repositoryName);
-                    repository =
-                            new BitbucketRepository(-1, repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
+                    LOGGER.info("Error creating the Bitbucket SCM: Cannot find the repository " + projectName + "/" + repositoryName);
+                    repository = new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 } catch (BitbucketClientException e) {
                     // Something went wrong with the request to Bitbucket
-                    LOGGER.info(
-                            "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " +
-                            e.getMessage());
-                    repository =
-                            new BitbucketRepository(-1, repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
+                    LOGGER.info("Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " + e.getMessage());
+                    repository = new BitbucketRepository(repositoryName, null, project, repositoryName, RepositoryState.AVAILABLE);
                 }
             }
-
-            scm.addRepositories(new BitbucketSCMRepository(credentialsId, projectName, project.getKey(), repositoryName, repository.getSlug(), serverId, mirrorName));
-            scm.createGitSCM();
-            return scm;
-        }
-
-        private BitbucketProject getProjectByNameOrKey(String projectNameOrKey, BitbucketClientFactory clientFactory) {
-            return latestProjects.getValues().stream()
-                    .filter(project -> projectNameOrKey.equalsIgnoreCase(project.getName()))
-                    // There should only be one project with this key
-                    .findAny()
-                    // It wasn't in our cache so we need to call out to Bitbucket
-                    .orElseGet(() -> clientFactory
-                            .getSearchClient(projectNameOrKey)
-                            .findProjects()
-                            .getValues()
-                            .stream()
-                            .filter(p -> projectNameOrKey.equalsIgnoreCase(p.getName()))
-                            // Project names are unique so there will only be one
-                            .findAny()
-                            // We didn't find the project so maybe they gave us a project key instead of name
-                            .orElseGet(() -> clientFactory.getProjectClient(projectNameOrKey).getProject()));
-        }
-
-        private BitbucketRepository getRepositoryByNameOrSlug(String projectNameOrKey, String repositoryNameOrSlug,
-                                                              BitbucketClientFactory clientFactory) {
-            return latestRepositories.getValues().stream()
-                    .filter(repository -> repositoryNameOrSlug.equalsIgnoreCase(repository.getName()))
-                    // There should only be one repository with this name in the project
-                    .findAny()
-                    // It wasn't in our cache so we need to call out to Bitbucket
-                    .orElseGet(() -> clientFactory.getSearchClient(getProjectByNameOrKey(projectNameOrKey, clientFactory).getName())
-                            .findRepositories(repositoryNameOrSlug)
-                            .getValues()
-                            .stream()
-                            .filter(r -> repositoryNameOrSlug.equalsIgnoreCase(r.getName()))
-                            // Repo names are unique within a project
-                            .findAny()
-                            // Maybe the project and repo names they gave us are actually a key and slug
-                            .orElseGet(() -> clientFactory
-                                    .getProjectClient(getProjectByNameOrKey(projectNameOrKey, clientFactory).getKey())
-                                    .getRepositoryClient(repositoryNameOrSlug)
-                                    .getRepository()));
-        }
-
-        private BitbucketRepository getRepository(BitbucketServerConfiguration server, String projectKey,
-                                                  String repositorySlug, @Nullable String credentialsId) {
-            BitbucketClientFactory client = bitbucketClientFactoryProvider
-                    .getClient(server.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, server));
-            return getRepository(projectKey, repositorySlug, client);
-        }
-
-        private BitbucketRepository getRepository(String projectKey, String repoSlug,
-                                                  BitbucketClientFactory clientFactory) {
-            return clientFactory.getProjectClient(projectKey)
-                    .getRepositoryClient(repoSlug)
-                    .getRepository();
-        }
-
-        private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
-                    (client, bbRepo) -> this.getRepositoryByNameOrSlug(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
-        }
-
-        private BitbucketMirrorHandler createMirrorHandler() {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
-                    (client, bbRepo) -> this.getRepository(bbRepo.getProjectNameOrKey(), bbRepo.getRepoNameOrSlug(), client));
+            return repository;
         }
     }
 }

@@ -1,11 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import hudson.model.FreeStyleBuild;
@@ -27,11 +23,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
-import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BitbucketSCMIT {
 
@@ -55,7 +53,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckout() throws Exception {
-        project.setScm(createSCM("*/master"));
+        project.setScm(createScmWithSpecs("*/master"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -66,7 +64,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckoutWithMultipleBranches() throws Exception {
-        project.setScm(createSCM("*/master", "*/basic_branching"));
+        project.setScm(createScmWithSpecs("*/master", "*/basic_branching"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -84,7 +82,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckoutWithNonExistentBranch() throws Exception {
-        project.setScm(createSCM("**/master-does-not-exist"));
+        project.setScm(createScmWithSpecs("**/master-does-not-exist"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -93,8 +91,28 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    public void testPostBuildStatus() throws Exception {
+        project.setScm(createScmWithSpecs("*/master"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+
+        RestAssured
+                .given()
+                        .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                        .statusCode(200)
+                        .body("values[0].key", Matchers.equalTo(build.getId()))
+                        .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
+                        .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
+                .when()
+                        .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" + revisionAction.getRevisionSha1());
+    }
+
+    @Test
     public void testWebhook() throws Exception {
-        project.setScm(createSCM("**/*"));
+        project.setScm(createScmWithSpecs("**/*"));
         project.addTrigger(new BitbucketWebhookTriggerImpl());
         project.save();
 
@@ -111,44 +129,10 @@ public class BitbucketSCMIT {
         assertThat(project.getBuilds(), hasSize(2));
     }
 
-    @Test
-    public void testPostBuildStatus() throws Exception {
-        project.setScm(createSCM("*/master"));
-        project.save();
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
-
-        RestAssured
-                .given()
-                .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
-                .expect()
-                .statusCode(200)
-                .body("values[0].key", Matchers.equalTo(build.getId()))
-                .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
-                .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
-                .when()
-                .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" +
-                     revisionAction.getRevisionSha1());
-    }
-
-    private BitbucketSCM createSCM(String... refs) {
+    private static BitbucketSCM createScmWithSpecs(String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
-        String serverId = bbJenkinsRule.getBitbucketServerConfiguration().getId();
-        BitbucketSCM bitbucketSCM =
-                new BitbucketSCM(
-                        "",
-                        branchSpecs,
-                        emptyList(),
-                        "",
-                        serverId);
-        bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
-        bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
-        bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, ""));
-        bitbucketSCM.createGitSCM();
-        return bitbucketSCM;
+        return createScm(bbJenkinsRule, branchSpecs);
     }
 }
