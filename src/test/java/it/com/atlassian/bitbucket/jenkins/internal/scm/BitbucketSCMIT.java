@@ -53,7 +53,7 @@ public class BitbucketSCMIT {
 
     @Before
     public void setup() throws Exception {
-        project = bbJenkinsRule.createFreeStyleProject();
+        project = bbJenkinsRule.createFreeStyleProject(UUID.randomUUID().toString());
     }
 
     @After
