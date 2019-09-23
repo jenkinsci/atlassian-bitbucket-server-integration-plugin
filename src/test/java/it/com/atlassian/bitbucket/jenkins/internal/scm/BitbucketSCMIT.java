@@ -87,7 +87,7 @@ public class BitbucketSCMIT {
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
-        assertEquals(SUCCESS, build.getResult());
+        assertEquals(String.join("\n", build.getLog(1000)), SUCCESS, build.getResult());
 
         RestAssured
                 .given()
