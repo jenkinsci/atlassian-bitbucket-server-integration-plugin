@@ -44,7 +44,7 @@ public interface JenkinsToBitbucketCredentials {
                                                 BitbucketServerConfiguration serverConfiguration);
 
     /**
-     * See {@link #toBitbucketCredentials(Credentials, BitbucketServerConfiguration)}
+     * See {@link #toBitbucketCredentials(String, BitbucketServerConfiguration)}
      *
      * @param credentials         credentials id
      * @param serverConfiguration server configuration
