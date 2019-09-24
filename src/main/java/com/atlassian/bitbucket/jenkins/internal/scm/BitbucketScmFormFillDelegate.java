@@ -175,7 +175,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public boolean showGitToolOptions() {
+    public boolean getShowGitToolOptions() {
         return false;
     }
 }

@@ -24,5 +24,5 @@ public interface BitbucketScmFormFill {
 
     List<GitTool> getGitTools();
 
-    boolean showGitToolOptions();
+    boolean getShowGitToolOptions();
 }

@@ -338,7 +338,7 @@ public class BitbucketSCM extends SCM {
         }
 
         @Override
-        public boolean showGitToolOptions() {
+        public boolean getShowGitToolOptions() {
             Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.showGitToolOptions();
         }
