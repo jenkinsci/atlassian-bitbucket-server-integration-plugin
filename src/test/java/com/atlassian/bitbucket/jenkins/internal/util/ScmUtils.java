@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.util;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
@@ -32,7 +33,7 @@ public final class ScmUtils {
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider =
                 new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
         BitbucketCredentials credentials =
-                new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(serverConfiguration.getCredentialsId(), serverConfiguration);
+                new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(CredentialUtils.getCredentials(serverConfiguration.getCredentialsId()), serverConfiguration);
         BitbucketRepository repository =
                 bitbucketClientFactoryProvider.getClient(serverConfiguration.getBaseUrl(), credentials)
                         .getProjectClient(PROJECT_KEY)
@@ -55,7 +56,6 @@ public final class ScmUtils {
                 REPO_NAME,
                 REPO_SLUG,
                 repository.getSelfLink().replace("/browse", ""),
-                serverConfiguration.getId(),
-                "");
+                serverConfiguration.getId(), "");
     }
 }

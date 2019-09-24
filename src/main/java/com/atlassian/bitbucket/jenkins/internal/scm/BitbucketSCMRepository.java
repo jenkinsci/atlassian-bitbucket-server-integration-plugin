@@ -47,7 +47,6 @@ public class BitbucketSCMRepository {
         return repositorySlug;
     }
 
-    @Nullable
     public String getServerId() {
         return serverId;
     }
