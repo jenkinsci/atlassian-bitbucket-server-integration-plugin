@@ -80,7 +80,9 @@ public class BitbucketSCMIT {
     @Test
     public void testCheckoutAndPush() throws Exception {
         String uniqueMessage = UUID.randomUUID().toString();
-        Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh").replaceFirst("uniqueMessage", uniqueMessage));
+        Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh")
+                .replaceFirst("uniqueMessage", uniqueMessage)
+                .replaceFirst("REPO_SLUG", BitbucketUtils.REPO_FORK_SLUG));
 
         project.setScm(createCustomRepoSCM(BitbucketUtils.REPO_FORK_NAME, BitbucketUtils.REPO_FORK_SLUG, "*/master"));
         project.getBuildersList().add(postScript);
