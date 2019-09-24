@@ -5,7 +5,6 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.util.ListBoxModel;
 import org.kohsuke.stapler.HttpResponse;
 
-import java.util.Collections;
 import java.util.List;
 
 public interface BitbucketScmFormFill {
@@ -21,15 +20,9 @@ public interface BitbucketScmFormFill {
 
     ListBoxModel doFillServerIdItems(String serverId);
 
-    default List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
-        return Collections.emptyList();
-    }
+    List<GitSCMExtensionDescriptor> getExtensionDescriptors();
 
-    default List<GitTool> getGitTools() {
-        return Collections.emptyList();
-    }
+    List<GitTool> getGitTools();
 
-    default boolean getShowGitToolOptions() {
-        return false;
-    }
+    boolean showGitToolOptions();
 }

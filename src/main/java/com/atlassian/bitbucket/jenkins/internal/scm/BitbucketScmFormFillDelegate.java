@@ -12,6 +12,8 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.plugins.git.GitTool;
+import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -23,6 +25,7 @@ import org.kohsuke.stapler.HttpResponse;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
@@ -32,6 +35,7 @@ import static hudson.security.Permission.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toCollection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -158,5 +162,20 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             model.includeEmptyValue();
         }
         return model;
+    }
+
+    @Override
+    public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
+        return emptyList();
+    }
+
+    @Override
+    public List<GitTool> getGitTools() {
+        return emptyList();
+    }
+
+    @Override
+    public boolean showGitToolOptions() {
+        return false;
     }
 }
