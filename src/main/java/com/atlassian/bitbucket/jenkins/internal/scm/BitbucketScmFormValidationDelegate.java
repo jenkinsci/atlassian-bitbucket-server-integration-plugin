@@ -37,6 +37,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     @Override
     public FormValidation doCheckCredentialsId(String credentialsId) {
+        Jenkins.get().checkPermission(CONFIGURE);
         Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!isBlank(credentialsId) && providedCredentials == null) {
             return FormValidation.error("No credentials exist for the provided credentialsId");
