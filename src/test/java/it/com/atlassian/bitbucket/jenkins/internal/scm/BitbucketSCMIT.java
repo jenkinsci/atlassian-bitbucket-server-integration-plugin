@@ -40,10 +40,6 @@ public class BitbucketSCMIT {
 
     @ClassRule
     public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
-    private static final String PROJECT_KEY = "PROJECT_1";
-    private static final String PROJECT_NAME = "Project 1";
-    private static final String REPO_NAME = "rep 1";
-    private static final String REPO_SLUG = "rep_1";
     private FreeStyleProject project;
 
     @BeforeClass
@@ -75,6 +71,14 @@ public class BitbucketSCMIT {
 
         assertEquals(SUCCESS, build.getResult());
         assertTrue(build.getWorkspace().child("add_file").isDirectory());
+    }
+
+    @Test
+    public void testCheckoutAndPush100Times() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            setup();
+            testCheckoutAndPush();
+        }
     }
 
     @Test
@@ -146,7 +150,7 @@ public class BitbucketSCMIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         assertEquals(SUCCESS, build.getResult());
 
-        BitbucketUtils.createBranch(PROJECT_KEY, REPO_SLUG, "my-branch");
+        BitbucketUtils.createBranch(BitbucketUtils.PROJECT_KEY, BitbucketUtils.REPO_SLUG, "my-branch");
         waitFor(() -> {
             if (project.isInQueue()) {
                 return Optional.of("Build is queued");
@@ -177,7 +181,7 @@ public class BitbucketSCMIT {
     }
 
     private BitbucketSCM createSCM(String... refs) {
-        return createCustomRepoSCM(REPO_NAME, REPO_SLUG, refs);
+        return createCustomRepoSCM(BitbucketUtils.REPO_NAME, BitbucketUtils.REPO_SLUG, refs);
     }
 
     private BitbucketSCM createCustomRepoSCM(String repoName, String repoSlug, String... refs) {
@@ -195,7 +199,7 @@ public class BitbucketSCMIT {
         bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
         bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
         bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                PROJECT_NAME, PROJECT_KEY, repoName, repoSlug, serverId, false));
+                BitbucketUtils.PROJECT_NAME, BitbucketUtils.PROJECT_KEY, repoName, repoSlug, serverId, false));
         bitbucketSCM.createGitSCM();
         return bitbucketSCM;
     }
