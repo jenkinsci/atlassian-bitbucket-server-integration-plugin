@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import hudson.plugins.git.BranchSpec;
@@ -39,20 +38,12 @@ public final class ScmUtils {
         return new BitbucketSCM(
                 "",
                 branchSpecs,
-                repository.getCloneUrls()
-                        .stream()
-                        .filter(link -> "http".equals(link.getName()))
-                        .findFirst()
-                        .map(BitbucketNamedLink::getHref)
-                        .orElseThrow(() -> new RuntimeException("No clone URL for repo " + REPO_SLUG)),
                 serverConfiguration.getCredentialsId(),
                 emptyList(),
                 "",
                 PROJECT_NAME,
-                PROJECT_KEY,
                 REPO_NAME,
-                REPO_SLUG,
-                repository.getSelfLink().replace("/browse", ""),
-                serverConfiguration.getId());
+                serverConfiguration.getId(),
+                repository);
     }
 }

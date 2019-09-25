@@ -62,16 +62,13 @@ public class BitbucketSCM extends SCM {
     public BitbucketSCM(
             @CheckForNull String id,
             @CheckForNull List<BranchSpec> branches,
-            @CheckForNull String cloneUrl,
             @CheckForNull String credentialsId,
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
             @CheckForNull String projectName,
-            @CheckForNull String projectKey,
             @CheckForNull String repositoryName,
-            @CheckForNull String repositorySlug,
-            @CheckForNull String repositoryUrl,
-            @CheckForNull String serverId) {
+            @CheckForNull String serverId,
+            @CheckForNull BitbucketRepository repository) {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = new ArrayList<>();
         this.extensions = new ArrayList<>();
@@ -84,22 +81,6 @@ public class BitbucketSCM extends SCM {
             return;
         }
         BitbucketScmHelper scmHelper = maybeScmHelper.get();
-        if (isBlank(projectName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            return;
-        }
-        if (isBlank(repositoryName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            return;
-        }
-        if (isBlank(projectKey) ^ isBlank(repositorySlug)) {
-            // If someone wants to specify the project and repo slug to not have them fetched from Bitbucket, then they
-            // must specify both projectKey and repositorySlug - not just one of them
-            LOGGER.info("Error creating the Bitbucket SCM: You must specify either both projectKey and " +
-                        "repositorySlug or neither - projectKey: " + projectKey + " repositorySlug: " + repositorySlug);
-            return;
-        }
-
         if (branches != null) {
             this.branches.addAll(branches);
         }
@@ -107,24 +88,30 @@ public class BitbucketSCM extends SCM {
             this.extensions.addAll(extensions);
         }
         this.extensions.add(new BitbucketPostBuildStatus(scmHelper.getServerConfiguration().getId()));
-        if (isBlank(projectKey) || isBlank(repositorySlug)) {
-            BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
-            cloneUrl = isBlank(cloneUrl) ? repository.getCloneUrls()
-                    .stream()
-                    .filter(link -> "http".equals(link.getName()))
-                    .findFirst()
-                    .map(BitbucketNamedLink::getHref)
-                    .orElse("") : cloneUrl;
-            String selfLink = repository.getSelfLink();
-            repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0)); // self-link include /browse which needs to be trimmed
-            repositories.add(new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
-                    repository.getProject().getKey(), repository.getName(), repository.getSlug(),
-                    scmHelper.getServerConfiguration().getId(), false));
-        } else {
-            repositories.add(new BitbucketSCMRepository(credentialsId, projectName, projectKey, repositoryName,
-                    repositorySlug, scmHelper.getServerConfiguration().getId(), false));
+        if (repository == null) {
+            if (isBlank(projectName)) {
+                LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
+                return;
+            }
+            if (isBlank(repositoryName)) {
+                LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
+                return;
+            }
+            repository = scmHelper.getRepository(projectName, repositoryName);
         }
-        UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repositorySlug, null, credentialsId);
+        String cloneUrl = repository.getCloneUrls()
+                .stream()
+                .filter(link -> "http".equals(link.getName()))
+                .findFirst()
+                .map(BitbucketNamedLink::getHref)
+                .orElse("");
+        repositories.add(new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
+                repository.getProject().getKey(), repository.getName(), repository.getSlug(),
+                scmHelper.getServerConfiguration().getId(), false));
+        UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repository.getSlug(), null, credentialsId);
+        String selfLink = repository.getSelfLink();
+        // self-link include /browse which needs to be trimmed
+        String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
         gitSCM = new GitSCM(singletonList(remoteConfig), this.branches, false, emptyList(), new Stash(repositoryUrl),
                 this.gitTool, this.extensions);
     }
@@ -323,6 +310,11 @@ public class BitbucketSCM extends SCM {
         public Optional<BitbucketScmHelper> getBitbucketScmHelper(@Nullable String serverId, @Nullable String credentialsId) {
             return bitbucketPluginConfiguration.getServerById(serverId)
                     .map(serverConf -> new BitbucketScmHelper(bitbucketClientFactoryProvider, serverConf, credentialsId));
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "Bitbucket Server";
         }
 
         @Override
