@@ -67,13 +67,8 @@ public class BitbucketSCM extends SCM {
             @CheckForNull String gitTool,
             @CheckForNull String projectName,
             @CheckForNull String repositoryName,
-            @CheckForNull String serverId,
-            @CheckForNull BitbucketRepository repository) {
-        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
-        this.branches = new ArrayList<>();
-        this.extensions = new ArrayList<>();
-        this.gitTool = gitTool;
-        repositories = new ArrayList<>(1);
+            @CheckForNull String serverId) {
+        this(id, branches, extensions, gitTool, serverId);
 
         Optional<BitbucketScmHelper> maybeScmHelper = ((DescriptorImpl) getDescriptor()).getBitbucketScmHelper(serverId, credentialsId);
         if (!maybeScmHelper.isPresent()) {
@@ -81,23 +76,56 @@ public class BitbucketSCM extends SCM {
             return;
         }
         BitbucketScmHelper scmHelper = maybeScmHelper.get();
+        if (isBlank(projectName)) {
+            LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
+            return;
+        }
+        if (isBlank(repositoryName)) {
+            LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
+            return;
+        }
+        BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
+        setRepositoryDetails(credentialsId, serverId, repository);
+    }
+
+    public BitbucketSCM(
+            @CheckForNull String id,
+            @CheckForNull List<BranchSpec> branches,
+            @CheckForNull String credentialsId,
+            @CheckForNull List<GitSCMExtension> extensions,
+            @CheckForNull String gitTool,
+            @CheckForNull String serverId,
+            BitbucketRepository repository) {
+        this(id, branches, extensions, gitTool, serverId);
+        setRepositoryDetails(credentialsId, serverId, repository);
+    }
+
+    private BitbucketSCM(
+            @CheckForNull String id,
+            @CheckForNull List<BranchSpec> branches,
+            @CheckForNull List<GitSCMExtension> extensions,
+            @CheckForNull String gitTool,
+            @CheckForNull String serverId) {
+        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
+        this.branches = new ArrayList<>();
+        this.extensions = new ArrayList<>();
+        this.gitTool = gitTool;
+        repositories = new ArrayList<>(1);
+
         if (branches != null) {
             this.branches.addAll(branches);
         }
         if (extensions != null) {
             this.extensions.addAll(extensions);
         }
-        this.extensions.add(new BitbucketPostBuildStatus(scmHelper.getServerConfiguration().getId()));
-        if (repository == null) {
-            if (isBlank(projectName)) {
-                LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-                return;
-            }
-            if (isBlank(repositoryName)) {
-                LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-                return;
-            }
-            repository = scmHelper.getRepository(projectName, repositoryName);
+        if (!isBlank(serverId)) {
+            this.extensions.add(new BitbucketPostBuildStatus(serverId));
+        }
+    }
+
+    private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId, BitbucketRepository repository) {
+        if (isBlank(serverId)) {
+            return;
         }
         String cloneUrl = repository.getCloneUrls()
                 .stream()
@@ -107,13 +135,13 @@ public class BitbucketSCM extends SCM {
                 .orElse("");
         repositories.add(new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                 repository.getProject().getKey(), repository.getName(), repository.getSlug(),
-                scmHelper.getServerConfiguration().getId(), false));
+                serverId, false));
         UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repository.getSlug(), null, credentialsId);
         String selfLink = repository.getSelfLink();
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
-        gitSCM = new GitSCM(singletonList(remoteConfig), this.branches, false, emptyList(), new Stash(repositoryUrl),
-                this.gitTool, this.extensions);
+        gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
+                gitTool, extensions);
     }
 
     @CheckForNull

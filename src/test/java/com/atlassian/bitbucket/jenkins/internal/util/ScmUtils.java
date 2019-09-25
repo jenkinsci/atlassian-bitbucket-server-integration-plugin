@@ -41,8 +41,6 @@ public final class ScmUtils {
                 serverConfiguration.getCredentialsId(),
                 emptyList(),
                 "",
-                PROJECT_NAME,
-                REPO_NAME,
                 serverConfiguration.getId(),
                 repository);
     }
