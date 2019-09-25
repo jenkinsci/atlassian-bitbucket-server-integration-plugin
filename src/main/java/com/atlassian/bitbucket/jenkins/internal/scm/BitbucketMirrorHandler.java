@@ -58,19 +58,35 @@ class BitbucketMirrorHandler {
 
     public StandardListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
         StandardListBoxModel options = new StandardListBoxModel();
-        options.add(new Option(DEFAULT_UPSTREAM_SERVER, ""));
+        final Option defaultSelected = new Option(DEFAULT_UPSTREAM_SERVER, "", true);
         if (isEmpty(mirrorFetchRequest.getServerId()) ||
             isEmpty(mirrorFetchRequest.getProjectNameOrKey()) ||
             isEmpty(mirrorFetchRequest.getRepoNameOrSlug())) {
+            options.add(defaultSelected);
             return options;
         }
 
         String existingSelection = mirrorFetchRequest.getExistingMirrorSelection();
-        fetchRepositoriesQuietly(mirrorFetchRequest)
+        List<EnrichedBitbucketMirroredRepository> repositories =
+                fetchRepositoriesQuietly(mirrorFetchRequest);
+        if (repositories.isEmpty()) {
+            options.add(defaultSelected);
+            return options;
+        }
+
+        List<Option> mirrors = repositories
                 .stream()
                 .map(mirroredRepo -> createOption(existingSelection, mirroredRepo))
-                .forEach(option -> options.add(option));
-
+                .collect(Collectors.toList());
+        boolean isPresent = mirrors
+                .stream()
+                .anyMatch(option -> option.selected);
+        if (isPresent) {
+            options.add(new Option(DEFAULT_UPSTREAM_SERVER, ""));
+        } else {
+            options.add(new Option(DEFAULT_UPSTREAM_SERVER, "", true));
+        }
+        options.addAll(mirrors);
         return options;
     }
 

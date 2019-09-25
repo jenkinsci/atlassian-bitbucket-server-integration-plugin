@@ -8,7 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import hudson.util.ListBoxModel;
+import hudson.util.ListBoxModel.Option;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,13 +84,13 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo(descriptors.get("Mirror0"));
         mockMirroredRepo(descriptors.get("Mirror1"));
 
-        List<ListBoxModel.Option> options =
+        List<Option> options =
                 bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, "Mirror0"));
 
         assertThat(options.size(), is(equalTo(3)));
 
         assertThat(options.stream()
-                .map(ListBoxModel.Option::toString)
+                .map(Option::toString)
                 .collect(Collectors.toList()), hasItems("Primary Server=", "Mirror0=Mirror0[selected]", "Mirror1=Mirror1"));
     }
 
@@ -111,6 +111,21 @@ public class BitbucketMirrorHandlerTest {
         assertThat(repository.getMirroringDetails().getCloneUrls(), iterableWithSize(1));
         assertThat(repository.getMirroringDetails().getCloneUrls().get(0).getHref(), is(equalTo(repoCloneUrl)));
         assertThat(repository.getRepository(), is(equalTo(bitbucketRepository)));
+    }
+
+    @Test
+    public void testDefaultSelectedIfExistingMirrorSelectionNotAvailable() {
+        Map<String, BitbucketMirroredRepositoryDescriptor> descriptors =
+                createMirroredRepoDescriptors(1);
+        mockMirroredRepo(descriptors.get("Mirror0"));
+        String unavailableMirror = "Mirror100";
+
+        List<Option> options =
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, unavailableMirror));
+
+        assertThat(options.stream()
+                .map(Option::toString)
+                .collect(Collectors.toList()), hasItems("Primary Server=[selected]", "Mirror0=Mirror0"));
     }
 
     private BitbucketClientFactory mockClientFactory(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
