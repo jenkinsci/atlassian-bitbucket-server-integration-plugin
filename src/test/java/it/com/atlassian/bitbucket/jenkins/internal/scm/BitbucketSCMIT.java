@@ -1,13 +1,8 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -27,9 +22,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
-import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
@@ -62,7 +58,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckout() throws Exception {
-        project.setScm(createSCM("*/master"));
+        project.setScm(createScmWithSpecs("*/master"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -78,7 +74,7 @@ public class BitbucketSCMIT {
                 .replaceFirst("uniqueMessage", uniqueMessage)
                 .replaceFirst("REPO_SLUG", BitbucketUtils.REPO_FORK_SLUG));
 
-        project.setScm(createCustomRepoSCM(BitbucketUtils.REPO_FORK_NAME, BitbucketUtils.REPO_FORK_SLUG, "*/master"));
+        project.setScm(createSCMWithCustomRepo(BitbucketUtils.REPO_FORK_NAME, BitbucketUtils.REPO_FORK_SLUG));
         project.getBuildersList().add(postScript);
         project.save();
 
@@ -105,7 +101,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckoutWithMultipleBranches() throws Exception {
-        project.setScm(createSCM("*/master", "*/basic_branching"));
+        project.setScm(createScmWithSpecs("*/master", "*/basic_branching"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -123,7 +119,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testCheckoutWithNonExistentBranch() throws Exception {
-        project.setScm(createSCM("**/master-does-not-exist"));
+        project.setScm(createScmWithSpecs("**/master-does-not-exist"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -133,7 +129,7 @@ public class BitbucketSCMIT {
 
     @Test
     public void testPostBuildStatus() throws Exception {
-        project.setScm(createSCM("*/master"));
+        project.setScm(createScmWithSpecs("*/master"));
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -152,46 +148,14 @@ public class BitbucketSCMIT {
                      revisionAction.getRevisionSha1());
     }
 
-    @Test
-    public void testWebhook() throws Exception {
-        project.setScm(createSCM("**/*"));
-        project.addTrigger(new BitbucketWebhookTriggerImpl());
-        project.save();
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-        assertEquals(SUCCESS, build.getResult());
-
-        BitbucketUtils.createBranch(BitbucketUtils.PROJECT_KEY, BitbucketUtils.REPO_SLUG, "my-branch");
-        waitFor(() -> {
-            if (project.isInQueue()) {
-                return Optional.of("Build is queued");
-            }
-            return Optional.empty();
-        }, 1000);
-        assertThat(project.getBuilds(), hasSize(2));
-    }
-
-    private BitbucketSCM createCustomRepoSCM(String repoName, String repoSlug, String... refs) {
+    private static BitbucketSCM createScmWithSpecs(String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
-        String serverId = bbJenkinsRule.getBitbucketServerConfiguration().getId();
-        BitbucketSCM bitbucketSCM =
-                new BitbucketSCM(
-                        "",
-                        branchSpecs,
-                        emptyList(),
-                        "",
-                        serverId);
-        bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
-        bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
-        bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                BitbucketUtils.PROJECT_NAME, BitbucketUtils.PROJECT_KEY, repoName, repoSlug, serverId, false));
-        bitbucketSCM.createGitSCM();
-        return bitbucketSCM;
+        return createScm(bbJenkinsRule, branchSpecs);
     }
 
-    private BitbucketSCM createSCM(String... refs) {
-        return createCustomRepoSCM(BitbucketUtils.REPO_NAME, BitbucketUtils.REPO_SLUG, refs);
+    private static BitbucketSCM createSCMWithCustomRepo(String repoName, String repoSlug) {
+        return createScm(bbJenkinsRule, repoName, repoSlug, singletonList(new BranchSpec("*/master")));
     }
 }

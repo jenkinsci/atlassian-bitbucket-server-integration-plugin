@@ -31,8 +31,10 @@ f.section() {
             f.select(context: app, checkMethod: "post")
         }
     }
-    f.entry(title: _("Additional Behaviours")) {
-        f.repeatableHeteroProperty(field: "extensions", items: "extensions", descriptors: "${descriptor.extensionDescriptors}", addCaption: _("Add"), hasHeader: "true")
+    if (!descriptor.extensionDescriptors.isEmpty()) {
+        f.entry(title: _("Additional Behaviours")) {
+            f.repeatableHeteroProperty(field: "extensions", items: "extensions", descriptors: "${descriptor.extensionDescriptors}", addCaption: _("Add"), hasHeader: "true")
+        }
     }
 
     if (instance != null && instance.id != null) {

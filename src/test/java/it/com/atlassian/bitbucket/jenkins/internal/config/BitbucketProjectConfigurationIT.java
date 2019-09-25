@@ -1,11 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
@@ -17,13 +13,12 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
-import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -199,19 +194,7 @@ public class BitbucketProjectConfigurationIT {
     }
 
     private void setupBitbucketSCM() throws IOException {
-        String serverId = bbJenkinsRule.getBitbucketServerConfiguration().getId();
-        BitbucketSCM bitbucketSCM = new BitbucketSCM(
-                "",
-                Collections.singletonList(new BranchSpec("*/master")),
-                emptyList(),
-                "",
-                serverId);
-        bitbucketSCM.setBitbucketClientFactoryProvider(new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl()));
-        bitbucketSCM.setBitbucketPluginConfiguration(new BitbucketPluginConfiguration());
-        bitbucketSCM.addRepositories(new BitbucketSCMRepository(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
-                PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, serverId, false));
-        bitbucketSCM.createGitSCM();
-        project.setScm(bitbucketSCM);
+        project.setScm(createScm(bbJenkinsRule));
         project.save();
     }
 }
