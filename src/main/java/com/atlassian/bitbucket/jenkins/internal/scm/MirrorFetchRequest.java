@@ -1,20 +1,22 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import javax.annotation.Nullable;
+
 class MirrorFetchRequest {
 
     private final String serverId;
-    private final String jobCredentials;
+    private final String credentialsId;
     private final String projectNameOrKey;
     private final String repoNameOrSlug;
     private final String existingMirrorSelection;
 
     MirrorFetchRequest(String serverId,
-                       String jobCredentials,
+                       @Nullable String credentialsId,
                        String projectNameOrKey,
                        String repoNameOrSlug,
                        String existingMirrorSelection) {
         this.serverId = serverId;
-        this.jobCredentials = jobCredentials;
+        this.credentialsId = credentialsId;
         this.projectNameOrKey = projectNameOrKey;
         this.repoNameOrSlug = repoNameOrSlug;
         this.existingMirrorSelection = existingMirrorSelection;
@@ -24,8 +26,9 @@ class MirrorFetchRequest {
         return existingMirrorSelection;
     }
 
-    public String getJobCredentials() {
-        return jobCredentials;
+    @Nullable
+    public String getCredentialsId() {
+        return credentialsId;
     }
 
     public String getProjectNameOrKey() {

@@ -48,7 +48,7 @@ class BitbucketMirrorHandler {
     }
 
     public EnrichedBitbucketMirroredRepository fetchRepository(MirrorFetchRequest mirrorFetchRequest) {
-        return this.fetchRepositores(mirrorFetchRequest)
+        return this.fetchRepositories(mirrorFetchRequest)
                 .stream()
                 .filter(r -> r.getMirroringDetails().getMirrorName().equals(mirrorFetchRequest.getExistingMirrorSelection()))
                 .findFirst()
@@ -90,14 +90,14 @@ class BitbucketMirrorHandler {
         return options;
     }
 
-    private List<EnrichedBitbucketMirroredRepository> fetchRepositores(MirrorFetchRequest mirrorFetchRequest) {
+    private List<EnrichedBitbucketMirroredRepository> fetchRepositories(MirrorFetchRequest mirrorFetchRequest) {
         BitbucketServerConfiguration serverConfiguration =
                 bitbucketPluginConfiguration.getServerById(mirrorFetchRequest.getServerId())
                         .orElseThrow(() -> new MirrorFetchException("Server config not found"));
         String bitbucketBaseUrl = requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base Url not found");
 
         BitbucketCredentials jobOrGlobalConf =
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getJobCredentials(), serverConfiguration);
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getCredentialsId(), serverConfiguration);
         BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf);
         BitbucketRepository repository =
                 bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getProjectNameOrKey(), mirrorFetchRequest.getRepoNameOrSlug());
@@ -119,11 +119,11 @@ class BitbucketMirrorHandler {
 
     private List<EnrichedBitbucketMirroredRepository> fetchRepositoriesQuietly(MirrorFetchRequest mirrorFetchRequest) {
         try {
-            return fetchRepositores(mirrorFetchRequest);
+            return fetchRepositories(mirrorFetchRequest);
         } catch (BitbucketClientException ex) {
             LOGGER.log(
                     SEVERE,
-                    format("Failed to retrieve mirroring information for project %s and repo $s",
+                    format("Failed to retrieve mirroring information for project %s and repo %s",
                             mirrorFetchRequest.getProjectNameOrKey(), mirrorFetchRequest.getRepoNameOrSlug()),
                     ex);
             return Collections.emptyList();

@@ -40,7 +40,7 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
     public BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
                                                        BitbucketServerConfiguration serverConfiguration) {
         if (credentials != null) {
-            return this.toBitbucketCredentials(credentials);
+            return toBitbucketCredentials(credentials);
         }
         return usingGlobalCredentials(serverConfiguration);
     }

@@ -118,7 +118,7 @@ public class BitbucketSCM extends SCM {
                 try {
                     EnrichedBitbucketMirroredRepository mirroredRepository =
                             descriptor.createMirrorHandler(scmHelper).fetchRepository(
-                                    new MirrorFetchRequest(id, credentialsId, projectName, repositoryName, mirrorName));
+                                    new MirrorFetchRequest(serverId, credentialsId, projectName, repositoryName, mirrorName));
                     cloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
                     repository = mirroredRepository.getRepository();
                 } catch (MirrorFetchException ex) {
@@ -387,7 +387,9 @@ public class BitbucketSCM extends SCM {
         }
 
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration,
+                    bitbucketClientFactoryProvider,
+                    jenkinsToBitbucketCredentials,
                     (client, project, repo) -> helper.getRepository(project, repo));
         }
     }

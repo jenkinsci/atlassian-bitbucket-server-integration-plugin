@@ -16,7 +16,7 @@ public class BitbucketSCMRepository {
 
     public BitbucketSCMRepository(@Nullable String credentialsId, String projectName, String projectKey,
                                   String repositoryName, String repositorySlug, @Nullable String serverId,
-                                  @Nullable String mirrorName) {
+                                  String mirrorName) {
         this.credentialsId = credentialsId;
         this.projectName = projectName;
         this.projectKey = projectKey;
@@ -51,7 +51,6 @@ public class BitbucketSCMRepository {
         return serverId;
     }
 
-    @Nullable
     public String getMirrorName() {
         return mirrorName;
     }
