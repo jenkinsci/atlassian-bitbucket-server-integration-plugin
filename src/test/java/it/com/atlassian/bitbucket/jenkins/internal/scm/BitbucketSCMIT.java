@@ -15,7 +15,7 @@ import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
 import hudson.tasks.Shell;
 import io.restassured.RestAssured;
-import it.com.atlassian.bitbucket.jenkins.internal.util.*;
+import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
@@ -32,9 +32,7 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.wa
 import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class BitbucketSCMIT {
 
@@ -47,6 +45,11 @@ public class BitbucketSCMIT {
         BitbucketUtils.createRepoFork();
     }
 
+    @AfterClass
+    public static void onComplete() {
+        BitbucketUtils.deleteRepoFork();
+    }
+
     @Before
     public void setup() throws Exception {
         project = bbJenkinsRule.createFreeStyleProject(UUID.randomUUID().toString());
@@ -55,11 +58,6 @@ public class BitbucketSCMIT {
     @After
     public void tearDown() throws IOException, InterruptedException {
         project.delete();
-    }
-
-    @AfterClass
-    public static void onComplete() {
-        BitbucketUtils.deleteRepoFork();
     }
 
     @Test
@@ -71,14 +69,6 @@ public class BitbucketSCMIT {
 
         assertEquals(SUCCESS, build.getResult());
         assertTrue(build.getWorkspace().child("add_file").isDirectory());
-    }
-
-    @Test
-    public void testCheckoutAndPush100Times() throws Exception {
-        for (int i = 0; i < 100; i++) {
-            setup();
-            testCheckoutAndPush();
-        }
     }
 
     @Test
@@ -97,20 +87,20 @@ public class BitbucketSCMIT {
 
         RestAssured
                 .given()
-                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
                 .expect()
-                    .statusCode(200)
-                    .body("values.size", equalTo(1))
-                    .body("values[0].message", equalTo(uniqueMessage))
+                .statusCode(200)
+                .body("values.size", equalTo(1))
+                .body("values[0].message", equalTo(uniqueMessage))
                 .when()
-                    .get(new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
-                            .append("/rest/api/1.0/projects/")
-                            .append(BitbucketUtils.PROJECT_KEY)
-                            .append("/repos/")
-                            .append(BitbucketUtils.REPO_FORK_SLUG)
-                            .append("/commits?since=")
-                            .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
-                            .toString());
+                .get(new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
+                        .append("/rest/api/1.0/projects/")
+                        .append(BitbucketUtils.PROJECT_KEY)
+                        .append("/repos/")
+                        .append(BitbucketUtils.REPO_FORK_SLUG)
+                        .append("/commits?since=")
+                        .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
+                        .toString());
     }
 
     @Test
@@ -142,6 +132,27 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    public void testPostBuildStatus() throws Exception {
+        project.setScm(createSCM("*/master"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+
+        RestAssured
+                .given()
+                .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                .statusCode(200)
+                .body("values[0].key", Matchers.equalTo(build.getId()))
+                .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
+                .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
+                .when()
+                .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" +
+                     revisionAction.getRevisionSha1());
+    }
+
+    @Test
     public void testWebhook() throws Exception {
         project.setScm(createSCM("**/*"));
         project.addTrigger(new BitbucketWebhookTriggerImpl());
@@ -158,30 +169,6 @@ public class BitbucketSCMIT {
             return Optional.empty();
         }, 1000);
         assertThat(project.getBuilds(), hasSize(2));
-    }
-
-    @Test
-    public void testPostBuildStatus() throws Exception {
-        project.setScm(createSCM("*/master"));
-        project.save();
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
-
-        RestAssured
-                .given()
-                        .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
-                .expect()
-                        .statusCode(200)
-                        .body("values[0].key", Matchers.equalTo(build.getId()))
-                        .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
-                        .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
-                .when()
-                        .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" + revisionAction.getRevisionSha1());
-    }
-
-    private BitbucketSCM createSCM(String... refs) {
-        return createCustomRepoSCM(BitbucketUtils.REPO_NAME, BitbucketUtils.REPO_SLUG, refs);
     }
 
     private BitbucketSCM createCustomRepoSCM(String repoName, String repoSlug, String... refs) {
@@ -202,5 +189,9 @@ public class BitbucketSCMIT {
                 BitbucketUtils.PROJECT_NAME, BitbucketUtils.PROJECT_KEY, repoName, repoSlug, serverId, false));
         bitbucketSCM.createGitSCM();
         return bitbucketSCM;
+    }
+
+    private BitbucketSCM createSCM(String... refs) {
+        return createCustomRepoSCM(BitbucketUtils.REPO_NAME, BitbucketUtils.REPO_SLUG, refs);
     }
 }
