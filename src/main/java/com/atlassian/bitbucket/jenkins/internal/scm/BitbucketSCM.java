@@ -4,7 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -111,13 +113,20 @@ public class BitbucketSCM extends SCM {
         }
         this.extensions.add(new BitbucketPostBuildStatus(scmHelper.getServerConfiguration().getId()));
         if (isBlank(projectKey) || isBlank(repositorySlug)) {
-            BitbucketRepository repository = null;
+            BitbucketRepository repository;
             if (!isBlank(mirrorName)) {
-                EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler(scmHelper).fetchRepository(
-                                new MirrorFetchRequest(id, credentialsId, projectName, repositoryName, mirrorName));
-                cloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
-                repository = mirroredRepository.getRepository();
+                try {
+                    EnrichedBitbucketMirroredRepository mirroredRepository =
+                            descriptor.createMirrorHandler(scmHelper).fetchRepository(
+                                    new MirrorFetchRequest(id, credentialsId, projectName, repositoryName, mirrorName));
+                    cloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
+                    repository = mirroredRepository.getRepository();
+                } catch (MirrorFetchException ex) {
+                    cloneUrl = "";
+                    repository =
+                            new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectKey, null, projectName),
+                                    repositorySlug, RepositoryState.AVAILABLE);
+                }
             } else {
                 repository = scmHelper.getRepository(projectName, repositoryName);
                 cloneUrl = isBlank(cloneUrl) ? getCloneUrl(repository.getCloneUrls()) : cloneUrl;

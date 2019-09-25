@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-public class MirrorFetchException extends RuntimeException {
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+
+public class MirrorFetchException extends BitbucketClientException {
 
     public MirrorFetchException(String message) {
         super(message);
