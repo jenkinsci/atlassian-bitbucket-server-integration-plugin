@@ -266,17 +266,22 @@
                 </dependencies>
             </plugin>
             <plugin>
-                <artifactId>exec-maven-plugin</artifactId>
-                <groupId>org.codehaus.mojo</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
                 <executions>
-                    <execution><!-- Run our version calculation script -->
-                        <id>Version Calculation</id>
+                    <execution>
                         <phase>generate-sources</phase>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>run</goal>
                         </goals>
                         <configuration>
-                            <executable>${basedir}/etc/scripts/replace_symlinks.sh</executable>
+                            <tasks>
+                                <echo>Copying across symlink</echo>
+                                <copy todir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCMStep" >
+                                    <fileset dir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCM" includes="**"/>
+                                </copy>
+                            </tasks>
                         </configuration>
                     </execution>
                 </executions>
