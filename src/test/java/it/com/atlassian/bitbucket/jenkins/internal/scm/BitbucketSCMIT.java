@@ -74,7 +74,7 @@ public class BitbucketSCMIT {
                 .replaceFirst("uniqueMessage", uniqueMessage)
                 .replaceFirst("REPO_SLUG", BitbucketUtils.REPO_FORK_SLUG));
 
-        project.setScm(createSCMWithCustomRepo(BitbucketUtils.REPO_FORK_NAME, BitbucketUtils.REPO_FORK_SLUG));
+        project.setScm(createSCMWithCustomRepo(BitbucketUtils.REPO_FORK_SLUG));
         project.getBuildersList().add(postScript);
         project.save();
 
@@ -155,7 +155,7 @@ public class BitbucketSCMIT {
         return createScm(bbJenkinsRule, branchSpecs);
     }
 
-    private static BitbucketSCM createSCMWithCustomRepo(String repoName, String repoSlug) {
-        return createScm(bbJenkinsRule, repoName, repoSlug, singletonList(new BranchSpec("*/master")));
+    private static BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
+        return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
     }
 }
