@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -44,8 +45,10 @@ public class BitbucketSCMStep extends SCMStep {
     private final String projectName;
     private final String repositoryName;
     private final String repositorySlug;
+    private final int repositoryId;
     private final String selfLink;
     private final String serverId;
+    private final String mirrorName;
 
     @DataBoundConstructor
     public BitbucketSCMStep(
@@ -54,20 +57,24 @@ public class BitbucketSCMStep extends SCMStep {
             String credentialsId,
             String projectName,
             String repositoryName,
-            String serverId) {
+            String serverId,
+            String mirrorName) {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = branches;
         this.credentialsId = credentialsId;
         this.projectName = projectName;
         this.repositoryName = repositoryName;
         this.serverId = serverId;
-        Optional<BitbucketScmHelper> maybeScmHelper = ((DescriptorImpl) getDescriptor()).getBitbucketScmHelper(serverId, credentialsId);
+        this.mirrorName = mirrorName;
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        Optional<BitbucketScmHelper> maybeScmHelper = descriptor.getBitbucketScmHelper(serverId, credentialsId);
         if (!maybeScmHelper.isPresent()) {
             LOGGER.info("Error creating the Bitbucket SCM: No Bitbucket Server configuration for serverId " + serverId);
             projectKey = "";
             repositorySlug = "";
             selfLink = "";
             cloneUrl = "";
+            repositoryId = -1;
             return;
         }
         BitbucketScmHelper scmHelper = maybeScmHelper.get();
@@ -77,6 +84,7 @@ public class BitbucketSCMStep extends SCMStep {
             repositorySlug = "";
             selfLink = "";
             cloneUrl = "";
+            repositoryId = -1;
             return;
         }
         if (isBlank(repositoryName)) {
@@ -85,18 +93,35 @@ public class BitbucketSCMStep extends SCMStep {
             repositorySlug = "";
             selfLink = "";
             cloneUrl = "";
+            repositoryId = -1;
             return;
         }
-        BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
+        BitbucketRepository repository;
+        String repoCloneUrl;
+        if (!isBlank(mirrorName)) {
+            try {
+                EnrichedBitbucketMirroredRepository mirroredRepository =
+                        descriptor.createMirrorHandler(scmHelper).fetchRepository(
+                                new MirrorFetchRequest(id, credentialsId, projectName, repositoryName, mirrorName));
+                repository = mirroredRepository.getRepository();
+                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
+            } catch (MirrorFetchException ex) {
+                projectKey = "";
+                repositorySlug = "";
+                selfLink = "";
+                cloneUrl = "";
+                repositoryId = -1;
+                return;
+            }
+        } else {
+            repository = scmHelper.getRepository(projectName, repositoryName);
+            repoCloneUrl = getCloneUrl(repository.getCloneUrls());
+        }
+        this.cloneUrl = repoCloneUrl;
         projectKey = repository.getProject().getKey();
         repositorySlug = repository.getSlug();
-        cloneUrl = repository.getCloneUrls()
-                .stream()
-                .filter(link -> "http".equals(link.getName()))
-                .findFirst()
-                .map(BitbucketNamedLink::getHref)
-                .orElse("");
         selfLink = repository.getSelfLink();
+        repositoryId = repository.getId();
     }
 
     public List<BranchSpec> getBranches() {
@@ -113,6 +138,10 @@ public class BitbucketSCMStep extends SCMStep {
 
     public String getId() {
         return id;
+    }
+
+    public String getMirrorName() {
+        return mirrorName;
     }
 
     public String getProjectKey() {
@@ -144,9 +173,18 @@ public class BitbucketSCMStep extends SCMStep {
     protected SCM createSCM() {
         BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
         List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink("clone", cloneUrl));
-        BitbucketRepository bitbucketRepository = new BitbucketRepository(repositoryName, bitbucketProject,
-                repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
+        BitbucketRepository bitbucketRepository =
+                new BitbucketRepository(repositoryId, repositoryName, bitbucketProject,
+                        repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
         return new BitbucketSCM(id, branches, credentialsId, null, null, serverId, bitbucketRepository);
+    }
+
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
+        return cloneUrls.stream()
+                .filter(link -> "http".equals(link.getName()))
+                .findFirst()
+                .map(BitbucketNamedLink::getHref)
+                .orElse("");
     }
 
     @Symbol("BitbucketSCMStep")
@@ -161,6 +199,8 @@ public class BitbucketSCMStep extends SCMStep {
         private BitbucketScmFormFillDelegate formFill;
         @Inject
         private BitbucketScmFormValidationDelegate formValidation;
+        @Inject
+        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         @Override
         @POST
@@ -220,9 +260,16 @@ public class BitbucketSCMStep extends SCMStep {
             return formFill.doFillServerIdItems(serverId);
         }
 
-        public Optional<BitbucketScmHelper> getBitbucketScmHelper(@Nullable String serverId, @Nullable String credentialsId) {
+        @Override
+        public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
+                                                  String repositoryName, String mirrorName) {
+            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
+        }
+
+        public Optional<BitbucketScmHelper> getBitbucketScmHelper(@Nullable String serverId,
+                                                                  @Nullable String credentialsId) {
             return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> new BitbucketScmHelper(bitbucketClientFactoryProvider, serverConf, credentialsId));
+                    .map(serverConf -> new BitbucketScmHelper(bitbucketClientFactoryProvider, serverConf, credentialsId, jenkinsToBitbucketCredentials));
         }
 
         @Override
@@ -243,6 +290,13 @@ public class BitbucketSCMStep extends SCMStep {
         @Override
         public boolean getShowGitToolOptions() {
             return false;
+        }
+
+        private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
+            return new BitbucketMirrorHandler(bitbucketPluginConfiguration,
+                    bitbucketClientFactoryProvider,
+                    jenkinsToBitbucketCredentials,
+                    (client, project, repo) -> helper.getRepository(project, repo));
         }
     }
 }

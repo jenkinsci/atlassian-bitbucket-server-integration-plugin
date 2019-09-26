@@ -42,9 +42,10 @@ public class BitbucketRepository {
         }
     }
 
-    public BitbucketRepository(String name, BitbucketProject project, String slug, RepositoryState state,
+    public BitbucketRepository(int repositoryId, String name, BitbucketProject project, String slug,
+                               RepositoryState state,
                                List<BitbucketNamedLink> cloneUrls, String selfLink) {
-        this.id = 0;
+        this.id = repositoryId;
         this.name = name;
         this.project = project;
         this.slug = slug;
