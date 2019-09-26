@@ -426,6 +426,11 @@ public class BitbucketSCM extends SCM {
             return gitScmDescriptor.showGitToolOptions();
         }
 
+        @Override
+        public boolean isApplicable(Job project) {
+            return true;
+        }
+
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
             return new BitbucketMirrorHandler(bitbucketPluginConfiguration,
                     bitbucketClientFactoryProvider,
