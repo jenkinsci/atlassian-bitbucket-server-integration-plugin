@@ -266,6 +266,7 @@
                 </dependencies>
             </plugin>
             <plugin>
+                <!-- The config for BitbucketSCMStep is the same as for BitbucketSCM so this step copies it over-->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.8</version>
