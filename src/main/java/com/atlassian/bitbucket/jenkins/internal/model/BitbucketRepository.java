@@ -42,6 +42,17 @@ public class BitbucketRepository {
         }
     }
 
+    public BitbucketRepository(String name, BitbucketProject project, String slug, RepositoryState state,
+                               List<BitbucketNamedLink> cloneUrls, String selfLink) {
+        this.id = 0;
+        this.name = name;
+        this.project = project;
+        this.slug = slug;
+        this.state = state;
+        this.cloneUrls = cloneUrls;
+        this.selfLink = selfLink;
+    }
+
     public int getId() {
         return id;
     }
