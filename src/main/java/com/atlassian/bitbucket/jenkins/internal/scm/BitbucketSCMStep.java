@@ -261,8 +261,10 @@ public class BitbucketSCMStep extends SCMStep {
         }
 
         @Override
-        public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
-                                                  String repositoryName, String mirrorName) {
+        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId, @QueryParameter String credentialsId,
+                                                  @QueryParameter String projectName,
+                                                  @QueryParameter String repositoryName,
+                                                  @QueryParameter String mirrorName) {
             return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
         }
 
