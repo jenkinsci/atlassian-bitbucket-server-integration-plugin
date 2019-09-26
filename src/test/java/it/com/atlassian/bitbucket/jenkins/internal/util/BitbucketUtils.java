@@ -23,6 +23,41 @@ public class BitbucketUtils {
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
     public static final String REPO_NAME = "rep 1";
+    public static String REPO_FORK_SLUG = "";
+    public static String REPO_FORK_NAME = "";
+
+    public static void createRepoFork() {
+        HashMap<String, Object> createForkRequest = new HashMap<>();
+        HashMap<String, Object> projectProperties = new HashMap<>();
+        REPO_FORK_NAME = REPO_FORK_SLUG = UUID.randomUUID().toString();
+
+        projectProperties.put("key", PROJECT_KEY);
+        createForkRequest.put("name", REPO_FORK_SLUG);
+        createForkRequest.put("project", projectProperties);
+
+        RestAssured.given()
+                .log()
+                    .ifValidationFails()
+                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                .body(createForkRequest)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_SLUG)
+                    .getBody();
+    }
+
+    public static void deleteRepoFork() {
+        RestAssured.given()
+                .log()
+                    .ifValidationFails()
+                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                    .statusCode(202)
+                .when()
+                    .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_FORK_SLUG);
+    }
 
     public static void createBranch(String project,
                                     String repo,
