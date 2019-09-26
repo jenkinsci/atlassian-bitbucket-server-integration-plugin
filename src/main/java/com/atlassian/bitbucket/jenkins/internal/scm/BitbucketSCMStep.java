@@ -144,8 +144,8 @@ public class BitbucketSCMStep extends SCMStep {
     protected SCM createSCM() {
         BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
         List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink("clone", cloneUrl));
-        BitbucketRepository bitbucketRepository = new BitbucketRepository(cloneUrls, repositoryName, bitbucketProject,
-                selfLink, repositorySlug, RepositoryState.AVAILABLE);
+        BitbucketRepository bitbucketRepository = new BitbucketRepository(repositoryName, bitbucketProject,
+                repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
         return new BitbucketSCM(id, branches, credentialsId, null, null, serverId, bitbucketRepository);
     }
 
@@ -232,7 +232,7 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         public String getFunctionName() {
-            return "bbs";
+            return "bbs_checkout";
         }
 
         @Override
