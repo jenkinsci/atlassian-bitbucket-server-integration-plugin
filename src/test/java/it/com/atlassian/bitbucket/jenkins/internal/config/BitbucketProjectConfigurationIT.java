@@ -1,19 +1,21 @@
 package it.com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketJenkinsWebClientRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.*;
+import org.junit.rules.RuleChain;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
 import static org.junit.Assert.assertEquals;
@@ -33,6 +35,13 @@ public class BitbucketProjectConfigurationIT {
 
     @Rule
     public BitbucketJenkinsWebClientRule webClientRule = new BitbucketJenkinsWebClientRule(bbJenkinsRule);
+    @Rule
+    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
+    @Rule
+    public RuleChain ruleChain = RuleChain
+            .outerRule(bbJenkinsRule)
+            .around(webClientRule)
+            .around(bitbucketJenkinsLoggerRule);
 
     private FreeStyleProject project;
 

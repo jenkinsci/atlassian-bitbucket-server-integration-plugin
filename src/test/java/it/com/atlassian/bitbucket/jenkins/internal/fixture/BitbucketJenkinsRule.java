@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.fixture;
+package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;

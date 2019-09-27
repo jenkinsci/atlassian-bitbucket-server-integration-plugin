@@ -1,17 +1,20 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import hudson.model.FreeStyleProject;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.response.Response;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketProject;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketRepository;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,7 +27,14 @@ import static org.junit.Assert.assertThat;
 public class BitbucketSCMDescriptorIT {
 
     @ClassRule
-    public static BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+    public static final BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
+    @Rule
+    public RuleChain ruleChain = RuleChain
+            .outerRule(bitbucketJenkinsRule)
+            .around(bitbucketJenkinsLoggerRule);
     private FreeStyleProject project;
 
     @Before

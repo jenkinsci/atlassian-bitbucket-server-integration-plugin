@@ -14,12 +14,13 @@ import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.InstanceBasedNameGenerator;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import jenkins.model.Jenkins;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.RuleChain;
 
 import java.util.Optional;
 
@@ -44,6 +45,16 @@ public class RetryingWebhookHandlerIT {
     private static final String JOB_CREDENTIAL_ID = "job_credentials";
     private static final String SERVER_ID = "123";
     private static final String WEBHOOK_NAME = RetryingWebhookHandlerIT.class.getSimpleName();
+
+    @ClassRule
+    public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
+    @Rule
+    public RuleChain ruleChain = RuleChain
+            .outerRule(bbJenkinsRule)
+            .around(bitbucketJenkinsLoggerRule);
 
     private HttpRequestExecutor httpRequestExecutor = new HttpRequestExecutorImpl();
     private PersonalToken adminToken;

@@ -1,6 +1,5 @@
-package it.com.atlassian.bitbucket.jenkins.internal.util;
+package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -8,6 +7,10 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Logger;
 
 public class BitbucketJenkinsWebClientRule extends TestWatcher {
@@ -33,8 +36,16 @@ public class BitbucketJenkinsWebClientRule extends TestWatcher {
     @Override
     protected void failed(Throwable e, Description description) {
         if (currentPage != null) {
-            LOGGER.severe("Page state at the time of failure:");
-            LOGGER.severe(currentPage.asXml());
+            String html = currentPage.asXml();
+            try {
+                Path path = Paths.get("target", "artifacts", description.getClassName(), description.getMethodName(), "currentPage.html");
+                Files.createDirectories(path.getParent());
+                Files.write(path, html.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException artifactException) {
+                LOGGER.severe("Failed to write page HTML to file: " + artifactException.getMessage());
+                LOGGER.severe("HTML of page at the time of failure:");
+                LOGGER.severe(html);
+            }
         } else {
             LOGGER.severe("No current page was set");
         }

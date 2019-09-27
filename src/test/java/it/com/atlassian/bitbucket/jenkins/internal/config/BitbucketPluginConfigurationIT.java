@@ -2,21 +2,23 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.gargoylesoftware.htmlunit.html.*;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketJenkinsWebClientRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getLinkByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
@@ -30,6 +32,13 @@ public class BitbucketPluginConfigurationIT {
 
     @Rule
     public BitbucketJenkinsWebClientRule webClientRule = new BitbucketJenkinsWebClientRule(bbJenkinsRule);
+    @Rule
+    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
+    @Rule
+    public RuleChain ruleChain = RuleChain
+            .outerRule(bbJenkinsRule)
+            .around(webClientRule)
+            .around(bitbucketJenkinsLoggerRule);
 
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private HtmlForm form;

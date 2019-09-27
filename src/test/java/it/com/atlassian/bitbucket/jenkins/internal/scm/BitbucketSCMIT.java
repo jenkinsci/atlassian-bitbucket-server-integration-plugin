@@ -1,6 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
@@ -14,6 +15,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
+import org.junit.rules.RuleChain;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -22,7 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.singletonList;
@@ -34,6 +36,13 @@ public class BitbucketSCMIT {
 
     @ClassRule
     public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
+    @Rule
+    public RuleChain ruleChain = RuleChain
+            .outerRule(bbJenkinsRule)
+            .around(bitbucketJenkinsLoggerRule);
     private FreeStyleProject project;
 
     @BeforeClass
