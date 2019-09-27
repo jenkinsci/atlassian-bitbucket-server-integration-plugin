@@ -1,11 +1,16 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor;
 import hudson.model.*;
+import hudson.scm.SCM;
 import hudson.util.SequentialExecutionQueue;
+import jenkins.model.Jenkins;
 import jenkins.triggers.SCMTriggerItem;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,9 +23,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.PROJECT;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.REPO;
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
@@ -31,12 +38,18 @@ public class BitbucketWebhookTriggerImplTest {
     private SequentialExecutionQueue queue;
     @Mock
     private RetryingWebhookHandler webhookHandler;
+    @Mock
+    private JenkinsProvider jenkinsProvider;
+    @Mock
+    private Jenkins jenkins;
 
-    private BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor descriptor;
+    private BitbucketWebhookTriggerDescriptor descriptor;
 
     @Before
     public void setup() {
-        this.descriptor = new BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor(queue, webhookHandler);
+        when(jenkinsProvider.get()).thenReturn(jenkins);
+        this.descriptor =
+                new BitbucketWebhookTriggerDescriptor(queue, webhookHandler, jenkinsProvider);
     }
 
     @Test
@@ -52,36 +65,6 @@ public class BitbucketWebhookTriggerImplTest {
     @Test
     public void testDescriptorIsApplicableForSCMedItem() {
         assertTrue(descriptor.isApplicable(mock(Item.class, withSettings().extraInterfaces(SCMedItem.class))));
-    }
-
-    @Test
-    public void testTrigger() {
-        BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor mockDescriptor =
-                mock(BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor.class);
-        BitbucketWebhookTriggerImpl trigger =
-                new BitbucketWebhookTriggerImpl() {
-
-                    @Override
-                    public BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor
-                    getDescriptor() {
-                        // There is no running Jenkins instance, so Trigger.getDescriptor won't work in
-                        // the test.
-                        return mockDescriptor;
-                    }
-                };
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
-        BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
-        BitbucketWebhookTriggerRequest request = BitbucketWebhookTriggerRequest.builder()
-                .actor(user)
-                .build();
-
-        trigger.start(project, true);
-        trigger.trigger(request);
-        verify(mockDescriptor).schedule(eq(project), eq(project), eq(request));
     }
 
     @Test
@@ -101,39 +84,172 @@ public class BitbucketWebhookTriggerImplTest {
     }
 
     @Test
+    public void testDoNotSkipRegistrationForNewInstances() {
+        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        FreeStyleProject proj = createFreeStyleProject();
+        assertThat(t.skipWebhookRegistration(proj, true), is(false));
+    }
+
+    @Test
+    public void testSkipRegistrationForOldInstanceAndNonWorkFlowJob() {
+        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        FreeStyleProject proj = createFreeStyleProject();
+        assertThat(t.skipWebhookRegistration(proj, false), is(true));
+    }
+
+    @Test
+    public void testTrigger() {
+        BitbucketWebhookTriggerDescriptor mockDescriptor =
+                mock(BitbucketWebhookTriggerDescriptor.class);
+        BitbucketWebhookTriggerImpl trigger = createInstance(mockDescriptor);
+        FreeStyleProject project = createFreeStyleProject();
+        BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
+        BitbucketWebhookTriggerRequest request = BitbucketWebhookTriggerRequest.builder()
+                .actor(user)
+                .build();
+
+        trigger.start(project, true);
+        trigger.trigger(request);
+        verify(mockDescriptor).schedule(eq(project), eq(project), eq(request));
+    }
+
+    @Test
     public void testWebhookRegisterOnStartForNewInstance() {
+        BitbucketSCMRepository repo1 = createSCMRepo();
+        BitbucketSCMRepository repo2 = createSCMRepo();
+        FreeStyleProject project = createProjectWithSCM(createSCM(repo1, repo2));
+
+        BitbucketWebhookTriggerImpl trigger = createInstance();
+
+        trigger.start(project, true);
+        verify(webhookHandler).register(repo1);
+        verify(webhookHandler).register(repo2);
+    }
+
+    @Test
+    public void testWebhookRegisterForExistingJobs() {
+        BitbucketSCMRepository repo = createSCMRepo();
+        BitbucketSCM scm = createSCM(repo);
+        FreeStyleProject project = createProjectWithSCM(scm);
+        mockExistingProjectWithSCMs(project, scm);
+
+        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+
+        trigger.start(project, true);
+
+        verify(webhookHandler, never()).register(repo);
+    }
+
+    @Test
+    public void testWebhookRegistrationForSameProjectRepoDifferentServerId() {
+        BitbucketSCMRepository actualRepo = createSCMRepoWithServerId("serverID2");
+        FreeStyleProject project = createProjectWithSCM(createSCM(actualRepo));
+        mockExistingProjectWithSCMs(project, createSCM(createSCMRepoWithServerId("serverID1")));
+
+        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+
+        trigger.start(project, true);
+
+        verify(webhookHandler).register(actualRepo);
+    }
+
+    @Test
+    public void testWebhookRegistrationForDifferentMirrorConfiguration() {
+        BitbucketSCMRepository actualRepo = createSCMRepoWithMirror("mirror1");
+        FreeStyleProject project = createProjectWithSCM(createSCM(actualRepo));
+        mockExistingProjectWithSCMs(project, createSCM(createSCMRepo()));
+
+        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+
+        trigger.start(project, true);
+
+        verify(webhookHandler).register(actualRepo);
+    }
+
+    @Test
+    public void testWorkflowJobAreWebhookEligible() {
+        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        WorkflowJob wj = new WorkflowJob(null, "workflow");
+        assertThat(t.skipWebhookRegistration(wj, false), is(false));
+    }
+
+    private FreeStyleProject createFreeStyleProject() {
         FreeStyleProject project = mock(FreeStyleProject.class);
         Hudson itemGroup = mock(Hudson.class);
         when(itemGroup.getFullName()).thenReturn("Item name");
         when(project.getParent()).thenReturn(itemGroup);
         when(project.getName()).thenReturn("Project name");
+        return project;
+    }
 
-        BitbucketWebhookTriggerImpl trigger =
-                new BitbucketWebhookTriggerImpl() {
+    private BitbucketWebhookTriggerImpl createInstance() {
+        return createInstance(descriptor, false);
+    }
 
-                    @Override
-                    public BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor
-                    getDescriptor() {
-                        // There is no running Jenkins instance, so Trigger.getDescriptor won't work in
-                        // the test.
-                        return descriptor;
-                    }
-                };
+    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor) {
+        return createInstance(descriptor, false);
+    }
 
+    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+                                                       boolean skipRegistration) {
+        return new BitbucketWebhookTriggerImpl() {
+
+            /**
+             * Jenkins is not available while running Unit test.
+             * @return descriptor
+             */
+            @Override
+            public BitbucketWebhookTriggerDescriptor getDescriptor() {
+                return descriptor;
+            }
+
+            /**
+             * {@link org.jenkinsci.plugins.workflow.job.WorkflowJob} is final and can't be
+             * mocked. This is implemented to aid unit testing.
+             * @param project the project
+             * @param newInstance if its a newinstance
+             * @return true or false based on if registration should be skipped.
+             */
+            @Override
+            boolean skipWebhookRegistration(Job<?, ?> project, boolean newInstance) {
+                return skipRegistration;
+            }
+        };
+    }
+
+    private FreeStyleProject createProjectWithSCM(BitbucketSCM... scms) {
+        FreeStyleProject p = createFreeStyleProject();
+        doReturn(scms(scms)).when(p).getSCMs();
+        return p;
+    }
+
+    private BitbucketSCMRepository createSCMRepoWithServerId(String serverId) {
+        return createSCMRepo(serverId, "");
+    }
+
+    private BitbucketSCMRepository createSCMRepoWithMirror(String mirrorName) {
+        return createSCMRepo("serverID", mirrorName);
+    }
+
+    private BitbucketSCMRepository createSCMRepo() {
+        return createSCMRepo("serverId", "");
+    }
+
+    private BitbucketSCM createSCM(BitbucketSCMRepository... scmRepositories) {
         BitbucketSCM scm = mock(BitbucketSCM.class);
-        Collection<BitbucketSCM> scms = Collections.singletonList(scm);
-        doAnswer(mock -> scms).when(project).getSCMs();
+        when(scm.getRepositories()).thenReturn(asList(scmRepositories));
+        return scm;
+    }
 
-        BitbucketSCMRepository scmRepository1 = mock(BitbucketSCMRepository.class);
-        when(scmRepository1.getServerId()).thenReturn("server1");
-        BitbucketSCMRepository scmRepository2 = mock(BitbucketSCMRepository.class);
-        when(scmRepository2.getServerId()).thenReturn("server1");
-
-        when(scm.getRepositories()).thenReturn(asList(scmRepository1, scmRepository2));
-
-        trigger.start(project, true);
-        verify(webhookHandler).register(scmRepository1);
-        verify(webhookHandler).register(scmRepository2);
+    private BitbucketSCMRepository createSCMRepo(String serverId, String mirrorName) {
+        return new BitbucketSCMRepository(
+                "credentialId",
+                PROJECT,
+                PROJECT,
+                REPO,
+                REPO,
+                serverId,
+                mirrorName);
     }
 
     /**
@@ -169,5 +285,15 @@ public class BitbucketWebhookTriggerImplTest {
         }
         return Objects.equals(expected.getJob(), actual.getJob()) &&
                Objects.equals(expected.getTriggerItem(), actual.getTriggerItem());
+    }
+
+    private void mockExistingProjectWithSCMs(FreeStyleProject newProject, BitbucketSCM... scms) {
+        FreeStyleProject existingProject = createProjectWithSCM(scms);
+        when(existingProject.getTriggers()).thenReturn(Collections.singletonMap(descriptor, new BitbucketWebhookTriggerImpl()));
+        when(jenkins.getAllItems(any(Class.class))).thenReturn(asList(existingProject, newProject));
+    }
+
+    private Collection<? extends SCM> scms(BitbucketSCM... scms) {
+        return asList(scms);
     }
 }
