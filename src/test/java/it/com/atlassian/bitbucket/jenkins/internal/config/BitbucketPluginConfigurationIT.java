@@ -4,10 +4,11 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.gargoylesoftware.htmlunit.html.*;
+import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketJenkinsWebClientRule;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -16,7 +17,9 @@ import java.util.List;
 
 import static com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.*;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getLinkByText;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -25,17 +28,16 @@ public class BitbucketPluginConfigurationIT {
     @ClassRule
     public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
+    @Rule
+    public BitbucketJenkinsWebClientRule webClientRule = new BitbucketJenkinsWebClientRule(bbJenkinsRule);
+
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
-    private JenkinsRule.WebClient webClient;
     private HtmlForm form;
 
     @Before
     public void setup() throws IOException, SAXException {
         bitbucketPluginConfiguration = bbJenkinsRule.getBitbucketPluginConfiguration();
-
-        webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("configure");
-        form = configurePage.getFormByName("config");
+        form = webClientRule.visit("configure").getFormByName("config");
     }
 
     @Test
@@ -92,7 +94,7 @@ public class BitbucketPluginConfigurationIT {
 
         testConnectionButton.click();
 
-        webClient.waitForBackgroundJavaScript(2000);
+        webClientRule.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "Credentials work and it is a Bitbucket server"));
     }
 
@@ -103,7 +105,7 @@ public class BitbucketPluginConfigurationIT {
 
         adminCredential.getOption(0).click();
 
-        webClient.waitForBackgroundJavaScript(2000);
+        webClientRule.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "An admin token must be selected"));
     }
 
