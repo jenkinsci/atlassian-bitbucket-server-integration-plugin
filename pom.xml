@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>1.0-alpha-4-SNAPSHOT</version>
+    <version>1.0-beta-2-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>5.6.0</bitbucket.version>
@@ -285,8 +285,8 @@
                         <configuration>
                             <tasks>
                                 <echo>Copying across symlink</echo>
-                                <copy todir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCMStep" >
-                                    <fileset dir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCM" includes="**"/>
+                                <copy todir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCMStep">
+                                    <fileset dir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCM" includes="**" />
                                 </copy>
                             </tasks>
                         </configuration>

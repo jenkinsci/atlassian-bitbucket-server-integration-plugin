@@ -76,6 +76,19 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
     }
 
+    /**
+     * Returns true if the registration should be skipped. The entire point of skipping registration is to avoid
+     * excessive remote calls to bitbucket server every time some configuration is changed.
+     *
+     * For pipeline job, this is invoked every time a build is run.
+     *
+     * We can't always continue registration check if newInstance is false since during Jenkin startup, this is invoked
+     * for every job. Making remote call to Bitbucket server would make the startup slow.
+     *
+     * @param project     the input project
+     * @param newInstance if this is invoked as part of new item configuration
+     * @return true if registration should be skip.
+     */
     boolean skipWebhookRegistration(Job<?, ?> project, boolean newInstance) {
         return !newInstance && !(project instanceof WorkflowJob);
     }
