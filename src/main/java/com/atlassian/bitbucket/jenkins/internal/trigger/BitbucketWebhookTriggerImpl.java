@@ -49,11 +49,9 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
     @Override
     public void trigger(BitbucketWebhookTriggerRequest triggerRequest) {
         SCMTriggerItem triggerItem = asSCMTriggerItem(job);
-        if (triggerItem == null) {
-            // This shouldn't happen because of BitbucketWebhookTriggerDescriptor.isApplicable
-            return;
+        if (triggerItem != null) {
+            getDescriptor().schedule(job, triggerItem, triggerRequest);
         }
-        getDescriptor().schedule(job, triggerItem, triggerRequest);
     }
 
     @Override
@@ -63,15 +61,13 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             return;
         }
         SCMTriggerItem triggerItem = asSCMTriggerItem(job);
-        if (triggerItem == null) {
-            return;
-        } else {
+        if (triggerItem != null) {
             BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
             triggerItem.getSCMs()
                     .stream()
                     .filter(scm -> scm instanceof BitbucketSCM)
                     .map(scm -> (BitbucketSCM) scm)
-                    .filter(scm -> !descriptor.isWebhookExists(job, scm))
+                    .filter(scm -> !descriptor.webhookExists(job, scm))
                     .forEach(scm -> descriptor.addTrigger(scm));
         }
     }
@@ -156,26 +152,25 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             LOGGER.info("Webhook returned -" + webhook);
         }
 
-        private boolean isWebhookExists(Job<?, ?> project, BitbucketSCM input) {
+        private boolean webhookExists(Job<?, ?> project, BitbucketSCM input) {
             try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 return jenkinsProvider
                         .get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                         .stream()
                         .filter(item -> !item.equals(project))
-                        .filter(this::isTriggerEnabled)
+                        .filter(BitbucketWebhookTriggerDescriptor::isTriggerEnabled)
                         .map(item -> asSCMTriggerItem(item))
                         .filter(Objects::nonNull)
                         .map(scmItem -> scmItem.getSCMs())
                         .flatMap(Collection::stream)
                         .filter(scm -> scm instanceof BitbucketSCM)
-                        .map(scm -> (BitbucketSCM) scm)
-                        .map(BitbucketSCM::getRepositories)
+                        .map(scm -> ((BitbucketSCM) scm).getRepositories())
                         .flatMap(Collection::stream)
                         .anyMatch(scm -> isExistingWebhookOnRepo(input, scm));
             }
         }
 
-        private boolean isTriggerEnabled(ParameterizedJobMixIn.ParameterizedJob job) {
+        private static boolean isTriggerEnabled(ParameterizedJobMixIn.ParameterizedJob job) {
             return job.getTriggers()
                     .values()
                     .stream()
