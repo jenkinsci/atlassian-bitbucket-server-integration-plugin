@@ -154,7 +154,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkAdminCredentialsId(String adminCredentialsId) {
         if (isBlank(adminCredentialsId)) {
-            return FormValidation.error("An admin token must be selected");
+            return FormValidation.error("Choose a personal access token");
         }
         Credentials creds =
                 firstOrNull(
@@ -180,19 +180,19 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkBaseUrl(String baseUrl) {
         if (isEmpty(baseUrl)) {
-            return FormValidation.error("Enter your Bitbucket instance's URL.");
+            return FormValidation.error("Required");
         }
         try {
             URL base = new URL(baseUrl);
             if (isBlank(base.getHost())) {
                 return FormValidation.error(
-                        "Please specify a valid url, including protocol and port (if using non-standard port).");
+                        "This isn't a valid URL. Check for typos and try again");
             } else if (base.getHost().contains("bitbucket.org")) {
-                return FormValidation.error("This plugin does not work with Bitbucket cloud.");
+                return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
             }
         } catch (MalformedURLException e) {
             return FormValidation.error(
-                    "Please specify a valid url, including protocol and port (if using non-standard port).");
+                    "This isn't a valid URL. Check for typos and try again");
         }
         return FormValidation.ok();
     }
@@ -205,7 +205,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkServerName(String serverName) {
         return isBlank(serverName)
-                ? FormValidation.error("Enter a name to help users identify this instance.")
+                ? FormValidation.error("Required")
                 : FormValidation.ok();
     }
 
@@ -295,7 +295,7 @@ public class BitbucketServerConfiguration
                 return FormValidation.error("Cannot find the selected credentials");
             }
             if (config.getAdminCredentials() == null) {
-                return FormValidation.error("An admin token is required");
+                return FormValidation.error("A personal access token with project admin permissions is required.");
             }
 
             try {
@@ -305,7 +305,7 @@ public class BitbucketServerConfiguration
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
-                    return FormValidation.error("The admin credentials are invalid");
+                    return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
                 BitbucketClientFactory client =
                         clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
@@ -318,7 +318,7 @@ public class BitbucketServerConfiguration
                 }
 
                 if (capabilities.isBitbucketServer()) {
-                    return FormValidation.ok("Credentials work and it is a Bitbucket server");
+                    return FormValidation.ok("Jenkins can connect with Bitbucket Server. Finish configuring your system or click save.");
                 }
                 return FormValidation.error("The other server is not a Bitbucket server");
             } catch (ConnectionFailureException e) {
@@ -328,7 +328,7 @@ public class BitbucketServerConfiguration
                 return FormValidation.error(
                         "The other server does not appear to be a Bitbucket server, or context path is incorrect");
             } catch (AuthorizationException e) {
-                return FormValidation.error("Invalid credentials");
+                return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose different credentials or choose 'none'.");
             } catch (BitbucketClientException e) {
                 Logger.getLogger(DescriptorImpl.class)
                         .debug("Failed to connect to Bitbucket server", e);

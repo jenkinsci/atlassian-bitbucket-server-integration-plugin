@@ -14,15 +14,15 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
-        f.combobox(context: app, placeholder: "Project Name", checkMethod: "post", clazz:'searchable')
+        f.combobox(context: app, placeholder: "Start typing to find a project or click help to see how to find a personal project", checkMethod: "post", clazz:'searchable')
     }
 
     f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
-        f.combobox(context: app, placeholder: "Repository Name", checkMethod: "post", clazz:'searchable')
+        f.combobox(context: app, placeholder: "Start typing to find a repository or click help to see how to find a personal repository", checkMethod: "post", clazz:'searchable')
     }
 
     f.entry(title: _("bitbucket.scm.mirror"), field: "mirrorName") {
-        f.select(placeholder: "Clone from", checkMethod: "post")
+        f.select(checkMethod: "post")
     }
 
     f.entry(title: _("Branches to build")) {

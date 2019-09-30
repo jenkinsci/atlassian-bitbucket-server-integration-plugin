@@ -52,7 +52,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     public FormValidation doCheckProjectName(String serverId, String credentialsId, String projectName) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(projectName)) {
-            return FormValidation.error("Please specify a project name.");
+            return FormValidation.error("Required");
         }
         Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!isBlank(credentialsId) && providedCredentials == null) {
@@ -89,7 +89,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
             return FormValidation.ok(); // There will be an error in the credentials field
         }
         if (isEmpty(repositoryName)) {
-            return FormValidation.error("Please specify a repository name.");
+            return FormValidation.error("Required");
         }
 
         return bitbucketPluginConfiguration.getServerById(serverId)
@@ -116,7 +116,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         Jenkins.get().checkPermission(CONFIGURE);
         // Users can only demur in providing a server name if none are available to select
         if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
-            return FormValidation.error("Please specify a valid Bitbucket Server.");
+            return FormValidation.error("Required");
         }
         if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
             return FormValidation.warning("Some servers have been incorrectly configured, and are not displayed.");
