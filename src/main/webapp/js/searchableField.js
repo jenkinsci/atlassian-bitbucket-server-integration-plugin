@@ -70,14 +70,17 @@ Behaviour.specify('.searchable', 'searchableField', 200, function (el) {
     }, 300));
 
     el.addEventListener('blur', function (e) {
+        // clear the existing results
         results = [];
+        // There's a race condition in combobox that means sometimes this isn't fired which messes with validation
+        el.dispatchEvent(new Event('change'));
         // Clear the dependent fields
         document.querySelectorAll('[filldependson~="' + e.target.name.replace('_.', '') + '"]')
             .forEach(function (dependentField) {
                 if (dependentField.name !== e.target.name) {
                     dependentField.value = '';
                     dependentField.setAttribute('value', '');
-                    dependentField.dispatchEvent(new Event('change'))
+                    dependentField.dispatchEvent(new Event('change'));
             }
         });
     });

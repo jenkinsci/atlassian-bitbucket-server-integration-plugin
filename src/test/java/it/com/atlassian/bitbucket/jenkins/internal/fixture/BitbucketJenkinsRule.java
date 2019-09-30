@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.fixture;
+package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -13,6 +13,7 @@ import hudson.ExtensionList;
 import hudson.util.SecretFactory;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 
-public class BitbucketJenkinsRule extends JenkinsRule {
+public final class BitbucketJenkinsRule extends JenkinsRule {
 
     public static final String SERVER_NAME = "Bitbucket server";
 
@@ -29,6 +30,16 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     private static final AtomicReference<PersonalToken> READ_PERSONAL_TOKEN = new AtomicReference<>();
     private BitbucketServerConfiguration bitbucketServerConfiguration;
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private RuleChain ruleChain;
+    private BitbucketJenkinsWebClientRule webClientRule;
+
+    public BitbucketJenkinsRule() {
+        webClientRule = new BitbucketJenkinsWebClientRule(createWebClient());
+        ruleChain = RuleChain
+                .outerRule(this)
+                .around(webClientRule)
+                .around(new BitbucketJenkinsLoggerRule());
+    }
 
     public void addBitbucketServer(BitbucketServerConfiguration bitbucketServer) {
         ExtensionList<BitbucketPluginConfiguration> configExtensions =
@@ -36,6 +47,14 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         bitbucketPluginConfiguration = configExtensions.get(0);
         bitbucketPluginConfiguration.getServerList().add(bitbucketServer);
         bitbucketPluginConfiguration.save();
+    }
+
+    public RuleChain getRuleChain() {
+        return ruleChain;
+    }
+
+    public BitbucketJenkinsWebClientRule getWebClientRule() {
+        return webClientRule;
     }
 
     @Override

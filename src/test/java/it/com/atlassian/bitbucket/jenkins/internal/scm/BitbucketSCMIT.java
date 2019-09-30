@@ -1,6 +1,5 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
@@ -10,10 +9,12 @@ import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
 import hudson.tasks.Shell;
 import io.restassured.RestAssured;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
+import org.junit.rules.RuleChain;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -22,18 +23,24 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
 import static hudson.model.Result.SUCCESS;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BitbucketSCMIT {
 
-    @ClassRule
-    public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    @Rule
+    public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
+
     private FreeStyleProject project;
 
     @BeforeClass
@@ -148,14 +155,14 @@ public class BitbucketSCMIT {
                      revisionAction.getRevisionSha1());
     }
 
-    private static BitbucketSCM createScmWithSpecs(String... refs) {
+    private BitbucketSCM createScmWithSpecs(String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
         return createScm(bbJenkinsRule, branchSpecs);
     }
 
-    private static BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
+    private BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
         return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
     }
 }

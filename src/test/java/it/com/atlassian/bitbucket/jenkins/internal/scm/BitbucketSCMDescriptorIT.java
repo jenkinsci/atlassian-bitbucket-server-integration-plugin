@@ -1,20 +1,21 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import hudson.model.FreeStyleProject;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.response.Response;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketProject;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketRepository;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsMirrorListBox;
 import org.hamcrest.collection.IsIterableWithSize;
 import org.hamcrest.core.Is;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,13 +27,17 @@ import static org.junit.Assert.assertThat;
 
 public class BitbucketSCMDescriptorIT {
 
-    @ClassRule
-    public static BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+    @Rule
+    public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
+
     private FreeStyleProject project;
 
     @Before
     public void setup() throws Exception {
-        project = bitbucketJenkinsRule.createFreeStyleProject();
+        project = bbJenkinsRule.createFreeStyleProject();
     }
 
     @Test
@@ -44,8 +49,8 @@ public class BitbucketSCMDescriptorIT {
                         .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
-                        .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                        .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                        .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                         .formParam("projectName", "proj")
                         .post(getProjectSearchUrl())
                         .getBody()
@@ -69,7 +74,7 @@ public class BitbucketSCMDescriptorIT {
                         .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
-                        .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "proj")
                         .post(getProjectSearchUrl())
@@ -91,7 +96,7 @@ public class BitbucketSCMDescriptorIT {
                 .statusCode(400)
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                 .formParam("credentialsId", "some-invalid-credentials")
                 .formParam("projectName", "proj")
                 .post(getProjectSearchUrl());
@@ -101,9 +106,9 @@ public class BitbucketSCMDescriptorIT {
     @Test
     public void testFindProjectsCredentialsIdMissing() throws Exception {
         BitbucketServerConfiguration bitbucketServerWithoutCredentials = new BitbucketServerConfiguration(
-                bitbucketJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
-                bitbucketJenkinsRule.getBitbucketServerConfiguration().getBaseUrl(), null, null);
-        bitbucketJenkinsRule.addBitbucketServer(bitbucketServerWithoutCredentials);
+                bbJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
+                bbJenkinsRule.getBitbucketServerConfiguration().getBaseUrl(), null, null);
+        bbJenkinsRule.addBitbucketServer(bitbucketServerWithoutCredentials);
         HudsonResponse<List<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
                         .statusCode(200)
@@ -130,8 +135,8 @@ public class BitbucketSCMDescriptorIT {
                 .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "")
                 .post(getProjectSearchUrl());
         assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
@@ -145,8 +150,8 @@ public class BitbucketSCMDescriptorIT {
                 .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .post(getProjectSearchUrl());
         assertThat(response.getBody().print(), containsString("The project name must be at least 2 characters long"));
     }
@@ -158,7 +163,7 @@ public class BitbucketSCMDescriptorIT {
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", "")
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "proj")
                 .post(getProjectSearchUrl());
         assertThat(response.getBody().print(), containsString("A Bitbucket Server serverId must be provided"));
@@ -170,7 +175,7 @@ public class BitbucketSCMDescriptorIT {
                 .statusCode(400)
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "proj")
                 .post(getProjectSearchUrl());
         assertThat(response.getBody().print(), containsString("A Bitbucket Server serverId must be provided"));
@@ -183,8 +188,8 @@ public class BitbucketSCMDescriptorIT {
                 .all()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl())
@@ -216,8 +221,8 @@ public class BitbucketSCMDescriptorIT {
                 .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "non-existent repo")
                 .post(getReposUrl())
@@ -238,8 +243,8 @@ public class BitbucketSCMDescriptorIT {
                 .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "non-existent project")
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl())
@@ -261,7 +266,7 @@ public class BitbucketSCMDescriptorIT {
                         .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
-                        .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
@@ -295,7 +300,7 @@ public class BitbucketSCMDescriptorIT {
                 .statusCode(400)
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                 .formParam("credentialsId", "some-invalid-credentials")
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "rep")
@@ -311,7 +316,7 @@ public class BitbucketSCMDescriptorIT {
                         .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
-                        .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
+                        .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
                         .post(getReposUrl())
@@ -344,8 +349,8 @@ public class BitbucketSCMDescriptorIT {
                 .statusCode(400)
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl());
     }
@@ -358,8 +363,8 @@ public class BitbucketSCMDescriptorIT {
                 .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .post(getReposUrl());
         assertThat(response.getBody().print(), containsString("The repository name must be at least 2 characters long"));
@@ -372,7 +377,7 @@ public class BitbucketSCMDescriptorIT {
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", "")
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl());
@@ -384,7 +389,7 @@ public class BitbucketSCMDescriptorIT {
                 .statusCode(400)
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .post(getReposUrl());
     }
@@ -409,12 +414,12 @@ public class BitbucketSCMDescriptorIT {
     }
 
     private String getProjectSearchUrl() throws IOException {
-        return bitbucketJenkinsRule.getURL() + "job/" + project.getName() +
+        return bbJenkinsRule.getURL() + "job/" + project.getName() +
                "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillProjectNameItems";
     }
 
     private String getReposUrl() throws IOException {
-        return bitbucketJenkinsRule.getURL() + "job/" + project.getName() +
+        return bbJenkinsRule.getURL() + "job/" + project.getName() +
                "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillRepositoryNameItems";
     }
 

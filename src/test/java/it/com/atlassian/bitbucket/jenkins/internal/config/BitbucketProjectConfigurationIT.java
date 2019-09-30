@@ -1,22 +1,23 @@
 package it.com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
+import org.junit.rules.RuleChain;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.ScmUtils.createScm;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
 import static org.junit.Assert.assertEquals;
@@ -31,14 +32,19 @@ public class BitbucketProjectConfigurationIT {
     private static final String REPO_SLUG = "rep_1";
     private static final String JENKINS_PROJECT_NAME = "bitbucket";
 
-    @ClassRule
-    public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    @Rule
+    public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
+    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
+    private BitbucketJenkinsWebClientRule bitbucketWebClient;
 
     private FreeStyleProject project;
 
     @Before
     public void setup() throws IOException {
         project = bbJenkinsRule.createFreeStyleProject(JENKINS_PROJECT_NAME);
+        bitbucketWebClient = bbJenkinsRule.getWebClientRule();
     }
 
     @After
@@ -47,9 +53,27 @@ public class BitbucketProjectConfigurationIT {
     }
 
     @Test
+    public void testBitbucketSCMFieldsShouldBePopulatedWithProperValues() throws IOException, SAXException {
+        setupBitbucketSCM();
+
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlForm form = configurePage.getFormByName("config");
+
+        HtmlSelect credential = form.getSelectByName("_.credentialsId");
+        waitTillItemIsRendered(credential::getOptions);
+        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), credential.getSelectedOptions().get(0).getValueAttribute());
+
+        HtmlSelect serverId = form.getSelectByName("_.serverId");
+        waitTillItemIsRendered(serverId::getOptions);
+        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), serverId.getSelectedOptions().get(0).getValueAttribute());
+
+        assertEquals(PROJECT_NAME, form.getInputByName("_.projectName").getValueAttribute());
+        assertEquals(REPO_NAME, form.getInputByName("_.repositoryName").getValueAttribute());
+    }
+
+    @Test
     public void testCreateBitbucketProject() throws Exception {
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
         List<HtmlRadioButtonInput> scms = form.getRadioButtonsByName("scm");
         Optional<HtmlRadioButtonInput> bitbucketSCMRadioButton = scms.stream()
@@ -59,7 +83,7 @@ public class BitbucketProjectConfigurationIT {
         //Configure Bitbucket SCM
         assertTrue(bitbucketSCMRadioButton.isPresent());
         bitbucketSCMRadioButton.get().click();
-        webClient.waitForBackgroundJavaScript(2000);
+        bitbucketWebClient.waitForBackgroundJavaScript();
 
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
         waitTillItemIsRendered(credential::getOptions);
@@ -100,38 +124,17 @@ public class BitbucketProjectConfigurationIT {
     }
 
     @Test
-    public void testBitbucketSCMFieldsShouldBePopulatedWithProperValues() throws IOException, SAXException {
-        setupBitbucketSCM();
-
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
-        HtmlForm form = configurePage.getFormByName("config");
-
-        HtmlSelect credential = form.getSelectByName("_.credentialsId");
-        waitTillItemIsRendered(credential::getOptions);
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), credential.getSelectedOptions().get(0).getValueAttribute());
-
-        HtmlSelect serverId = form.getSelectByName("_.serverId");
-        waitTillItemIsRendered(serverId::getOptions);
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), serverId.getSelectedOptions().get(0).getValueAttribute());
-
-        assertEquals(PROJECT_NAME, form.getInputByName("_.projectName").getValueAttribute());
-        assertEquals(REPO_NAME, form.getInputByName("_.repositoryName").getValueAttribute());
-    }
-
-    @Test
     public void testProjectEmpty() throws IOException, SAXException {
         setupBitbucketSCM();
 
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
 
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute("");
         form.click();
-        webClient.waitForBackgroundJavaScript(2000);
+        bitbucketWebClient.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "Please specify a project name."));
     }
 
@@ -139,15 +142,14 @@ public class BitbucketProjectConfigurationIT {
     public void testProjectNotExist() throws IOException, SAXException {
         setupBitbucketSCM();
 
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
 
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute("non-existent-project");
         form.click();
-        webClient.waitForBackgroundJavaScript(2000);
+        bitbucketWebClient.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "The project 'non-existent-project' does not exist or you do not have permission to access it."));
     }
 
@@ -155,8 +157,7 @@ public class BitbucketProjectConfigurationIT {
     public void testRepositoryEmpty() throws Exception {
         setupBitbucketSCM();
 
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
@@ -167,7 +168,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute("");
         form.click();
-        webClient.waitForBackgroundJavaScript(2000);
+        bitbucketWebClient.waitForBackgroundJavaScript();
 
         assertNotNull(getDivByText(form, "Please specify a repository name."));
     }
@@ -176,8 +177,7 @@ public class BitbucketProjectConfigurationIT {
     public void testRepositoryNotExist() throws Exception {
         setupBitbucketSCM();
 
-        JenkinsRule.WebClient webClient = bbJenkinsRule.createWebClient();
-        HtmlPage configurePage = webClient.goTo("job/" + JENKINS_PROJECT_NAME + "/configure");
+        HtmlPage configurePage = bitbucketWebClient.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
@@ -188,7 +188,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute("non-existent-repo");
         form.click();
-        webClient.waitForBackgroundJavaScript(2000);
+        bitbucketWebClient.waitForBackgroundJavaScript();
 
         assertNotNull(getDivByText(form, "The repository 'non-existent-repo' does not exist or you do not have permission to access it."));
     }

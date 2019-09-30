@@ -278,6 +278,7 @@
                 <version>1.8</version>
                 <executions>
                     <execution>
+                        <id>Create BitbucketSCMStep dir</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>run</goal>
@@ -287,6 +288,34 @@
                                 <echo>Copying across symlink</echo>
                                 <copy todir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCMStep">
                                     <fileset dir="${basedir}/src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCM" includes="**" />
+                                </copy>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>Create artifacts dir</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <echo>Creating artifacts dir</echo>
+                                <mkdir dir="${basedir}/target/artifacts"/>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>Copy Bitbucket logs to artifacts dir</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <echo>Publishing Bitbucket logs to the artifacts directory</echo>
+                                <copy todir="${basedir}/target/artifacts" failonerror="false">
+                                    <fileset dir="${basedir}/target/bitbucket/home/log" includes="**"/>
                                 </copy>
                             </tasks>
                         </configuration>
