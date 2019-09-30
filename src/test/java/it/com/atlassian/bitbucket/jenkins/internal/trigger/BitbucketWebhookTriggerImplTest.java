@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.jvnet.hudson.test.JenkinsRule;
+import wiremock.com.google.common.collect.Streams;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -36,7 +37,7 @@ import static org.junit.Assert.fail;
 
 public class BitbucketWebhookTriggerImplTest {
 
-    public static final JenkinsRule jenkinsRule = new JenkinsRule();
+    private static final JenkinsRule jenkinsRule = new JenkinsRule();
     private static final Logger LOGGER =
             Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
 
@@ -173,10 +174,11 @@ public class BitbucketWebhookTriggerImplTest {
                 () -> {
                     RunList<FreeStyleBuild> builds = project.getBuilds();
                     LOGGER.info("The current builds are: " + builds);
-                    if (builds.size() < count) {
+                    long size = Streams.stream(builds.iterator()).count();
+                    if (size < count) {
                         return of(
                                 "There are only "
-                                + builds.size()
+                                + size
                                 + " builds for the project, but we need "
                                 + count);
                     }
@@ -190,7 +192,7 @@ public class BitbucketWebhookTriggerImplTest {
 
         Queue<PollingResult> pollingResults = new LinkedList<>();
 
-        public void addPollingResult(PollingResult result) {
+        void addPollingResult(PollingResult result) {
             pollingResults.add(result);
         }
 
@@ -200,8 +202,7 @@ public class BitbucketWebhookTriggerImplTest {
                 Launcher launcher,
                 FilePath workspace,
                 TaskListener listener,
-                SCMRevisionState baseline)
-                throws IOException, InterruptedException {
+                SCMRevisionState baseline) {
             return firstNonNull(pollingResults.poll(), PollingResult.NO_CHANGES);
         }
 
