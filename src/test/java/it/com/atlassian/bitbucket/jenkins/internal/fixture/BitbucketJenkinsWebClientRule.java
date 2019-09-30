@@ -19,8 +19,8 @@ public class BitbucketJenkinsWebClientRule extends TestWatcher {
     private final JenkinsRule.WebClient webClient;
     private HtmlPage currentPage;
 
-    public BitbucketJenkinsWebClientRule(BitbucketJenkinsRule bitbucketJenkinsRule) {
-        webClient = bitbucketJenkinsRule.createWebClient();
+    public BitbucketJenkinsWebClientRule(JenkinsRule.WebClient webClient) {
+        this.webClient = webClient;
     }
 
     public HtmlPage visit(String relativePath) throws IOException, SAXException {

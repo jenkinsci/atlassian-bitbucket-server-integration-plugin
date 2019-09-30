@@ -1,7 +1,5 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsLoggerRule;
-import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
@@ -11,6 +9,7 @@ import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
 import hudson.tasks.Shell;
 import io.restassured.RestAssured;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
@@ -24,25 +23,24 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static hudson.model.Result.SUCCESS;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BitbucketSCMIT {
 
-    @ClassRule
+    @Rule
     public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
     @Rule
-    public BitbucketJenkinsLoggerRule bitbucketJenkinsLoggerRule = new BitbucketJenkinsLoggerRule();
-    @Rule
-    public RuleChain ruleChain = RuleChain
-            .outerRule(bbJenkinsRule)
-            .around(bitbucketJenkinsLoggerRule);
+    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
+
     private FreeStyleProject project;
 
     @BeforeClass
