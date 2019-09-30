@@ -26,7 +26,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.SEVERE;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-class BitbucketMirrorHandler {
+public class BitbucketMirrorHandler {
 
     private static final String DEFAULT_UPSTREAM_SERVER = "Primary Server";
     private static final Logger LOGGER = Logger.getLogger(BitbucketMirrorHandler.class.getName());
@@ -36,7 +36,7 @@ class BitbucketMirrorHandler {
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final BitbucketRepoFetcher bitbucketRepoFetcher;
 
-    BitbucketMirrorHandler(
+    public BitbucketMirrorHandler(
             BitbucketPluginConfiguration bitbucketPluginConfiguration,
             BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
             JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
