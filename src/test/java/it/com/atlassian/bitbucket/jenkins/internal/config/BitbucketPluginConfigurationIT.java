@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.gargoylesoftware.htmlunit.html.*;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,12 +32,14 @@ public class BitbucketPluginConfigurationIT {
     public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
 
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private BitbucketJenkinsWebClientRule bitbucketWebClient;
     private HtmlForm form;
 
     @Before
     public void setup() throws IOException, SAXException {
         bitbucketPluginConfiguration = bbJenkinsRule.getBitbucketPluginConfiguration();
-        form = bbJenkinsRule.getWebClientRule().visit("configure").getFormByName("config");
+        bitbucketWebClient = bbJenkinsRule.getWebClientRule();
+        form = bitbucketWebClient.visit("configure").getFormByName("config");
     }
 
     @Test
@@ -93,7 +96,7 @@ public class BitbucketPluginConfigurationIT {
 
         testConnectionButton.click();
 
-        bbJenkinsRule.getWebClientRule().waitForBackgroundJavaScript();
+        bitbucketWebClient.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "Credentials work and it is a Bitbucket server"));
     }
 
@@ -104,7 +107,7 @@ public class BitbucketPluginConfigurationIT {
 
         adminCredential.getOption(0).click();
 
-        bbJenkinsRule.getWebClientRule().waitForBackgroundJavaScript();
+        bitbucketWebClient.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "An admin token must be selected"));
     }
 

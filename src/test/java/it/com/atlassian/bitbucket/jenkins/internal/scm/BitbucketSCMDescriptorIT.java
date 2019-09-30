@@ -25,7 +25,7 @@ import static org.junit.Assert.assertThat;
 public class BitbucketSCMDescriptorIT {
 
     @Rule
-    public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
     @Rule
     public RuleChain ruleChain = bbJenkinsRule.getRuleChain();

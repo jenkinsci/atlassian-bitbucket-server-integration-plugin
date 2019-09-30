@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public class BitbucketSCMIT {
 
     @Rule
-    public static final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
     @Rule
     public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
@@ -155,14 +155,14 @@ public class BitbucketSCMIT {
                      revisionAction.getRevisionSha1());
     }
 
-    private static BitbucketSCM createScmWithSpecs(String... refs) {
+    private BitbucketSCM createScmWithSpecs(String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
         return createScm(bbJenkinsRule, branchSpecs);
     }
 
-    private static BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
+    private BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
         return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
     }
 }
