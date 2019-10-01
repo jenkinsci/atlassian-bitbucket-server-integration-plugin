@@ -28,6 +28,10 @@ public class BitbucketMirroredRepositoryDescriptor {
         return mirrorServer;
     }
 
+    public Map<String, List<BitbucketNamedLink>> getLinks() {
+        return links;
+    }
+
     @Nullable
     public String getSelfLink() {
         List<BitbucketNamedLink> link = links.get("self");

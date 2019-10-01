@@ -401,8 +401,8 @@ public class BitbucketSCMDescriptorIT {
                 .all()
                 .given()
                 .header("Jenkins-Crumb", "test")
-                .formParam("serverId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getId())
-                .formParam("credentialsId", bitbucketJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "rep")
                 .post(getMirrorsUrl())
@@ -424,7 +424,7 @@ public class BitbucketSCMDescriptorIT {
     }
 
     private String getMirrorsUrl() throws IOException {
-        return bitbucketJenkinsRule.getURL() + "job/" + project.getName() +
+        return bbJenkinsRule.getURL() + "job/" + project.getName() +
                "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillMirrorNameItems";
     }
 }
