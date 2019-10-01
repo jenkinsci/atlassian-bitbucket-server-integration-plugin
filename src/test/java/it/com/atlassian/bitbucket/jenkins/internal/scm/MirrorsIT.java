@@ -45,10 +45,10 @@ import static org.mockito.Mockito.when;
 
 public class MirrorsIT {
 
-    private static final String SERVER_ID = "serverId";
     private static final String CREDENTIAL_ID = "jobCredentials";
-    private static final int REPO_ID = 1;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final int REPO_ID = 1;
+    private static final String SERVER_ID = "serverId";
 
     private BitbucketCredentials adminCredentials;
     @Rule
@@ -64,6 +64,16 @@ public class MirrorsIT {
     @After
     public void teardown() {
         wireMockRule.shutdown();
+    }
+
+    @Test
+    public void testMirroredRepositoryFetchedCorrectly() throws Exception {
+        stubMirrors(REPO_ID, mirror("Mirror"));
+        BitbucketMirrorHandler instance = createInstance();
+        EnrichedBitbucketMirroredRepository mirroredRepository =
+                instance.fetchRepository(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror"));
+
+        assertThat(mirroredRepository.getRepository().getName(), is(equalTo(REPO_SLUG)));
     }
 
     @Test
@@ -87,16 +97,6 @@ public class MirrorsIT {
 
         assertThat(options, is(iterableWithSize(3)));
         assertThat(options.stream().map(Option::toString).collect(toList()), hasItems("Primary Server=", "Mirror1=Mirror1[selected]", "Mirror2=Mirror2"));
-    }
-
-    @Test
-    public void testMirroredRepositoryFetchedCorrectly() throws Exception {
-        stubMirrors(REPO_ID, mirror("Mirror"));
-        BitbucketMirrorHandler instance = createInstance();
-        EnrichedBitbucketMirroredRepository mirroredRepository =
-                instance.fetchRepository(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror"));
-
-        assertThat(mirroredRepository.getRepository().getName(), is(equalTo(REPO_SLUG)));
     }
 
     @Test
@@ -126,6 +126,30 @@ public class MirrorsIT {
         return new BitbucketMirrorHandler(pluginConfiguration, clientFactoryProvider, jenkinsToBitbucketCredentials, fetcher);
     }
 
+    private BitbucketMirroredRepository createMirrorReppsitory(int repoId, String mirrorName) {
+        return new BitbucketMirroredRepository(true, new HashMap<>(), mirrorName, repoId, AVAILABLE);
+    }
+
+    private BitbucketMirror mirror(String mirrorName, boolean enabled) {
+        return new BitbucketMirror(wireMockRule.baseUrl(), enabled, mirrorName);
+    }
+
+    private BitbucketMirror mirror(String mirrorName) {
+        return mirror(mirrorName, true);
+    }
+
+    private void stubGetRepositoryReturnsError(String project, String repo, int httpErrorCode) throws Exception {
+        BitbucketProject p = new BitbucketProject(project, Collections.emptyMap(), project);
+        stubFor(get(
+                urlEqualTo(format("/rest/api/1.0/projects?name=%s", project))).
+                withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
+                .willReturn(aResponse().withBody(objectMapper.writeValueAsString(project))));
+        stubFor(get(
+                urlEqualTo(format("/rest/api/1.0/repos?projectname=%s&name=%s", project, repo))).
+                withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
+                .willReturn(aResponse().withStatus(httpErrorCode)));
+    }
+
     private void stubMirrors(int repositoryId, BitbucketMirror... mirrors) throws Exception {
         BitbucketPage<BitbucketMirroredRepositoryDescriptor> p = new BitbucketPage<>();
         List<BitbucketMirroredRepositoryDescriptor> descriptors = new ArrayList<>();
@@ -146,18 +170,6 @@ public class MirrorsIT {
         stubFor(get(format("/rest/mirroring/1.0/repos/%d/mirrors", repositoryId)).
                 withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
                 .willReturn(aResponse().withBody(body)));
-    }
-
-    private BitbucketMirroredRepository createMirrorReppsitory(int repoId, String mirrorName) {
-        return new BitbucketMirroredRepository(true, new HashMap<>(), mirrorName, repoId, AVAILABLE);
-    }
-
-    private BitbucketMirror mirror(String mirrorName, boolean enabled) {
-        return new BitbucketMirror(wireMockRule.baseUrl(), enabled, mirrorName);
-    }
-
-    private BitbucketMirror mirror(String mirrorName) {
-        return mirror(mirrorName, true);
     }
 
     private void stubProjectAndRepository(int repoId) throws Exception {
@@ -184,17 +196,5 @@ public class MirrorsIT {
                 urlEqualTo(format("/rest/api/1.0/repos?projectname=%s&name=%s", PROJECT_KEY, REPO_SLUG))).
                 withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
                 .willReturn(aResponse().withBody(objectMapper.writeValueAsString(br))));
-    }
-
-    private void stubGetRepositoryReturnsError(String project, String repo, int httpErrorCode) throws Exception {
-        BitbucketProject p = new BitbucketProject(project, Collections.emptyMap(), project);
-        stubFor(get(
-                urlEqualTo(format("/rest/api/1.0/projects?name=%s", project))).
-                withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
-                .willReturn(aResponse().withBody(objectMapper.writeValueAsString(project))));
-        stubFor(get(
-                urlEqualTo(format("/rest/api/1.0/repos?projectname=%s&name=%s", project, repo))).
-                withHeader(HttpHeaders.AUTHORIZATION, WireMock.equalTo("Bearer " + CREDENTIAL_ID))
-                .willReturn(aResponse().withStatus(httpErrorCode)));
     }
 }

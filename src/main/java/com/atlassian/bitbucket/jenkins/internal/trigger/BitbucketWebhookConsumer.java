@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
@@ -38,7 +39,7 @@ public class BitbucketWebhookConsumer {
 
     void process(RefsChangedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
-        LOGGER.fine(String.format("Received refs changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
+        LOGGER.fine(format("Received refs changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
         if (!isEligibleRefs(event)) {
             return;
         }
@@ -48,7 +49,7 @@ public class BitbucketWebhookConsumer {
 
     void process(MirrorSynchronizedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
-        LOGGER.fine(String.format("Received Mirror Synchronized changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
+        LOGGER.fine(format("Received Mirror Synchronized changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
         if (!isEligibleRefs(event)) {
             return;
         }
@@ -159,10 +160,14 @@ public class BitbucketWebhookConsumer {
         }
         return bitbucketPluginConfiguration.getServerById(scm.getServerId())
                 .map(serverConfig -> {
-                    if (refChangedDetails.getRepository().getSelfLink().startsWith(serverConfig.getBaseUrl())) {
+                    String selfLink = refChangedDetails.getRepository().getSelfLink();
+                    if (selfLink.startsWith(serverConfig.getBaseUrl())) {
                         return scm.getRepositories().stream()
                                 .anyMatch(scmRepo -> matchingRepo(refChangedDetails.getRepository(), scmRepo));
                     }
+                    LOGGER.info(format("Base URL of incoming repository selflink - [%s] and bitbucket server configured URL - [%s] seems to be be different",
+                            selfLink,
+                            serverConfig.getBaseUrl()));
                     return false;
                 }).orElse(false);
     }
