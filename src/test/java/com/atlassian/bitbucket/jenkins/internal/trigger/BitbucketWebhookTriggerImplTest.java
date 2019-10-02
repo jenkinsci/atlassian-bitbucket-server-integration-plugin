@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -20,10 +18,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.PROJECT;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.REPO;
@@ -182,10 +177,10 @@ public class BitbucketWebhookTriggerImplTest {
         FreeStyleProject project = createProjectWithSCM(scm);
         mockExistingProjectWithSCMs(project, false, scm);
 
-        when(webhookHandler.register(repo)).thenThrow(new BitbucketClientException("exception")).thenReturn(mock(BitbucketWebhook.class));
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
 
         trigger.start(project, true);
+        scm.setWebhookRegistered(false);
         trigger.start(project, true);
 
         verify(webhookHandler, times(2)).register(repo);
@@ -312,8 +307,8 @@ public class BitbucketWebhookTriggerImplTest {
     private void mockExistingProjectWithSCMs(FreeStyleProject newProject, boolean triggerPreviouslyAdded,
                                              BitbucketSCM... scms) {
         FreeStyleProject existingProject = createProjectWithSCM(scms);
+        Arrays.asList(scms).stream().forEach(scm -> when(scm.isWebhookRegistered()).thenReturn(triggerPreviouslyAdded));
         BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
-        t.setTriggerAddedOrPreviouslyExists(triggerPreviouslyAdded);
         when(existingProject.getTriggers()).thenReturn(Collections.singletonMap(descriptor, t));
         when(jenkins.getAllItems(any(Class.class))).thenReturn(asList(existingProject, newProject));
     }

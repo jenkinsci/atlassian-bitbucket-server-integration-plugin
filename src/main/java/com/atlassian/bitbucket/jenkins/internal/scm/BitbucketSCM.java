@@ -60,6 +60,7 @@ public class BitbucketSCM extends SCM {
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
     private GitSCM gitSCM;
+    private volatile boolean isWebhookRegistered;
 
     @DataBoundConstructor
     public BitbucketSCM(
@@ -239,6 +240,14 @@ public class BitbucketSCM extends SCM {
     @CheckForNull
     public String getServerId() {
         return getBitbucketSCMRepository().getServerId();
+    }
+
+    public void setWebhookRegistered(boolean isWebhookRegistered) {
+        this.isWebhookRegistered = isWebhookRegistered;
+    }
+
+    public boolean isWebhookRegistered() {
+        return isWebhookRegistered;
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {
