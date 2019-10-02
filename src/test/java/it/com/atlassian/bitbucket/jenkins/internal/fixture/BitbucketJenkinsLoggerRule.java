@@ -31,11 +31,10 @@ public class BitbucketJenkinsLoggerRule extends TestWatcher {
             Path destination = Paths.get("target", "artifacts", description.getClassName(),
                     description.getMethodName());
             Files.createDirectories(destination.getParent());
-            FileUtils.deleteDirectory(destination.toFile());
             FileUtils.moveDirectory(Paths.get("target", "logs", description.getClassName(),
                     description.getMethodName()).toFile(), destination.toFile());
         } catch (IOException ex) {
-            throw new RuntimeException("Failed to move jenkins log into artifacts directory", ex);
+            LOGGER.severe("Failed to move jenkins log into artifacts directory");
         }
     }
 

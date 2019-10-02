@@ -47,7 +47,7 @@ public class BitbucketJenkinsWebClientRule extends TestWatcher {
                 LOGGER.severe(html);
             }
         } else {
-            LOGGER.info("No current page was set, so not copying html to artifacts");
+            LOGGER.severe("No current page was set");
         }
     }
 }
