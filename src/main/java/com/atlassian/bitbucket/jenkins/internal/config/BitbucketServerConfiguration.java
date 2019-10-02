@@ -188,7 +188,7 @@ public class BitbucketServerConfiguration
                 return FormValidation.error(
                         "This isn't a valid URL. Check for typos and try again");
             } else if (base.getHost().contains("bitbucket.org")) {
-                return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
+                return FormValidation.error("This plugin does not work with Bitbucket Cloud.");
             }
         } catch (MalformedURLException e) {
             return FormValidation.error(
@@ -313,7 +313,7 @@ public class BitbucketServerConfiguration
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {
                     if (!client.getAuthenticatedUserClient().getAuthenticatedUser().isPresent()) {
-                        throw new AuthorizationException("Token did not work", HTTP_UNAUTHORIZED, null);
+                        throw new AuthorizationException("TO WRITE", HTTP_UNAUTHORIZED, null);
                     }
                 }
 
