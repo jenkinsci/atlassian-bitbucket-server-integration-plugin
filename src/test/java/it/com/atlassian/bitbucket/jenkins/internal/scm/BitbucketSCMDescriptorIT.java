@@ -9,6 +9,8 @@ import io.restassured.response.Response;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketProject;
 import it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsBitbucketRepository;
+import org.hamcrest.collection.IsIterableWithSize;
+import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.HudsonResponse;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsMirrorListBox;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -389,6 +392,30 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
                 .formParam("projectName", "Project 1")
                 .post(getReposUrl());
+    }
+
+    @Test
+    public void testFillMirrorListBox() throws Exception {
+        JenkinsMirrorListBox output = RestAssured.expect().statusCode(200)
+                .log()
+                .all()
+                .given()
+                .header("Jenkins-Crumb", "test")
+                .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
+                .formParam("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+                .formParam("projectName", "Project 1")
+                .formParam("repositoryName", "rep")
+                .post(getMirrorsUrl())
+                .getBody()
+                .as(JenkinsMirrorListBox.class);
+
+        assertThat(output.getValues(), IsIterableWithSize.iterableWithSize(1));
+        assertThat(output.getValues().toString(), Is.is(equalTo("[[name=Primary Server,selected=true,value=]]")));
+    }
+
+    private String getMirrorsUrl() throws IOException {
+        return bbJenkinsRule.getURL() + "job/" + project.getName() +
+               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillMirrorNameItems";
     }
 
     private String getProjectSearchUrl() throws IOException {
