@@ -318,7 +318,7 @@ public class BitbucketServerConfiguration
                 }
 
                 if (capabilities.isBitbucketServer()) {
-                    return FormValidation.ok("Jenkins can connect with Bitbucket Server. Finish configuring your system or click save.");
+                    return FormValidation.ok("Jenkins can connect with Bitbucket Server.");
                 }
                 return FormValidation.error("The other server is not a Bitbucket server");
             } catch (ConnectionFailureException e) {
