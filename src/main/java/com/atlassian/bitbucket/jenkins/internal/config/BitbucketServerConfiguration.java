@@ -186,7 +186,7 @@ public class BitbucketServerConfiguration
             URL base = new URL(baseUrl);
             if (isBlank(base.getHost())) {
                 return FormValidation.error(
-                        "This isn't a valid URL. Check for typos and try again");
+                        "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
             } else if (base.getHost().contains("bitbucket.org")) {
                 return FormValidation.error("This plugin does not work with Bitbucket Cloud.");
             }
