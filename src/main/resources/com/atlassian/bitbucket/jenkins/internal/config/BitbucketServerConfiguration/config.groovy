@@ -11,11 +11,11 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.server.name"), field: "serverName") {
-        f.textbox(placeholder: "Descriptive name of server", checkMethod: "post")
+        f.textbox(placeholder: "To help your users identify this instance", checkMethod: "post")
     }
 
     f.entry(title: _("bitbucket.url"), field: "baseUrl") {
-        f.textbox(placeholder: "http://your-bitbucket-server.org", checkMethod: "post")
+        f.textbox(placeholder: "E.g. https://bitbucketserver.mycompany.com", checkMethod: "post")
     }
 
     f.entry(title: _("bitbucket.admin.credentials"), field: "adminCredentialsId") {

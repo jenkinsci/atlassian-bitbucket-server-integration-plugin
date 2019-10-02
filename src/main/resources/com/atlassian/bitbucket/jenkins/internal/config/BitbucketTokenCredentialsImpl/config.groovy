@@ -3,9 +3,9 @@ package com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredential
 def f = namespace(lib.FormTagLib)
 
 f.entry(title: _("bitbucket.admin.token"), field: "secret") {
-    f.password(value: instance?.secret)
+    f.password(value: instance?.secret, placeholder: "This token must have project admin permissions")
 }
 
 f.entry(title: _("bitbucket.admin.token.description"), field: "description") {
-    f.textbox()
+    f.textbox(placeholder: "To help administrators identify this token")
 }

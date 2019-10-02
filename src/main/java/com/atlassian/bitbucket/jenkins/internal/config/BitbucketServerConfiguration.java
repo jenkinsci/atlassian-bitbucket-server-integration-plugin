@@ -154,7 +154,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkAdminCredentialsId(String adminCredentialsId) {
         if (isBlank(adminCredentialsId)) {
-            return FormValidation.error("An admin token must be selected");
+            return FormValidation.error("Choose a personal access token");
         }
         Credentials creds =
                 firstOrNull(
@@ -167,7 +167,7 @@ public class BitbucketServerConfiguration
 
         if (creds == null) {
             return FormValidation.error(
-                    "Could not find the previous admin token (has it been deleted?), please select a new one");
+                    "We can't find that personal access token (has it been deleted?). Provide a different token and try again.");
         }
         return FormValidation.ok();
     }
@@ -180,19 +180,19 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkBaseUrl(String baseUrl) {
         if (isEmpty(baseUrl)) {
-            return FormValidation.error("Enter your Bitbucket instance's URL.");
+            return FormValidation.error("Required");
         }
         try {
             URL base = new URL(baseUrl);
             if (isBlank(base.getHost())) {
                 return FormValidation.error(
-                        "Please specify a valid url, including protocol and port (if using non-standard port).");
+                        "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
             } else if (base.getHost().contains("bitbucket.org")) {
-                return FormValidation.error("This plugin does not work with Bitbucket cloud.");
+                return FormValidation.error("This plugin does not support connecting to bitbucket.org. It is for Bitbucket Server instances only.");
             }
         } catch (MalformedURLException e) {
             return FormValidation.error(
-                    "Please specify a valid url, including protocol and port (if using non-standard port).");
+                    "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
         }
         return FormValidation.ok();
     }
@@ -205,7 +205,7 @@ public class BitbucketServerConfiguration
      */
     private static FormValidation checkServerName(String serverName) {
         return isBlank(serverName)
-                ? FormValidation.error("Enter a name to help users identify this instance.")
+                ? FormValidation.error("Required")
                 : FormValidation.ok();
     }
 
@@ -292,10 +292,10 @@ public class BitbucketServerConfiguration
                             adminCredentialsId, baseUrl, credentialsId, null);
             Credentials credentials = config.getCredentials();
             if (credentials == null && isNotBlank(credentialsId)) {
-                return FormValidation.error("Cannot find the selected credentials");
+                return FormValidation.error("We can't find these credentials. Provide different credentials and try again.");
             }
             if (config.getAdminCredentials() == null) {
-                return FormValidation.error("An admin token is required");
+                return FormValidation.error("A personal access token with project admin permissions is required.");
             }
 
             try {
@@ -305,7 +305,7 @@ public class BitbucketServerConfiguration
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
-                    return FormValidation.error("The admin credentials are invalid");
+                    return FormValidation.error("We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
                 BitbucketClientFactory client =
                         clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
@@ -313,22 +313,22 @@ public class BitbucketServerConfiguration
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {
                     if (!client.getAuthenticatedUserClient().getAuthenticatedUser().isPresent()) {
-                        throw new AuthorizationException("Token did not work", HTTP_UNAUTHORIZED, null);
+                        throw new AuthorizationException("TO WRITE", HTTP_UNAUTHORIZED, null);
                     }
                 }
 
                 if (capabilities.isBitbucketServer()) {
-                    return FormValidation.ok("Credentials work and it is a Bitbucket server");
+                    return FormValidation.ok("Jenkins can connect with Bitbucket Server.");
                 }
-                return FormValidation.error("The other server is not a Bitbucket server");
+                return FormValidation.error("This is not the URL of a Bitbucket Server instance. Enter a different URL and try again.");
             } catch (ConnectionFailureException e) {
                 return FormValidation.error(
                         "Could not connect to remote server, please ensure url is correct and server is running");
             } catch (NotFoundException e) {
                 return FormValidation.error(
-                        "The other server does not appear to be a Bitbucket server, or context path is incorrect");
+                        "This is not the URL of a Bitbucket Server instance. Enter a different URL and try again.");
             } catch (AuthorizationException e) {
-                return FormValidation.error("Invalid credentials");
+                return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose different credentials or choose 'none'.");
             } catch (BitbucketClientException e) {
                 Logger.getLogger(DescriptorImpl.class)
                         .debug("Failed to connect to Bitbucket server", e);
