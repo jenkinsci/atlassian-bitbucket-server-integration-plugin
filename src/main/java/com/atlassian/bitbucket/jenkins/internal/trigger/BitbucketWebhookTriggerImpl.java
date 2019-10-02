@@ -40,6 +40,8 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
 
+    private volatile boolean isTriggerAddedOrPreviouslyExists = false;
+
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
     public BitbucketWebhookTriggerImpl() {
@@ -71,11 +73,11 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                     .stream()
                     .filter(scm -> scm instanceof BitbucketSCM)
                     .map(scm -> (BitbucketSCM) scm)
-                    .filter(scm -> !scm.isWebhookRegistered())
                     .filter(scm -> !checkTriggerExists(descriptor, scm))
                     .forEach(scm -> {
                         boolean isAdded = descriptor.addTrigger(scm);
-                        scm.setWebhookRegistered(isAdded);
+                        isTriggerAddedOrPreviouslyExists = isTriggerAddedOrPreviouslyExists ?
+                                isAdded && isTriggerAddedOrPreviouslyExists : isAdded;
                     });
         }
     }
@@ -84,7 +86,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                                        BitbucketSCM scm) {
         boolean isExists = descriptor.webhookExists(job, scm);
         if (isExists) {
-            scm.setWebhookRegistered(true);
+            this.isTriggerAddedOrPreviouslyExists = true;
         }
         return isExists;
     }
@@ -104,6 +106,10 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
      */
     boolean skipWebhookRegistration(Job<?, ?> project, boolean newInstance) {
         return !newInstance && !(project instanceof WorkflowJob);
+    }
+
+    void setTriggerAddedOrPreviouslyExists(boolean triggerAddedOrPreviouslyExists) {
+        this.isTriggerAddedOrPreviouslyExists = triggerAddedOrPreviouslyExists;
     }
 
     @Symbol("BitbucketWebhookTriggerImpl")
@@ -163,7 +169,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                 return true;
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
-                throw ex;
+                return false;
             }
         }
 
@@ -202,12 +208,12 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             return job.getTriggers()
                     .values()
                     .stream()
-                    .anyMatch(v -> v instanceof BitbucketWebhookTriggerImpl);
+                    .filter(v -> v instanceof BitbucketWebhookTriggerImpl)
+                    .allMatch(t -> ((BitbucketWebhookTriggerImpl) t).isTriggerAddedOrPreviouslyExists);
         }
 
         private boolean isExistingWebhookOnRepo(BitbucketSCM scm, BitbucketSCMRepository repository) {
-            return scm.isWebhookRegistered() &&
-                   scm.getRepositories().stream().allMatch(r -> r.getServerId().equals(repository.getServerId()) &&
+            return scm.getRepositories().stream().allMatch(r -> r.getServerId().equals(repository.getServerId()) &&
                                                                 r.getProjectKey().equals(repository.getProjectKey()) &&
                                                                 r.getRepositorySlug().equals(repository.getRepositorySlug()) &&
                                                                 !isMirrorConfigurationDifferent(r));
