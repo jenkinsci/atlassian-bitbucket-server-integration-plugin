@@ -167,7 +167,7 @@ public class BitbucketServerConfiguration
 
         if (creds == null) {
             return FormValidation.error(
-                    "Could not find the previous admin token (has it been deleted?), please select a new one");
+                    "We can't find that personal access token (has it been deleted?). Provide a different token and try again.");
         }
         return FormValidation.ok();
     }
@@ -188,11 +188,11 @@ public class BitbucketServerConfiguration
                 return FormValidation.error(
                         "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
             } else if (base.getHost().contains("bitbucket.org")) {
-                return FormValidation.error("This plugin does not work with Bitbucket Cloud.");
+                return FormValidation.error("This plugin does not support connecting to bitbucket.org. It is for Bitbucket Server instances only.");
             }
         } catch (MalformedURLException e) {
             return FormValidation.error(
-                    "This isn't a valid URL. Check for typos and try again");
+                    "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
         }
         return FormValidation.ok();
     }
@@ -292,7 +292,7 @@ public class BitbucketServerConfiguration
                             adminCredentialsId, baseUrl, credentialsId, null);
             Credentials credentials = config.getCredentials();
             if (credentials == null && isNotBlank(credentialsId)) {
-                return FormValidation.error("Cannot find the selected credentials");
+                return FormValidation.error("We can't find these credentials. Provide different credentials and try again.");
             }
             if (config.getAdminCredentials() == null) {
                 return FormValidation.error("A personal access token with project admin permissions is required.");
@@ -305,7 +305,7 @@ public class BitbucketServerConfiguration
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
-                    return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
+                    return FormValidation.error("We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
                 BitbucketClientFactory client =
                         clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
@@ -320,13 +320,13 @@ public class BitbucketServerConfiguration
                 if (capabilities.isBitbucketServer()) {
                     return FormValidation.ok("Jenkins can connect with Bitbucket Server.");
                 }
-                return FormValidation.error("The other server is not a Bitbucket server");
+                return FormValidation.error("This is not the URL of a Bitbucket Server instance. Enter a different URL and try again.");
             } catch (ConnectionFailureException e) {
                 return FormValidation.error(
                         "Could not connect to remote server, please ensure url is correct and server is running");
             } catch (NotFoundException e) {
                 return FormValidation.error(
-                        "The other server does not appear to be a Bitbucket server, or context path is incorrect");
+                        "This is not the URL of a Bitbucket Server instance. Enter a different URL and try again.");
             } catch (AuthorizationException e) {
                 return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose different credentials or choose 'none'.");
             } catch (BitbucketClientException e) {
