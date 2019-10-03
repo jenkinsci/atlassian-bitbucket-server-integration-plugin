@@ -2,7 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import javax.annotation.Nullable;
 
-class MirrorFetchRequest {
+public class MirrorFetchRequest {
 
     private final String serverId;
     private final String credentialsId;
@@ -10,7 +10,7 @@ class MirrorFetchRequest {
     private final String repoNameOrSlug;
     private final String existingMirrorSelection;
 
-    MirrorFetchRequest(String serverId,
+    public MirrorFetchRequest(String serverId,
                        @Nullable String credentialsId,
                        String projectNameOrKey,
                        String repoNameOrSlug,

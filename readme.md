@@ -2,20 +2,19 @@
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/)
 
 ---
-Note: This plugin is currently in alpha. It is an [experimental plugin release](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/) that shouldn't be used in a production environment. If you have feedback feel free to leave a comment on this [Atlassian Community blog post](https://community.atlassian.com/t5/Bitbucket-articles/Atlassian-supported-Jenkins-integration-for-Bitbucket-Server/ba-p/1148326#M151). You can also raise any issues on [issues.jenkins-ci.org](https://issues.jenkins-ci.org/secure/Dashboard.jspa) using the component _atlassian-bitbucket-server-integration-plugin_.
+Note: This plugin is currently in beta. If you have feedback, feel free to leave a comment on this [Atlassian Community blog post](https://community.atlassian.com/t5/Bitbucket-articles/Atlassian-supported-Jenkins-integration-for-Bitbucket-Server/ba-p/1148326#M151). You can also raise any issues on [issues.jenkins-ci.org](https://issues.jenkins-ci.org/secure/Dashboard.jspa) using the component _atlassian-bitbucket-server-integration-plugin_.
 
 ---
 
 The Bitbucket Server integration plugin is the easiest way to connect [Jenkins](http://jenkins.io/) to [Bitbucket Server](https://www.atlassian.com/software/bitbucket/enterprise/data-center). With a few simple steps you can configure it to:
 - Automatically create webhooks in Bitbucket to trigger Jenkins builds
 - Allow Jenkins to clone/fetch from Bitbucket to run the builds
-- Post the build statuses back to Bitbucket
 
 It streamlines this entire process, removing the need for multiple plugins to achieve the same workflow.
 
 The plugin enables this in two ways. It adds a Bitbucket Server Source Code Manager (SCM) to Jenkins, making it easy to set up a connection to a Bitbucket Server repository when setting up a Jenkins job. It also adds a build trigger to Jenkins that automatically creates a webhook against Bitbucket Server that triggers the Jenkins job on relevant pushes.
 
-For information about upcoming features and using the plugin see the [wiki](https://wiki.jenkins.io/display/JENKINS/Bitbucket+Server+integration+plugin+for+Jenkins).
+For information about using this plugin see the [wiki](https://wiki.jenkins.io/display/JENKINS/Bitbucket+Server+integration+plugin+for+Jenkins).
 
 ## Plugin development
 
