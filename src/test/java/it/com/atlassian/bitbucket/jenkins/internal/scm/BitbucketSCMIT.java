@@ -14,7 +14,6 @@ import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
-import org.junit.rules.RuleChain;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,9 +36,6 @@ public class BitbucketSCMIT {
 
     @Rule
     public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
-
-    @Rule
-    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
 
     private FreeStyleProject project;
 
