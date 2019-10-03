@@ -14,9 +14,12 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.HudsonResponse;
@@ -25,15 +28,21 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class BitbucketSCMDescriptorIT {
 
     @Rule
     public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
-    @Rule
-    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
+    @Parameterized.Parameter()
+    public String className;
 
     private FreeStyleProject project;
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<String> getClassName() {
+        return Arrays.asList("BitbucketSCM", "BitbucketSCMStep");
+    }
 
     @Before
     public void setup() throws Exception {
@@ -415,16 +424,19 @@ public class BitbucketSCMDescriptorIT {
 
     private String getMirrorsUrl() throws IOException {
         return bbJenkinsRule.getURL() + "job/" + project.getName() +
-               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillMirrorNameItems";
+               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm." + className +
+               "/fillMirrorNameItems";
     }
 
     private String getProjectSearchUrl() throws IOException {
         return bbJenkinsRule.getURL() + "job/" + project.getName() +
-               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillProjectNameItems";
+               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm." + className +
+               "/fillProjectNameItems";
     }
 
     private String getReposUrl() throws IOException {
         return bbJenkinsRule.getURL() + "job/" + project.getName() +
-               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM/fillRepositoryNameItems";
+               "/descriptorByName/com.atlassian.bitbucket.jenkins.internal.scm." + className +
+               "/fillRepositoryNameItems";
     }
 }
