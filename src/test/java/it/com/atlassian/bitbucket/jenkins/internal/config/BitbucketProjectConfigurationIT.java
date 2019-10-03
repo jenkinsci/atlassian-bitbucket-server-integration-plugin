@@ -132,7 +132,7 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.setValueAttribute("");
         form.click();
         webClient.waitForBackgroundJavaScript(2000);
-        assertNotNull(getDivByText(form, "Please specify a project name."));
+        assertNotNull(getDivByText(form, "Required"));
     }
 
     @Test
@@ -169,7 +169,7 @@ public class BitbucketProjectConfigurationIT {
         form.click();
         webClient.waitForBackgroundJavaScript(2000);
 
-        assertNotNull(getDivByText(form, "Please specify a repository name."));
+        assertNotNull(getDivByText(form, "Required"));
     }
 
     @Test

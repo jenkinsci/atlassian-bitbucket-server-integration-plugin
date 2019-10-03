@@ -46,7 +46,7 @@ public class BitbucketPluginConfigurationIT {
         bitbucketPluginConfiguration.save();
 
         //Add Bitbucket plugin configuration using UI
-        HtmlButton addBitbucketButton = HtmlFormUtil.getButtonByCaption(form, "Add a Bitbucket instance");
+        HtmlButton addBitbucketButton = HtmlFormUtil.getButtonByCaption(form, "Add a Bitbucket Server instance");
         addBitbucketButton.click();
 
         HtmlAnchor addServerAnchor = getLinkByText(form, "Instance details");
@@ -93,7 +93,7 @@ public class BitbucketPluginConfigurationIT {
         testConnectionButton.click();
 
         webClient.waitForBackgroundJavaScript(2000);
-        assertNotNull(getDivByText(form, "Credentials work and it is a Bitbucket server"));
+        assertNotNull(getDivByText(form, "Jenkins can connect with Bitbucket Server."));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class BitbucketPluginConfigurationIT {
         adminCredential.getOption(0).click();
 
         webClient.waitForBackgroundJavaScript(2000);
-        assertNotNull(getDivByText(form, "An admin token must be selected"));
+        assertNotNull(getDivByText(form, "Choose a personal access token"));
     }
 
     @Test
