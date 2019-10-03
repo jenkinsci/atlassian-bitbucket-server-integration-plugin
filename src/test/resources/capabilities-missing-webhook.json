@@ -1,0 +1,23 @@
+{
+  "links": {
+    "self": "http://localhost:7990/bitbucket/rest/capabilities"
+  },
+  "application": "stash",
+  "buildDate": "2019-05-13T07:28:00Z",
+  "capabilities": {
+    "dev-status-detail-repository": "http://localhost:7990/bitbucket/rest/jira-dev/latest/detail/repository",
+    "dev-status-pull-changes": "http://localhost:7990/bitbucket/rest/jira-dev/latest/updated-issues",
+    "atlassian-remote-event-diagnostics-v1": "http://localhost:7990/bitbucket/rest/remote-event/1/status",
+    "bitbucket-remote-event-support": "http://localhost:7990/bitbucket/rest/bitbucket-remote/latest/remote-event-support",
+    "dev-status-summary": "http://localhost:7990/bitbucket/rest/remote-link-aggregation/latest/aggregation",
+    "dev-status-detail-pullrequest": "http://localhost:7990/bitbucket/rest/jira-dev/latest/detail/pullrequest",
+    "remote-link-aggregation": "http://localhost:7990/bitbucket/rest/remote-link-aggregation/1/capabilities",
+    "atlassian-remote-event-status": "http://localhost:7990/bitbucket/rest/remote-event/1/status",
+    "navigation": "http://localhost:7990/bitbucket/rest/capabilities/navigation",
+    "repository-mirroring": "http://localhost:7990/bitbucket/rest/mirroring/latest/capabilities",
+    "code-insights": "http://localhost:7990/bitbucket/rest/insights/latest/capabilities",
+    "smart-commit-producer": "http://localhost:7990/bitbucket/rest/jira-dev/latest/smart-commit",
+    "atlassian-remote-event-consumer": "http://localhost:7990/bitbucket/rest/remote-event-consumer/1/capabilities",
+    "atlassian-remote-event-producer": "http://localhost:7990/bitbucket/rest/remote-event-producer/1/capabilities"
+  }
+}

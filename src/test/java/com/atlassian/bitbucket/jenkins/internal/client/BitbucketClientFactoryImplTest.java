@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
@@ -270,6 +271,14 @@ public class BitbucketClientFactoryImplTest {
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getCapabilityClient().getWebhookSupportedEvents();
         assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventId()));
+    }
+
+    @Test(expected = BitbucketMissingCapabilityException.class)
+    public void testThrowsExceptionIfWebhookCapabilityNotSupported() {
+        mockExecutor.mapUrlToResult(
+                BITBUCKET_BASE_URL + "/rest/capabilities", readFileToString("/capabilities-missing-webhook.json"));
+        BitbucketWebhookSupportedEvents hookSupportedEvents =
+                anonymousClientFactory.getCapabilityClient().getWebhookSupportedEvents();
     }
 
     private BitbucketClientFactoryImpl getClientFactory(

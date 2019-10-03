@@ -283,7 +283,7 @@ public class BitbucketSCM extends SCM {
         String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls());
         BitbucketRepository underlyingRepo = repository.getRepository();
         BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, underlyingRepo.getName(),
+                new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
         initialize(cloneUrl, underlyingRepo.getSelfLink(), bitbucketSCMRepository);

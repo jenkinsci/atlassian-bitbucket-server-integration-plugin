@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import okhttp3.HttpUrl;
@@ -29,10 +28,11 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
 
     @Override
     public BitbucketWebhookSupportedEvents getWebhookSupportedEvents() throws BitbucketMissingCapabilityException {
-        AtlassianServerCapabilities capabilities = new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor).getServerCapabilities();
+        AtlassianServerCapabilities capabilities =
+                new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor).getServerCapabilities();
         String urlStr = capabilities.getCapabilities().get(WEBHOOK_CAPABILITY_KEY);
         if (urlStr == null) {
-            throw new WebhookNotSupportedException(
+            throw new BitbucketMissingCapabilityException(
                     "Remote Bitbucket Server does not support Webhooks. Make sure " +
                     "Bitbucket server supports webhooks or correct version of it is installed.");
         }
