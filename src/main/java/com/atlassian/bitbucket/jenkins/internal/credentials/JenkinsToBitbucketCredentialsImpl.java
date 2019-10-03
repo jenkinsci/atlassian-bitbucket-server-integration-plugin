@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 import java.util.Base64;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCredentials {
 
@@ -39,7 +40,7 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
     @Override
     public BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
                                                        BitbucketServerConfiguration serverConfiguration) {
-        if (credentials != null) {
+        if (!isBlank(credentials)) {
             return toBitbucketCredentials(credentials);
         }
         return usingGlobalCredentials(serverConfiguration);

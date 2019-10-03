@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 public class JenkinsToBitbucketCredentialsImplTest {
@@ -36,6 +36,20 @@ public class JenkinsToBitbucketCredentialsImplTest {
         when(cred.getSecret()).thenReturn(secret);
 
         assertThat(toHeaderValue(cred), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
+    }
+
+    @Test
+    public void testBlankCredentialsUsesFallbaclCredentials() {
+        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
+
+        UsernamePasswordCredentials userNamePasswordCred = mock(UsernamePasswordCredentials.class);
+        Secret passwordSecret = SecretFactory.getSecret("password");
+        when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
+        when(userNamePasswordCred.getUsername()).thenReturn("username");
+        when(conf.getCredentials()).thenReturn(userNamePasswordCred);
+
+        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials("  ", conf);
+        assertThat(bbCreds.toHeaderValue(), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
     }
 
     @Test
@@ -101,5 +115,4 @@ public class JenkinsToBitbucketCredentialsImplTest {
     private JenkinsToBitbucketCredentials createInstance() {
         return new JenkinsToBitbucketCredentialsImpl();
     }
-
 }
