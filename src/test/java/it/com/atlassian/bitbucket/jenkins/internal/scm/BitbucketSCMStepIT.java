@@ -16,15 +16,12 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToIgnoringCase;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 public class BitbucketSCMStepIT {
 
-    private static final String CLONE_URL = "http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git";
+    private static final String CLONE_URL = "localhost:7990/bitbucket/scm/project_1/rep_1.git";
     private static final String BROWSE_URL = "http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse";
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String PROJECT_NAME = "Project 1";
@@ -43,7 +40,7 @@ public class BitbucketSCMStepIT {
                 credentialsId, PROJECT_NAME, REPO_NAME, serverId, "");
         assertThat(scmStep.getBranches(), hasSize(1));
         assertThat(scmStep.getBranches().get(0).getName(), equalTo("master"));
-        assertThat(scmStep.getCloneUrl(), equalTo(CLONE_URL));
+        assertThat(scmStep.getCloneUrl(), containsStringIgnoringCase(CLONE_URL));
         assertThat(scmStep.getCredentialsId(), equalTo(credentialsId));
         assertThat(scmStep.getId(), equalTo(id));
         assertThat(scmStep.getProjectKey(), equalTo(PROJECT_KEY));
@@ -73,6 +70,6 @@ public class BitbucketSCMStepIT {
         RemoteConfig remoteConfig = gitSCM.getRepositories().get(0);
         assertThat(remoteConfig.getURIs(), hasSize(1));
         URIish cloneUrl = remoteConfig.getURIs().get(0);
-        assertThat(cloneUrl.toString(), equalToIgnoringCase(CLONE_URL));
+        assertThat(cloneUrl.toString(), containsStringIgnoringCase(CLONE_URL));
     }
 }
