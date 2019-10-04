@@ -6,10 +6,10 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
-import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
@@ -41,6 +41,8 @@ public class BuildStatusPosterTest {
     @ClassRule
     public static JenkinsRule jenkins = new JenkinsRule();
 
+    @Mock
+    private BitbucketTokenCredentials adminCredentials;
     @Captor
     private ArgumentCaptor<BitbucketBuildStatus> captor;
     @Mock
@@ -83,9 +85,8 @@ public class BuildStatusPosterTest {
                 .thenReturn(factory);
         when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
         BitbucketCredentials credentials = mock(BitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(any(Credentials.class),
-                any(BitbucketServerConfiguration.class))).thenReturn(credentials);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials((Credentials) isNull(),
+        when(server.getAdminCredentials()).thenReturn(adminCredentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(any(BitbucketTokenCredentials.class),
                 any(BitbucketServerConfiguration.class))).thenReturn(credentials);
     }
 

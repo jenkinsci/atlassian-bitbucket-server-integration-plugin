@@ -8,11 +8,9 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.gargoylesoftware.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -30,18 +28,13 @@ public class BitbucketPluginConfigurationIT {
     @Rule
     public BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
 
-    @Rule
-    public RuleChain ruleChain = bbJenkinsRule.getRuleChain();
-
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
-    private BitbucketJenkinsWebClientRule bitbucketWebClient;
     private HtmlForm form;
 
     @Before
     public void setup() throws IOException, SAXException {
         bitbucketPluginConfiguration = bbJenkinsRule.getBitbucketPluginConfiguration();
-        bitbucketWebClient = bbJenkinsRule.getWebClientRule();
-        form = bitbucketWebClient.visit("configure").getFormByName("config");
+        form = bbJenkinsRule.visit("configure").getFormByName("config");
     }
 
     @Test
@@ -98,7 +91,7 @@ public class BitbucketPluginConfigurationIT {
 
         testConnectionButton.click();
 
-        bitbucketWebClient.waitForBackgroundJavaScript();
+        bbJenkinsRule.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "Jenkins can connect with Bitbucket Server."));
     }
 
@@ -109,7 +102,7 @@ public class BitbucketPluginConfigurationIT {
 
         adminCredential.getOption(0).click();
 
-        bitbucketWebClient.waitForBackgroundJavaScript();
+        bbJenkinsRule.waitForBackgroundJavaScript();
         assertNotNull(getDivByText(form, "Choose a personal access token"));
     }
 

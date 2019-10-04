@@ -44,7 +44,7 @@ public class BuildStatusPoster {
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 BitbucketCredentials credentials =
-                        jenkinsToBitbucketCredentials.toBitbucketCredentials(server.getCredentials(), server);
+                        jenkinsToBitbucketCredentials.toBitbucketCredentials(server.getAdminCredentials(), server);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
                         .getBuildStatusClient(revisionAction.getRevisionSha1())
                         .post(buildStatus);
