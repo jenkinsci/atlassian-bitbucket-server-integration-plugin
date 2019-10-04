@@ -1,8 +1,8 @@
 package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep;
 import hudson.plugins.git.BranchSpec;
-import hudson.scm.SCM;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 
@@ -19,8 +19,8 @@ public class TestSCMStep extends BitbucketSCMStep {
     }
 
     @Override
-    public SCM createSCM() {
-        return super.createSCM();
+    public TestSCM createSCM() {
+        return new TestSCM((BitbucketSCM) super.createSCM());
     }
 
     @Override

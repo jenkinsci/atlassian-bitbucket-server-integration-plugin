@@ -1,10 +1,12 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitSCM;
-import hudson.scm.SCM;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.TestSCM;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.TestSCMStep;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
@@ -15,11 +17,12 @@ import java.util.UUID;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
-public class BitbucketSCMStepTest {
+public class BitbucketSCMStepIT {
 
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String PROJECT_NAME = "Project 1";
@@ -45,31 +48,29 @@ public class BitbucketSCMStepTest {
         assertThat(scmStep.getProjectName(), equalTo(PROJECT_NAME));
         assertThat(scmStep.getRepositoryName(), equalTo(REPO_NAME));
         assertThat(scmStep.getRepositorySlug(), equalTo(REPO_SLUG));
-        assertThat(scmStep.getRepositoryId(), equalTo(1));
-        assertThat(scmStep.getSelfLink(), equalTo("http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse"));
+        assertThat(scmStep.getSelfLink(), equalToIgnoringCase("http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse"));
         assertThat(scmStep.getServerId(), equalTo(serverId));
         assertThat(scmStep.getMirrorName(), equalTo(""));
 
-        SCM scm = scmStep.createSCM();
+        TestSCM scm = scmStep.createSCM();
         assertThat(scm, instanceOf(BitbucketSCM.class));
-        BitbucketSCM bitbucketSCM = (BitbucketSCM) scm;
-        assertThat(bitbucketSCM.getBranches(), hasSize(1));
-        assertThat(bitbucketSCM.getBranches().get(0).getName(), equalTo("master"));
-        assertThat(bitbucketSCM.getId(), equalTo(id));
-        assertThat(bitbucketSCM.getRepositories(), hasSize(1));
-        assertThat(bitbucketSCM.getRepositories().get(0), instanceOf(BitbucketSCMRepository.class));
-        BitbucketSCMRepository bitbucketSCMRepository = bitbucketSCM.getRepositories().get(0);
+        assertThat(scm.getBranches(), hasSize(1));
+        assertThat(scm.getBranches().get(0).getName(), equalTo("master"));
+        assertThat(scm.getId(), equalTo(id));
+        assertThat(scm.getRepositories(), hasSize(1));
+        assertThat(scm.getRepositories().get(0), instanceOf(BitbucketSCMRepository.class));
+        BitbucketSCMRepository bitbucketSCMRepository = scm.getRepositories().get(0);
         assertThat(bitbucketSCMRepository.getCredentialsId(), equalTo(credentialsId));
         assertThat(bitbucketSCMRepository.getProjectKey(), equalTo(PROJECT_KEY));
         assertThat(bitbucketSCMRepository.getProjectName(), equalTo(PROJECT_NAME));
         assertThat(bitbucketSCMRepository.getRepositoryName(), equalTo(REPO_NAME));
         assertThat(bitbucketSCMRepository.getRepositorySlug(), equalTo(REPO_SLUG));
         assertThat(bitbucketSCMRepository.getServerId(), equalTo(serverId));
-        GitSCM gitSCM = bitbucketSCM.getGitSCM();
+        GitSCM gitSCM = scm.getGitSCM();
         assertThat(gitSCM.getRepositories(), hasSize(1));
         RemoteConfig remoteConfig = gitSCM.getRepositories().get(0);
         assertThat(remoteConfig.getURIs(), hasSize(1));
         URIish cloneUrl = remoteConfig.getURIs().get(0);
-        assertThat(cloneUrl, equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(cloneUrl.toString(), equalToIgnoringCase("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
     }
 }

@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -52,6 +53,8 @@ public class BitbucketSCM extends SCM {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCM.class.getName());
 
+    @VisibleForTesting
+    protected GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
     private final List<GitSCMExtension> extensions;
@@ -59,7 +62,6 @@ public class BitbucketSCM extends SCM {
     private final String id;
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
-    private GitSCM gitSCM;
     private volatile boolean isWebhookRegistered;
 
     @DataBoundConstructor
@@ -249,10 +251,6 @@ public class BitbucketSCM extends SCM {
 
     public boolean isWebhookRegistered() {
         return isWebhookRegistered;
-    }
-
-    GitSCM getGitSCM() {
-        return gitSCM;
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {
