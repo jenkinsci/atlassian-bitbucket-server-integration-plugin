@@ -40,12 +40,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static hudson.security.Permission.CONFIGURE;
 import static java.lang.Math.max;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketSCM extends SCM {
@@ -205,8 +205,9 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        return gitSCM.getExtensions().stream().filter(extension -> extension.getClass() !=
-                                                                   BitbucketPostBuildStatus.class).collect(Collectors.toList());
+        return gitSCM.getExtensions().stream()
+                .filter(extension -> !(extension instanceof BitbucketPostBuildStatus))
+                .collect(toList());
     }
 
     public String getId() {
@@ -248,6 +249,10 @@ public class BitbucketSCM extends SCM {
 
     public boolean isWebhookRegistered() {
         return isWebhookRegistered;
+    }
+
+    GitSCM getGitSCM() {
+        return gitSCM;
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {

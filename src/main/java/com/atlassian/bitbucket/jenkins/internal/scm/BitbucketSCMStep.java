@@ -168,11 +168,15 @@ public class BitbucketSCMStep extends SCMStep {
         return serverId;
     }
 
+    public int getRepositoryId() {
+        return repositoryId;
+    }
+
     @Nonnull
     @Override
     protected SCM createSCM() {
         BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
-        List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink("clone", cloneUrl));
+        List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink("http", cloneUrl));
         BitbucketRepository bitbucketRepository =
                 new BitbucketRepository(repositoryId, repositoryName, bitbucketProject,
                         repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
