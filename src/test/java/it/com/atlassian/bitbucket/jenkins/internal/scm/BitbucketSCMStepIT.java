@@ -24,6 +24,8 @@ import static org.junit.Assert.assertThat;
 
 public class BitbucketSCMStepIT {
 
+    private static final String CLONE_URL = "http://admin@localhost:7990/bitbucket/scm/project_1/rep_1.git";
+    private static final String BROWSE_URL = "http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse";
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String PROJECT_NAME = "Project 1";
     private static final String REPO_NAME = "rep_1";
@@ -41,14 +43,14 @@ public class BitbucketSCMStepIT {
                 credentialsId, PROJECT_NAME, REPO_NAME, serverId, "");
         assertThat(scmStep.getBranches(), hasSize(1));
         assertThat(scmStep.getBranches().get(0).getName(), equalTo("master"));
-        assertThat(scmStep.getCloneUrl(), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(scmStep.getCloneUrl(), equalTo(CLONE_URL));
         assertThat(scmStep.getCredentialsId(), equalTo(credentialsId));
         assertThat(scmStep.getId(), equalTo(id));
         assertThat(scmStep.getProjectKey(), equalTo(PROJECT_KEY));
         assertThat(scmStep.getProjectName(), equalTo(PROJECT_NAME));
         assertThat(scmStep.getRepositoryName(), equalTo(REPO_NAME));
         assertThat(scmStep.getRepositorySlug(), equalTo(REPO_SLUG));
-        assertThat(scmStep.getSelfLink(), equalToIgnoringCase("http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse"));
+        assertThat(scmStep.getSelfLink(), equalToIgnoringCase(BROWSE_URL));
         assertThat(scmStep.getServerId(), equalTo(serverId));
         assertThat(scmStep.getMirrorName(), equalTo(""));
 
@@ -71,6 +73,6 @@ public class BitbucketSCMStepIT {
         RemoteConfig remoteConfig = gitSCM.getRepositories().get(0);
         assertThat(remoteConfig.getURIs(), hasSize(1));
         URIish cloneUrl = remoteConfig.getURIs().get(0);
-        assertThat(cloneUrl.toString(), equalToIgnoringCase("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
+        assertThat(cloneUrl.toString(), equalToIgnoringCase(CLONE_URL));
     }
 }
