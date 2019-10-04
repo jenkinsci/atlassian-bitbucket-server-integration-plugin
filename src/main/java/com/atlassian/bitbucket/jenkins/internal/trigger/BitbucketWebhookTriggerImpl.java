@@ -1,5 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
@@ -74,7 +77,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                     .filter(scm -> !scm.isWebhookRegistered())
                     .filter(scm -> !checkTriggerExists(descriptor, scm))
                     .forEach(scm -> {
-                        boolean isAdded = descriptor.addTrigger(scm);
+                        boolean isAdded = descriptor.addTrigger(project, scm);
                         scm.setWebhookRegistered(isAdded);
                     });
         }
@@ -117,6 +120,8 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         private RetryingWebhookHandler retryingWebhookHandler;
         @Inject
         private JenkinsProvider jenkinsProvider;
+        @Inject
+        private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
         @SuppressWarnings("TransientFieldInNonSerializableClass")
         private final transient SequentialExecutionQueue queue;
@@ -128,10 +133,12 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         public BitbucketWebhookTriggerDescriptor(SequentialExecutionQueue queue,
                                                  RetryingWebhookHandler webhookHandler,
-                                                 JenkinsProvider jenkinsProvider) {
+                                                 JenkinsProvider jenkinsProvider,
+                                                 BitbucketPluginConfiguration bitbucketPluginConfiguration) {
             this.queue = queue;
             this.retryingWebhookHandler = webhookHandler;
             this.jenkinsProvider = jenkinsProvider;
+            this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
         }
 
         @Override
@@ -157,9 +164,9 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             queue.execute(new BitbucketTriggerWorker(job, triggerItem, causeAction, triggerRequest.getAdditionalActions()));
         }
 
-        private boolean addTrigger(BitbucketSCM scm) {
+        private boolean addTrigger(Item item, BitbucketSCM scm) {
             try {
-                scm.getRepositories().forEach(repo -> registerWebhook(repo));
+                scm.getRepositories().forEach(repo -> registerWebhook(item, repo));
                 return true;
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
@@ -174,9 +181,14 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                             new NamingThreadFactory(Executors.defaultThreadFactory(), "BitbucketWebhookTrigger")));
         }
 
-        private void registerWebhook(BitbucketSCMRepository repository) {
+        private void registerWebhook(Item item, BitbucketSCMRepository repository) {
             requireNonNull(repository.getServerId());
-            BitbucketWebhook webhook = retryingWebhookHandler.register(repository);
+            BitbucketServerConfiguration bitbucketServerConfiguration = getServer(repository.getServerId());
+
+            BitbucketWebhook webhook = retryingWebhookHandler.register(
+                    bitbucketServerConfiguration.getBaseUrl(),
+                    bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
+                    repository);
             LOGGER.info("Webhook returned -" + webhook);
         }
 
@@ -215,6 +227,13 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         private boolean isMirrorConfigurationDifferent(BitbucketSCMRepository r) {
             return isEmpty(r.getMirrorName()) ^ isEmpty(r.getMirrorName());
+        }
+
+        private BitbucketServerConfiguration getServer(String serverId) {
+            return bitbucketPluginConfiguration
+                    .getServerById(serverId)
+                    .orElseThrow(() -> new BitbucketClientException(
+                            "Server config not found for input server id" + serverId));
         }
     }
 }

@@ -1,5 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
@@ -20,8 +23,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.*;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.PROJECT;
-import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.REPO;
+import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.util.Arrays.asList;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -39,6 +41,8 @@ public class BitbucketWebhookTriggerImplTest {
     private JenkinsProvider jenkinsProvider;
     @Mock
     private Jenkins jenkins;
+    @Mock
+    private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
     private BitbucketWebhookTriggerDescriptor descriptor;
 
@@ -46,7 +50,7 @@ public class BitbucketWebhookTriggerImplTest {
     public void setup() {
         when(jenkinsProvider.get()).thenReturn(jenkins);
         this.descriptor =
-                new BitbucketWebhookTriggerDescriptor(queue, webhookHandler, jenkinsProvider);
+                new BitbucketWebhookTriggerDescriptor(queue, webhookHandler, jenkinsProvider, bitbucketPluginConfiguration);
     }
 
     @Test
@@ -119,8 +123,16 @@ public class BitbucketWebhookTriggerImplTest {
         BitbucketWebhookTriggerImpl trigger = createInstance();
 
         trigger.start(project, true);
-        verify(webhookHandler).register(repo1);
-        verify(webhookHandler).register(repo2);
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo1)));
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo2)));
     }
 
     @Test
@@ -134,7 +146,7 @@ public class BitbucketWebhookTriggerImplTest {
 
         trigger.start(project, true);
 
-        verify(webhookHandler, never()).register(repo);
+        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class));
     }
 
     @Test
@@ -147,7 +159,11 @@ public class BitbucketWebhookTriggerImplTest {
 
         trigger.start(project, true);
 
-        verify(webhookHandler).register(actualRepo);
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(actualRepo)));
     }
 
     @Test
@@ -160,7 +176,11 @@ public class BitbucketWebhookTriggerImplTest {
 
         trigger.start(project, true);
 
-        verify(webhookHandler).register(actualRepo);
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(actualRepo)));
     }
 
     @Test
@@ -183,7 +203,11 @@ public class BitbucketWebhookTriggerImplTest {
         scm.setWebhookRegistered(false);
         trigger.start(project, true);
 
-        verify(webhookHandler, times(2)).register(repo);
+        verify(webhookHandler, times(2))
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo)));
     }
 
     private FreeStyleProject createFreeStyleProject() {
@@ -255,6 +279,10 @@ public class BitbucketWebhookTriggerImplTest {
     }
 
     private BitbucketSCMRepository createSCMRepo(String serverId, String mirrorName) {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(serverId)).thenReturn(Optional.of(serverConfiguration));
+        when(serverConfiguration.getGlobalCredentialsProvider(any(Item.class))).thenReturn(mock(GlobalCredentialsProvider.class));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
         return new BitbucketSCMRepository(
                 "credentialId",
                 PROJECT,

@@ -2,7 +2,11 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.gargoylesoftware.htmlunit.html.*;
+import hudson.model.FreeStyleProject;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsWebClientRule;
 import org.junit.Before;
@@ -14,14 +18,12 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getLinkByText;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.*;
+import static org.junit.Assert.*;
 
 public class BitbucketPluginConfigurationIT {
 
@@ -112,7 +114,7 @@ public class BitbucketPluginConfigurationIT {
     }
 
     @Test
-    public void testBitbucketServerFieldsShouldBePopulatedWithProperValues() throws IOException, SAXException {
+    public void testBitbucketServerFieldsShouldBePopulatedWithProperValues() throws IOException {
         HtmlInput serverNameInput = form.getInputByName("_.serverName");
         assertEquals(SERVER_NAME, serverNameInput.getValueAttribute());
 
@@ -121,8 +123,14 @@ public class BitbucketPluginConfigurationIT {
 
         HtmlSelect adminCredential = form.getSelectByName("_.adminCredentialsId");
         waitTillItemIsRendered(adminCredential::getOptions);
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
-                adminCredential.getSelectedOptions().get(0).getValueAttribute());
+
+        FreeStyleProject item = new FreeStyleProject(bbJenkinsRule.jenkins, "test");
+        GlobalCredentialsProvider globalCredentialsProvider =
+                bbJenkinsRule.getBitbucketServerConfiguration().getGlobalCredentialsProvider(item);
+        Optional<Credentials> globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials();
+        assertTrue(globalAdminCredentials.isPresent());
+
+        assertTrue(CredentialsMatchers.withId(adminCredential.getSelectedOptions().get(0).getValueAttribute()).matches(globalAdminCredentials.get()));
         adminCredential.getOption(1).click();
     }
 }

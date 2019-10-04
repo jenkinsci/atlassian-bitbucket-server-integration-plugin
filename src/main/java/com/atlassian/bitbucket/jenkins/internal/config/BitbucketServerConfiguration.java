@@ -7,10 +7,12 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -18,6 +20,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -69,15 +72,20 @@ public class BitbucketServerConfiguration
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
     }
 
-    @Nullable
-    public BitbucketTokenCredentials getAdminCredentials() {
-        return firstOrNull(
-                lookupCredentials(
-                        BitbucketTokenCredentials.class,
-                        Jenkins.get(),
-                        ACL.SYSTEM,
-                        Collections.emptyList()),
-                withId(trimToEmpty(adminCredentialsId)));
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<Credentials> getGlobalAdminCredentials() {
+                Credentials adminCredentials = BitbucketServerConfiguration.this.getAdminCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+        };
     }
 
     public String getAdminCredentialsId() {
@@ -207,6 +215,17 @@ public class BitbucketServerConfiguration
         return isBlank(serverName)
                 ? FormValidation.error("Required")
                 : FormValidation.ok();
+    }
+
+    @Nullable
+    private BitbucketTokenCredentials getAdminCredentials() {
+        return firstOrNull(
+                lookupCredentials(
+                        BitbucketTokenCredentials.class,
+                        Jenkins.get(),
+                        ACL.SYSTEM,
+                        Collections.emptyList()),
+                withId(trimToEmpty(adminCredentialsId)));
     }
 
     @Symbol("BbS")
