@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import hudson.model.AbstractBuild;
@@ -85,9 +86,11 @@ public class BuildStatusPosterTest {
                 .thenReturn(factory);
         when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
         BitbucketCredentials credentials = mock(BitbucketCredentials.class);
-        when(server.getAdminCredentials()).thenReturn(adminCredentials);
+        GlobalCredentialsProvider gcp = mock(GlobalCredentialsProvider.class);
+        when(gcp.getGlobalAdminCredentials()).thenReturn(Optional.of(adminCredentials));
+        when(server.getGlobalCredentialsProvider(project)).thenReturn(gcp);
         when(jenkinsToBitbucketCredentials.toBitbucketCredentials(any(BitbucketTokenCredentials.class),
-                any(BitbucketServerConfiguration.class))).thenReturn(credentials);
+                any(GlobalCredentialsProvider.class))).thenReturn(credentials);
     }
 
     @Test

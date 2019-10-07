@@ -4,8 +4,10 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.AbstractBuild;
 import hudson.model.TaskListener;
 
@@ -39,12 +41,15 @@ public class BuildStatusPoster {
                 pluginConfiguration.getServerById(revisionAction.getServerId());
         if (serverOptional.isPresent()) {
             BitbucketServerConfiguration server = serverOptional.get();
+            GlobalCredentialsProvider globalCredentialsProvider =
+                    server.getGlobalCredentialsProvider(build.getProject());
             try {
                 BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(build);
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
+                Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
                 BitbucketCredentials credentials =
-                        jenkinsToBitbucketCredentials.toBitbucketCredentials(server.getAdminCredentials(), server);
+                        jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
                         .getBuildStatusClient(revisionAction.getRevisionSha1())
                         .post(buildStatus);

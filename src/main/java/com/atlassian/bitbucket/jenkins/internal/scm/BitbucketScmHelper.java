@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -15,23 +15,20 @@ import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
-import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketScmHelper {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketScmHelper.class.getName());
-    private final BitbucketServerConfiguration bitbucketServerConfiguration;
     private final BitbucketClientFactory clientFactory;
 
-    public BitbucketScmHelper(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                              BitbucketServerConfiguration bitbucketServerConfiguration,
+    public BitbucketScmHelper(String bitbucketBaseUrl,
+                              BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                              GlobalCredentialsProvider globalCredentialsProvider,
                               @Nullable String credentialsId,
                               JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
-        this.bitbucketServerConfiguration =
-                requireNonNull(bitbucketServerConfiguration, "bitbucketServerConfiguration");
-        clientFactory = bitbucketClientFactoryProvider.getClient(bitbucketServerConfiguration.getBaseUrl(),
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, bitbucketServerConfiguration));
+        clientFactory = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl,
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, globalCredentialsProvider));
     }
 
     public BitbucketRepository getRepository(String projectName, String repositoryName) {
@@ -65,9 +62,5 @@ public class BitbucketScmHelper {
                     e.getMessage());
             return new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName), repositoryName, RepositoryState.AVAILABLE);
         }
-    }
-
-    public BitbucketServerConfiguration getServerConfiguration() {
-        return bitbucketServerConfiguration;
     }
 }

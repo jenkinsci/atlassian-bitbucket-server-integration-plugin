@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.inject.ImplementedBy;
 
@@ -34,22 +33,22 @@ public interface JenkinsToBitbucketCredentials {
      *
      * It is possible to not specify Job credentials while configuring a job. For bitbucket operation, we
      * fall back to global configuration. This class gives the way to create bitbucket credentials based on
-     * given optional job credentials and server configuration.
+     * given optional job credentials and global credentials provider.
      *
-     * @param credentials         credentials id
-     * @param serverConfiguration the server configuration
+     * @param credentials               credentials id
+     * @param globalCredentialsProvider global Credentials provider
      * @return bitbucket credentials
      */
     BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
-                                                BitbucketServerConfiguration serverConfiguration);
+                                                GlobalCredentialsProvider globalCredentialsProvider);
 
     /**
-     * See {@link #toBitbucketCredentials(String, BitbucketServerConfiguration)}
+     * See {@link #toBitbucketCredentials(String, GlobalCredentialsProvider)}
      *
-     * @param credentials         credentials id
-     * @param serverConfiguration server configuration
+     * @param credentials               credentials id
+     * @param globalCredentialsProvider global Credentials provider
      * @return bitbucket credentials
      */
     BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials,
-                                                BitbucketServerConfiguration serverConfiguration);
+                                                GlobalCredentialsProvider globalCredentialsProvider);
 }

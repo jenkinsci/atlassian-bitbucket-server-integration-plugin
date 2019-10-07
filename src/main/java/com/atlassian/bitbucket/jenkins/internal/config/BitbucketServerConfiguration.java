@@ -45,6 +45,7 @@ import java.util.UUID;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
+import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.*;
@@ -53,6 +54,9 @@ import static org.apache.commons.lang3.StringUtils.*;
 @SuppressWarnings("unused") // Stapler and UI stack calls method on this class via reflection
 public class BitbucketServerConfiguration
         extends AbstractDescribableImpl<BitbucketServerConfiguration> {
+
+    private static final java.util.logging.Logger log =
+            java.util.logging.Logger.getLogger(BitbucketServerConfiguration.class.getName());
 
     private final String adminCredentialsId;
     private final String credentialsId;
@@ -84,6 +88,25 @@ public class BitbucketServerConfiguration
             public Optional<Credentials> getGlobalCredentials() {
                 Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
                 return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+        };
+    }
+
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
+        if (isBlank(context)) {
+            throw new IllegalArgumentException("Please provide a valid non blank context");
+        }
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<Credentials> getGlobalAdminCredentials() {
+                log.info(format("Using admin credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getAdminCredentials());
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                log.info(format("Using global credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getCredentials());
             }
         };
     }
@@ -317,17 +340,22 @@ public class BitbucketServerConfiguration
                 return FormValidation.error("A personal access token with project admin permissions is required.");
             }
 
+            String context = "Test connection in global configuration";
             try {
                 Optional<String> username =
                         clientFactoryProvider
-                                .getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config))
+                                .getClient(
+                                        config.getBaseUrl(),
+                                        jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config.getGlobalCredentialsProvider(context)))
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
                     return FormValidation.error("We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
                 BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
+                        clientFactoryProvider.getClient(
+                                config.getBaseUrl(),
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config.getGlobalCredentialsProvider(context)));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {

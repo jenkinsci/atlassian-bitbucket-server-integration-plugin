@@ -63,7 +63,11 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                 .map(serverConf -> {
                     try {
                         BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                .getClient(serverConf.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
+                                .getClient(
+                                        serverConf.getBaseUrl(),
+                                        jenkinsToBitbucketCredentials.toBitbucketCredentials(
+                                                providedCredentials,
+                                                serverConf.getGlobalCredentialsProvider("Check Project Name")));
                         BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
                         return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
                     } catch (NotFoundException e) {
@@ -96,7 +100,11 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                 .map(serverConf -> {
                     try {
                         BitbucketClientFactory clientFactory = bitbucketClientFactoryProvider
-                                .getClient(serverConf.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf));
+                                .getClient(
+                                        serverConf.getBaseUrl(),
+                                        jenkinsToBitbucketCredentials.toBitbucketCredentials(
+                                                providedCredentials,
+                                                serverConf.getGlobalCredentialsProvider("Check Repository Name")));
                         BitbucketRepository repository =
                                 getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
                         return FormValidation.ok("Using '" + repository.getName() + "' at " + repository.getSelfLink());

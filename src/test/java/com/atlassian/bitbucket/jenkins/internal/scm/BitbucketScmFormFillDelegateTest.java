@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -72,16 +73,19 @@ public class BitbucketScmFormFillDelegateTest {
     private BitbucketServerConfiguration serverConfigurationValid;
     @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Mock
+    private GlobalCredentialsProvider globalCredentialsProvider;
 
     @Before
     public void setup() {
         when(serverConfigurationValid.getId()).thenReturn(SERVER_ID_VALID);
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
+        when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), any(BitbucketServerConfiguration.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), any(GlobalCredentialsProvider.class)))
                 .thenReturn(mock(BitbucketCredentials.class));
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(Credentials.class), any(BitbucketServerConfiguration.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(Credentials.class), any(GlobalCredentialsProvider.class)))
                 .thenReturn(mock(BitbucketCredentials.class));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
 

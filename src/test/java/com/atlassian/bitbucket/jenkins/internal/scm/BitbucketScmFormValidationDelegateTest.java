@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -26,8 +27,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static java.util.Collections.*;
 import static java.util.Optional.of;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +58,8 @@ public class BitbucketScmFormValidationDelegateTest {
     private BitbucketServerConfiguration serverConfigurationValid;
     @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Mock
+    private GlobalCredentialsProvider globalCredentialsProvider;
 
     @Before
     public void setup() {
@@ -66,11 +68,13 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
         when(serverConfigurationValid.getCredentialsId()).thenReturn(CREDENTIAL_ID);
+        when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
+
         when(serverConfigurationInvalid.getId()).thenReturn(SERVER_ID_INVALID);
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, serverConfigurationValid)).thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(mock(BitbucketCredentials.class));
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
             String partialProjectName = getSearchClientInvocation.getArgument(0);
