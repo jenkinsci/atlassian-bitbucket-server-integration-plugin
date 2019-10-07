@@ -76,6 +76,13 @@ public class BitbucketServerConfiguration
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
     }
 
+    /**
+     * For a given item, returns a global credential provider. The credentials are tracked and
+     * this should be the only way to fetch credentials.
+     *
+     * @param item which will use the credential.
+     * @return credential provider
+     */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
         return new GlobalCredentialsProvider() {
             @Override
@@ -92,6 +99,13 @@ public class BitbucketServerConfiguration
         };
     }
 
+    /**
+     * Similar to {@link BitbucketServerConfiguration#getGlobalCredentialsProvider(Item)} but without item. This
+     * is usually a case when fetching credentials as part of `doFill` methods.
+     *
+     * @param context a context which will be logged
+     * @return credential provider
+     */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
         if (isBlank(context)) {
             throw new IllegalArgumentException("Please provide a valid non blank context");
@@ -132,11 +146,6 @@ public class BitbucketServerConfiguration
     @DataBoundSetter
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = trimToEmpty(baseUrl);
-    }
-
-    @Nullable
-    public Credentials getCredentials() {
-        return CredentialUtils.getCredentials(credentialsId);
     }
 
     @Nullable
@@ -249,6 +258,11 @@ public class BitbucketServerConfiguration
                         ACL.SYSTEM,
                         Collections.emptyList()),
                 withId(trimToEmpty(adminCredentialsId)));
+    }
+
+    @Nullable
+    private Credentials getCredentials() {
+        return CredentialUtils.getCredentials(credentialsId);
     }
 
     @Symbol("BbS")
