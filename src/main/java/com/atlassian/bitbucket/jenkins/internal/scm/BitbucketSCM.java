@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -40,18 +41,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static hudson.security.Permission.CONFIGURE;
 import static java.lang.Math.max;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketSCM extends SCM {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCM.class.getName());
 
+    @VisibleForTesting
+    protected GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
     private final List<GitSCMExtension> extensions;
@@ -59,7 +62,6 @@ public class BitbucketSCM extends SCM {
     private final String id;
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
-    private GitSCM gitSCM;
     private volatile boolean isWebhookRegistered;
 
     @DataBoundConstructor
@@ -205,8 +207,9 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        return gitSCM.getExtensions().stream().filter(extension -> extension.getClass() !=
-                                                                   BitbucketPostBuildStatus.class).collect(Collectors.toList());
+        return gitSCM.getExtensions().stream()
+                .filter(extension -> !(extension instanceof BitbucketPostBuildStatus))
+                .collect(toList());
     }
 
     public String getId() {
