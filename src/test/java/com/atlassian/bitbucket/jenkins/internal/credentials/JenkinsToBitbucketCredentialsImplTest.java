@@ -47,7 +47,7 @@ public class JenkinsToBitbucketCredentialsImplTest {
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.of(userNamePasswordCred));
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
         BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials("  ", globalCredentialsProvider);
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
@@ -81,7 +81,7 @@ public class JenkinsToBitbucketCredentialsImplTest {
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.of(userNamePasswordCred));
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
         Credentials credentials = null;
         BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials(credentials, globalCredentialsProvider);
