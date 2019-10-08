@@ -11,10 +11,10 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketMirrorHandler;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRepoFetcher;
 import com.atlassian.bitbucket.jenkins.internal.scm.EnrichedBitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.MirrorFetchRequest;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import org.apache.http.HttpHeaders;
 import org.junit.After;
@@ -84,7 +84,7 @@ public class MirrorsIT {
     public void testMirrorsShouldShowInList() throws Exception {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
+        ListBoxModel options =
                 instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, ""));
 
         assertThat(options, is(iterableWithSize(3)));
@@ -96,7 +96,7 @@ public class MirrorsIT {
     public void testSelectionShouldBeMarkedInList() throws Exception {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
+        ListBoxModel options =
                 instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, "Mirror1"));
 
         assertThat(options, is(iterableWithSize(3)));
@@ -107,7 +107,7 @@ public class MirrorsIT {
     public void testUnAvailableRepositoryOnlyHavePrimaryServerSelected() throws Exception {
         stubGetRepositoryReturnsError("TEST", "test", 404);
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
+        ListBoxModel options =
                 instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, "TEST", "test", ""));
 
         assertThat(options, is(iterableWithSize(1)));

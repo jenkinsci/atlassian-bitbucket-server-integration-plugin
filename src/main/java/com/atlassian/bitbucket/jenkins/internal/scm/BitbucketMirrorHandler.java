@@ -10,7 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositor
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 
 import java.util.Collections;
@@ -52,13 +52,13 @@ public class BitbucketMirrorHandler {
                         "Unable to find the mirror" + mirrorFetchRequest.getExistingMirrorSelection()));
     }
 
-    public StandardListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
+    public ListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
         if (isEmpty(mirrorFetchRequest.getProjectNameOrKey()) ||
             isEmpty(mirrorFetchRequest.getRepoNameOrSlug())) {
             return getDefaultListBox();
         }
 
-        StandardListBoxModel options = new StandardListBoxModel();
+        ListBoxModel options = new ListBoxModel();
         String existingSelection = mirrorFetchRequest.getExistingMirrorSelection();
         List<EnrichedBitbucketMirroredRepository> repositories =
                 fetchRepositoriesQuietly(mirrorFetchRequest);
@@ -82,8 +82,8 @@ public class BitbucketMirrorHandler {
         return options;
     }
 
-    public StandardListBoxModel getDefaultListBox() {
-        StandardListBoxModel options = new StandardListBoxModel();
+    public ListBoxModel getDefaultListBox() {
+        ListBoxModel options = new ListBoxModel();
         options.add(DEFAULT_OPTION_SELECTED);
         return options;
     }
