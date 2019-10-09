@@ -2,6 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
@@ -130,11 +131,11 @@ public class RetryingWebhookHandlerIT {
         InstanceBasedNameGenerator instanceBasedNameGenerator = mock(InstanceBasedNameGenerator.class);
         when(instanceBasedNameGenerator.getUniqueName()).thenReturn(WEBHOOK_NAME);
 
-        Credentials jenkinsAdminCredentials = mock(Credentials.class);
+        BitbucketTokenCredentials jenkinsAdminCredentials = mock(BitbucketTokenCredentials.class);
         Credentials jenkinsGlobalCredentials = mock(Credentials.class);
         globalCredentialsProvider = new GlobalCredentialsProvider() {
             @Override
-            public Optional<Credentials> getGlobalAdminCredentials() {
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
                 return Optional.of(jenkinsAdminCredentials);
             }
 

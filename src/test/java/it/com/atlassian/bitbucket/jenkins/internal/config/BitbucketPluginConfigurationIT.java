@@ -2,10 +2,14 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.fingerprints.ItemCredentialsFingerprintFacet;
 import com.gargoylesoftware.htmlunit.html.*;
+import hudson.model.Fingerprint;
 import hudson.model.FreeStyleProject;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import org.junit.Before;
@@ -21,6 +25,9 @@ import java.util.Optional;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.*;
+import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.*;
 
 public class BitbucketPluginConfigurationIT {
@@ -117,13 +124,35 @@ public class BitbucketPluginConfigurationIT {
         HtmlSelect adminCredential = form.getSelectByName("_.adminCredentialsId");
         waitTillItemIsRendered(adminCredential::getOptions);
 
-        FreeStyleProject item = new FreeStyleProject(bbJenkinsRule.jenkins, "test");
+        FreeStyleProject item = bbJenkinsRule.createFreeStyleProject("test");
         GlobalCredentialsProvider globalCredentialsProvider =
                 bbJenkinsRule.getBitbucketServerConfiguration().getGlobalCredentialsProvider(item);
-        Optional<Credentials> globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials();
+        Optional<BitbucketTokenCredentials> globalAdminCredentials =
+                globalCredentialsProvider.getGlobalAdminCredentials();
         assertTrue(globalAdminCredentials.isPresent());
 
         assertTrue(CredentialsMatchers.withId(adminCredential.getSelectedOptions().get(0).getValueAttribute()).matches(globalAdminCredentials.get()));
         adminCredential.getOption(1).click();
+    }
+
+    @Test
+    public void testCredentialsAreTracked() throws Exception {
+        String itemName = "testTracking";
+        FreeStyleProject item = bbJenkinsRule.createFreeStyleProject(itemName);
+        GlobalCredentialsProvider globalCredentialsProvider =
+                bbJenkinsRule.getBitbucketServerConfiguration().getGlobalCredentialsProvider(item);
+
+        assertCredentialsAreTracked(globalCredentialsProvider.getGlobalAdminCredentials().get(), itemName);
+        assertCredentialsAreTracked(globalCredentialsProvider.getGlobalCredentials().get(), itemName);
+    }
+
+    private void assertCredentialsAreTracked(Credentials credentials, String expectedItemName) throws IOException {
+        Fingerprint fingerprint =
+                CredentialsProvider.getFingerprintOf(credentials);
+
+        assertThat(fingerprint.getFacets(), iterableWithSize(1));
+        ItemCredentialsFingerprintFacet facet =
+                (ItemCredentialsFingerprintFacet) fingerprint.getFacets().iterator().next();
+        assertThat(facet.getItemFullName(), is(equalTo(expectedItemName)));
     }
 }

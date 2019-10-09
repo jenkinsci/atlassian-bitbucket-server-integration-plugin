@@ -61,7 +61,7 @@ public class JenkinsToBitbucketCredentialsImplTest {
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.of(userNamePasswordCred));
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
         BitbucketTokenCredentials cred = mock(BitbucketTokenCredentials.class);
         Secret tokenSecret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");

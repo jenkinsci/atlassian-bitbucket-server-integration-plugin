@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 
 import java.util.Optional;
@@ -10,7 +11,7 @@ import java.util.Optional;
  */
 public interface GlobalCredentialsProvider {
 
-    Optional<Credentials> getGlobalAdminCredentials();
+    Optional<BitbucketTokenCredentials> getGlobalAdminCredentials();
 
     Optional<Credentials> getGlobalCredentials();
 }

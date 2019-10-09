@@ -72,7 +72,7 @@ public class RetryingWebhookHandlerTest {
         Credentials globalCredentials = mock(Credentials.class);
         globalCredentialsProvider = new GlobalCredentialsProvider() {
             @Override
-            public Optional<Credentials> getGlobalAdminCredentials() {
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
                 return Optional.of(globalAdminJenkinsCredentials);
             }
 
