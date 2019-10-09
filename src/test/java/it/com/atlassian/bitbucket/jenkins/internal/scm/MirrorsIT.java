@@ -2,9 +2,8 @@ package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -12,10 +11,10 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketMirrorHandler;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRepoFetcher;
 import com.atlassian.bitbucket.jenkins.internal.scm.EnrichedBitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.MirrorFetchRequest;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import org.apache.http.HttpHeaders;
 import org.junit.After;
@@ -23,7 +22,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl.getBearerCredentials;
 import static com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus.AVAILABLE;
@@ -53,12 +55,14 @@ public class MirrorsIT {
     private BitbucketCredentials adminCredentials;
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
+    private GlobalCredentialsProvider globalCredentialsProvider;
 
     @Before
     public void setup() throws Exception {
         wireMockRule.start();
         stubProjectAndRepository(REPO_ID);
         adminCredentials = getBearerCredentials(CREDENTIAL_ID);
+        globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
     }
 
     @After
@@ -71,7 +75,7 @@ public class MirrorsIT {
         stubMirrors(REPO_ID, mirror("Mirror"));
         BitbucketMirrorHandler instance = createInstance();
         EnrichedBitbucketMirroredRepository mirroredRepository =
-                instance.fetchRepository(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror"));
+                instance.fetchRepository(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, "Mirror"));
 
         assertThat(mirroredRepository.getRepository().getName(), is(equalTo(REPO_SLUG)));
     }
@@ -80,8 +84,8 @@ public class MirrorsIT {
     public void testMirrorsShouldShowInList() throws Exception {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, ""));
+        ListBoxModel options =
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, ""));
 
         assertThat(options, is(iterableWithSize(3)));
         assertThat(options.stream().map(Option::toString).collect(toList()),
@@ -92,8 +96,8 @@ public class MirrorsIT {
     public void testSelectionShouldBeMarkedInList() throws Exception {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror1"));
+        ListBoxModel options =
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, "Mirror1"));
 
         assertThat(options, is(iterableWithSize(3)));
         assertThat(options.stream().map(Option::toString).collect(toList()), hasItems("Primary Server=", "Mirror1=Mirror1[selected]", "Mirror2=Mirror2"));
@@ -103,27 +107,22 @@ public class MirrorsIT {
     public void testUnAvailableRepositoryOnlyHavePrimaryServerSelected() throws Exception {
         stubGetRepositoryReturnsError("TEST", "test", 404);
         BitbucketMirrorHandler instance = createInstance();
-        StandardListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, "TEST", "test", ""));
+        ListBoxModel options =
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, "TEST", "test", ""));
 
         assertThat(options, is(iterableWithSize(1)));
         assertThat(options.stream().map(Option::toString).collect(toList()), hasItems("Primary Server=[selected]"));
     }
 
     private BitbucketMirrorHandler createInstance() {
-        BitbucketPluginConfiguration pluginConfiguration = mock(BitbucketPluginConfiguration.class);
-        BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
-        when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(bitbucketServerConfiguration));
-        when(bitbucketServerConfiguration.getBaseUrl()).thenReturn(wireMockRule.baseUrl());
-
         BitbucketClientFactoryProvider clientFactoryProvider =
                 new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
         BitbucketRepoFetcher fetcher =
                 (client, project, repository) -> BitbucketSearchHelper.getRepositoryByNameOrSlug(project, repository, client);
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, bitbucketServerConfiguration)).thenReturn(adminCredentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(adminCredentials);
 
-        return new BitbucketMirrorHandler(pluginConfiguration, clientFactoryProvider, jenkinsToBitbucketCredentials, fetcher);
+        return new BitbucketMirrorHandler(clientFactoryProvider, jenkinsToBitbucketCredentials, fetcher);
     }
 
     private BitbucketMirroredRepository createMirrorReppsitory(int repoId, String mirrorName) {

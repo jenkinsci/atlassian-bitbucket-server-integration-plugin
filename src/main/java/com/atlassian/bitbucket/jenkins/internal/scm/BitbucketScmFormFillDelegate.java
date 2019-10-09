@@ -106,21 +106,25 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConf -> {
                     try {
-                       BitbucketCredentials credentials =
-                                jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
+                        BitbucketCredentials credentials =
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(
+                                        providedCredentials,
+                                        serverConf.getGlobalCredentialsProvider("BitbucketSCM fill project name"));
                         Collection<BitbucketProject> projects = findProjects(projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
                         return okJSON(JSONArray.fromObject(projects));
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
-                        return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
+                        return errorWithoutStack(HTTP_INTERNAL_ERROR,
+                                "An error occurred in Bitbucket: " + e.getMessage());
                     }
                 }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
     }
 
     @Override
-    public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName, String repositoryName) {
+    public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName,
+                                                  String repositoryName) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
@@ -140,7 +144,9 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConf -> {
                     BitbucketCredentials credentials =
-                            jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials, serverConf);
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(
+                                    providedCredentials,
+                                    serverConf.getGlobalCredentialsProvider("BitbucketSCM fill repository"));
                     try {
                         Collection<BitbucketRepository> repositories = findRepositories(repositoryName, projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
@@ -148,7 +154,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
-                        return errorWithoutStack(HTTP_INTERNAL_ERROR, "An error occurred in Bitbucket: " + e.getMessage());
+                        return errorWithoutStack(HTTP_INTERNAL_ERROR,
+                                "An error occurred in Bitbucket: " + e.getMessage());
                     }
                 }).orElseGet(() -> errorWithoutStack(HTTP_BAD_REQUEST, "The provided Bitbucket Server serverId does not exist"));
     }
@@ -176,11 +183,20 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
     @Override
     public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
-            String repositoryName, String mirrorName) {
+                                              String repositoryName, String mirrorName) {
         Jenkins.get().checkPermission(CONFIGURE);
         BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
-        return bitbucketMirrorHandler.fetchAsListBox(
-                new MirrorFetchRequest(serverId, credentialsId, projectName, repositoryName, mirrorName));
+        return bitbucketPluginConfiguration.getServerById(serverId)
+                .map(serverConfiguration ->
+                        bitbucketMirrorHandler.fetchAsListBox(
+                                new MirrorFetchRequest(
+                                        serverConfiguration.getBaseUrl(),
+                                        credentialsId,
+                                        serverConfiguration.getGlobalCredentialsProvider("Bitbucket SCM Fill Mirror list"),
+                                        projectName,
+                                        repositoryName,
+                                        mirrorName)))
+                .orElseGet(() -> bitbucketMirrorHandler.getDefaultListBox());
     }
 
     @Override
@@ -199,7 +215,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {
-        return new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
+        return new BitbucketMirrorHandler(bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
                 (client, project, repo) -> BitbucketSearchHelper.getRepositoryByNameOrSlug(project, repo, client));
     }
 }

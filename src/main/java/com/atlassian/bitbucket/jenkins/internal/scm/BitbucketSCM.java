@@ -2,6 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
@@ -43,6 +45,7 @@ import java.util.logging.Logger;
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static hudson.security.Permission.CONFIGURE;
 import static java.lang.Math.max;
+import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -76,13 +79,21 @@ public class BitbucketSCM extends SCM {
         this(id, branches, extensions, gitTool, serverId);
 
         DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        Optional<BitbucketScmHelper> maybeScmHelper = descriptor.getBitbucketScmHelper(serverId, credentialsId);
-        if (!maybeScmHelper.isPresent()) {
-            LOGGER.info("Error creating the Bitbucket SCM: No Bitbucket Server configuration for serverId " + serverId);
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
+        if (!mayBeServerConf.isPresent()) {
+            LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
             setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
-        BitbucketScmHelper scmHelper = maybeScmHelper.get();
+
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
+                format("Bitbucket SCM: Query Bitbucket for project [%s] repo [%s] mirror[%s]",
+                        projectName,
+                        repositoryName,
+                        mirrorName));
+        BitbucketScmHelper scmHelper =
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
             setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
@@ -97,8 +108,15 @@ public class BitbucketSCM extends SCM {
         if (!isBlank(mirrorName)) {
             try {
                 EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler(scmHelper).fetchRepository(
-                                new MirrorFetchRequest(serverId, credentialsId, projectName, repositoryName, mirrorName));
+                        descriptor.createMirrorHandler(scmHelper)
+                                .fetchRepository(
+                                        new MirrorFetchRequest(
+                                                serverConfiguration.getBaseUrl(),
+                                                credentialsId,
+                                                globalCredentialsProvider,
+                                                projectName,
+                                                repositoryName,
+                                                mirrorName));
                 setRepositoryDetails(credentialsId, serverId, mirroredRepository);
                 return;
             } catch (MirrorFetchException ex) {
@@ -418,12 +436,6 @@ public class BitbucketSCM extends SCM {
             return formFill.doFillServerIdItems(serverId);
         }
 
-        public Optional<BitbucketScmHelper> getBitbucketScmHelper(@Nullable String serverId,
-                                                                  @Nullable String credentialsId) {
-            return bitbucketPluginConfiguration.getServerById(serverId)
-                    .map(serverConf -> new BitbucketScmHelper(bitbucketClientFactoryProvider, serverConf, credentialsId, jenkinsToBitbucketCredentials));
-        }
-
         @Override
         @POST
         public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
@@ -463,11 +475,24 @@ public class BitbucketSCM extends SCM {
             return true;
         }
 
+        private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
+                                                         GlobalCredentialsProvider globalCredentialsProvider,
+                                                         @Nullable String credentialsId) {
+            return new BitbucketScmHelper(bitbucketUrl,
+                    bitbucketClientFactoryProvider,
+                    globalCredentialsProvider,
+                    credentialsId, jenkinsToBitbucketCredentials);
+        }
+
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
-            return new BitbucketMirrorHandler(bitbucketPluginConfiguration,
+            return new BitbucketMirrorHandler(
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials,
                     (client, project, repo) -> helper.getRepository(project, repo));
+        }
+
+        private Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
+            return bitbucketPluginConfiguration.getServerById(serverId);
         }
     }
 }

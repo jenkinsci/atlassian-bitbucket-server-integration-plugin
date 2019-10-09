@@ -7,10 +7,12 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -18,11 +20,11 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import org.apache.log4j.Logger;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -38,18 +40,23 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
+import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Objects.requireNonNull;
+import static java.util.logging.Level.FINE;
 import static org.apache.commons.lang3.StringUtils.*;
 
 @XStreamAlias("atl-bbs-configuration")
 @SuppressWarnings("unused") // Stapler and UI stack calls method on this class via reflection
 public class BitbucketServerConfiguration
         extends AbstractDescribableImpl<BitbucketServerConfiguration> {
+
+    private static final Logger log = Logger.getLogger(BitbucketServerConfiguration.class.getName());
 
     private final String adminCredentialsId;
     private final String credentialsId;
@@ -69,15 +76,53 @@ public class BitbucketServerConfiguration
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
     }
 
-    @Nullable
-    public BitbucketTokenCredentials getAdminCredentials() {
-        return firstOrNull(
-                lookupCredentials(
-                        BitbucketTokenCredentials.class,
-                        Jenkins.get(),
-                        ACL.SYSTEM,
-                        Collections.emptyList()),
-                withId(trimToEmpty(adminCredentialsId)));
+    /**
+     * For a given item, returns a global credential provider. The credentials are tracked and
+     * this should be the only way to fetch credentials.
+     *
+     * @param item which will use the credential.
+     * @return credential provider
+     */
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
+                BitbucketTokenCredentials adminCredentials = BitbucketServerConfiguration.this.getAdminCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+        };
+    }
+
+    /**
+     * Similar to {@link BitbucketServerConfiguration#getGlobalCredentialsProvider(Item)} but without item. This
+     * is usually a case when fetching credentials as part of `doFill` methods.
+     *
+     * @param context a context which will be logged
+     * @return credential provider
+     */
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
+        if (isBlank(context)) {
+            throw new IllegalArgumentException("Please provide a valid non blank context");
+        }
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
+                log.fine(format("Using admin credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getAdminCredentials());
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                log.fine(format("Using global credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getCredentials());
+            }
+        };
     }
 
     public String getAdminCredentialsId() {
@@ -101,11 +146,6 @@ public class BitbucketServerConfiguration
     @DataBoundSetter
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = trimToEmpty(baseUrl);
-    }
-
-    @Nullable
-    public Credentials getCredentials() {
-        return CredentialUtils.getCredentials(credentialsId);
     }
 
     @Nullable
@@ -209,6 +249,22 @@ public class BitbucketServerConfiguration
                 : FormValidation.ok();
     }
 
+    @Nullable
+    private BitbucketTokenCredentials getAdminCredentials() {
+        return firstOrNull(
+                lookupCredentials(
+                        BitbucketTokenCredentials.class,
+                        Jenkins.get(),
+                        ACL.SYSTEM,
+                        Collections.emptyList()),
+                withId(trimToEmpty(adminCredentialsId)));
+    }
+
+    @Nullable
+    private Credentials getCredentials() {
+        return CredentialUtils.getCredentials(credentialsId);
+    }
+
     @Symbol("BbS")
     @Extension
     public static class DescriptorImpl extends Descriptor<BitbucketServerConfiguration> {
@@ -298,17 +354,22 @@ public class BitbucketServerConfiguration
                 return FormValidation.error("A personal access token with project admin permissions is required.");
             }
 
+            String context = "Test connection in global configuration";
             try {
                 Optional<String> username =
                         clientFactoryProvider
-                                .getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config))
+                                .getClient(
+                                        config.getBaseUrl(),
+                                        jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config.getGlobalCredentialsProvider(context)))
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
                     return FormValidation.error("We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
                 BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(config.getBaseUrl(), jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config));
+                        clientFactoryProvider.getClient(
+                                config.getBaseUrl(),
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config.getGlobalCredentialsProvider(context)));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
                 if (credentials instanceof StringCredentials) {
@@ -330,8 +391,7 @@ public class BitbucketServerConfiguration
             } catch (AuthorizationException e) {
                 return FormValidation.error("Jenkins can't connect to Bitbucket Server. Choose different credentials or choose 'none'.");
             } catch (BitbucketClientException e) {
-                Logger.getLogger(DescriptorImpl.class)
-                        .debug("Failed to connect to Bitbucket server", e);
+                Logger.getLogger(DescriptorImpl.class.getName()).log(FINE, "Failed to connect to Bitbucket server", e);
                 return FormValidation.error("Connection failure, please try again");
             }
         }

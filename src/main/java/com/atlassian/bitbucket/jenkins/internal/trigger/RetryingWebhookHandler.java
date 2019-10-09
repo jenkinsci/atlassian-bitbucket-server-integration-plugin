@@ -1,10 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
-import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCapabilitiesClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
@@ -14,9 +16,11 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Admin permission is needed to add webhooks. It is possible that credentials in job configuration is not admin. This retries
@@ -27,7 +31,6 @@ import static java.util.Objects.requireNonNull;
  */
 public class RetryingWebhookHandler {
 
-    private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private final InstanceBasedNameGenerator instanceBasedNameGenerator;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final JenkinsProvider jenkinsProvider;
@@ -38,22 +41,23 @@ public class RetryingWebhookHandler {
             JenkinsProvider jenkinsProvider,
             BitbucketClientFactoryProvider provider,
             InstanceBasedNameGenerator instanceBasedNameGenerator,
-            JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
-            BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+            JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
         this.jenkinsProvider = requireNonNull(jenkinsProvider);
         this.provider = requireNonNull(provider);
         this.instanceBasedNameGenerator = requireNonNull(instanceBasedNameGenerator);
         this.jenkinsToBitbucketCredentials = requireNonNull(jenkinsToBitbucketCredentials);
-        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
     }
 
-    public BitbucketWebhook register(BitbucketSCMRepository repository) {
-        BitbucketServerConfiguration serverConfiguration = getServer(repository.getServerId());
+    public BitbucketWebhook register(String bitbucketBaseUrl,
+                                     GlobalCredentialsProvider globalCredentialsProvider,
+                                     BitbucketSCMRepository repository) {
+        if (isBlank(bitbucketBaseUrl)) {
+            throw new IllegalArgumentException("Invalid Bitbucket base URL. Input - " + bitbucketBaseUrl);
+        }
         String jenkinsUrl = jenkinsProvider.get().getRootUrl();
-        requireNonNull(serverConfiguration);
-        requireNonNull(repository);
-        requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base URL not available");
-        requireNonNull(jenkinsUrl, "Jenkins root URL not available");
+        if (isBlank(jenkinsUrl)) {
+            throw new IllegalArgumentException("Invalid Jenkins base url. Actual - " + jenkinsUrl);
+        }
 
         WebhookRegisterRequest request = WebhookRegisterRequest.Builder
                 .aRequest(repository.getProjectKey(), repository.getRepositorySlug())
@@ -63,25 +67,18 @@ public class RetryingWebhookHandler {
                 .build();
         String jobCredentials = repository.getCredentialsId();
         try {
-            return registerWithRetry(serverConfiguration, jobCredentials, request);
+            return registerWithRetry(bitbucketBaseUrl, globalCredentialsProvider, jobCredentials, request);
         } catch (Exception ex) {
             String message =
-                    "Failed to register webhook in bitbucket server with url " + serverConfiguration.getBaseUrl();
+                    "Failed to register webhook in bitbucket server with url " + bitbucketBaseUrl;
             throw new WebhookRegistrationFailed(message, ex);
         }
     }
 
-    private BitbucketServerConfiguration getServer(String serverId) {
-        return bitbucketPluginConfiguration
-                .getServerById(serverId)
-                .orElseThrow(() -> new WebhookRegistrationFailed(
-                        "Server config not found for input server id" + serverId));
-    }
-
-    private BitbucketWebhook registerUsingCredentials(BitbucketServerConfiguration serverConfiguration,
+    private BitbucketWebhook registerUsingCredentials(String bitbucketUrl,
                                                       BitbucketCredentials credentials,
                                                       WebhookRegisterRequest request) {
-        BitbucketClientFactory clientFactory = provider.getClient(serverConfiguration.getBaseUrl(), credentials);
+        BitbucketClientFactory clientFactory = provider.getClient(bitbucketUrl, credentials);
         BitbucketCapabilitiesClient capabilityClient = clientFactory.getCapabilityClient();
         BitbucketWebhookClient webhookClient = clientFactory
                 .getProjectClient(request.getProjectKey())
@@ -91,23 +88,46 @@ public class RetryingWebhookHandler {
         return handler.register(request);
     }
 
+    @Nullable
+    private BitbucketWebhook registerUsingCredentialsQuietly(String bitbucketUrl,
+                                                             BitbucketCredentials credentials,
+                                                             WebhookRegisterRequest request) {
+        try {
+            return this.registerUsingCredentials(bitbucketUrl, credentials, request);
+        } catch (AuthorizationException exception) {
+            return null;
+        }
+    }
+
     private BitbucketWebhook registerWithRetry(
-            BitbucketServerConfiguration serverConfiguration,
+            String bitbucketUrl,
+            GlobalCredentialsProvider globalCredentialsProvider,
             String jobCredentials,
             WebhookRegisterRequest request) {
-        try {
-            BitbucketCredentials globalAdminCredentials =
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(serverConfiguration.getAdminCredentials());
-            return registerUsingCredentials(serverConfiguration, globalAdminCredentials, request);
-        } catch (AuthorizationException exception) {
-            try {
-                BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
-                return registerUsingCredentials(serverConfiguration, credentials, request);
-            } catch (AuthorizationException ex) {
-                BitbucketCredentials globalCredentials =
-                        jenkinsToBitbucketCredentials.toBitbucketCredentials(serverConfiguration.getCredentials());
-                return registerUsingCredentials(serverConfiguration, globalCredentials, request);
-            }
+        BitbucketWebhook result;
+        result = globalCredentialsProvider
+                .getGlobalAdminCredentials()
+                .map(c ->
+                        registerUsingCredentialsQuietly(
+                                bitbucketUrl,
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(c),
+                                request))
+                .orElse(null);
+        if (result == null) {
+            BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
+            result = registerUsingCredentialsQuietly(bitbucketUrl, credentials, request);
         }
+
+        if (result == null) {
+            result = globalCredentialsProvider
+                    .getGlobalCredentials()
+                    .map(c ->
+                            registerUsingCredentials(
+                                    bitbucketUrl,
+                                    jenkinsToBitbucketCredentials.toBitbucketCredentials(c),
+                                    request))
+                    .orElse(null);
+        }
+        return result;
     }
 }

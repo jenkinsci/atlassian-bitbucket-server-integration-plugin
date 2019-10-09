@@ -2,10 +2,9 @@ package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
@@ -14,6 +13,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.InstanceBasedNameGenerator;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.cloudbees.plugins.credentials.Credentials;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import jenkins.model.Jenkins;
@@ -53,7 +53,7 @@ public class RetryingWebhookHandlerIT {
     private BitbucketSCMRepository bitbucketSCMRepository;
     private PersonalToken nonAdminToken;
     private BitbucketCredentials nonAdminCredentials;
-    private BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+    private GlobalCredentialsProvider globalCredentialsProvider;
 
     @Before
     public void setup() {
@@ -77,8 +77,10 @@ public class RetryingWebhookHandlerIT {
     public void testOneWebhookPerRepository() {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
-        BitbucketWebhook result1 = webhookHandler.register(bitbucketSCMRepository);
-        BitbucketWebhook result2 = webhookHandler.register(bitbucketSCMRepository);
+        BitbucketWebhook result1 =
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+        BitbucketWebhook result2 =
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
 
         assertThat(result1.getId(), is(equalTo(result2.getId())));
     }
@@ -87,7 +89,8 @@ public class RetryingWebhookHandlerIT {
     public void testRegisterUsingFallbackCredentials() {
         RetryingWebhookHandler webhookHandler = getInstance(nonAdminCredentials, nonAdminCredentials, adminCredentials);
 
-        BitbucketWebhook result = webhookHandler.register(bitbucketSCMRepository);
+        BitbucketWebhook result =
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
@@ -98,7 +101,8 @@ public class RetryingWebhookHandlerIT {
     public void testWebhookRegister() {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
-        BitbucketWebhook result = webhookHandler.register(bitbucketSCMRepository);
+        BitbucketWebhook result =
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
@@ -119,10 +123,6 @@ public class RetryingWebhookHandlerIT {
     private RetryingWebhookHandler getInstance(BitbucketCredentials jobCredentials,
                                                BitbucketCredentials globalCredentials,
                                                BitbucketCredentials globalAdminCredentials) {
-        BitbucketTokenCredentials c = mock(BitbucketTokenCredentials.class);
-        when(serverConfiguration.getAdminCredentials()).thenReturn(c);
-        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
-
         JenkinsProvider jp = mock(JenkinsProvider.class);
         Jenkins j = mock(Jenkins.class);
         when(j.getRootUrl()).thenReturn(JENKINS_URL);
@@ -131,19 +131,28 @@ public class RetryingWebhookHandlerIT {
         InstanceBasedNameGenerator instanceBasedNameGenerator = mock(InstanceBasedNameGenerator.class);
         when(instanceBasedNameGenerator.getUniqueName()).thenReturn(WEBHOOK_NAME);
 
-        JenkinsToBitbucketCredentials converter = mock(JenkinsToBitbucketCredentials.class);
-        when(converter.toBitbucketCredentials(c)).thenReturn(globalAdminCredentials);
-        when(converter.toBitbucketCredentials("adminCredentials")).thenReturn(globalAdminCredentials);
-        when(converter.toBitbucketCredentials("credentialsId")).thenReturn(globalCredentials);
-        when(converter.toBitbucketCredentials(JOB_CREDENTIAL_ID)).thenReturn(jobCredentials);
+        BitbucketTokenCredentials jenkinsAdminCredentials = mock(BitbucketTokenCredentials.class);
+        Credentials jenkinsGlobalCredentials = mock(Credentials.class);
+        globalCredentialsProvider = new GlobalCredentialsProvider() {
+            @Override
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
+                return Optional.of(jenkinsAdminCredentials);
+            }
 
-        BitbucketPluginConfiguration pluginConfiguration = mock(BitbucketPluginConfiguration.class);
-        when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(serverConfiguration));
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                return Optional.of(jenkinsGlobalCredentials);
+            }
+        };
+        JenkinsToBitbucketCredentials converter = mock(JenkinsToBitbucketCredentials.class);
+        when(converter.toBitbucketCredentials(jenkinsAdminCredentials)).thenReturn(globalAdminCredentials);
+        when(converter.toBitbucketCredentials(jenkinsGlobalCredentials)).thenReturn(globalCredentials);
+        when(converter.toBitbucketCredentials(JOB_CREDENTIAL_ID)).thenReturn(jobCredentials);
 
         return new RetryingWebhookHandler(jp,
                 bitbucketClientFactoryProvider,
                 instanceBasedNameGenerator,
-                converter,
-                pluginConfiguration);
+                converter
+        );
     }
 }

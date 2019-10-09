@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -8,6 +7,8 @@ import hudson.util.Secret;
 import hudson.util.SecretFactory;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.junit.Test;
+
+import java.util.Optional;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -40,60 +41,61 @@ public class JenkinsToBitbucketCredentialsImplTest {
 
     @Test
     public void testBlankCredentialsUsesFallbaclCredentials() {
-        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
+        GlobalCredentialsProvider globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
 
         UsernamePasswordCredentials userNamePasswordCred = mock(UsernamePasswordCredentials.class);
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(conf.getCredentials()).thenReturn(userNamePasswordCred);
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
-        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials("  ", conf);
+        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials("  ", globalCredentialsProvider);
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
     }
 
     @Test
     public void testFallbackCredentialsNotUsed() {
-        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
+        GlobalCredentialsProvider globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
 
         UsernamePasswordCredentials userNamePasswordCred = mock(UsernamePasswordCredentials.class);
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(conf.getCredentials()).thenReturn(userNamePasswordCred);
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
         BitbucketTokenCredentials cred = mock(BitbucketTokenCredentials.class);
         Secret tokenSecret = SecretFactory.getSecret("adminUtiSecretoMaiestatisSignumLepus");
         when(cred.getSecret()).thenReturn(tokenSecret);
 
-        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials(cred, conf);
+        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials(cred, globalCredentialsProvider);
 
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Bearer adminUtiSecretoMaiestatisSignumLepus")));
-        verifyZeroInteractions(conf);
+        verifyZeroInteractions(globalCredentialsProvider);
     }
 
     @Test
     public void testFallbackCredentialsUsed() {
-        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
+        GlobalCredentialsProvider globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
 
         UsernamePasswordCredentials userNamePasswordCred = mock(UsernamePasswordCredentials.class);
         Secret passwordSecret = SecretFactory.getSecret("password");
         when(userNamePasswordCred.getPassword()).thenReturn(passwordSecret);
         when(userNamePasswordCred.getUsername()).thenReturn("username");
-        when(conf.getCredentials()).thenReturn(userNamePasswordCred);
+        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(userNamePasswordCred));
 
         Credentials credentials = null;
-        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials(credentials, conf);
+        BitbucketCredentials bbCreds = createInstance().toBitbucketCredentials(credentials, globalCredentialsProvider);
         assertThat(bbCreds.toHeaderValue(), is(equalTo("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")));
     }
 
     @Test
     public void testNullCredentials() {
-        BitbucketServerConfiguration conf = mock(BitbucketServerConfiguration.class);
-        when(conf.getCredentials()).thenReturn(null);
+        GlobalCredentialsProvider globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
+        when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.empty());
         Credentials c = null;
 
-        BitbucketCredentials bitbucketCredentials = createInstance().toBitbucketCredentials(c, conf);
+        BitbucketCredentials bitbucketCredentials =
+                createInstance().toBitbucketCredentials(c, globalCredentialsProvider);
 
         assertThat(bitbucketCredentials, is(BitbucketCredentials.ANONYMOUS_CREDENTIALS));
     }
@@ -109,7 +111,7 @@ public class JenkinsToBitbucketCredentialsImplTest {
     }
 
     private String toHeaderValue(Credentials cred) {
-        return createInstance().toBitbucketCredentials(cred, mock(BitbucketServerConfiguration.class)).toHeaderValue();
+        return createInstance().toBitbucketCredentials(cred, mock(GlobalCredentialsProvider.class)).toHeaderValue();
     }
 
     private JenkinsToBitbucketCredentials createInstance() {

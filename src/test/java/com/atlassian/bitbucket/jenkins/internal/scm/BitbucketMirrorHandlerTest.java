@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirrorClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.util.ListBoxModel.Option;
@@ -45,25 +46,23 @@ public class BitbucketMirrorHandlerTest {
     private BitbucketMirrorClient bbRepoMirrorsClient;
     @Mock
     private BitbucketRepository bitbucketRepository;
+    @Mock
+    private GlobalCredentialsProvider globalCredentialsProvider;
     private BitbucketMirrorHandler bitbucketMirrorHandler;
 
     @Before
     public void setup() {
-        BitbucketPluginConfiguration bitbucketPluginConfiguration = mock(BitbucketPluginConfiguration.class);
-        BitbucketServerConfiguration serverConfiguration = mockServerConfig(bitbucketPluginConfiguration);
         BitbucketCredentials bitbucketCredentials = mock(BitbucketCredentials.class);
-
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider = mock(BitbucketClientFactoryProvider.class);
         BitbucketClientFactory clientFactory = mockClientFactory(bitbucketClientFactoryProvider, bitbucketCredentials);
 
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials =
-                mockCredentialConversion(serverConfiguration, bitbucketCredentials);
+                mockCredentialConversion(bitbucketCredentials);
 
         BitbucketRepoFetcher repoFetcher = mock(BitbucketRepoFetcher.class);
         when(repoFetcher.fetchRepo(clientFactory, PROJECT, REPO)).thenReturn(bitbucketRepository);
         when(bitbucketRepository.getId()).thenReturn(REPO_ID);
-
-        createInstance(bitbucketPluginConfiguration, bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials, repoFetcher);
+        createInstance(bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials, repoFetcher);
     }
 
     @Test(expected = MirrorFetchException.class)
@@ -74,7 +73,7 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo(descriptors.get(mirrorName), AVAILABLE);
         mockMirroredRepo(descriptors.get("Mirror1"), NOT_MIRRORED);
 
-        bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, "Mirror1"));
+        bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror1"));
     }
 
     @Test
@@ -85,7 +84,7 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo(descriptors.get("Mirror1"));
 
         List<Option> options =
-                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, "Mirror0"));
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror0"));
 
         assertThat(options.size(), is(equalTo(3)));
 
@@ -103,7 +102,7 @@ public class BitbucketMirrorHandlerTest {
         String repoCloneUrl = mockMirroredRepo(descriptors.get(mirrorName));
 
         EnrichedBitbucketMirroredRepository repository =
-                bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, "Mirror0"));
+                bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror0"));
 
         assertThat(repository.getMirroringDetails().getMirrorName(), is(equalTo(mirrorName)));
         assertThat(repository.getMirroringDetails().getStatus(), is(equalTo(AVAILABLE)));
@@ -121,7 +120,7 @@ public class BitbucketMirrorHandlerTest {
         String unavailableMirror = "Mirror100";
 
         List<Option> options =
-                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(SERVER_ID, CREDENTIAL_ID, PROJECT, REPO, unavailableMirror));
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, unavailableMirror));
 
         assertThat(options.stream()
                 .map(Option::toString)
@@ -136,19 +135,17 @@ public class BitbucketMirrorHandlerTest {
         return bbClientFactory;
     }
 
-    private JenkinsToBitbucketCredentials mockCredentialConversion(BitbucketServerConfiguration serverConfiguration,
-                                                                   BitbucketCredentials credentials) {
+    private JenkinsToBitbucketCredentials mockCredentialConversion(BitbucketCredentials credentials) {
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, serverConfiguration)).thenReturn(credentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(credentials);
         return jenkinsToBitbucketCredentials;
     }
 
-    private void createInstance(BitbucketPluginConfiguration bitbucketPluginConfiguration,
-                                BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+    private void createInstance(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
                                 JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
                                 BitbucketRepoFetcher repoFetcher) {
         bitbucketMirrorHandler =
-                new BitbucketMirrorHandler(bitbucketPluginConfiguration, bitbucketClientFactoryProvider,
+                new BitbucketMirrorHandler(bitbucketClientFactoryProvider,
                         jenkinsToBitbucketCredentials, repoFetcher);
     }
 

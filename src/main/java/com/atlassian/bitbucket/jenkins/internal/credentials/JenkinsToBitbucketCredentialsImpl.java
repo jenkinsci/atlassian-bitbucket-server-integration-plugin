@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -39,20 +38,20 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
 
     @Override
     public BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
-                                                       BitbucketServerConfiguration serverConfiguration) {
+                                                       GlobalCredentialsProvider globalCredentialsProvider) {
         if (!isBlank(credentials)) {
             return toBitbucketCredentials(credentials);
         }
-        return usingGlobalCredentials(serverConfiguration);
+        return usingGlobalCredentials(globalCredentialsProvider);
     }
 
     @Override
     public BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials,
-                                                       BitbucketServerConfiguration serverConfiguration) {
+                                                       GlobalCredentialsProvider globalCredentialsProvider) {
         if (credentials != null) {
             return this.toBitbucketCredentials(credentials);
         }
-        return usingGlobalCredentials(serverConfiguration);
+        return usingGlobalCredentials(globalCredentialsProvider);
     }
 
     public static BitbucketCredentials getBearerCredentials(String bearerToken) {
@@ -64,11 +63,9 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
         return () -> "Basic " + Base64.getEncoder().encodeToString(authorization.getBytes(Charsets.UTF_8));
     }
 
-    private BitbucketCredentials usingGlobalCredentials(BitbucketServerConfiguration configuration) {
-        if (configuration.getCredentials() != null) {
-            return this.toBitbucketCredentials(configuration.getCredentials());
-        } else {
-            return ANONYMOUS_CREDENTIALS;
-        }
+    private BitbucketCredentials usingGlobalCredentials(GlobalCredentialsProvider globalCredentialsProvider) {
+        return globalCredentialsProvider.getGlobalCredentials()
+                .map(this::toBitbucketCredentials)
+                .orElse(ANONYMOUS_CREDENTIALS);
     }
 }

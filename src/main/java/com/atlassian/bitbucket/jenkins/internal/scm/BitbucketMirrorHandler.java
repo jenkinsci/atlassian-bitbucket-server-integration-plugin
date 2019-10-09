@@ -4,15 +4,13 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketMirrorClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryDescriptor;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketMirroredRepositoryStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 
 import java.util.Collections;
@@ -29,19 +27,17 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class BitbucketMirrorHandler {
 
     private static final String DEFAULT_UPSTREAM_SERVER = "Primary Server";
+    private static final Option DEFAULT_OPTION_SELECTED = new Option(DEFAULT_UPSTREAM_SERVER, "", true);
     private static final Logger LOGGER = Logger.getLogger(BitbucketMirrorHandler.class.getName());
 
-    private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final BitbucketRepoFetcher bitbucketRepoFetcher;
 
     public BitbucketMirrorHandler(
-            BitbucketPluginConfiguration bitbucketPluginConfiguration,
             BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
             JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
             BitbucketRepoFetcher bitbucketRepoFetcher) {
-        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
         this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.bitbucketRepoFetcher = bitbucketRepoFetcher;
@@ -56,22 +52,18 @@ public class BitbucketMirrorHandler {
                         "Unable to find the mirror" + mirrorFetchRequest.getExistingMirrorSelection()));
     }
 
-    public StandardListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
-        StandardListBoxModel options = new StandardListBoxModel();
-        final Option defaultSelected = new Option(DEFAULT_UPSTREAM_SERVER, "", true);
-        if (isEmpty(mirrorFetchRequest.getServerId()) ||
-            isEmpty(mirrorFetchRequest.getProjectNameOrKey()) ||
+    public ListBoxModel fetchAsListBox(MirrorFetchRequest mirrorFetchRequest) {
+        if (isEmpty(mirrorFetchRequest.getProjectNameOrKey()) ||
             isEmpty(mirrorFetchRequest.getRepoNameOrSlug())) {
-            options.add(defaultSelected);
-            return options;
+            return getDefaultListBox();
         }
 
+        ListBoxModel options = new ListBoxModel();
         String existingSelection = mirrorFetchRequest.getExistingMirrorSelection();
         List<EnrichedBitbucketMirroredRepository> repositories =
                 fetchRepositoriesQuietly(mirrorFetchRequest);
         if (repositories.isEmpty()) {
-            options.add(defaultSelected);
-            return options;
+            return getDefaultListBox();
         }
 
         List<Option> mirrors = repositories
@@ -84,20 +76,24 @@ public class BitbucketMirrorHandler {
         if (isPresent) {
             options.add(new Option(DEFAULT_UPSTREAM_SERVER, ""));
         } else {
-            options.add(new Option(DEFAULT_UPSTREAM_SERVER, "", true));
+            options.add(DEFAULT_OPTION_SELECTED);
         }
         options.addAll(mirrors);
         return options;
     }
 
+    public ListBoxModel getDefaultListBox() {
+        ListBoxModel options = new ListBoxModel();
+        options.add(DEFAULT_OPTION_SELECTED);
+        return options;
+    }
+
     private List<EnrichedBitbucketMirroredRepository> fetchRepositories(MirrorFetchRequest mirrorFetchRequest) {
-        BitbucketServerConfiguration serverConfiguration =
-                bitbucketPluginConfiguration.getServerById(mirrorFetchRequest.getServerId())
-                        .orElseThrow(() -> new MirrorFetchException("Server config not found"));
-        String bitbucketBaseUrl = requireNonNull(serverConfiguration.getBaseUrl(), "Bitbucket base Url not found");
+        String bitbucketBaseUrl =
+                requireNonNull(mirrorFetchRequest.getBitbucketServerBaseUrl(), "Bitbucket base Url not found");
 
         BitbucketCredentials jobOrGlobalConf =
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getCredentialsId(), serverConfiguration);
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getCredentialsId(), mirrorFetchRequest.getGlobalCredentialsProvider());
         BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf);
         BitbucketRepository repository =
                 bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getProjectNameOrKey(), mirrorFetchRequest.getRepoNameOrSlug());
