@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
-import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -53,8 +52,7 @@ public class BitbucketSCM extends SCM {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCM.class.getName());
 
-    @VisibleForTesting
-    protected GitSCM gitSCM;
+    private GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
     private final List<GitSCMExtension> extensions;
@@ -199,6 +197,11 @@ public class BitbucketSCM extends SCM {
     @Override
     public RepositoryBrowser<?> getBrowser() {
         return gitSCM.getBrowser();
+    }
+
+    @CheckForNull
+    public GitSCM getGitSCM() {
+        return gitSCM;
     }
 
     @CheckForNull
