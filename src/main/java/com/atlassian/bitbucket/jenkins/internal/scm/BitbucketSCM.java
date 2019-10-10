@@ -36,10 +36,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
@@ -307,6 +304,9 @@ public class BitbucketSCM extends SCM {
                                    @CheckForNull String repositoryName,
                                    @CheckForNull String serverId,
                                    @CheckForNull String mirrorName) {
+        projectName = Objects.toString(projectName, "");
+        repositoryName = Objects.toString(repositoryName, "");
+        mirrorName = Objects.toString(mirrorName, "");
         BitbucketRepository repository =
                 new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName),
                         repositoryName, AVAILABLE);
@@ -315,9 +315,6 @@ public class BitbucketSCM extends SCM {
 
     private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId, String mirrorName,
                                       BitbucketRepository repository) {
-        if (isBlank(serverId)) {
-            return;
-        }
         String cloneUrl = getCloneUrl(repository.getCloneUrls());
         BitbucketSCMRepository bitbucketSCMRepository =
                 new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
@@ -475,7 +472,7 @@ public class BitbucketSCM extends SCM {
             return true;
         }
 
-        private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
+        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
                                                          GlobalCredentialsProvider globalCredentialsProvider,
                                                          @Nullable String credentialsId) {
             return new BitbucketScmHelper(bitbucketUrl,
@@ -491,7 +488,7 @@ public class BitbucketSCM extends SCM {
                     (client, project, repo) -> helper.getRepository(project, repo));
         }
 
-        private Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
+        Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
             return bitbucketPluginConfiguration.getServerById(serverId);
         }
     }
