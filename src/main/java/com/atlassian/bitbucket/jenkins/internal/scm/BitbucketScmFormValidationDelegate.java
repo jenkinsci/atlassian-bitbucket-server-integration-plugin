@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
@@ -19,6 +20,8 @@ import javax.inject.Singleton;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
 import static hudson.security.Permission.CONFIGURE;
+import static hudson.util.FormValidation.Kind.ERROR;
+import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -52,7 +55,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     public FormValidation doCheckProjectName(String serverId, String credentialsId, String projectName) {
         Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(projectName)) {
-            return FormValidation.error("Required");
+            return FormValidation.error("Project name is required");
         }
         Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!isBlank(credentialsId) && providedCredentials == null) {
@@ -93,7 +96,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
             return FormValidation.ok(); // There will be an error in the credentials field
         }
         if (isEmpty(repositoryName)) {
-            return FormValidation.error("Required");
+            return FormValidation.error("Repository name is required");
         }
 
         return bitbucketPluginConfiguration.getServerById(serverId)
@@ -124,11 +127,76 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         Jenkins.get().checkPermission(CONFIGURE);
         // Users can only demur in providing a server name if none are available to select
         if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
-            return FormValidation.error("Required");
+            return FormValidation.error("Bitbucket instance is required");
         }
         if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
             return FormValidation.warning("Some servers have been incorrectly configured, and are not displayed.");
         }
         return FormValidation.ok();
+    }
+
+    @Override
+    public FormValidation doTestConnection(String serverId, String credentialsId, String projectName,
+                                           String repositoryName, String mirrorName) {
+        Jenkins.get().checkPermission(CONFIGURE);
+        FormValidation serverIdValidation = doCheckServerId(serverId);
+        if (serverIdValidation.kind == ERROR) {
+            return serverIdValidation;
+        }
+
+        FormValidation credentialsIdValidation = doCheckCredentialsId(credentialsId);
+        if (credentialsIdValidation.kind == ERROR) {
+            return credentialsIdValidation;
+        }
+
+        FormValidation projectNameValidation = doCheckProjectName(serverId, credentialsId, projectName);
+        if (projectNameValidation.kind == ERROR) {
+            return projectNameValidation;
+        }
+
+        FormValidation repositoryNameValidation = doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
+        if (repositoryNameValidation.kind == ERROR) {
+            return repositoryNameValidation;
+        }
+
+        FormValidation mirrorNameValidation = doCheckMirrorName(serverId, credentialsId, projectName, repositoryName, mirrorName);
+        if (mirrorNameValidation.kind == ERROR) {
+            return mirrorNameValidation;
+        }
+
+        String serverName = bitbucketPluginConfiguration.getServerById(serverId)
+                .map(BitbucketServerConfiguration::getServerName)
+                .orElse("Bitbucket Server");
+        return FormValidation.ok(format("Jenkins successfully connected to %s's %s / %s on %s", serverName, projectName,
+                repositoryName, isBlank(mirrorName) ? "Primary Server" : mirrorName));
+    }
+
+    private FormValidation doCheckMirrorName(String serverId, String credentialsId, String projectName,
+                                             String repositoryName, String mirrorName) {
+        Jenkins.get().checkPermission(CONFIGURE);
+        if (isBlank(serverId) || isBlank(projectName) || isBlank(repositoryName)) {
+            return FormValidation.ok(); // Validation error would have been in one of the other fields
+        }
+        Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        if (!isBlank(credentialsId) && providedCredentials == null) {
+            return FormValidation.ok(); // There will be an error in the credentials field
+        }
+
+        return bitbucketPluginConfiguration.getServerById(serverId)
+                .flatMap(serverConfiguration ->
+                        new BitbucketMirrorHandler(bitbucketClientFactoryProvider, jenkinsToBitbucketCredentials,
+                                (client, project, repo) -> getRepositoryByNameOrSlug(project, repo, client)).fetchAsListBox(
+                                new MirrorFetchRequest(
+                                        serverConfiguration.getBaseUrl(),
+                                        credentialsId,
+                                        serverConfiguration.getGlobalCredentialsProvider("Bitbucket SCM Fill Mirror list"),
+                                        projectName,
+                                        repositoryName,
+                                        mirrorName))
+                                .stream()
+                                .filter(mirror -> mirrorName.equalsIgnoreCase(mirror.value))
+                                .findAny()
+                                .map(mirror -> FormValidation.ok()))
+                .orElse(FormValidation.ok()); // There will be an error on the server field
     }
 }
