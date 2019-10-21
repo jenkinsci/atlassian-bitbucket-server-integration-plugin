@@ -107,7 +107,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                                 serverConf.getGlobalCredentialsProvider("Check Repository Name")));
                         BitbucketRepository repository =
                                 getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
-                        return FormValidation.ok("Using '" + repository.getName() + "' at " + repository.getSelfLink());
+                        return FormValidation.ok("Using '" + repository.getName() + "' at " + repository.getSelfLink().orElseGet(serverConf::getBaseUrl));
                     } catch (NotFoundException e) {
                         return FormValidation.error("The repository '" + repositoryName + "' does not " +
                                                     "exist or you do not have permission to access it.");

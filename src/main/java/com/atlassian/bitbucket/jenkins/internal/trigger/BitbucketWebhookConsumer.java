@@ -78,9 +78,7 @@ public class BitbucketWebhookConsumer {
                     .map(Optional::get)
                     .filter(triggerDetails -> hasMatchingRepository(refChangedDetails, triggerDetails.getJob()))
                     .peek(triggerDetails -> LOGGER.fine("Triggering " + triggerDetails.getJob().getFullDisplayName()))
-                    .forEach(triggerDetails -> {
-                        triggerDetails.getTrigger().trigger(requestBuilder.build());
-                    });
+                    .forEach(triggerDetails -> triggerDetails.getTrigger().trigger(requestBuilder.build()));
         }
     }
 
@@ -153,20 +151,18 @@ public class BitbucketWebhookConsumer {
 
     private boolean hasMatchingRepository(RefChangedDetails refChangedDetails,
                                           BitbucketSCM scm) {
-        if (refChangedDetails.isMirrorSyncEvent()) {
-            if (!refChangedDetails.getMirrorName().equals(scm.getMirrorName())) {
-                return false;
-            }
+        if (refChangedDetails.isMirrorSyncEvent() && !refChangedDetails.getMirrorName().equals(scm.getMirrorName())) {
+            return false;
         }
         return bitbucketPluginConfiguration.getServerById(scm.getServerId())
                 .map(serverConfig -> {
-                    String selfLink = refChangedDetails.getRepository().getSelfLink();
-                    if (selfLink.startsWith(serverConfig.getBaseUrl())) {
+                    Optional<String> selfLink = refChangedDetails.getRepository().getSelfLink();
+                    if (!selfLink.isPresent() || selfLink.get().startsWith(serverConfig.getBaseUrl())) {
                         return scm.getRepositories().stream()
                                 .anyMatch(scmRepo -> matchingRepo(refChangedDetails.getRepository(), scmRepo));
                     }
                     LOGGER.info(format("Base URL of incoming repository selflink - [%s] and bitbucket server configured URL - [%s] seems to be be different",
-                            selfLink,
+                            selfLink.orElse("unknown"),
                             serverConfig.getBaseUrl()));
                     return false;
                 }).orElse(false);

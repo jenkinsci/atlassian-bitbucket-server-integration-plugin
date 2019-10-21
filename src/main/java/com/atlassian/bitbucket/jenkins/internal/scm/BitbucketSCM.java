@@ -320,7 +320,7 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
                         serverId, mirrorName);
-        initialize(cloneUrl, repository.getSelfLink(), bitbucketSCMRepository);
+        initialize(cloneUrl, repository.getSelfLink().orElse(""), bitbucketSCMRepository);
     }
 
     private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId,
@@ -334,7 +334,7 @@ public class BitbucketSCM extends SCM {
                 new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
-        initialize(cloneUrl, underlyingRepo.getSelfLink(), bitbucketSCMRepository);
+        initialize(cloneUrl, underlyingRepo.getSelfLink().orElse(""), bitbucketSCMRepository);
     }
 
     @Symbol("BbS")
