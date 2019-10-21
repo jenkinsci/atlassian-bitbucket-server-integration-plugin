@@ -21,10 +21,14 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.mockito.Mockito.*;
@@ -90,7 +94,7 @@ public class BitbucketWebhookConsumerTest {
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", JENKINS_PROJECT_NAME,
                 JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, "");
         when(bitbucketSCM.getRepositories())
-                .thenReturn(Collections.singletonList(scmRepo));
+                .thenReturn(singletonList(scmRepo));
         when(bitbucketSCM.getServerId()).thenReturn(serverId);
     }
 
@@ -193,12 +197,28 @@ public class BitbucketWebhookConsumerTest {
         verify(bitbucketTrigger, never()).trigger(any());
     }
 
+    @Test
+    public void testRefsChangedShouldTriggerBuildIfNoSelfUrl() {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn("http://bitbucket-staging.example.com/");
+        BitbucketProject project = new BitbucketProject(JENKINS_PROJECT_KEY, emptyMap(), JENKINS_PROJECT_KEY);
+        BitbucketRepository repository = new BitbucketRepository(
+                1, JENKINS_REPO_SLUG, null, project, JENKINS_REPO_SLUG, RepositoryState.AVAILABLE);
+        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+                BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), repository);
+
+        consumer.process(event);
+
+        verify(bitbucketTrigger).trigger(eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+    }
+
     private List<RemoteConfig> createRemoteConfig() {
         RemoteConfig remoteConfig = mock(RemoteConfig.class);
         URIish uri = mock(URIish.class);
         when(uri.toString()).thenReturn(BB_CLONE_URL.toUpperCase());
-        when(remoteConfig.getURIs()).thenReturn(Collections.singletonList(uri));
-        return Collections.singletonList(remoteConfig);
+        when(remoteConfig.getURIs()).thenReturn(singletonList(uri));
+        return singletonList(remoteConfig);
     }
 
     private List<BitbucketRefChange> refChanges() {
@@ -210,16 +230,16 @@ public class BitbucketWebhookConsumerTest {
         BitbucketRefChange change =
                 new BitbucketRefChange(
                         ref, "refs/heads/master", "fromHash", "tohash", changeType);
-        return Collections.singletonList(change);
+        return singletonList(change);
     }
 
     private BitbucketRepository repository(String cloneUrl, String projectKey, String repoSlug) {
         BitbucketNamedLink selfLink =
                 new BitbucketNamedLink("self", BITBUCKET_BASE_URL + "projects/jenkins/repos/jenkins/browse");
         BitbucketNamedLink cloneLink = new BitbucketNamedLink("http", cloneUrl);
-        List<BitbucketNamedLink> cloneLinks = Collections.singletonList(cloneLink);
+        List<BitbucketNamedLink> cloneLinks = singletonList(cloneLink);
         Map<String, List<BitbucketNamedLink>> links =
-                Maps.of("clone", cloneLinks, "self", Collections.singletonList(selfLink));
+                Maps.of("clone", cloneLinks, "self", singletonList(selfLink));
         BitbucketProject project = new BitbucketProject(projectKey,
                 singletonMap("self", singletonList(new BitbucketNamedLink(null,
                         "http://localhost:7990/bitbucket/projects/" + projectKey))),
