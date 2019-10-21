@@ -24,10 +24,15 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.Optional.of;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +74,8 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
         when(serverConfigurationValid.getCredentialsId()).thenReturn(CREDENTIAL_ID);
         when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
+        when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
+        when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
 
         when(serverConfigurationInvalid.getId()).thenReturn(SERVER_ID_INVALID);
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
@@ -113,7 +120,7 @@ public class BitbucketScmFormValidationDelegateTest {
             return searchClient;
         });
 
-        when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any(BitbucketCredentials.class)))
+        when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any()))
                 .thenReturn(bitbucketClientFactory);
         when(bitbucketClientFactory.getProjectClient(any())).thenAnswer((Answer<BitbucketProjectClient>) getProjectClientArgs -> {
             String projectKey = getProjectClientArgs.getArgument(0);
@@ -166,13 +173,11 @@ public class BitbucketScmFormValidationDelegateTest {
 
     @Test
     public void testServerIDNonMatching() {
-        when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(SERVER_ID_INVALID).kind);
     }
 
     @Test
     public void testServerIdEmpty() {
-        when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId("").kind);
     }
 
@@ -191,15 +196,20 @@ public class BitbucketScmFormValidationDelegateTest {
 
     @Test
     public void testServerIdNull() {
-        when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(null).kind);
     }
 
     @Test
     public void testServerIdValid() {
-        when(pluginConfiguration.getValidServerList()).thenReturn(Arrays.asList(serverConfigurationValid, serverConfigurationInvalid));
-        when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
         assertEquals(FormValidation.Kind.OK, delegate.doCheckServerId(SERVER_ID_VALID).kind);
+    }
+
+    @Test
+    public void testTestConnection() {
+        BitbucketMirrorClient mirrorClient = mock(BitbucketMirrorClient.class);
+        when(bitbucketClientFactory.getMirroredRepositoriesClient(0)).thenReturn(mirrorClient);
+        when(mirrorClient.getMirroredRepositoryDescriptors()).thenReturn(new BitbucketPage<>());
+        assertEquals(FormValidation.Kind.OK, delegate.doTestConnection(serverConfigurationValid.getId(), "", "PROJECT_1", "repo", "").kind);
     }
 
     private static Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {
