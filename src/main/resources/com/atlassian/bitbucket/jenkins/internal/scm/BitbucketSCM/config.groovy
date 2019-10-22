@@ -47,5 +47,14 @@ f.section() {
         }
     }
 
+    f.block() {
+        f.validateButton(
+                title: _("bitbucket.scm.test.connection"),
+                progress: _("bitbucket.scm.test.connection"),
+                method: "testConnection",
+                with: "credentialsId,serverId,projectName,repositoryName,mirrorName"
+        )
+    }
+
     script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/searchableField.js")
 }

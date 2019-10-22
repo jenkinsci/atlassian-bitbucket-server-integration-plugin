@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -107,8 +106,7 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         Credentials credentials =
-                new BitbucketTokenCredentialsImpl(
-                        CredentialsScope.GLOBAL, credentialId, "", SecretFactory.getSecret(secret));
+                new BitbucketTokenCredentialsImpl(credentialId, "", SecretFactory.getSecret(secret));
         store.addCredentials(domain, credentials);
     }
 }

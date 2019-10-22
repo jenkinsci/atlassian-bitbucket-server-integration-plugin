@@ -401,6 +401,16 @@ public class BitbucketSCM extends SCM {
             return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
         }
 
+        @Override
+        @POST
+        public FormValidation doTestConnection(@QueryParameter String serverId,
+                                               @QueryParameter String credentialsId,
+                                               @QueryParameter String projectName,
+                                               @QueryParameter String repositoryName,
+                                               @QueryParameter String mirrorName) {
+            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+        }
+
         @POST
         public ListBoxModel doFillGitToolItems() {
             Jenkins.get().checkPermission(CONFIGURE);

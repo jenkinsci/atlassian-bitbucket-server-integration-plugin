@@ -252,6 +252,15 @@ public class BitbucketSCMStep extends SCMStep {
         }
 
         @Override
+        public FormValidation doTestConnection(@QueryParameter String serverId,
+                                               @QueryParameter String credentialsId,
+                                               @QueryParameter String projectName,
+                                               @QueryParameter String repositoryName,
+                                               @QueryParameter String mirrorName) {
+            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+        }
+
+        @Override
         @POST
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {

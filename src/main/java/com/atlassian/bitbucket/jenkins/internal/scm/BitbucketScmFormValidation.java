@@ -11,4 +11,6 @@ public interface BitbucketScmFormValidation {
     FormValidation doCheckRepositoryName(String serverId, String credentialsId, String projectName, String repositoryName);
 
     FormValidation doCheckServerId(String serverId);
+
+    FormValidation doTestConnection(String serverId, String credentialsId, String projectName, String repositoryName, String mirrorName);
 }
