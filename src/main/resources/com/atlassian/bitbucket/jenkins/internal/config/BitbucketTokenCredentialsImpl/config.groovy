@@ -9,3 +9,7 @@ f.entry(title: _("bitbucket.admin.token"), field: "secret") {
 f.entry(title: _("bitbucket.admin.token.description"), field: "description") {
     f.textbox(placeholder: "To help administrators identify this token")
 }
+
+f.invisibleEntry(field: "id") {
+    f.input(type: "hidden", name: "id", value: "${instance?.id}")
+}
