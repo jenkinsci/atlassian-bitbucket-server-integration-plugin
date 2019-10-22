@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
-import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import hudson.Extension;
 import hudson.util.Secret;
@@ -11,6 +10,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.CheckForNull;
 
+import static com.cloudbees.plugins.credentials.CredentialsScope.SYSTEM;
+
 public class BitbucketTokenCredentialsImpl extends BaseStandardCredentials
         implements BitbucketTokenCredentials {
 
@@ -20,11 +21,10 @@ public class BitbucketTokenCredentialsImpl extends BaseStandardCredentials
 
     @DataBoundConstructor
     public BitbucketTokenCredentialsImpl(
-            @CheckForNull CredentialsScope scope,
             @CheckForNull String id,
             @CheckForNull String description,
             Secret secret) {
-        super(scope, id, description);
+        super(SYSTEM, id, description);
         this.secret = secret;
     }
 

@@ -116,8 +116,8 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
             Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(ADMIN_PERSONAL_TOKEN.get().getId()));
         }
         String adminCredentialsId = UUID.randomUUID().toString();
-        Credentials adminCredentials = new BitbucketTokenCredentialsImpl(CredentialsScope.GLOBAL, adminCredentialsId,
-                "", SecretFactory.getSecret(ADMIN_PERSONAL_TOKEN.get().getSecret()));
+        Credentials adminCredentials = new BitbucketTokenCredentialsImpl(adminCredentialsId, "",
+                SecretFactory.getSecret(ADMIN_PERSONAL_TOKEN.get().getSecret()));
         addCredentials(adminCredentials);
 
         if (READ_PERSONAL_TOKEN.get() == null) {
