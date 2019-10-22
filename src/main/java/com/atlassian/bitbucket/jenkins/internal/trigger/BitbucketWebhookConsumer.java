@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static org.apache.commons.lang3.StringUtils.firstNonBlank;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Singleton
 public class BitbucketWebhookConsumer {
@@ -156,13 +158,13 @@ public class BitbucketWebhookConsumer {
         }
         return bitbucketPluginConfiguration.getServerById(scm.getServerId())
                 .map(serverConfig -> {
-                    Optional<String> selfLink = refChangedDetails.getRepository().getSelfLink();
-                    if (!selfLink.isPresent() || selfLink.get().startsWith(serverConfig.getBaseUrl())) {
+                    String selfLink = refChangedDetails.getRepository().getSelfLink();
+                    if (isBlank(selfLink) || selfLink.startsWith(serverConfig.getBaseUrl())) {
                         return scm.getRepositories().stream()
                                 .anyMatch(scmRepo -> matchingRepo(refChangedDetails.getRepository(), scmRepo));
                     }
                     LOGGER.info(format("Base URL of incoming repository selflink - [%s] and bitbucket server configured URL - [%s] seems to be be different",
-                            selfLink.orElse("unknown"),
+                            firstNonBlank(selfLink, "unknown"),
                             serverConfig.getBaseUrl()));
                     return false;
                 }).orElse(false);

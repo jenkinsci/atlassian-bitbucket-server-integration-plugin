@@ -137,7 +137,7 @@ public class BitbucketSCMStep extends SCMStep {
         this.cloneUrl = repoCloneUrl;
         projectKey = repository.getProject().getKey();
         repositorySlug = repository.getSlug();
-        selfLink = repository.getSelfLink().orElse("");
+        selfLink = repository.getSelfLink();
         repositoryId = repository.getId();
     }
 

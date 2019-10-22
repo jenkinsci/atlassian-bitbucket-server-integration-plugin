@@ -8,12 +8,10 @@ import javax.annotation.CheckForNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.stripToNull;
+import static org.apache.commons.lang3.StringUtils.stripToEmpty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketRepository {
@@ -73,12 +71,12 @@ public class BitbucketRepository {
     }
 
     /**
-     * The self link on webhook events was only introduced in Bitbucket Server 5.14, so this has to be {@link Optional}.
+     * The self link on webhook events was only introduced in Bitbucket Server 5.14, so this may be blank
      *
-     * @return the self link for the repository if the Bitbucket instance is 5.14 or higher, otherwise {@link Optional#empty()}
+     * @return the self link for the repository if the Bitbucket instance is 5.14 or higher, otherwise {@code ""}
      */
-    public Optional<String> getSelfLink() {
-        return ofNullable(stripToNull(selfLink));
+    public String getSelfLink() {
+        return stripToEmpty(selfLink);
     }
 
     public String getSlug() {
