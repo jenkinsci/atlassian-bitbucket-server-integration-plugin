@@ -12,7 +12,7 @@
     <version>1.0-rc-2-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
-        <bitbucket.version>5.6.0</bitbucket.version>
+        <bitbucket.version>5.5.9</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>false</disableTestInjection>
         <java.level>8</java.level>
