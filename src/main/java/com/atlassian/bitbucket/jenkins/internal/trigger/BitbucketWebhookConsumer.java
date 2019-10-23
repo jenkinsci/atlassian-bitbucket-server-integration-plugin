@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static org.apache.commons.lang3.StringUtils.firstNonBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Singleton
@@ -164,7 +163,7 @@ public class BitbucketWebhookConsumer {
                                 .anyMatch(scmRepo -> matchingRepo(refChangedDetails.getRepository(), scmRepo));
                     }
                     LOGGER.info(format("Base URL of incoming repository selflink - [%s] and bitbucket server configured URL - [%s] seems to be be different",
-                            firstNonBlank(selfLink, "unknown"),
+                            isBlank(selfLink) ? "unknown" : selfLink,
                             serverConfig.getBaseUrl()));
                     return false;
                 }).orElse(false);
