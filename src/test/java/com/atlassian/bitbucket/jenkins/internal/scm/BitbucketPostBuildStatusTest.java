@@ -7,14 +7,15 @@ import com.google.inject.Injector;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.util.Build;
-import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.util.BuildData;
 import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -31,17 +32,15 @@ public class BitbucketPostBuildStatusTest {
 
     private static final String SERVER_ID = "TestServerID";
     private static final String SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
-
-    @Captor
-    private ArgumentCaptor<BitbucketRevisionAction> captor;
-    private BitbucketPostBuildStatus extension;
-
-    @Mock
-    private AbstractBuild build;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private AbstractBuild<?, ?> build;
     @Mock
     private BuildData buildData;
     @Mock
     private BuildStatusPoster buildStatusPoster;
+    @Captor
+    private ArgumentCaptor<BitbucketRevisionAction> captor;
+    private BitbucketPostBuildStatus extension;
     @Mock
     private Injector injector;
     @Mock
@@ -55,7 +54,7 @@ public class BitbucketPostBuildStatusTest {
     @Mock
     private PrintStream logger;
     @Mock
-    private Run notABuild;
+    private Run<?, ?> notABuild;
     @Mock
     private Revision revision;
     @Mock
@@ -70,6 +69,7 @@ public class BitbucketPostBuildStatusTest {
         when(jenkinsProvider.get()).thenReturn(jenkins);
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
+        when(build.getProject().getScm()).thenReturn(mock(BitbucketSCM.class));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class BitbucketPostBuildStatusTest {
     public void testNoInjector() {
         when(jenkins.getInjector()).thenReturn(null);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
-        verifyZeroInteractions(build);
+        verify(build, never()).addAction(any());
         verifyZeroInteractions(buildStatusPoster);
         verify(logger).println("Injector could not be found while creating build status");
     }
@@ -93,13 +93,6 @@ public class BitbucketPostBuildStatusTest {
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateCheckoutCommand(scm, build, null, listener, null);
         verify(logger).println("Build Status Poster instance could not be found while creating a build status");
-    }
-
-    @Test
-    public void testNullBuild() {
-        extension.decorateCheckoutCommand(scm, null, null, listener, null);
-        verifyZeroInteractions(buildStatusPoster);
-        verify(logger).println("Could not create build status from provided build");
     }
 
     @Test

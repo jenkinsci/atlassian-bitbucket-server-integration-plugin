@@ -8,7 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.cloudbees.plugins.credentials.Credentials;
-import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 
 import javax.inject.Inject;
@@ -28,12 +28,12 @@ public class BuildStatusPoster {
     @Inject
     BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
-    private BitbucketPluginConfiguration pluginConfiguration;
-    @Inject
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Inject
+    private BitbucketPluginConfiguration pluginConfiguration;
 
-    public void postBuildStatus(AbstractBuild build, TaskListener listener) {
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+    public void postBuildStatus(Run<?, ?> run, TaskListener listener) {
+        BitbucketRevisionAction revisionAction = run.getAction(BitbucketRevisionAction.class);
         if (revisionAction == null) {
             return;
         }
@@ -42,9 +42,9 @@ public class BuildStatusPoster {
         if (serverOptional.isPresent()) {
             BitbucketServerConfiguration server = serverOptional.get();
             GlobalCredentialsProvider globalCredentialsProvider =
-                    server.getGlobalCredentialsProvider(build.getProject());
+                    server.getGlobalCredentialsProvider(run.getParent());
             try {
-                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(build);
+                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run);
                 listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
@@ -53,7 +53,6 @@ public class BuildStatusPoster {
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
                         .getBuildStatusClient(revisionAction.getRevisionSha1())
                         .post(buildStatus);
-                return;
             } catch (RuntimeException e) {
                 String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
                 LOGGER.info(errorMsg);

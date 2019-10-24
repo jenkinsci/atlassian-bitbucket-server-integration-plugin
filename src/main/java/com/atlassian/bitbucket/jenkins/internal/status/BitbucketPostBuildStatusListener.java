@@ -1,30 +1,25 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import hudson.Extension;
-import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 
 import javax.inject.Inject;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScm;
+
+@SuppressWarnings("unused")
 @Extension
-public class BitbucketPostBuildStatusListener<R extends Run> extends RunListener<R> {
+public class BitbucketPostBuildStatusListener<R extends Run<?, ?>> extends RunListener<R> {
 
     @Inject
     private BuildStatusPoster buildStatusPoster;
 
     @Override
-    public void onCompleted(R r, TaskListener listener) {
-        if (!(r instanceof AbstractBuild)) {
-            return;
+    public void onCompleted(R run, TaskListener listener) {
+        if (hasBitbucketScm(run)) {
+            buildStatusPoster.postBuildStatus(run, listener);
         }
-
-        AbstractBuild build = (AbstractBuild) r;
-        if (!(build.getProject().getScm() instanceof BitbucketSCM)) {
-            return;
-        }
-        buildStatusPoster.postBuildStatus(build, listener);
     }
 }
