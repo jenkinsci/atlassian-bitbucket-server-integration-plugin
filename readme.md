@@ -2,7 +2,7 @@
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/)
 
 ---
-Note: This plugin is currently in beta. If you have feedback, feel free to leave a comment on this [Atlassian Community blog post](https://community.atlassian.com/t5/Bitbucket-articles/Atlassian-supported-Jenkins-integration-for-Bitbucket-Server/ba-p/1148326#M151). You can also raise any issues on [issues.jenkins-ci.org](https://issues.jenkins-ci.org/secure/Dashboard.jspa) using the component _atlassian-bitbucket-server-integration-plugin_.
+To send us feedback or raise an issue visit [issues.jenkins-ci.org](https://issues.jenkins-ci.org/secure/Dashboard.jspa) and use the component _atlassian-bitbucket-server-integration-plugin_.
 
 ---
 
