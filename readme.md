@@ -2,7 +2,7 @@
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/)
 
 ---
-To send us feedback or raise an issue visit [issues.jenkins-ci.org](https://issues.jenkins-ci.org/secure/Dashboard.jspa) and use the component _atlassian-bitbucket-server-integration-plugin_.
+We're collecting feedback at [issues.jenkins-ci.org](https://issues.jenkins-ci.org/browse/JENKINS-59578?jql=project%20%3D%20JENKINS%20AND%20component%20%3D%20atlassian-bitbucket-server-integration-plugin). Head there to see what issues have already been created, or create a new issue using the component _atlassian-bitbucket-server-integration-plugin_.
 
 ---
 
