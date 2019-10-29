@@ -115,11 +115,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 1.0 25 October 2019
+### 1.0 (25 October 2019)
 - Fix issue JENKINS-59802 - problems editing Admin token
 - Fix issue that Pipeline jobs did not post build status
 - Be more forgiving when saving a project; saving as much as possible of the provided config
 - Minor bugfixes
+
 ### 1.0-rc-1 (10 October 2019)
 - First stable release candidate for the upcoming 1.0 release.
 - Global Credentials and Admin token are now tracked.
