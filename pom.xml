@@ -22,6 +22,7 @@
     </properties>
     <name>Bitbucket Server Integration</name>
     <description>This Jenkins plugin streamlines configuring Jenkins jobs to clone/fetch from Bitbucket Server.</description>
+    <url>https://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin</url>
 
     <licenses>
         <license>
