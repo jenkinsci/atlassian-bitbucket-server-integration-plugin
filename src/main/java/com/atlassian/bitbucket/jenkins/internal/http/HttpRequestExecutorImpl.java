@@ -143,14 +143,14 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         UserAgentInterceptor() {
             String version = "unknown";
             try {
-                Plugin plugin = Jenkins.get().getPlugin("atlassian-bitbucket-server-scm");
+                Plugin plugin = Jenkins.get().getPlugin("atlassian-bitbucket-server-integration");
                 if (plugin != null) {
                     version = plugin.getWrapper().getVersion();
                 }
             } catch (IllegalStateException e) {
                 org.apache.log4j.Logger.getLogger(UserAgentInterceptor.class).warn("Jenkins not available", e);
             }
-            bbJenkinsUserAgent = "Bitbucket Jenkins Integration/" + version;
+            bbJenkinsUserAgent = "bitbucket-jenkins-integration/" + version;
         }
 
         @Override
