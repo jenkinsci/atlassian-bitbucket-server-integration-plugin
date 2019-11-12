@@ -116,7 +116,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 
 ### 1.0.2 (12 November 2019)
-- Minor bugfix
+- Fix issues JENKINS-60128 and JENKINS-60127
 
 ### 1.0.1 (1 November 2019)
 - Fix issue JENKINS-59578 - Changing server configuration does not update SCM configuration
