@@ -40,7 +40,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
-import static hudson.security.Permission.CONFIGURE;
+import static hudson.model.Item.CONFIGURE;
 import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;

@@ -19,7 +19,7 @@ import javax.inject.Singleton;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
-import static hudson.security.Permission.CONFIGURE;
+import static hudson.model.Item.CONFIGURE;
 import static hudson.util.FormValidation.Kind.ERROR;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;

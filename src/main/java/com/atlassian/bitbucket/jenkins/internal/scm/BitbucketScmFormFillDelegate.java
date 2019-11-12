@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
-import static hudson.security.Permission.CONFIGURE;
+import static hudson.model.Item.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
