@@ -22,20 +22,15 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.BITBUCKET_BASE_URL;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule.SERVER_NAME;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getLinkByText;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.*;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class BitbucketPluginConfigurationIT {
 
@@ -93,10 +88,15 @@ public class BitbucketPluginConfigurationIT {
         bbJenkinsRule.submit(form);
 
         //verify Bitbucket configuration has been saved
-        assertTrue("The server list should have size 1", waitFor(() -> {
+        waitFor(() -> {
             bitbucketPluginConfiguration.load();
-            return bitbucketPluginConfiguration.getServerList().size() == 1;
-        }, 5000));
+            List<BitbucketServerConfiguration> serverList = bitbucketPluginConfiguration.getServerList();
+            int serverCount = serverList.size();
+            if (serverCount != 1) {
+                return Optional.of("Expected 1 server in list, found: " + serverCount);
+            }
+            return Optional.empty();
+        }, 5000);
         BitbucketServerConfiguration configuration = bitbucketPluginConfiguration.getServerList().get(0);
         assertEquals(serverName, configuration.getServerName());
         assertEquals(serverUrl, configuration.getBaseUrl());
@@ -166,20 +166,5 @@ public class BitbucketPluginConfigurationIT {
         ItemCredentialsFingerprintFacet facet =
                 (ItemCredentialsFingerprintFacet) fingerprint.getFacets().iterator().next();
         assertThat(facet.getItemFullName(), is(equalTo(expectedItemName)));
-    }
-
-    private boolean waitFor(Supplier<Boolean> condition, long timeoutMs) {
-        try {
-            long startTime = System.currentTimeMillis();
-            boolean conditionPassed = condition.get();
-            while (!conditionPassed && System.currentTimeMillis() - startTime < timeoutMs) {
-                Thread.sleep(15);
-                conditionPassed = condition.get();
-            }
-
-            return conditionPassed;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }
