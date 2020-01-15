@@ -278,6 +278,13 @@ public class BitbucketSCM extends SCM {
     public String getServerId() {
         return getBitbucketSCMRepository().getServerId();
     }
+    
+    public List<UserRemoteConfig> getUserRemoteConfigs() {
+        if (gitSCM == null) {
+            return emptyList();
+        }
+        return gitSCM.getUserRemoteConfigs();
+    }
 
     public void setWebhookRegistered(boolean isWebhookRegistered) {
         this.isWebhookRegistered = isWebhookRegistered;
