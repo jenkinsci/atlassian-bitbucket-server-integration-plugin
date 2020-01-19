@@ -51,8 +51,6 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class BitbucketSCM extends SCM {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCM.class.getName());
-
-    private GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
     private final List<GitSCMExtension> extensions;
@@ -60,6 +58,7 @@ public class BitbucketSCM extends SCM {
     private final String id;
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
+    private GitSCM gitSCM;
     private volatile boolean isWebhookRegistered;
 
     @DataBoundConstructor
@@ -79,7 +78,7 @@ public class BitbucketSCM extends SCM {
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
         if (!mayBeServerConf.isPresent()) {
             LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
-            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -93,12 +92,12 @@ public class BitbucketSCM extends SCM {
                 descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
         if (isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -117,7 +116,7 @@ public class BitbucketSCM extends SCM {
                 setRepositoryDetails(credentialsId, serverId, mirroredRepository);
                 return;
             } catch (MirrorFetchException ex) {
-                setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
+                setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
             }
         } else {
             BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
@@ -139,6 +138,7 @@ public class BitbucketSCM extends SCM {
 
     /**
      * Regenerate SCM by looking up new repo URLs etc
+     *
      * @param oldScm
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
@@ -168,11 +168,6 @@ public class BitbucketSCM extends SCM {
         if (!isBlank(serverId)) {
             this.extensions.add(new BitbucketPostBuildStatus(serverId));
         }
-    }
-
-    @CheckForNull
-    public String getGitTool() {
-        return gitTool;
     }
 
     @CheckForNull
@@ -228,11 +223,6 @@ public class BitbucketSCM extends SCM {
     }
 
     @CheckForNull
-    public GitSCM getGitSCM() {
-        return gitSCM;
-    }
-
-    @CheckForNull
     public String getCredentialsId() {
         return getBitbucketSCMRepository().getCredentialsId();
     }
@@ -246,8 +236,22 @@ public class BitbucketSCM extends SCM {
                 .collect(toList());
     }
 
+    @CheckForNull
+    public GitSCM getGitSCM() {
+        return gitSCM;
+    }
+
+    @CheckForNull
+    public String getGitTool() {
+        return gitTool;
+    }
+
     public String getId() {
         return id;
+    }
+
+    public String getMirrorName() {
+        return getBitbucketSCMRepository().getMirrorName();
     }
 
     public String getProjectKey() {
@@ -262,16 +266,12 @@ public class BitbucketSCM extends SCM {
         return repositories;
     }
 
-    public String getRepositorySlug() {
-        return getBitbucketSCMRepository().getRepositorySlug();
-    }
-
     public String getRepositoryName() {
         return getBitbucketSCMRepository().getRepositoryName();
     }
 
-    public String getMirrorName() {
-        return getBitbucketSCMRepository().getMirrorName();
+    public String getRepositorySlug() {
+        return getBitbucketSCMRepository().getRepositorySlug();
     }
 
     @CheckForNull
@@ -279,12 +279,12 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getServerId();
     }
 
-    public void setWebhookRegistered(boolean isWebhookRegistered) {
-        this.isWebhookRegistered = isWebhookRegistered;
-    }
-
     public boolean isWebhookRegistered() {
         return isWebhookRegistered;
+    }
+
+    public void setWebhookRegistered(boolean isWebhookRegistered) {
+        this.isWebhookRegistered = isWebhookRegistered;
     }
 
     private BitbucketSCMRepository getBitbucketSCMRepository() {
@@ -309,11 +309,11 @@ public class BitbucketSCM extends SCM {
                 gitTool, extensions);
     }
 
-    private void setEmptyRepsitory(@CheckForNull String credentialsId,
-                                   @CheckForNull String projectName,
-                                   @CheckForNull String repositoryName,
-                                   @CheckForNull String serverId,
-                                   @CheckForNull String mirrorName) {
+    private void setEmptyRepository(@CheckForNull String credentialsId,
+                                    @CheckForNull String projectName,
+                                    @CheckForNull String repositoryName,
+                                    @CheckForNull String serverId,
+                                    @CheckForNull String mirrorName) {
         projectName = Objects.toString(projectName, "");
         repositoryName = Objects.toString(repositoryName, "");
         mirrorName = Objects.toString(mirrorName, "");
@@ -355,13 +355,13 @@ public class BitbucketSCM extends SCM {
 
         private final GitSCM.DescriptorImpl gitScmDescriptor;
         @Inject
-        private BitbucketScmFormFillDelegate formFill;
-        @Inject
-        private BitbucketScmFormValidationDelegate formValidation;
-        @Inject
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+        @Inject
+        private BitbucketScmFormFillDelegate formFill;
+        @Inject
+        private BitbucketScmFormValidationDelegate formValidation;
         @Inject
         private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
@@ -411,20 +411,21 @@ public class BitbucketSCM extends SCM {
             return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
         }
 
-        @Override
-        @POST
-        public FormValidation doTestConnection(@QueryParameter String serverId,
-                                               @QueryParameter String credentialsId,
-                                               @QueryParameter String projectName,
-                                               @QueryParameter String repositoryName,
-                                               @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
-        }
-
         @POST
         public ListBoxModel doFillGitToolItems() {
             Jenkins.get().checkPermission(CONFIGURE);
             return gitScmDescriptor.doFillGitToolItems();
+        }
+
+        @Override
+        @POST
+        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
+                                                  @QueryParameter String credentialsId,
+                                                  @QueryParameter String projectName,
+                                                  @QueryParameter String repositoryName,
+                                                  @QueryParameter String mirrorName) {
+            Jenkins.get().checkPermission(CONFIGURE);
+            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
         }
 
         @Override
@@ -455,13 +456,12 @@ public class BitbucketSCM extends SCM {
 
         @Override
         @POST
-        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
-                                                  @QueryParameter String credentialsId,
-                                                  @QueryParameter String projectName,
-                                                  @QueryParameter String repositoryName,
-                                                  @QueryParameter String mirrorName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
+        public FormValidation doTestConnection(@QueryParameter String serverId,
+                                               @QueryParameter String credentialsId,
+                                               @QueryParameter String projectName,
+                                               @QueryParameter String repositoryName,
+                                               @QueryParameter String mirrorName) {
+            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
         }
 
         @Override
@@ -493,12 +493,16 @@ public class BitbucketSCM extends SCM {
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                         GlobalCredentialsProvider globalCredentialsProvider,
-                                                         @Nullable String credentialsId) {
+                                                 GlobalCredentialsProvider globalCredentialsProvider,
+                                                 @Nullable String credentialsId) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
                     globalCredentialsProvider,
                     credentialsId, jenkinsToBitbucketCredentials);
+        }
+
+        Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
+            return bitbucketPluginConfiguration.getServerById(serverId);
         }
 
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
@@ -506,10 +510,6 @@ public class BitbucketSCM extends SCM {
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials,
                     (client, project, repo) -> helper.getRepository(project, repo));
-        }
-
-        Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
-            return bitbucketPluginConfiguration.getServerById(serverId);
         }
     }
 }
