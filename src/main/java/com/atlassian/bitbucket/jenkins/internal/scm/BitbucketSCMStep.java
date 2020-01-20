@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -221,7 +221,7 @@ public class BitbucketSCMStep extends SCMStep {
         @Inject
         private BitbucketScmFormValidationDelegate formValidation;
         @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials;
 
         @Override
         @POST

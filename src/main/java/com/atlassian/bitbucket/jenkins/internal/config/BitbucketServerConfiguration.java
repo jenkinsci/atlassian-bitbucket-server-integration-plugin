@@ -8,7 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailu
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -272,7 +272,7 @@ public class BitbucketServerConfiguration
         @Inject
         private BitbucketClientFactoryProvider clientFactoryProvider;
         @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials;
 
         @SuppressWarnings("MethodMayBeStatic")
         @POST

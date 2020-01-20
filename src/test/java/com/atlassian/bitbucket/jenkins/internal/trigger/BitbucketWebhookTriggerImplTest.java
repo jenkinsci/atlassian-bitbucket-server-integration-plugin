@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor;
@@ -38,7 +38,7 @@ public class BitbucketWebhookTriggerImplTest {
     @Mock
     private RetryingWebhookHandler webhookHandler;
     @Mock
-    private JenkinsProvider jenkinsProvider;
+    private DefaultJenkinsProvider jenkinsProvider;
     @Mock
     private Jenkins jenkins;
     @Mock

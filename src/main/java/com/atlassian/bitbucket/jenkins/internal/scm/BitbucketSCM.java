@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -363,7 +363,7 @@ public class BitbucketSCM extends SCM {
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials;
 
         public DescriptorImpl() {
             super(Stash.class);

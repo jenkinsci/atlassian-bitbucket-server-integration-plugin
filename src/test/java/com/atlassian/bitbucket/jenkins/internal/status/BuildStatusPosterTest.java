@@ -9,7 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -67,7 +67,7 @@ public class BuildStatusPosterTest {
     @Mock
     private BitbucketServerConfiguration server;
     @Mock
-    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    private JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials;
     @InjectMocks
     private BuildStatusPoster buildStatusPoster;
 

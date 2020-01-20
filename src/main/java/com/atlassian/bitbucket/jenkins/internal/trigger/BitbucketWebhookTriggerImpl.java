@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.Extension;
@@ -119,7 +119,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         @Inject
         private RetryingWebhookHandler retryingWebhookHandler;
         @Inject
-        private JenkinsProvider jenkinsProvider;
+        private DefaultJenkinsProvider jenkinsProvider;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
@@ -133,7 +133,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         public BitbucketWebhookTriggerDescriptor(SequentialExecutionQueue queue,
                                                  RetryingWebhookHandler webhookHandler,
-                                                 JenkinsProvider jenkinsProvider,
+                                                 DefaultJenkinsProvider jenkinsProvider,
                                                  BitbucketPluginConfiguration bitbucketPluginConfiguration) {
             this.queue = queue;
             this.retryingWebhookHandler = webhookHandler;

@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Run;
@@ -28,7 +28,7 @@ public class BuildStatusPoster {
     @Inject
     BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
-    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    private JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials;
     @Inject
     private BitbucketPluginConfiguration pluginConfiguration;
 
