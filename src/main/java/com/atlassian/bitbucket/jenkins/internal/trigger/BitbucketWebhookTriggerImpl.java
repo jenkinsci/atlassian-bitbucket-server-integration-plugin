@@ -11,6 +11,7 @@ import hudson.Extension;
 import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.triggers.Trigger;
@@ -21,6 +22,7 @@ import jenkins.model.ParameterizedJobMixIn;
 import jenkins.triggers.SCMTriggerItem;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -69,17 +71,34 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
         SCMTriggerItem triggerItem = asSCMTriggerItem(job);
         if (triggerItem != null) {
-            BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
-            triggerItem.getSCMs()
-                    .stream()
-                    .filter(scm -> scm instanceof BitbucketSCM)
-                    .map(scm -> (BitbucketSCM) scm)
-                    .filter(scm -> !scm.isWebhookRegistered())
-                    .filter(scm -> !checkTriggerExists(descriptor, scm))
-                    .forEach(scm -> {
-                        boolean isAdded = descriptor.addTrigger(project, scm);
-                        scm.setWebhookRegistered(isAdded);
-                    });
+            if (WorkflowJob.class.equals(triggerItem.getClass())) {
+                addWorkflowJobTrigger(project, triggerItem);
+            } else {
+                addFreestyleProjectTrigger(project, triggerItem);
+            }
+        }
+    }
+
+    private void addFreestyleProjectTrigger(Job<?, ?> project, SCMTriggerItem triggerItem) {
+        BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
+        triggerItem.getSCMs()
+                .stream()
+                .filter(scm -> scm instanceof BitbucketSCM)
+                .map(scm -> (BitbucketSCM) scm)
+                .filter(scm -> !scm.isWebhookRegistered())
+                .filter(scm -> !checkTriggerExists(descriptor, scm))
+                .forEach(scm -> {
+                    boolean isAdded = descriptor.addTrigger(project, scm);
+                    scm.setWebhookRegistered(isAdded);
+                });
+    }
+
+    private void addWorkflowJobTrigger(Job<?, ?> project, SCMTriggerItem triggerItem) {
+        BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
+        SCM scm = ((CpsScmFlowDefinition) ((WorkflowJob) triggerItem).getDefinition()).getScm();
+        if (scm instanceof BitbucketSCM) {
+            boolean isAdded = descriptor.addTrigger(project, (BitbucketSCM) scm);
+            ((BitbucketSCM) scm).setWebhookRegistered(isAdded);
         }
     }
 

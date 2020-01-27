@@ -13,6 +13,7 @@ import hudson.scm.SCM;
 import hudson.util.SequentialExecutionQueue;
 import jenkins.model.Jenkins;
 import jenkins.triggers.SCMTriggerItem;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Test;
@@ -115,10 +116,30 @@ public class BitbucketWebhookTriggerImplTest {
     }
 
     @Test
+    public void testWebhookRegisterOnWorkflowJob() {
+        BitbucketSCMRepository repo1 = createSCMRepo();
+        BitbucketSCMRepository repo2 = createSCMRepo();
+        WorkflowJob workflowJob = createWorkflowJobWithSCM(createSCM(repo1, repo2));
+
+        BitbucketWebhookTriggerImpl trigger = createInstance();
+
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo1)));
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo2)));
+    }
+
+    @Test
     public void testWebhookRegisterOnStartForNewInstance() {
         BitbucketSCMRepository repo1 = createSCMRepo();
         BitbucketSCMRepository repo2 = createSCMRepo();
-        FreeStyleProject project = createProjectWithSCM(createSCM(repo1, repo2));
+        FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(repo1, repo2));
 
         BitbucketWebhookTriggerImpl trigger = createInstance();
 
@@ -139,7 +160,7 @@ public class BitbucketWebhookTriggerImplTest {
     public void testWebhookRegisterForExistingJobs() {
         BitbucketSCMRepository repo = createSCMRepo();
         BitbucketSCM scm = createSCM(repo);
-        FreeStyleProject project = createProjectWithSCM(scm);
+        FreeStyleProject project = createFreestyleProjectWithSCM(scm);
         mockExistingProjectWithSCMs(project, scm);
 
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
@@ -152,7 +173,7 @@ public class BitbucketWebhookTriggerImplTest {
     @Test
     public void testWebhookRegistrationForSameProjectRepoDifferentServerId() {
         BitbucketSCMRepository actualRepo = createSCMRepoWithServerId("serverID2");
-        FreeStyleProject project = createProjectWithSCM(createSCM(actualRepo));
+        FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(actualRepo));
         mockExistingProjectWithSCMs(project, createSCM(createSCMRepoWithServerId("serverID1")));
 
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
@@ -169,7 +190,7 @@ public class BitbucketWebhookTriggerImplTest {
     @Test
     public void testWebhookRegistrationForDifferentMirrorConfiguration() {
         BitbucketSCMRepository actualRepo = createSCMRepoWithMirror("mirror1");
-        FreeStyleProject project = createProjectWithSCM(createSCM(actualRepo));
+        FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(actualRepo));
         mockExistingProjectWithSCMs(project, createSCM(createSCMRepo()));
 
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
@@ -194,7 +215,7 @@ public class BitbucketWebhookTriggerImplTest {
     public void testReregisterWebhook() {
         BitbucketSCMRepository repo = createSCMRepo();
         BitbucketSCM scm = createSCM(repo);
-        FreeStyleProject project = createProjectWithSCM(scm);
+        FreeStyleProject project = createFreestyleProjectWithSCM(scm);
         mockExistingProjectWithSCMs(project, false, scm);
 
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
@@ -254,10 +275,18 @@ public class BitbucketWebhookTriggerImplTest {
         };
     }
 
-    private FreeStyleProject createProjectWithSCM(BitbucketSCM... scms) {
+    private FreeStyleProject createFreestyleProjectWithSCM(BitbucketSCM... scms) {
         FreeStyleProject p = createFreeStyleProject();
         doReturn(scms(scms)).when(p).getSCMs();
         return p;
+    }
+
+    private WorkflowJob createWorkflowJobWithSCM(BitbucketSCM scm) {
+        WorkflowJob workflowJob = new WorkflowJob(jenkins, "workflowJob");
+        CpsScmFlowDefinition definition = mock(CpsScmFlowDefinition.class);
+        doReturn(scm).when(definition).getScm();
+        workflowJob.setDefinition(definition);
+        return workflowJob;
     }
 
     private BitbucketSCMRepository createSCMRepoWithServerId(String serverId) {
@@ -334,7 +363,7 @@ public class BitbucketWebhookTriggerImplTest {
 
     private void mockExistingProjectWithSCMs(FreeStyleProject newProject, boolean triggerPreviouslyAdded,
                                              BitbucketSCM... scms) {
-        FreeStyleProject existingProject = createProjectWithSCM(scms);
+        FreeStyleProject existingProject = createFreestyleProjectWithSCM(scms);
         Arrays.asList(scms).stream().forEach(scm -> when(scm.isWebhookRegistered()).thenReturn(triggerPreviouslyAdded));
         BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
         when(existingProject.getTriggers()).thenReturn(Collections.singletonMap(descriptor, t));

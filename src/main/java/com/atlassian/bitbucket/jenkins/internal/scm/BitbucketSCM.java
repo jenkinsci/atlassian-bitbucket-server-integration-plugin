@@ -259,7 +259,7 @@ public class BitbucketSCM extends SCM {
     }
 
     public String getProjectName() {
-        return getBitbucketSCMRepository().getProjectName();
+        return isPersonalProject() ? getBitbucketSCMRepository().getProjectName() : getBitbucketSCMRepository().getProjectKey();
     }
 
     public List<BitbucketSCMRepository> getRepositories() {
@@ -277,6 +277,10 @@ public class BitbucketSCM extends SCM {
     @CheckForNull
     public String getServerId() {
         return getBitbucketSCMRepository().getServerId();
+    }
+
+    public boolean isPersonalProject() {
+        return getBitbucketSCMRepository().getProjectName().startsWith("~");
     }
 
     public boolean isWebhookRegistered() {

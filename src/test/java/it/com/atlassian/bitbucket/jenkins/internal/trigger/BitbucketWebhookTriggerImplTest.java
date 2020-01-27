@@ -13,7 +13,6 @@ import hudson.util.RunList;
 import it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.SingleExecutorRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.WaitConditionFailure;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -22,7 +21,6 @@ import org.junit.rules.TestRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import wiremock.com.google.common.collect.Streams;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -35,33 +33,22 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public class BitbucketWebhookTriggerImplTest {
+public abstract class BitbucketWebhookTriggerImplTest {
 
-    private static final JenkinsRule jenkinsRule = new JenkinsRule();
-    private static final Logger LOGGER =
+    protected static final JenkinsRule jenkinsRule = new JenkinsRule();
+    protected static final Logger LOGGER =
             Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
 
     @ClassRule
     public static TestRule chain =
             RuleChain.outerRule(jenkinsRule).around(new SingleExecutorRule());
 
-    private FreeStyleProject project;
-    private TestScm scm;
-    private BitbucketWebhookTriggerImpl trigger;
+    protected Job project;
+    protected TestScm scm;
+    protected BitbucketWebhookTriggerImpl trigger;
 
     @Before
-    public void setup() throws Exception {
-        project = jenkinsRule.createFreeStyleProject();
-        scm = new TestScm();
-        project.setScm(scm);
-        trigger = new BitbucketWebhookTriggerImpl();
-        trigger.start(project, true);
-    }
-
-    @After
-    public void tearDown() throws IOException, InterruptedException {
-        project.delete();
-    }
+    public abstract void setup() throws Exception;
 
     @Test
     public void testTriggerPollingInitialBuild() {
@@ -72,9 +59,9 @@ public class BitbucketWebhookTriggerImplTest {
                         .actor(new BitbucketUser("username", "me@example.com", "me"))
                         .build());
 
-        RunList<FreeStyleBuild> builds = waitForBuild();
+        RunList<Run> builds = waitForBuild();
 
-        FreeStyleBuild lastBuild = builds.getLastBuild();
+        Run lastBuild = builds.getLastBuild();
         assertThat("The last build should not be null", lastBuild, not(nullValue()));
         List<Cause> causes = lastBuild.getCauses();
         assertThat("The last build should have exactly one cause", causes, hasSize(1));
@@ -101,7 +88,7 @@ public class BitbucketWebhookTriggerImplTest {
                         .actor(new BitbucketUser("you", "you@you.com", "You"))
                         .build());
         try {
-            RunList<FreeStyleBuild> builds = waitForBuild(2);
+            RunList<Run> builds = waitForBuild(2);
             fail("Expected there to be only 1 build triggered, but there were 2: " + builds);
         } catch (WaitConditionFailure e) {
             assertThat(
@@ -124,8 +111,8 @@ public class BitbucketWebhookTriggerImplTest {
                 BitbucketWebhookTriggerRequest.builder()
                         .actor(new BitbucketUser("you", "you@you.com", "You"))
                         .build());
-        RunList<FreeStyleBuild> builds = waitForBuild(2);
-        FreeStyleBuild lastBuild = builds.getLastBuild();
+        RunList<Run> builds = waitForBuild(2);
+        Run lastBuild = builds.getLastBuild();
         assertThat("The last build should not be null", lastBuild, not(nullValue()));
         List<Cause> causes = lastBuild.getCauses();
         assertThat("The last build should have exactly one cause", causes, hasSize(1));
@@ -151,8 +138,8 @@ public class BitbucketWebhookTriggerImplTest {
                 BitbucketWebhookTriggerRequest.builder()
                         .actor(new BitbucketUser("you", "you@you.com", "You"))
                         .build());
-        RunList<FreeStyleBuild> builds = waitForBuild(2);
-        FreeStyleBuild lastBuild = builds.getLastBuild();
+        RunList<Run> builds = waitForBuild(2);
+        Run lastBuild = builds.getLastBuild();
         assertThat("The last build should not be null", lastBuild, not(nullValue()));
         List<Cause> causes = lastBuild.getCauses();
         assertThat("The last build should have exactly one cause", causes, hasSize(1));
@@ -165,14 +152,14 @@ public class BitbucketWebhookTriggerImplTest {
                 equalTo("Triggered by Bitbucket webhook due to changes by You."));
     }
 
-    private RunList<FreeStyleBuild> waitForBuild() {
+    private RunList<Run> waitForBuild() {
         return waitForBuild(1);
     }
 
-    private RunList<FreeStyleBuild> waitForBuild(int count) {
+    private RunList<Run> waitForBuild(int count) {
         AsyncTestUtils.waitFor(
                 () -> {
-                    RunList<FreeStyleBuild> builds = project.getBuilds();
+                    RunList<Run> builds = project.getBuilds();
                     LOGGER.info("The current builds are: " + builds);
                     long size = Streams.stream(builds.iterator()).count();
                     if (size < count) {
@@ -188,7 +175,7 @@ public class BitbucketWebhookTriggerImplTest {
         return project.getBuilds();
     }
 
-    private class TestScm extends NullSCM {
+    protected class TestScm extends NullSCM {
 
         Queue<PollingResult> pollingResults = new LinkedList<>();
 

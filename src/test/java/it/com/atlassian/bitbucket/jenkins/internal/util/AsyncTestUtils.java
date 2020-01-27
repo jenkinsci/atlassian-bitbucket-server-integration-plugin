@@ -19,7 +19,7 @@ public final class AsyncTestUtils {
      *         timeoutMs}
      */
     public static void waitFor(WaitCondition waitCondition, long timeoutMs) {
-        waitFor(waitCondition, timeoutMs, 50);
+        waitFor(waitCondition, timeoutMs, 1000);
     }
 
     /**
