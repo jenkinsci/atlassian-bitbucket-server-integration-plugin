@@ -115,6 +115,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 1.0.4 (28 January 2020)
+- Fix issues JENKINS-60699 and JENKINS-60642
+
 ### 1.0.3 (14 November 2019)
 - Fix issue JENKINS-60116
 
