@@ -18,6 +18,7 @@
         <java.level>8</java.level>
         <jackson.version>2.9.9</jackson.version>
         <jenkins.version>2.162</jenkins.version>
+        <net.oauth.version>20100527</net.oauth.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <name>Bitbucket Server Integration</name>
@@ -146,12 +147,24 @@
         </dependency>
 
         <dependency>
+            <groupId>net.oauth.core</groupId>
+            <artifactId>oauth</artifactId>
+            <version>${net.oauth.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.oauth.core</groupId>
+            <artifactId>oauth-provider</artifactId>
+            <version>${net.oauth.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
             <version>2.2</version>
             <scope>provided</scope>
         </dependency>
 
+        <!-- Test Dependencies -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
