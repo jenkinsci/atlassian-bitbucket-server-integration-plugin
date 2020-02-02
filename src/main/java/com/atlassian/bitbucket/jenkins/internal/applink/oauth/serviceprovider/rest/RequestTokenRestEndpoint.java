@@ -5,8 +5,8 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.Token;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenFactory;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.TokenFactory;
 import net.oauth.OAuthAccessor;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
@@ -45,13 +45,13 @@ public class RequestTokenRestEndpoint {
 
     private OAuthValidator oAuthValidator;
     private ConsumerStore consumerStore;
-    private TokenFactory tokenFactory;
+    private ServiceProviderTokenFactory tokenFactory;
     private ServiceProviderTokenStore tokenStore;
 
     @Inject
     public RequestTokenRestEndpoint(OAuthValidator oAuthValidator,
                                     ConsumerStore consumerStore,
-                                    TokenFactory tokenFactory,
+                                    ServiceProviderTokenFactory tokenFactory,
                                     ServiceProviderTokenStore tokenStore) {
         this.oAuthValidator = oAuthValidator;
         this.consumerStore = consumerStore;
@@ -80,7 +80,10 @@ public class RequestTokenRestEndpoint {
                 callback = callbackToUri(message.getParameter(OAUTH_CALLBACK));
             }
 
-            Token token = tokenStore.put(tokenFactory.generateRequestToken(consumer, callback, message));
+            Token token = tokenStore.put(callback == null ?
+                    tokenFactory.generateRequestToken(consumer) :
+                    tokenFactory.generateRequestToken(consumer, callback));
+
             // We form encode the output, but it's not standard form encoding, it's OAuth form encoding.  The main
             // difference seems to be that OAuth doesn't encode spaces as '+'. See
             // <http://groups.google.com/group/oauth/browse_thread/thread/ef2455dc89546222>.  This means we can't use

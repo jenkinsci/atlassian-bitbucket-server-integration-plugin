@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 @Singleton
@@ -18,7 +19,7 @@ public class ServiceProviderTokenStoreImpl implements ServiceProviderTokenStore 
 
     @Override
     public Optional<ServiceProviderToken> get(String token) throws StoreException {
-        return Optional.ofNullable(tokens.get(token));
+        return ofNullable(tokens.get(token));
     }
 
     @Override

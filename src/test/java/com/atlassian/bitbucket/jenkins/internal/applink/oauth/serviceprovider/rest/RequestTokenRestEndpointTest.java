@@ -2,8 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.r
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenFactory;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.TokenFactory;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.ByteArrayServletOutputStream;
 import net.oauth.*;
 import org.junit.Before;
@@ -42,7 +42,7 @@ public class RequestTokenRestEndpointTest {
     @Mock
     private ServiceProviderTokenStore tokenStore;
     @Mock
-    private TokenFactory factory;
+    private ServiceProviderTokenFactory factory;
     @Mock
     private OAuthValidator validator;
     private RequestTokenRestEndpoint servlet;
@@ -73,7 +73,7 @@ public class RequestTokenRestEndpointTest {
         ));
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
         when(tokenStore.put(UNAUTHORIZED_REQUEST_TOKEN)).thenReturn(UNAUTHORIZED_REQUEST_TOKEN);
-        when(factory.generateRequestToken(same(RSA_CONSUMER), eq(URI.create("http://consumer/callback")), isA(OAuthMessage.class)))
+        when(factory.generateRequestToken(same(RSA_CONSUMER), eq(URI.create("http://consumer/callback"))))
                 .thenReturn(UNAUTHORIZED_REQUEST_TOKEN);
 
         servlet.handleRequestToken(request, response);
@@ -151,8 +151,7 @@ public class RequestTokenRestEndpointTest {
         ));
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
         when(tokenStore.put(UNAUTHORIZED_REQUEST_TOKEN)).thenReturn(UNAUTHORIZED_REQUEST_TOKEN);
-        when(factory.generateRequestToken(same(RSA_CONSUMER), (URI) isNull(), isA(OAuthMessage.class)))
-                .thenReturn(UNAUTHORIZED_REQUEST_TOKEN);
+        when(factory.generateRequestToken(same(RSA_CONSUMER))).thenReturn(UNAUTHORIZED_REQUEST_TOKEN);
 
         servlet.handleRequestToken(request, response);
 

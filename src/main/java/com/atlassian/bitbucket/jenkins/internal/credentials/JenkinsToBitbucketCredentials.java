@@ -33,10 +33,10 @@ public interface JenkinsToBitbucketCredentials {
      *
      * It is possible to not specify Job credentials while configuring a job. For bitbucket operation, we
      * fall back to global configuration. This class gives the way to create bitbucket credentials based on
-     * given optional job credentials and global credentials serviceprovider.
+     * given optional job credentials and global credentials provider.
      *
      * @param credentials               credentials id
-     * @param globalCredentialsProvider global Credentials serviceprovider
+     * @param globalCredentialsProvider global Credentials provider
      * @return bitbucket credentials
      */
     BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
@@ -46,7 +46,7 @@ public interface JenkinsToBitbucketCredentials {
      * See {@link #toBitbucketCredentials(String, GlobalCredentialsProvider)}
      *
      * @param credentials               credentials id
-     * @param globalCredentialsProvider global Credentials serviceprovider
+     * @param globalCredentialsProvider global Credentials provider
      * @return bitbucket credentials
      */
     BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials,

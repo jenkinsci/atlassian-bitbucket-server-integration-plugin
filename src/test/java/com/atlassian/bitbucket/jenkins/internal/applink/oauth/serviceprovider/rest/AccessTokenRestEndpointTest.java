@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.OAuthConverter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.TokenFactory;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenFactory;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.ByteArrayServletOutputStream;
 import net.oauth.*;
 import org.junit.Before;
@@ -69,7 +69,7 @@ public class AccessTokenRestEndpointTest {
     @Mock
     private ServiceProviderTokenStore tokenStore;
     @Mock
-    private TokenFactory factory;
+    private ServiceProviderTokenFactory factory;
     @Mock
     private OAuthValidator validator;
     @Mock

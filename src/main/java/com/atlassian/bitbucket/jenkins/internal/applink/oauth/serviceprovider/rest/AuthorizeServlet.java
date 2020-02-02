@@ -82,8 +82,8 @@ public class AuthorizeServlet {
         requestMessage.requireParameters(OAUTH_TOKEN);
         ServiceProviderToken token;
         try {
-            token =
-                    tokenStore.get(requestMessage.getToken()).orElseThrow(() -> new OAuthProblemException(TOKEN_REJECTED));
+            token = tokenStore.get(requestMessage.getToken())
+                    .orElseThrow(() -> new OAuthProblemException(TOKEN_REJECTED));
         } catch (InvalidTokenException e) {
             throw new OAuthProblemException(TOKEN_REJECTED);
         }

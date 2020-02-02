@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.OAuthConverter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.TokenFactory;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenFactory;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
 import net.oauth.OAuthValidator;
@@ -35,13 +35,13 @@ public class AccessTokenRestEndpoint {
     private static final Logger LOGGER = Logger.getLogger(AccessTokenRestEndpoint.class.getName());
 
     private OAuthValidator oAuthValidator;
-    private TokenFactory tokenFactory;
+    private ServiceProviderTokenFactory tokenFactory;
     private ServiceProviderTokenStore tokenStore;
     private Clock clock;
 
     @Inject
     public AccessTokenRestEndpoint(OAuthValidator oAuthValidator,
-                                   TokenFactory tokenFactory,
+                                   ServiceProviderTokenFactory tokenFactory,
                                    ServiceProviderTokenStore tokenStore,
                                    Clock clock) {
         this.oAuthValidator = oAuthValidator;
@@ -58,8 +58,8 @@ public class AccessTokenRestEndpoint {
             requestMessage.requireParameters(OAUTH_TOKEN);
             ServiceProviderToken token;
             try {
-                token =
-                        tokenStore.get(requestMessage.getToken()).orElseThrow(() -> new OAuthProblemException(TOKEN_REJECTED));
+                token = tokenStore.get(requestMessage.getToken())
+                        .orElseThrow(() -> new OAuthProblemException(TOKEN_REJECTED));
             } catch (InvalidTokenException e) {
                 throw new OAuthProblemException(TOKEN_REJECTED);
             }

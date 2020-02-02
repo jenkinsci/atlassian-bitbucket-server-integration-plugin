@@ -10,7 +10,7 @@ import javax.inject.Singleton;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Client factory serviceprovider, use to ensure that expensive objects are only created once and re-used.
+ * Client factory provider, use to ensure that expensive objects are only created once and re-used.
  */
 @ThreadSafe
 @Singleton

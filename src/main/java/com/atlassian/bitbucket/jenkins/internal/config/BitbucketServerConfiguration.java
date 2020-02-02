@@ -79,11 +79,11 @@ public class BitbucketServerConfiguration
     }
 
     /**
-     * For a given item, returns a global credential serviceprovider. The credentials are tracked and
+     * For a given item, returns a global credential provider. The credentials are tracked and
      * this should be the only way to fetch credentials.
      *
      * @param item which will use the credential.
-     * @return credential serviceprovider
+     * @return credential provider
      */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
         return new GlobalCredentialsProvider() {
@@ -106,7 +106,7 @@ public class BitbucketServerConfiguration
      * is usually a case when fetching credentials as part of `doFill` methods.
      *
      * @param context a context which will be logged
-     * @return credential serviceprovider
+     * @return credential provider
      */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
         if (isBlank(context)) {
