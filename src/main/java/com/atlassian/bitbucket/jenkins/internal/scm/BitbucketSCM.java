@@ -175,6 +175,11 @@ public class BitbucketSCM extends SCM {
         return gitTool;
     }
 
+    @Override
+    public void buildEnvironment(Run<?, ?> build, Map<String, String> env) {
+        gitSCM.buildEnvironment(build, env);
+    }
+
     @CheckForNull
     @Override
     public SCMRevisionState calcRevisionsFromBuild(
