@@ -29,7 +29,7 @@ public class OAuthProviderTokenServiceImplTest {
     @Mock
     private OAuthProviderTokenStore tokenStore;
     @Mock
-    private OAuthProviderVerifierService verifierService;
+    private OAuthTokenVerifierGenerator verifierService;
 
     @Test
     public void testAuthorizeRequestToken() throws OAuthException {

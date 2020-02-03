@@ -16,17 +16,16 @@ public interface OAuthProviderTokenStore {
     Optional<OAuthToken> get(String token);
 
     /**
-     * Store the given token
+     * Store the given token, replacing any existing one with the same {@link OAuthToken#getTokenValue() token value}
      *
      * @param token the token to be stored
      */
     void put(OAuthToken token);
 
     /**
-     * Delete the given token
+     * Remove the given token from the store
      *
-     * @param token the token to be deleted
-     * @return true if the token existed and was deleted, false otherwise
+     * @param token the token to be removed
      */
-    boolean remove(String token);
+    void remove(String token);
 }
