@@ -3,6 +3,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerRequest;
+import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -21,6 +22,8 @@ import org.junit.rules.TestRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import wiremock.com.google.common.collect.Streams;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -35,10 +38,9 @@ import static org.junit.Assert.fail;
 
 public abstract class BitbucketWebhookTriggerImplTest {
 
-    protected static final JenkinsRule jenkinsRule = new JenkinsRule();
     protected static final Logger LOGGER =
             Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
-
+    protected static final JenkinsRule jenkinsRule = new JenkinsRule();
     @ClassRule
     public static TestRule chain =
             RuleChain.outerRule(jenkinsRule).around(new SingleExecutorRule());
@@ -171,16 +173,20 @@ public abstract class BitbucketWebhookTriggerImplTest {
                     }
                     return empty();
                 },
-                30000);
+                10000);
         return project.getBuilds();
     }
 
-    protected class TestScm extends NullSCM {
+    protected static class TestScm extends NullSCM {
 
         Queue<PollingResult> pollingResults = new LinkedList<>();
 
-        void addPollingResult(PollingResult result) {
-            pollingResults.add(result);
+        @Override
+        public void checkout(Run<?, ?> build, Launcher launcher, FilePath workspace, TaskListener listener,
+                             File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
+            //Place a Jenkinsfile in the working directory
+            TestUtils.copyFileToPath("/it/com/atlassian/bitbucket/jenkins/internal/scm/Jenkinsfile",
+                    workspace.toURI().getPath() + "/Jenkinsfile");
         }
 
         @Override
@@ -196,6 +202,10 @@ public abstract class BitbucketWebhookTriggerImplTest {
         @Override
         public boolean requiresWorkspaceForPolling() {
             return false;
+        }
+
+        void addPollingResult(PollingResult result) {
+            pollingResults.add(result);
         }
     }
 }

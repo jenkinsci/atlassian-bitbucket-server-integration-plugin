@@ -12,12 +12,13 @@ public class BitbucketWebhookTriggerWorkflowTest extends BitbucketWebhookTrigger
     @Override
     public void setup() throws Exception {
         scm = new TestScm();
-        CpsScmFlowDefinition definition = new CpsScmFlowDefinition(scm, "Jenkinsfile");
-        project = (WorkflowJob) Jenkins.get().createProject(new WorkflowJob.DescriptorImpl(),
+        project = jenkinsRule.jenkins.get().createProject(WorkflowJob.class,
                 "test" + Jenkins.get().getItems().size());
+        CpsScmFlowDefinition definition = new CpsScmFlowDefinition(scm, "Jenkinsfile");
         ((WorkflowJob) project).setDefinition(definition);
-        project.onCreatedFromScratch();
+
         trigger = new BitbucketWebhookTriggerImpl();
+        ((WorkflowJob) project).addTrigger(trigger);
         trigger.start(project, true);
     }
 }
