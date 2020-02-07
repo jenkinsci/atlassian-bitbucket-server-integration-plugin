@@ -12,14 +12,12 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
-import static hudson.model.Item.CONFIGURE;
 import static hudson.util.FormValidation.Kind.ERROR;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -43,7 +41,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     @Override
     public FormValidation doCheckCredentialsId(String credentialsId) {
-        Jenkins.get().checkPermission(CONFIGURE);
         Credentials providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!isBlank(credentialsId) && providedCredentials == null) {
             return FormValidation.error("No credentials exist for the provided credentialsId");
@@ -53,7 +50,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     @Override
     public FormValidation doCheckProjectName(String serverId, String credentialsId, String projectName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(projectName)) {
             return FormValidation.error("Project name is required");
         }
@@ -87,7 +83,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     @Override
     public FormValidation doCheckRepositoryName(String serverId, String credentialsId, String projectName,
                                                 String repositoryName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(projectName)) {
             return FormValidation.ok(); // There will be an error on the projectName field
         }
@@ -124,7 +119,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     @Override
     public FormValidation doCheckServerId(String serverId) {
-        Jenkins.get().checkPermission(CONFIGURE);
         // Users can only demur in providing a server name if none are available to select
         if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
             return FormValidation.error("Bitbucket instance is required");
@@ -138,7 +132,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     @Override
     public FormValidation doTestConnection(String serverId, String credentialsId, String projectName,
                                            String repositoryName, String mirrorName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         FormValidation serverIdValidation = doCheckServerId(serverId);
         if (serverIdValidation.kind == ERROR) {
             return serverIdValidation;
@@ -173,7 +166,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
 
     private FormValidation doCheckMirrorName(String serverId, String credentialsId, String projectName,
                                              String repositoryName, String mirrorName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(serverId) || isBlank(projectName) || isBlank(repositoryName)) {
             return FormValidation.ok(); // Validation error would have been in one of the other fields
         }

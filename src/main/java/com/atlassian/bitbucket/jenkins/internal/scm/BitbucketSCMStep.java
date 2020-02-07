@@ -5,10 +5,12 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitTool;
@@ -220,8 +222,7 @@ public class BitbucketSCMStep extends SCMStep {
         private BitbucketScmFormFillDelegate formFill;
         @Inject
         private BitbucketScmFormValidationDelegate formValidation;
-        @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         @Override
         @POST
@@ -318,7 +319,14 @@ public class BitbucketSCMStep extends SCMStep {
             return false;
         }
 
+        @Inject
+        public void setJenkinsToBitbucketCredentials(
+                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
+            this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
+        }
+
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
+            injectJenkinsToBitbucketCredentials();
             return new BitbucketMirrorHandler(
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials,
@@ -328,6 +336,7 @@ public class BitbucketSCMStep extends SCMStep {
         private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
                                                          GlobalCredentialsProvider globalCredentialsProvider,
                                                          @Nullable String credentialsId) {
+            injectJenkinsToBitbucketCredentials();
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
                     globalCredentialsProvider,
@@ -336,6 +345,12 @@ public class BitbucketSCMStep extends SCMStep {
 
         private Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
             return bitbucketPluginConfiguration.getServerById(serverId);
+        }
+
+        private void injectJenkinsToBitbucketCredentials() {
+            if (jenkinsToBitbucketCredentials == null) {
+                Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
+            }
         }
     }
 }

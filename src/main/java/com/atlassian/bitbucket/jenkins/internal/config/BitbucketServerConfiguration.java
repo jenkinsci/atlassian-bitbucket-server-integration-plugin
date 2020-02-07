@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -16,6 +17,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.google.inject.Guice;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
@@ -271,8 +273,7 @@ public class BitbucketServerConfiguration
 
         @Inject
         private BitbucketClientFactoryProvider clientFactoryProvider;
-        @Inject
-        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         @SuppressWarnings("MethodMayBeStatic")
         @POST
@@ -356,6 +357,9 @@ public class BitbucketServerConfiguration
 
             String context = "Test connection in global configuration";
             try {
+                if (jenkinsToBitbucketCredentials == null) {
+                    Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
+                }
                 Optional<String> username =
                         clientFactoryProvider
                                 .getClient(
@@ -399,6 +403,12 @@ public class BitbucketServerConfiguration
         @Override
         public String getDisplayName() {
             return "Instance details";
+        }
+
+        @Inject
+        public void setJenkinsToBitbucketCredentials(
+                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
+            this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         }
     }
 }

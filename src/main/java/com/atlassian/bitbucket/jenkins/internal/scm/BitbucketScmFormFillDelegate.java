@@ -32,7 +32,6 @@ import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
-import static hudson.model.Item.CONFIGURE;
 import static hudson.util.HttpResponses.okJSON;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
@@ -67,7 +66,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     @Override
     public ListBoxModel doFillCredentialsIdItems(String baseUrl, String credentialsId) {
         Jenkins instance = Jenkins.get();
-        instance.checkPermission(CONFIGURE);
         if (!instance.hasPermission(Jenkins.ADMINISTER)) {
             return new StandardListBoxModel().includeCurrentValue(credentialsId);
         }
@@ -90,7 +88,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
     @Override
     public HttpResponse doFillProjectNameItems(String serverId, String credentialsId, String projectName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
         }
@@ -125,7 +122,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     @Override
     public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName,
                                                   String repositoryName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
         }
@@ -162,7 +158,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
     @Override
     public ListBoxModel doFillServerIdItems(String serverId) {
-        Jenkins.get().checkPermission(CONFIGURE);
         //Filtered to only include valid server configurations
         StandardListBoxModel model =
                 bitbucketPluginConfiguration.getServerList()
@@ -184,7 +179,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     @Override
     public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
                                               String repositoryName, String mirrorName) {
-        Jenkins.get().checkPermission(CONFIGURE);
         BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConfiguration ->
