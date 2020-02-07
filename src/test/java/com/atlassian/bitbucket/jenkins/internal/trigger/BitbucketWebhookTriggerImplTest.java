@@ -13,7 +13,6 @@ import hudson.scm.SCM;
 import hudson.util.SequentialExecutionQueue;
 import jenkins.model.Jenkins;
 import jenkins.triggers.SCMTriggerItem;
-import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Test;
@@ -113,26 +112,6 @@ public class BitbucketWebhookTriggerImplTest {
         trigger.start(project, true);
         trigger.trigger(request);
         verify(mockDescriptor).schedule(eq(project), eq(project), eq(request));
-    }
-
-    @Test
-    public void testWebhookRegisterOnWorkflowJob() {
-        BitbucketSCMRepository repo1 = createSCMRepo();
-        BitbucketSCMRepository repo2 = createSCMRepo();
-        WorkflowJob workflowJob = createWorkflowJobWithSCM(createSCM(repo1, repo2));
-
-        BitbucketWebhookTriggerImpl trigger = createInstance();
-
-        verify(webhookHandler)
-                .register(
-                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
-                        any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo1)));
-        verify(webhookHandler)
-                .register(
-                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
-                        any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo2)));
     }
 
     @Test
@@ -281,13 +260,13 @@ public class BitbucketWebhookTriggerImplTest {
         return p;
     }
 
-    private WorkflowJob createWorkflowJobWithSCM(BitbucketSCM scm) {
+/*    private WorkflowJob createWorkflowJobWithSCM(BitbucketSCM scm) {
         WorkflowJob workflowJob = new WorkflowJob(jenkins, "workflowJob");
         CpsScmFlowDefinition definition = mock(CpsScmFlowDefinition.class);
         doReturn(scm).when(definition).getScm();
         workflowJob.setDefinition(definition);
         return workflowJob;
-    }
+    }*/
 
     private BitbucketSCMRepository createSCMRepoWithServerId(String serverId) {
         return createSCMRepo(serverId, "");
