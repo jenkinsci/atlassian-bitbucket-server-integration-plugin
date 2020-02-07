@@ -21,6 +21,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
@@ -92,6 +93,13 @@ public class BitbucketWebhookTriggerImplTest {
     }
 
     @Test
+    public void testDoNotSkipRegistrationForWorkflowJob() {
+        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        WorkflowJob workflowJob = new WorkflowJob(jenkinsProvider.get(), "testJob");
+        assertThat(t.skipWebhookRegistration(workflowJob, true), is(false));
+    }
+
+    @Test
     public void testSkipRegistrationForOldInstanceAndNonWorkFlowJob() {
         BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
         FreeStyleProject proj = createFreeStyleProject();
@@ -133,6 +141,21 @@ public class BitbucketWebhookTriggerImplTest {
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
                         argThat(arg -> arg.equals(repo2)));
+    }
+
+    @Test
+    public void testWebhookRegisterForWorkflowJob() {
+        BitbucketSCMRepository repo = createSCMRepo();
+        BitbucketSCM scm = createSCM(repo);
+        Job workflowJob = createWorkflowJob();
+
+        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, scm);
+        trigger.start(workflowJob, true);
+        verify(webhookHandler)
+                .register(
+                        argThat(args -> args.equals(BITBUCKET_BASE_URL)),
+                        any(GlobalCredentialsProvider.class),
+                        argThat(arg -> arg.equals(repo)));
     }
 
     @Test
@@ -219,6 +242,15 @@ public class BitbucketWebhookTriggerImplTest {
         return project;
     }
 
+    private Job createWorkflowJob() {
+        Job workflowJob = mock(Job.class);
+        Hudson itemGroup = mock(Hudson.class);
+        when(itemGroup.getFullName()).thenReturn("Item name");
+        when(workflowJob.getParent()).thenReturn(itemGroup);
+        when(workflowJob.getName()).thenReturn("WorkflowJob name");
+        return workflowJob;
+    }
+
     private BitbucketWebhookTriggerImpl createInstance() {
         return createInstance(descriptor, false);
     }
@@ -251,6 +283,40 @@ public class BitbucketWebhookTriggerImplTest {
             boolean skipWebhookRegistration(Job<?, ?> project, boolean newInstance) {
                 return skipRegistration;
             }
+       };
+    }
+
+    /**
+     * Creates a WebhookTrigger that will accept generic Jobs and treat them as WorkflowJobs. This is used because
+     * {@link WorkflowJob}s are final
+     *
+     * @param descriptor the descriptor
+     * @param workflowSCM a mock SCM to return
+     * @return the webhook trigger
+     */
+    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+                                                       SCM workflowSCM) {
+
+        return new BitbucketWebhookTriggerImpl() {
+
+            /**
+             * Jenkins is not available while running Unit test.
+             * @return descriptor
+             */
+            @Override
+            public BitbucketWebhookTriggerDescriptor getDescriptor() {
+                return descriptor;
+            }
+
+            @Override
+            boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
+                return true;
+            }
+
+            @Override
+            SCM fetchWorkflowSCM(SCMTriggerItem triggerItem) {
+                return workflowSCM;
+            }
         };
     }
 
@@ -259,14 +325,6 @@ public class BitbucketWebhookTriggerImplTest {
         doReturn(scms(scms)).when(p).getSCMs();
         return p;
     }
-
-/*    private WorkflowJob createWorkflowJobWithSCM(BitbucketSCM scm) {
-        WorkflowJob workflowJob = new WorkflowJob(jenkins, "workflowJob");
-        CpsScmFlowDefinition definition = mock(CpsScmFlowDefinition.class);
-        doReturn(scm).when(definition).getScm();
-        workflowJob.setDefinition(definition);
-        return workflowJob;
-    }*/
 
     private BitbucketSCMRepository createSCMRepoWithServerId(String serverId) {
         return createSCMRepo(serverId, "");

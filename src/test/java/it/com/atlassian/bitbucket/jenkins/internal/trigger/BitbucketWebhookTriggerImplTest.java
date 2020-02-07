@@ -14,6 +14,7 @@ import hudson.util.RunList;
 import it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.SingleExecutorRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.WaitConditionFailure;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -36,7 +37,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public abstract class BitbucketWebhookTriggerImplTest {
+public class BitbucketWebhookTriggerImplTest {
 
     protected static final Logger LOGGER =
             Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
@@ -50,7 +51,18 @@ public abstract class BitbucketWebhookTriggerImplTest {
     protected BitbucketWebhookTriggerImpl trigger;
 
     @Before
-    public abstract void setup() throws Exception;
+    public void setup() throws Exception {
+        project = jenkinsRule.createFreeStyleProject();
+        scm = new TestScm();
+        ((FreeStyleProject) project).setScm(scm);
+        trigger = new BitbucketWebhookTriggerImpl();
+        trigger.start(project, true);
+    }
+
+    @After
+    public void tearDown() throws InterruptedException, IOException {
+        project.delete();
+    }
 
     @Test
     public void testTriggerPollingInitialBuild() {

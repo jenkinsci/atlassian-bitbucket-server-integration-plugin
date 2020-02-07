@@ -92,14 +92,6 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
     }
 
-    protected boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
-        return triggerItem instanceof WorkflowJob;
-    }
-
-    protected SCM fetchWorkflowSCM(SCMTriggerItem triggerItem) {
-        return ((CpsScmFlowDefinition) ((WorkflowJob) triggerItem).getDefinition()).getScm();
-    }
-
     private boolean checkTriggerExists(BitbucketWebhookTriggerDescriptor descriptor,
                                        BitbucketSCM scm) {
         boolean isExists = descriptor.webhookExists(job, scm);
@@ -107,6 +99,20 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             scm.setWebhookRegistered(true);
         }
         return isExists;
+    }
+
+    /**
+     * Returns true if a the item is an instance of a WorkflowJob.
+     *
+     * @param triggerItem
+     * @return
+     */
+    boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
+        return triggerItem instanceof WorkflowJob;
+    }
+
+    SCM fetchWorkflowSCM(SCMTriggerItem triggerItem) {
+        return ((CpsScmFlowDefinition) ((WorkflowJob) triggerItem).getDefinition()).getScm();
     }
 
     /**
