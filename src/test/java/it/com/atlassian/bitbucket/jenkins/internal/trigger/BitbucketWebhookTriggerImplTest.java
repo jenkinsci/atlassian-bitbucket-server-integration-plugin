@@ -3,7 +3,6 @@ package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerRequest;
-import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -23,7 +22,6 @@ import org.junit.rules.TestRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import wiremock.com.google.common.collect.Streams;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -185,21 +183,13 @@ public class BitbucketWebhookTriggerImplTest {
                     }
                     return empty();
                 },
-                10000);
+                30000);
         return project.getBuilds();
     }
 
     protected static class TestScm extends NullSCM {
 
         Queue<PollingResult> pollingResults = new LinkedList<>();
-
-        @Override
-        public void checkout(Run<?, ?> build, Launcher launcher, FilePath workspace, TaskListener listener,
-                             File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
-            //Place a Jenkinsfile in the working directory
-            TestUtils.copyFileToPath("/it/com/atlassian/bitbucket/jenkins/internal/scm/Jenkinsfile",
-                    workspace.toURI().getPath() + "/Jenkinsfile");
-        }
 
         @Override
         public PollingResult compareRemoteRevisionWith(

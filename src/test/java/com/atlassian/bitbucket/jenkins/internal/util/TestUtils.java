@@ -3,9 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.util;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.*;
 import java.util.Collection;
@@ -26,18 +24,6 @@ public class TestUtils {
             return new String(
                     readAllBytes(Paths.get(TestUtils.class.getResource(relativeFilename).toURI())));
         } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void copyFileToPath(String relativeFilename, String path) {
-        try {
-            Path source = Paths.get(TestUtils.class.getResource(relativeFilename).toURI());
-            Path dest = Paths.get(path);
-
-            Files.createDirectories(dest);
-            Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
-        } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
     }
