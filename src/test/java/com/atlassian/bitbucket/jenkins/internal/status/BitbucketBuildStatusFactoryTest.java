@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
 import hudson.model.Result;
+import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,7 +22,6 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBuildStatusFactoryTest {
 
-    private static final String BUILD_ID = "Test ID";
     private static final String BUILD_URL = "http://www.example.com:8000";
     private static final String BUILD_DISPLAY_NAME = "#15";
     private static final String BUILD_DURATION = "400 secs";
@@ -32,16 +32,21 @@ public class BitbucketBuildStatusFactoryTest {
     @Mock
     private AbstractBuild build;
     @Mock
+    private Jenkins parent;
+    @Mock
     private Project project;
 
     @Before
     public void setup() {
-        when(build.getId()).thenReturn(BUILD_ID);
         when(build.getUrl()).thenReturn(BUILD_URL);
         when(build.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
         when(build.getDurationString()).thenReturn(BUILD_DURATION);
-        when(build.getProject()).thenReturn(project);
+        when(build.getParent()).thenReturn(project);
         when(project.getName()).thenReturn(PROJECT_NAME);
+        when(project.getDisplayName()).thenReturn(PROJECT_NAME);
+        when(project.getParent()).thenReturn(parent);
+        when(parent.getFullName()).thenReturn("");
+        when(parent.getFullDisplayName()).thenReturn("");
     }
 
     @Test
@@ -73,7 +78,7 @@ public class BitbucketBuildStatusFactoryTest {
         assertThat(result.getName(), equalTo(PROJECT_NAME));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
-        assertThat(result.getKey(), equalTo(BUILD_ID));
+        assertThat(result.getKey(), equalTo(PROJECT_NAME));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
         assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(build)));
     }
