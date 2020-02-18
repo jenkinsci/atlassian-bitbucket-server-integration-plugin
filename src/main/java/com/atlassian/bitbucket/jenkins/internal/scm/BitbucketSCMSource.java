@@ -45,6 +45,7 @@ import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVA
 import static hudson.model.Item.CONFIGURE;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class BitbucketSCMSource extends SCMSource {
 
@@ -96,7 +97,7 @@ public class BitbucketSCMSource extends SCMSource {
             return;
         }
 
-        if (!isBlank(mirrorName)) {
+        if (isNotBlank(mirrorName)) {
             try {
                 EnrichedBitbucketMirroredRepository mirroredRepository =
                         descriptor.createMirrorHandler(scmHelper)
@@ -223,6 +224,9 @@ public class BitbucketSCMSource extends SCMSource {
     private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId, String mirrorName,
                                       BitbucketRepository repository) {
         String cloneUrl = getCloneUrl(repository.getCloneUrls());
+        if (cloneUrl.isEmpty()) {
+            LOGGER.info("No clone url found for repository: " + repository.getName());
+        }
         BitbucketSCMRepository bitbucketSCMRepository =
                 new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
@@ -237,6 +241,9 @@ public class BitbucketSCMSource extends SCMSource {
             return;
         }
         String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls());
+        if (cloneUrl.isEmpty()) {
+            LOGGER.info("No clone url found for repository: " + repository.getRepository().getName());
+        }
         BitbucketRepository underlyingRepo = repository.getRepository();
         BitbucketSCMRepository bitbucketSCMRepository =
                 new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),

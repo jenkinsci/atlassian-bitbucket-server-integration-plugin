@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 public class BitbucketSCMSourceTest {
 
-    private final String cloneLink = "http://localhost:7990/fake.git";
+    private static final String cloneLink = "http://localhost:7990/fake.git";
 
     @Test
     public void build() {

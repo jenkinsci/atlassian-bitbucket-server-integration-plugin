@@ -39,7 +39,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,11 +61,11 @@ public class BitbucketSCMSourceIT {
 
     @Rule
     public final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @Rule
+    public final Timeout testTimeout = new Timeout(0, TimeUnit.MINUTES);
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-    @Rule
-    public Timeout testTimeout = new Timeout(0, TimeUnit.MINUTES);
     private UsernamePasswordCredentials bbCredentials;
     private String cloneUrl;
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -83,7 +82,7 @@ public class BitbucketSCMSourceIT {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         deleteRepository(PROJECT_KEY, repoName);
     }
 
@@ -120,7 +119,7 @@ public class BitbucketSCMSourceIT {
     }
 
     @Test
-    public void testFullFlow() throws IOException, InterruptedException, GitAPIException, SAXException {
+    public void testFullFlow() throws IOException, InterruptedException, GitAPIException {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();

@@ -70,22 +70,19 @@
                     <artifactId>commons-lang3</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.jboss.marshalling</groupId>
-                    <artifactId>jboss-marshalling-river</artifactId>
+                    <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                    <artifactId>workflow-support</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                    <artifactId>workflow-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
-            <!-- This is a whole new level of wickedness. Don't try this at home.
-            The jboss-marshalling-river bundled in the version of the workflow-aggregator does not support Java 10 (or later).
-            Interestingly we can make our test pass by excluding the dependency from the plugin and just include a fixed version here.
-            Arguably we should either fix, or ask cloudbees to fix the workflow-aggregator. This solution, terrible as it is,
-            means we can get on with our issue at hand, without having to work through a plugin we do not understand.
-            -->
-            <groupId>org.jboss.marshalling</groupId>
-            <artifactId>jboss-marshalling-river</artifactId>
-            <version>2.0.6.Final</version>
-            <scope>test</scope>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-support</artifactId>
+            <version>3.4</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
