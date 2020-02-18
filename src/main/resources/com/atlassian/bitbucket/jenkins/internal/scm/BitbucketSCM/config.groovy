@@ -9,6 +9,10 @@ f.section() {
         c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
 
+    f.entry(title: _("bitbucket.scm.sshcredentials"), field: "sshCredentialsId") {
+        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
+    }
+
     f.entry(title: _("bitbucket.scm.server"), field: "serverId") {
         f.select(context: app, checkMethod: "post")
     }

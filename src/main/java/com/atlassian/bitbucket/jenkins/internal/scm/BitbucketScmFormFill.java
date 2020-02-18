@@ -11,6 +11,8 @@ public interface BitbucketScmFormFill {
 
     ListBoxModel doFillCredentialsIdItems(String baseUrl, String credentialsId);
 
+    ListBoxModel doFillSshCredentialsIdItems(String baseUrl, String credentialsId);
+
     HttpResponse doFillProjectNameItems(String serverId, String credentialsId, String projectName);
 
     HttpResponse doFillRepositoryNameItems(String serverId,

@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -82,6 +83,23 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                         ACL.SYSTEM,
                         instance,
                         StandardUsernamePasswordCredentials.class,
+                        URIRequirementBuilder.fromUri(baseUrl).build(),
+                        CredentialsMatchers.always());
+    }
+
+    @Override
+    public ListBoxModel doFillSshCredentialsIdItems(String baseUrl, String credentialsId) {
+        Jenkins instance = Jenkins.get();
+        if (!instance.hasPermission(Jenkins.ADMINISTER)) {
+            return new StandardListBoxModel().includeCurrentValue(credentialsId);
+        }
+
+        return new StandardListBoxModel()
+                .includeEmptyValue()
+                .includeMatchingAs(
+                        ACL.SYSTEM,
+                        instance,
+                        BasicSSHUserPrivateKey.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always());
     }
