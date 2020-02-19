@@ -158,6 +158,10 @@ public class BitbucketSCMStep extends SCMStep {
         return credentialsId;
     }
 
+    public String getSshCredentialsId() {
+        return sshCredentialsId;
+    }
+
     public String getId() {
         return id;
     }
