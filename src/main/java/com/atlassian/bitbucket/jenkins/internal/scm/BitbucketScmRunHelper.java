@@ -22,11 +22,9 @@ public final class BitbucketScmRunHelper {
     }
 
     private static Optional<BitbucketSCMSource> getBitbucketSCMSource(Run<?, ?> run) {
-        if (run.getParent() != null) {
-            if (run.getParent().getParent() instanceof WorkflowMultiBranchProject) {
-                WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) run.getParent().getParent();
-                return project.getSCMSources().stream().filter(src -> src instanceof BitbucketSCMSource).map(scmSourc -> (BitbucketSCMSource) scmSourc).findFirst();
-            }
+        if (run.getParent().getParent() instanceof WorkflowMultiBranchProject) {
+            WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) run.getParent().getParent();
+            return project.getSCMSources().stream().filter(src -> src instanceof BitbucketSCMSource).map(scmSource -> (BitbucketSCMSource) scmSource).findFirst();
         }
         return empty();
     }
