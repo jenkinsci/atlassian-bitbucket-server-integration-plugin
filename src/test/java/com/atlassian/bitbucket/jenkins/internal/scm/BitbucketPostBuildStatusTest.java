@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
 import com.google.inject.Injector;
 import hudson.model.AbstractBuild;
+import hudson.model.FreeStyleProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
@@ -54,7 +55,7 @@ public class BitbucketPostBuildStatusTest {
     @Mock
     private PrintStream logger;
     @Mock
-    private Run<?, ?> notABuild;
+    private Run<FreeStyleProject, ?> notABuild;
     @Mock
     private Revision revision;
     @Mock
@@ -70,6 +71,8 @@ public class BitbucketPostBuildStatusTest {
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
         when(build.getProject().getScm()).thenReturn(mock(BitbucketSCM.class));
+        FreeStyleProject workflowJob = mock(FreeStyleProject.class);
+        when(notABuild.getParent()).thenReturn(workflowJob);
     }
 
     @Test
