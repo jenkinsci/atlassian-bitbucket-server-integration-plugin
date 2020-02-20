@@ -310,9 +310,9 @@ public class BitbucketSCM extends SCM {
         return repositories.get(0);
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol protocol) {
         return cloneUrls.stream()
-                .filter(link -> "http".equals(link.getName()))
+                .filter(link -> protocol.filter.equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
@@ -348,7 +348,8 @@ public class BitbucketSCM extends SCM {
 
     private void setRepositoryDetails(@CheckForNull String credentialsId, @CheckForNull String sshCredentialsId,
                                       @Nullable String serverId, String mirrorName, BitbucketRepository repository) {
-        String cloneUrl = getCloneUrl(repository.getCloneUrls());
+        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
+        String cloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
         BitbucketSCMRepository bitbucketSCMRepository =
                 new BitbucketSCMRepository(credentialsId, sshCredentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
@@ -361,7 +362,8 @@ public class BitbucketSCM extends SCM {
         if (isBlank(serverId)) {
             return;
         }
-        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls());
+        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
+        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls(), cloneProtocol);
         BitbucketRepository underlyingRepo = repository.getRepository();
         BitbucketSCMRepository bitbucketSCMRepository =
                 new BitbucketSCMRepository(credentialsId, sshCredentialsId, underlyingRepo.getProject().getName(),
