@@ -143,8 +143,8 @@ public class BitbucketSCMIT {
                 .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
                 .expect()
                 .statusCode(200)
-                .body("values[0].key", Matchers.equalTo(build.getId()))
-                .body("values[0].name", Matchers.equalTo(build.getProject().getName()))
+                .body("values[0].key", Matchers.equalTo(build.getProject().getName()))
+                .body("values[0].name", Matchers.equalTo(build.getProject().getDisplayName()))
                 .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
                 .when()
                 .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" +
