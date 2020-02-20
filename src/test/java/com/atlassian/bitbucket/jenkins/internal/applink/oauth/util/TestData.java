@@ -7,12 +7,10 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.co
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
 
 public class TestData {
 
-    public static final String USERNAME = "bob";
-    public static final Principal USER = () -> USERNAME;
+    public static final String USER = "bob";
 
     public static final KeyPair KEYS;
 

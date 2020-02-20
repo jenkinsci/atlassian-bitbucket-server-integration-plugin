@@ -5,7 +5,6 @@ import net.jcip.annotations.Immutable;
 
 import javax.annotation.Nullable;
 import java.net.URI;
-import java.security.Principal;
 import java.time.Clock;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
@@ -28,13 +27,13 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  *          .build();
  * </pre>
  *
- * <p>An authorized request token can be built by calling {@link #authorize(Principal, String)} method on an unauthorized request
+ * <p>An authorized request token can be built by calling {@link #authorize(String, String)} method on an unauthorized request
  * token
  * <pre>
  *   ServiceProviderToken authorizedRequestToken = unauthorizedRequestToken.authorize(fred);
  * </pre>
  * or from scratch in a similar way to unauthorized request tokens, but also setting the authorizedBy attribute
- * by calling {@link ServiceProviderTokenBuilder#authorizedBy(Principal)} before calling build()
+ * by calling {@link ServiceProviderTokenBuilder#authorizedBy(String)} before calling build()
  * <pre>
  *   ServiceProviderToken authorizedRequestToken = ServiceProviderToken.newRequestToken("bb6dd1391ce33b5bd3ecad1175139a39")
  *          .tokenSecret("29c3005cc5fbe5d431f27b29d6191ea3")
@@ -88,7 +87,7 @@ public final class ServiceProviderToken extends Token {
                     DEFAULT_ACCESS_TOKEN_TTL + 30 * 24 * 60 * 60 * 1000L);
 
     private final Authorization authorization;
-    private final Principal user;
+    private final String user;
     private final String verifier;
     private final long creationTime;
     private final long timeToLive;
@@ -146,13 +145,13 @@ public final class ServiceProviderToken extends Token {
      * If this is an unauthorized request token, this method will return a request token that has been authorized by the
      * {@code user}.
      *
-     * @param user     {@code Principal} of the user that has authorized the request token
+     * @param user     name of the user that has authorized the request token
      * @param verifier value used to prove the user authorizing the token is the same as the one swapping it for an
      *                 access token
      * @return authorized request token
      * @throws IllegalStateException thrown if the token is not a request token or has already been authorized or denied
      */
-    public ServiceProviderToken authorize(Principal user, String verifier) {
+    public ServiceProviderToken authorize(String user, String verifier) {
         requireNonNull(user, "user");
         if (isBlank(verifier)) {
             throw new IllegalArgumentException("verifier");
@@ -193,11 +192,11 @@ public final class ServiceProviderToken extends Token {
      * If this is an unauthorized request token, this method will return a request token that has been denied by the
      * {@code user}.
      *
-     * @param user {@code Principal} of the user that has denied the request token
+     * @param user name of the user that has denied the request token
      * @return denied request token
      * @throws IllegalStateException thrown if the token is not a request token or has already been authorized or denied
      */
-    public ServiceProviderToken deny(Principal user) {
+    public ServiceProviderToken deny(String user) {
         checkNotNull(user, "user");
         if (!isRequestToken()) {
             throw new IllegalStateException("token is not a request token");
@@ -246,10 +245,10 @@ public final class ServiceProviderToken extends Token {
      * If this is an authorized request token, returns the user that authorized the token.  If this is an access token,
      * it's the user the {@code Consumer} is making requests on behalf of.  Returns {@code null} otherwise.
      *
-     * @return {@code Principal} of the user that authorized the {@code Consumer} to make requests on behalf of themselves
+     * @return name of the user that authorized the {@code Consumer} to make requests on behalf of themselves
      */
     @Nullable
-    public Principal getUser() {
+    public String getUser() {
         return user;
     }
 
@@ -471,7 +470,7 @@ public final class ServiceProviderToken extends Token {
     public static final class ServiceProviderTokenBuilder extends TokenBuilder<ServiceProviderToken, ServiceProviderTokenBuilder> {
 
         private Authorization authorization;
-        private Principal user;
+        private String user;
         private String verifier;
         private long creationTime;
         private long timeToLive;
@@ -493,10 +492,10 @@ public final class ServiceProviderToken extends Token {
          * Sets the {@code user} that authorized the request token and returns {@code this} builder
          * to allow other optional attributes to be set or the final request {@code Token} instance to be constructed.
          *
-         * @param user Principal of the user that authorized the {@code Consumer} to make requests on behalf of themselves
+         * @param user name of the user that authorized the {@code Consumer} to make requests on behalf of themselves
          * @return {@code this} builder
          */
-        public ServiceProviderTokenBuilder authorizedBy(Principal user) {
+        public ServiceProviderTokenBuilder authorizedBy(String user) {
             this.user = user;
             this.authorization = Authorization.AUTHORIZED;
             return this;
@@ -506,10 +505,10 @@ public final class ServiceProviderToken extends Token {
          * Sets the {@code user} that denied the request token and returns {@code this} builder
          * to allow other optional attributes to be set or the final request {@code Token} instance to be constructed.
          *
-         * @param user Principal of the user that denied the {@code Consumer} to make requests on behalf of themselves
+         * @param user name of the user that denied the {@code Consumer} to make requests on behalf of themselves
          * @return {@code this} builder
          */
-        public ServiceProviderTokenBuilder deniedBy(Principal user) {
+        public ServiceProviderTokenBuilder deniedBy(String user) {
             this.user = user;
             this.authorization = Authorization.DENIED;
             return this;

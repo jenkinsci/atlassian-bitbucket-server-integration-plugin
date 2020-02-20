@@ -12,7 +12,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.annotation.Nullable;
 import java.net.URI;
-import java.security.Principal;
 import java.util.Objects;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newAccessToken;
@@ -22,7 +21,6 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -46,7 +44,7 @@ public class ServiceProviderTokenFactoryImplTest {
     public void testGenerateAccessToken() {
         URI callback = URI.create("http://some-callback-url/endpoint");
         String reqTokenValue = "req-token1";
-        Principal user = mock(Principal.class);
+        String user = "test-user";
         ServiceProviderToken requestToken = newRequestToken(reqTokenValue)
                 .callback(callback)
                 .consumer(RSA_CONSUMER)
@@ -67,7 +65,7 @@ public class ServiceProviderTokenFactoryImplTest {
     public void testGenerateAccessTokenInputIsAccessToken() {
         URI callback = URI.create("http://some-callback-url/endpoint");
         String tokenValue = "req-token1";
-        Principal user = mock(Principal.class);
+        String user = "test-user";
         ServiceProviderToken token = newAccessToken(tokenValue)
                 .callback(callback)
                 .consumer(RSA_CONSUMER)

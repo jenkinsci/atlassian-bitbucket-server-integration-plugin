@@ -66,7 +66,7 @@ public class AuthorizeServlet {
         if (ANONYMOUS.equals(userPrincipal)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         } else {
-            ServiceProviderToken newToken = token.authorize(userPrincipal, verifier);
+            ServiceProviderToken newToken = token.authorize(userPrincipal.getName(), verifier);
             tokenStore.put(newToken);
             response.setContentType("application/json");
             OutputStream out = response.getOutputStream();
