@@ -20,6 +20,9 @@ import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.scm.api.*;
 import jenkins.triggers.SCMTriggerItem;
 import org.eclipse.jgit.transport.RemoteConfig;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -32,6 +35,7 @@ import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.wrap;
 
 @Singleton
 public class BitbucketWebhookConsumer {
@@ -98,7 +102,11 @@ public class BitbucketWebhookConsumer {
 
     private static Collection<? extends SCM> getScms(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         SCMTriggerItem triggerItem = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(job);
-        if (triggerItem != null) {
+        if (triggerItem instanceof WorkflowJob) {
+            if (((WorkflowJob) triggerItem).getDefinition() instanceof CpsScmFlowDefinition) {
+                return Collections.singletonList(((CpsScmFlowDefinition)((WorkflowJob) triggerItem).getDefinition()).getScm());
+            }
+        } else if (triggerItem != null) {
             return triggerItem.getSCMs();
         }
         return Collections.emptySet();
