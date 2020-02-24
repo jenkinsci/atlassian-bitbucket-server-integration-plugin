@@ -74,8 +74,12 @@ public class BitbucketWebhookConsumer {
     private static Collection<? extends SCM> getScms(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         SCMTriggerItem triggerItem = SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem(job);
         if (triggerItem instanceof WorkflowJob) {
-            if (((WorkflowJob) triggerItem).getDefinition() instanceof CpsScmFlowDefinition) {
-                return Collections.singletonList(((CpsScmFlowDefinition) ((WorkflowJob) triggerItem).getDefinition()).getScm());
+            WorkflowJob workflowJob = (WorkflowJob) triggerItem;
+            if (workflowJob.getDefinition() instanceof CpsScmFlowDefinition) {
+                CpsScmFlowDefinition scmFlowDefinition = (CpsScmFlowDefinition) workflowJob.getDefinition();
+                return Collections.singletonList(scmFlowDefinition.getScm());
+            } else {
+                LOGGER.info(format("Webhook triggering job with no SCM: %s ", workflowJob.getFullDisplayName()));
             }
         } else if (triggerItem != null) {
             return triggerItem.getSCMs();
