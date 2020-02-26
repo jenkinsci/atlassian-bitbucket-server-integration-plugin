@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
 import hudson.model.Result;
+import hudson.tasks.junit.TestResultAction;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
@@ -16,15 +17,18 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBuildStatusFactoryTest {
 
-    private static final String BUILD_URL = "http://www.example.com:8000";
     private static final String BUILD_DISPLAY_NAME = "#15";
     private static final String BUILD_DURATION = "400 secs";
+    private static final String BUILD_URL = "http://www.example.com:8000";
     private static final String PROJECT_NAME = "Project Name";
 
     @Rule
@@ -50,6 +54,16 @@ public class BitbucketBuildStatusFactoryTest {
     }
 
     @Test
+    public void testBuildFailedStatus() {
+        when(build.isBuilding()).thenReturn(false);
+        when(build.getResult()).thenReturn(Result.FAILURE);
+
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+
+        assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
+    }
+
+    @Test
     public void testBuildInProgressStatus() {
         when(build.isBuilding()).thenReturn(true);
 
@@ -70,8 +84,20 @@ public class BitbucketBuildStatusFactoryTest {
 
     @Test
     public void testFullBuildSuccessfulStatus() {
+        String externalId = project.getFullName() + BUILD_DISPLAY_NAME;
+        long duration = 123456L;
+        int failCount = 1;
+        int skipCount = 2;
+        int passCount = 3;
+        TestResultAction testResultAction = mock(TestResultAction.class);
         when(build.isBuilding()).thenReturn(false);
         when(build.getResult()).thenReturn(Result.SUCCESS);
+        when(build.getExternalizableId()).thenReturn(externalId);
+        when(build.getDuration()).thenReturn(duration);
+        when(build.getAction(TestResultAction.class)).thenReturn(testResultAction);
+        when(testResultAction.getFailCount()).thenReturn(failCount);
+        when(testResultAction.getSkipCount()).thenReturn(skipCount);
+        when(testResultAction.getTotalCount()).thenReturn(6);
 
         BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
 
@@ -81,15 +107,19 @@ public class BitbucketBuildStatusFactoryTest {
         assertThat(result.getKey(), equalTo(PROJECT_NAME));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
         assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(build)));
+        assertThat(result.getResultKey(), equalTo(externalId));
+        assertThat(result.getDuration(), equalTo(duration));
+        assertThat(result.getTestResults(), notNullValue());
+        assertThat(result.getTestResults().getSummary(), notNullValue());
+        assertThat(result.getTestResults().getSummary().getFailed(), equalTo(failCount));
+        assertThat(result.getTestResults().getSummary().getIgnored(), equalTo(skipCount));
+        assertThat(result.getTestResults().getSummary().getSuccessful(), equalTo(passCount));
     }
 
     @Test
-    public void testBuildFailedStatus() {
-        when(build.isBuilding()).thenReturn(false);
-        when(build.getResult()).thenReturn(Result.FAILURE);
-
+    public void testDurationIsNotSetForInProgress() {
+        when(build.isBuilding()).thenReturn(true);
         BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
-
-        assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
+        assertThat(result.getDuration(), nullValue());
     }
 }
