@@ -14,6 +14,11 @@ It streamlines this entire process, removing the need for multiple plugins to ac
 
 The plugin enables this in two ways. It adds a Bitbucket Server Source Code Manager (SCM) to Jenkins, making it easy to set up a connection to a Bitbucket Server repository when setting up a Jenkins job. It also adds a build trigger to Jenkins that automatically creates a webhook against Bitbucket Server that triggers the Jenkins job on relevant pushes.
 
+## Requirements
+
+- Bitbucket Server 5.5 and above
+- Jenkins 2.162 and above
+
 ## Plugin features
 
 - Support for Jenkins Pipeline and Freestyle projects
