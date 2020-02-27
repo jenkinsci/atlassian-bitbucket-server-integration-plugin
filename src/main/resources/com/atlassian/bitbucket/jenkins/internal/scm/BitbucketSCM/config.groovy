@@ -9,10 +9,6 @@ f.section() {
         c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
 
-    f.entry(title: _("bitbucket.scm.sshcredentials"), field: "sshCredentialsId") {
-        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
-    }
-
     f.entry(title: _("bitbucket.scm.server"), field: "serverId") {
         f.select(context: app, checkMethod: "post")
     }
@@ -27,6 +23,10 @@ f.section() {
 
     f.entry(title: _("bitbucket.scm.mirror"), field: "mirrorName") {
         f.select(checkMethod: "post")
+    }
+
+    f.entry(title: _("bitbucket.scm.ssh-credentials"), field: "sshCredentialsId") {
+        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
 
     f.entry(title: _("Branches to build")) {
