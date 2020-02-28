@@ -21,7 +21,7 @@ The plugin enables this in two ways. It adds a Bitbucket Server Source Code Mana
 
 ## Plugin features
 
-- Support for Jenkins Pipeline and Freestyle projects
+- Support for Jenkins Pipeline, Multibranch Pipeline, and Freestyle projects
 - Secure credential management in Jenkins for cloning from Bitbucket Server
 - Automatic webhook creation in a Bitbucket Server repo when a Jenkins job is saved
 - Quick selection of Bitbucket Server projects and repos for a Jenkins job through a dropdown
@@ -119,6 +119,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+
+### 1.1.0 (28 February 2020)
+- Released support for Multibranch Pipeline projects
+- Fix issues JENKINS-60917 and JENKINS-60649 - Webhooks not registering before first build of a pipeline job
+- Fix issues JENKINS-60956 and JENKINS-60809
 
 ### 1.0.4 (28 January 2020)
 - Fix issues JENKINS-60699 and JENKINS-60642
