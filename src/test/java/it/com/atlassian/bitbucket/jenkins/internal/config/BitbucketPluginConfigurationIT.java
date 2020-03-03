@@ -65,7 +65,6 @@ public class BitbucketPluginConfigurationIT {
         addBitbucketButton.click();
 
         HtmlAnchor addServerAnchor = getLinkByText(form, "Instance details");
-        addServerAnchor.click();
         waitTillItemIsRendered(() -> form.getInputsByName("_.serverName"));
 
         //Set required fields in the config form

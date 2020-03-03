@@ -18,6 +18,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistra
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -29,6 +30,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * 2. Job credential is used. If failed then,
  * 3. Global credentials is used.
  */
+@Singleton
 public class RetryingWebhookHandler {
 
     private final InstanceBasedNameGenerator instanceBasedNameGenerator;
