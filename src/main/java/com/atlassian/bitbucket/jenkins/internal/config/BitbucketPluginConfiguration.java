@@ -83,7 +83,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     }
 
     /**
-     * Returns a list of all servers that have been configured by the user and pass the validate() function with no
+     * Returns a list of all servers that have been configured by the user and pass the process() function with no
      * errors.
      *
      * @return a list of all valid configured servers
