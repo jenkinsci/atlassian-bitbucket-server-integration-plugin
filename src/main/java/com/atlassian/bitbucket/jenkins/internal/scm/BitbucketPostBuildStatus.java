@@ -14,7 +14,7 @@ import hudson.plugins.git.util.BuildData;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScm;
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScmOrBitbucketScmSource;
 
 class BitbucketPostBuildStatus extends GitSCMExtension {
 
@@ -39,7 +39,7 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
             return;
         }
 
-        if (!hasBitbucketScm(run)) {
+        if (!hasBitbucketScmOrBitbucketScmSource(run)) {
             return;
         }
 

@@ -40,6 +40,7 @@ public class RequestTokenRestEndpoint {
             "As per OAuth spec version 1.0 Revision A Section 6.1 <http://oauth.net/core/1.0a#auth_step1>, the " +
             "oauth_callback parameter is required and must be either a valid, absolute URI using the http or https scheme, " +
             "or 'oob' if the callback has been established out of band. The following invalid URI was supplied '%s'";
+    public static final String REQUEST_TOKEN_PATH_END = "request-token";
 
     private static final Logger LOGGER = Logger.getLogger(RequestTokenRestEndpoint.class.getName());
 

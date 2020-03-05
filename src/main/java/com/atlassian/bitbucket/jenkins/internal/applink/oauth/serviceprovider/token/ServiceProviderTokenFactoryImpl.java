@@ -3,16 +3,19 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.t
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.Randomizer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
+import net.oauth.OAuthMessage;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.URI;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newAccessToken;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newRequestToken;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.logging.Level.FINE;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -94,5 +97,55 @@ public class ServiceProviderTokenFactoryImpl implements ServiceProviderTokenFact
             builder.creationTime(token.getSession().getCreationTime());
         }
         return builder.build();
+    }
+
+    public static final class RequestTokenGenerationRequest {
+
+        private final Consumer consumer;
+        private final URI callback;
+        private final OAuthMessage message;
+
+        private RequestTokenGenerationRequest(Builder builder) {
+            this.consumer = builder.consumer;
+            this.callback = builder.callback;
+            this.message = builder.message;
+        }
+
+        public Consumer getConsumer() {
+            return consumer;
+        }
+
+        public Optional<URI> getCallback() {
+            return ofNullable(callback);
+        }
+
+        public Optional<OAuthMessage> getMessage() {
+            return ofNullable(message);
+        }
+
+        public static final class Builder {
+
+            private final Consumer consumer;
+            private URI callback;
+            private OAuthMessage message;
+
+            public Builder(Consumer consumer) {
+                this.consumer = requireNonNull(consumer, "consumer");
+            }
+
+            public Builder callback(URI callback) {
+                this.callback = callback;
+                return this;
+            }
+
+            public Builder message(OAuthMessage message) {
+                this.message = message;
+                return this;
+            }
+
+            public RequestTokenGenerationRequest build() {
+                return new RequestTokenGenerationRequest(this);
+            }
+        }
     }
 }

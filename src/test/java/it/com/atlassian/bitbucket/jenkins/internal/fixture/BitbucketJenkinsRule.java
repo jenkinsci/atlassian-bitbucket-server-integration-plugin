@@ -7,6 +7,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -122,7 +123,7 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
 
         if (READ_PERSONAL_TOKEN.get() == null) {
             READ_PERSONAL_TOKEN.set(createPersonalToken(PROJECT_READ_PERMISSION));
-            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(ADMIN_PERSONAL_TOKEN.get().getId()));
+            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(READ_PERSONAL_TOKEN.get().getId()));
         }
         String readCredentialsId = UUID.randomUUID().toString();
         Credentials readCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, readCredentialsId,
@@ -147,6 +148,10 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
 
     public BitbucketServerConfiguration getBitbucketServerConfiguration() {
         return bitbucketServerConfiguration;
+    }
+
+    public UsernamePasswordCredentials getAdminToken() {
+        return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
     }
 
     public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {

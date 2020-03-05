@@ -16,14 +16,15 @@ import hudson.BulkChange;
 import hudson.CopyOnWrite;
 import hudson.XmlFile;
 import hudson.model.Saveable;
-import hudson.model.listeners.SaveableListener;
 import hudson.util.CopyOnWriteMap;
 import hudson.util.Secret;
 import hudson.util.XStream2;
 import jenkins.model.Jenkins;
 import jenkins.util.io.OnMaster;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -36,27 +37,35 @@ import java.util.logging.Logger;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Authorization.AUTHORIZED;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newAccessToken;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newRequestToken;
-import static java.lang.System.currentTimeMillis;
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenUtils.isTokenExpired;
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenUtils.isTokenSessionExpired;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.logging.Level.SEVERE;
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+/**
+ * A {@link ServiceProviderTokenStore} implementation that persists the {@link ServiceProviderToken tokens} to an XML
+ * file
+ * <p>
+ * Only one instance of this class must be created per Jenkins instance.
+ *
+ * @see Saveable
+ * @see XStream2
+ */
+@Singleton
 public class PersistentServiceProviderTokenStore implements ServiceProviderTokenStore, Saveable, OnMaster {
-
-    @VisibleForTesting
-    static final transient XStream2 TOKENS;
 
     private static final Logger log = Logger.getLogger(PersistentServiceProviderTokenStore.class.getName());
 
-    static {
-        TOKENS = new XStream2();
-        TOKENS.registerConverter(new NamedMapConverter(TOKENS.getMapper(), "oauth-token",
-                "token-value", String.class, "token-details", ServiceProviderToken.class), 100);
-    }
+    private static final String TOKEN_STORE_ENTRY_NAME = "oauth-token";
+    private static final String TOKEN_STORE_KEY_NAME = "token-value";
+    private static final String TOKEN_STORE_VALUE_NAME = "token-details";
+
+    @VisibleForTesting
+    final transient XStream2 tokenStream;
 
     @CopyOnWrite
     @VisibleForTesting
@@ -64,31 +73,28 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
 
     @Inject
     public PersistentServiceProviderTokenStore(ServiceProviderConsumerStore consumerStore) {
-        TOKENS.registerConverter(new ServiceProviderTokenConverter(consumerStore));
-    }
-
-    private static boolean isSessionExpired(ServiceProviderToken.Session session) {
-        return session != null && currentTimeMillis() > session.getLastRenewalTime() + session.getTimeToLive();
-    }
-
-    private static boolean isTokenExpired(ServiceProviderToken token) {
-        return currentTimeMillis() > token.getCreationTime() + token.getTimeToLive();
+        tokenStream = new XStream2();
+        tokenStream.registerConverter(new NamedMapConverter(tokenStream.getMapper(), TOKEN_STORE_ENTRY_NAME,
+                TOKEN_STORE_KEY_NAME, String.class, TOKEN_STORE_VALUE_NAME, ServiceProviderToken.class), 100);
+        tokenStream.registerConverter(new ServiceProviderTokenConverter(consumerStore));
     }
 
     @Override
-    public Optional<ServiceProviderToken> get(String token) throws StoreException {
+    public Optional<ServiceProviderToken> get(String token) {
+        requireNonNull(token, "token");
         load();
         return ofNullable(tokenMap.get(token));
     }
 
     @Override
     public Iterable<ServiceProviderToken> getAccessTokensForUser(String username) {
+        requireNonNull(username, "username");
         load();
-        return tokenMap.values().stream().filter(token -> equalsIgnoreCase(username, token.getUser())).collect(toList());
+        return tokenMap.values().stream().filter(token -> Objects.equals(username, token.getUser())).collect(toList());
     }
 
     @Override
-    public ServiceProviderToken put(ServiceProviderToken token) throws StoreException {
+    public ServiceProviderToken put(ServiceProviderToken token) {
         requireNonNull(token, "token");
         load();
         tokenMap.put(token.getToken(), token);
@@ -98,6 +104,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
 
     @Override
     public void remove(String token) {
+        requireNonNull(token, "token");
         load();
         if (tokenMap.remove(token) != null) {
             save();
@@ -105,7 +112,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     }
 
     @Override
-    public void removeExpiredTokens() throws StoreException {
+    public void removeExpiredTokens() {
         load();
         boolean needToSave = false;
         for (ServiceProviderToken token : tokenMap.values()) {
@@ -119,11 +126,11 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     }
 
     @Override
-    public void removeExpiredSessions() throws StoreException {
+    public void removeExpiredSessions() {
         load();
         boolean needToSave = false;
         for (ServiceProviderToken token : tokenMap.values()) {
-            if (isSessionExpired(token.getSession()) && tokenMap.remove(token.getToken()) != null) {
+            if (isTokenSessionExpired(token) && tokenMap.remove(token.getToken()) != null) {
                 needToSave = true;
             }
         }
@@ -134,12 +141,13 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
 
     @Override
     public void removeByConsumer(String consumerKey) {
+        requireNonNull(consumerKey, "consumerKey");
         load();
         boolean needToSave = false;
         for (ServiceProviderToken token : tokenMap.values()) {
             Consumer consumer = token.getConsumer();
             if (consumer != null && Objects.equals(consumerKey, consumer.getKey()) &&
-                    tokenMap.remove(token.getToken()) != null) {
+                tokenMap.remove(token.getToken()) != null) {
                 needToSave = true;
             }
         }
@@ -159,7 +167,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
                 configFile.unmarshal(this);
             } catch (IOException e) {
                 log.log(SEVERE, "Failed to load OAuth tokens from disk", e);
-                throw new StoreException("Failed to load OAuth tokens");
+                throw new StoreException("Failed to load OAuth tokens", e);
             }
         }
         // tokenMap will be unmarshalled as a HashMap if the config file exists, otherwise will be null. Either
@@ -178,9 +186,8 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
             getConfigFile().write(this);
         } catch (IOException e) {
             log.log(SEVERE, "Failed to persist OAuth tokens to disk", e);
-            throw new StoreException("Failed to persist OAuth tokens");
+            throw new StoreException("Failed to persist OAuth tokens", e);
         }
-        SaveableListener.fireOnChange(this, getConfigFile());
     }
 
     /**
@@ -188,8 +195,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
      */
     @VisibleForTesting
     protected XmlFile getConfigFile() {
-        // TODO: use a more specific directory than root - https://bulldog.internal.atlassian.com/browse/BBSDEV-21416
-        return new XmlFile(TOKENS, new File(Jenkins.get().getRootDir(), "oauth-tokens.xml"));
+        return new XmlFile(tokenStream, new File(Jenkins.get().getRootDir(), "oauth-tokens.xml"));
     }
 
     private static final class ServiceProviderTokenConverter implements Converter {
@@ -215,95 +221,6 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
 
         private ServiceProviderTokenConverter(ServiceProviderConsumerStore consumerStore) {
             this.consumerStore = consumerStore;
-        }
-
-        private static void addProperties(HierarchicalStreamWriter writer, Map<String, String> properties) {
-            if (properties != null) {
-                writer.startNode(PROPERTIES);
-                properties.forEach((key, value) -> addNode(writer, key, value));
-                writer.endNode();
-            }
-        }
-
-        private static void addSession(HierarchicalStreamWriter writer, ServiceProviderToken.Session session) {
-            if (session != null) {
-                writer.startNode(SESSION);
-                addNode(writer, SESSION_HANDLE, encrypt(session.getHandle()));
-                addNode(writer, SESSION_CREATION_TIME, session.getCreationTime());
-                addNode(writer, SESSION_LAST_RENEWAL_TIME, session.getLastRenewalTime());
-                addNode(writer, SESSION_TIME_TO_LIVE, session.getTimeToLive());
-                writer.endNode();
-            }
-        }
-
-        private static void addNode(HierarchicalStreamWriter writer, String name, Object value) {
-            writer.startNode(name);
-            writer.setValue(Objects.toString(value));
-            writer.endNode();
-        }
-
-        private static Map<String, String> unmarshalProperties(HierarchicalStreamReader reader) {
-            Map<String, String> properties = new HashMap<>();
-            while (reader.hasMoreChildren()) {
-                reader.moveDown();
-                properties.put(reader.getNodeName(), reader.getValue());
-                reader.moveUp();
-            }
-            return properties;
-        }
-
-        private static ServiceProviderToken.Session unmarshalSession(HierarchicalStreamReader reader) {
-            String handle = null;
-            Long creationTime = null;
-            Long lastRenewalTime = null;
-            Long timeToLive = null;
-            while (reader.hasMoreChildren()) {
-                reader.moveDown();
-                String name = reader.getNodeName();
-                String value = reader.getValue();
-                switch (name) {
-                    case SESSION_HANDLE:
-                        handle = decrypt(value);
-                        break;
-                    case SESSION_CREATION_TIME:
-                        creationTime = Long.valueOf(value);
-                        break;
-                    case SESSION_LAST_RENEWAL_TIME:
-                        lastRenewalTime = Long.valueOf(value);
-                        break;
-                    case SESSION_TIME_TO_LIVE:
-                        timeToLive = Long.valueOf(value);
-                }
-                reader.moveUp();
-            }
-            if (handle == null) {
-                return null;
-            }
-            ServiceProviderToken.Session.Builder session = ServiceProviderToken.Session.newSession(handle);
-            if (creationTime != null) {
-                session.creationTime(creationTime);
-            }
-            if (lastRenewalTime != null) {
-                session.lastRenewalTime(lastRenewalTime);
-            }
-            if (timeToLive != null) {
-                session.timeToLive(timeToLive);
-            }
-            return session.build();
-        }
-
-        private static String encrypt(String unencryptedValue) {
-            if (isBlank(unencryptedValue)) {
-                return unencryptedValue;
-            }
-            return Secret.fromString(unencryptedValue).getEncryptedValue();
-        }
-
-        private static String decrypt(String encryptedValue) {
-            if (isBlank(encryptedValue)) {
-                return encryptedValue;
-            }
-            return Secret.toString(Secret.decrypt(encryptedValue));
         }
 
         @Override
@@ -391,6 +308,11 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
                         break;
                     case PROPERTIES:
                         properties = unmarshalProperties(reader);
+                        break;
+                    default:
+                        log.fine(() ->
+                                String.format("Unknown token entry node '%s' with value '%s' is ignored.",
+                                        name, value));
                 }
                 reader.moveUp();
             }
@@ -424,6 +346,104 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
                 log.log(SEVERE, "Failed to unmarshal tokens", e);
                 throw new ConversionException("Failed to unmarshal tokens", e);
             }
+        }
+
+        private static void addProperties(HierarchicalStreamWriter writer, @Nullable Map<String, String> properties) {
+            if (properties != null) {
+                writer.startNode(PROPERTIES);
+                properties.forEach((key, value) -> addNode(writer, key, value));
+                writer.endNode();
+            }
+        }
+
+        private static void addSession(HierarchicalStreamWriter writer,
+                                       @Nullable ServiceProviderToken.Session session) {
+            if (session != null) {
+                writer.startNode(SESSION);
+                addNode(writer, SESSION_HANDLE, encrypt(session.getHandle()));
+                addNode(writer, SESSION_CREATION_TIME, session.getCreationTime());
+                addNode(writer, SESSION_LAST_RENEWAL_TIME, session.getLastRenewalTime());
+                addNode(writer, SESSION_TIME_TO_LIVE, session.getTimeToLive());
+                writer.endNode();
+            }
+        }
+
+        private static void addNode(HierarchicalStreamWriter writer, String name, Object value) {
+            writer.startNode(name);
+            writer.setValue(Objects.toString(value));
+            writer.endNode();
+        }
+
+        private static Map<String, String> unmarshalProperties(HierarchicalStreamReader reader) {
+            Map<String, String> properties = new HashMap<>();
+            while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                properties.put(reader.getNodeName(), reader.getValue());
+                reader.moveUp();
+            }
+            return properties;
+        }
+
+        @Nullable
+        private static ServiceProviderToken.Session unmarshalSession(HierarchicalStreamReader reader) {
+            String handle = null;
+            Long creationTime = null;
+            Long lastRenewalTime = null;
+            Long timeToLive = null;
+            while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                String name = reader.getNodeName();
+                String value = reader.getValue();
+                switch (name) {
+                    case SESSION_HANDLE:
+                        handle = decrypt(value);
+                        break;
+                    case SESSION_CREATION_TIME:
+                        creationTime = Long.valueOf(value);
+                        break;
+                    case SESSION_LAST_RENEWAL_TIME:
+                        lastRenewalTime = Long.valueOf(value);
+                        break;
+                    case SESSION_TIME_TO_LIVE:
+                        timeToLive = Long.valueOf(value);
+                        break;
+                    default:
+                        log.fine(() ->
+                                String.format("Unknown token session entry node '%s' with value '%s' is ignored.",
+                                        name, value));
+                }
+                reader.moveUp();
+            }
+            if (handle == null) {
+                return null;
+            }
+            ServiceProviderToken.Session.Builder session = ServiceProviderToken.Session.newSession(handle);
+            if (creationTime != null) {
+                session.creationTime(creationTime);
+            }
+            if (lastRenewalTime != null) {
+                session.lastRenewalTime(lastRenewalTime);
+            }
+            if (timeToLive != null) {
+                session.timeToLive(timeToLive);
+            }
+            return session.build();
+        }
+
+        @Nullable
+        private static String encrypt(@Nullable String unencryptedValue) {
+            if (isBlank(unencryptedValue)) {
+                return unencryptedValue;
+            }
+            return Secret.fromString(unencryptedValue).getEncryptedValue();
+        }
+
+        @Nullable
+        private static String decrypt(@Nullable String encryptedValue) {
+            if (isBlank(encryptedValue)) {
+                return encryptedValue;
+            }
+            return Secret.toString(Secret.decrypt(encryptedValue));
         }
     }
 }

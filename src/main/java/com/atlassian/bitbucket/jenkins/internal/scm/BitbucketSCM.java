@@ -138,8 +138,8 @@ public class BitbucketSCM extends SCM {
     }
 
     /**
-     * Regenerate SCM by looking up new repo URLs etc
-     * @param oldScm
+     * Regenerate SCM by looking up new repo URLs etc.
+     * @param oldScm old scm to copy values from
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
         this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), oldScm.getExtensions(),

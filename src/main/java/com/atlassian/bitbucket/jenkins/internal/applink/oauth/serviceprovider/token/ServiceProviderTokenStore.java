@@ -25,7 +25,7 @@ public interface ServiceProviderTokenStore {
      *         {@code ServiceProviderToken} instance matching the {@code token} parameter
      * @throws StoreException thrown if there is a problem storing the {@code ServiceProviderToken}
      */
-    Optional<ServiceProviderToken> get(String token) throws StoreException;
+    Optional<ServiceProviderToken> get(String token);
 
     /**
      * Retrieves all the access tokens the user has approved.
@@ -42,7 +42,7 @@ public interface ServiceProviderTokenStore {
      * @return the {@code ServiceProviderToken} that was stored
      * @throws StoreException thrown if there is a problem loading the {@code ServiceProviderToken}
      */
-    ServiceProviderToken put(ServiceProviderToken token) throws StoreException;
+    ServiceProviderToken put(ServiceProviderToken token);
 
     /**
      * Remove a {@code ServiceProviderToken} from the store whose {@code token} attribute value is equal to the
@@ -52,7 +52,7 @@ public interface ServiceProviderTokenStore {
      * @throws StoreException thrown if there is a problem removing the {@code ServiceProviderToken}
      * @since 1.5.0
      */
-    void remove(String token) throws StoreException;
+    void remove(String token);
 
     /**
      * Remove all {@code ServiceProviderToken}s from the store that do not have sessions and whose {@code timeToLive}
@@ -68,7 +68,7 @@ public interface ServiceProviderTokenStore {
      * @throws StoreException thrown if there is a problem removing the expired {@code ServiceProviderToken}s
      * @since 1.5.0
      */
-    void removeExpiredTokens() throws StoreException;
+    void removeExpiredTokens();
 
     /**
      * Remove all sessions and {@code ServiceProviderToken}s from the store whose {@code session} has expired.
@@ -76,7 +76,7 @@ public interface ServiceProviderTokenStore {
      * @throws StoreException thrown if there is a problem removing the {@code ServiceProviderToken}s
      * @since 1.5.0
      */
-    void removeExpiredSessions() throws StoreException;
+    void removeExpiredSessions();
 
     /**
      * Remove all the {@code ServiceProviderToken}s created by the consumer.

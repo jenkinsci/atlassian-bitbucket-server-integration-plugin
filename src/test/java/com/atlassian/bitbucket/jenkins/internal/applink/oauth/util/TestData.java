@@ -40,12 +40,4 @@ public class TestData {
                 .callback(URI.create("http://consumer/callback"))
                 .build();
     }
-
-    private static String repeat(String str, int times) {
-        StringBuilder sb = new StringBuilder(str.length() * times);
-        for (int i = 0; i < times; i++) {
-            sb.append(str);
-        }
-        return sb.toString();
-    }
 }

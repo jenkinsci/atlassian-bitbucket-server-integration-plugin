@@ -1,9 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.util;
 
-import net.oauth.OAuth;
+import net.oauth.OAuth.Problems;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,10 +14,10 @@ import java.util.logging.Logger;
  */
 public class OAuthProblemUtils {
 
-    public static void logOAuthProblem(final OAuthMessage message,
-                                       final OAuthProblemException ope,
-                                       final Logger logger) {
-        if (OAuth.Problems.TIMESTAMP_REFUSED.equals(ope.getProblem())) {
+    public static void logOAuthProblem(OAuthMessage message,
+                                       OAuthProblemException ope,
+                                       Logger logger) {
+        if (Problems.TIMESTAMP_REFUSED.equals(ope.getProblem())) {
             logger.log(Level.WARNING, "Rejecting OAuth request for url \"{}\" due to invalid timestamp ({}). " +
                                       "This is most likely due to our system clock not being " +
                                       "synchronized with the consumer's clock.",
@@ -33,5 +35,25 @@ public class OAuthProblemUtils {
                     new Object[]{message.URL, ope.getProblem(), ope.getParameters()}
             );
         }
+    }
+
+    public static void logOAuthRequest(HttpServletRequest request,
+                                       String message,
+                                       Logger logger) {
+        logger.log(Level.FINE, () -> {
+            StringBuffer buffer = new StringBuffer();
+            buffer.append(message);
+            buffer.append(" Headers: [");
+            Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                buffer.append(headerName);
+                buffer.append(" = ");
+                buffer.append(request.getHeader(headerName));
+                buffer.append(", ");
+            }
+            buffer.append("]");
+            return buffer.toString();
+        });
     }
 }

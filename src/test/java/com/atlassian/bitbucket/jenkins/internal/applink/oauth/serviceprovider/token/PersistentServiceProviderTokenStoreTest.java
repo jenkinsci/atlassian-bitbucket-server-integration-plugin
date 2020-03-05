@@ -413,7 +413,7 @@ public class PersistentServiceProviderTokenStoreTest {
 
         @Override
         protected XmlFile getConfigFile() {
-            return new XmlFile(TOKENS, tokensXmlFile);
+            return new XmlFile(tokenStream, tokensXmlFile);
         }
     }
 }

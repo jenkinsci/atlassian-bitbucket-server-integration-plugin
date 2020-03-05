@@ -5,6 +5,7 @@ import hudson.model.Run;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
 import java.util.Optional;
 
@@ -16,7 +17,19 @@ public final class BitbucketScmRunHelper {
     private BitbucketScmRunHelper() {
     }
 
-    public static Optional<BitbucketSCM> getBitbucketScm(Run<?, ?> run) {
+    public static boolean hasBitbucketScmOrBitbucketScmSource(Run<?, ?> run) {
+        return getBitbucketScm(run).isPresent() || getBitbucketSCMSource(run).isPresent();
+    }
+
+    private static Optional<BitbucketSCMSource> getBitbucketSCMSource(Run<?, ?> run) {
+        if (run.getParent().getParent() instanceof WorkflowMultiBranchProject) {
+            WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) run.getParent().getParent();
+            return project.getSCMSources().stream().filter(src -> src instanceof BitbucketSCMSource).map(scmSource -> (BitbucketSCMSource) scmSource).findFirst();
+        }
+        return empty();
+    }
+
+    private static Optional<BitbucketSCM> getBitbucketScm(Run<?, ?> run) {
         if (run instanceof AbstractBuild) {
             AbstractBuild<?, ?> build = (AbstractBuild<?, ?>) run;
             if (build.getProject().getScm() instanceof BitbucketSCM) {
@@ -32,9 +45,5 @@ public final class BitbucketScmRunHelper {
             }
         }
         return empty();
-    }
-
-    public static boolean hasBitbucketScm(Run<?, ?> run) {
-        return getBitbucketScm(run).isPresent();
     }
 }

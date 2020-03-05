@@ -31,6 +31,7 @@ public class AccessTokenRestEndpoint {
     public static final String OAUTH_SESSION_HANDLE = "oauth_session_handle";
     public static final String OAUTH_EXPIRES_IN = "oauth_expires_in";
     public static final String OAUTH_AUTHORIZATION_EXPIRES_IN = "oauth_authorization_expires_in";
+    public static final String ACCESS_TOKEN_PATH_END = "access-token";
 
     private static final Logger LOGGER = Logger.getLogger(AccessTokenRestEndpoint.class.getName());
 

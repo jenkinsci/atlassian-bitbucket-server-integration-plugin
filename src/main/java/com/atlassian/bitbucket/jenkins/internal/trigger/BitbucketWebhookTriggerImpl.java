@@ -13,6 +13,7 @@ import hudson.Extension;
 import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.triggers.Trigger;
@@ -23,6 +24,7 @@ import jenkins.model.ParameterizedJobMixIn;
 import jenkins.triggers.SCMTriggerItem;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -32,6 +34,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,7 +73,16 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             return;
         }
         SCMTriggerItem triggerItem = asSCMTriggerItem(job);
-        if (triggerItem != null) {
+        if (isWorkflowJob(triggerItem)) {
+            BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
+            Optional<SCM> maybeScm = fetchWorkflowSCM(triggerItem);
+            maybeScm.ifPresent(scm -> {
+                if (scm instanceof BitbucketSCM) {
+                    boolean isAdded = descriptor.addTrigger(project, (BitbucketSCM) scm);
+                    ((BitbucketSCM) scm).setWebhookRegistered(isAdded);
+                }
+            });
+        } else if (triggerItem != null) {
             BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
             triggerItem.getSCMs()
                     .stream()
@@ -92,6 +104,30 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             scm.setWebhookRegistered(true);
         }
         return isExists;
+    }
+
+    /**
+     * Returns true if a the item is an instance of a {@link WorkflowJob}.
+     *
+     * @param triggerItem the item to test
+     * @return true if the item is a {@link WorkflowJob}, false otherwise
+     */
+    boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
+        return triggerItem instanceof WorkflowJob;
+    }
+
+    /**
+     * Returns the SCM attached to a workflow job, if the job has a custom SCM and one is present
+     *
+     * @param triggerItem the WorkflowJob to access
+     * @return an optionally-wrapped SCM if the workflow job has a custom SCM; an empty {@link Optional} otherwise
+     */
+    Optional<SCM> fetchWorkflowSCM(SCMTriggerItem triggerItem) {
+        if (((WorkflowJob) triggerItem).getDefinition() instanceof CpsScmFlowDefinition) {
+            return Optional.of(((CpsScmFlowDefinition) ((WorkflowJob) triggerItem).getDefinition()).getScm());
+        }
+        // This occurs if a user enables the trigger on a job not using a custom SCM
+        return Optional.empty();
     }
 
     /**

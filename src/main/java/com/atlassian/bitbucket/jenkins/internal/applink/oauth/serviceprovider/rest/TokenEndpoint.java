@@ -12,6 +12,9 @@ import javax.inject.Inject;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.rest.AccessTokenRestEndpoint.ACCESS_TOKEN_PATH_END;
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.rest.RequestTokenRestEndpoint.REQUEST_TOKEN_PATH_END;
+
 public class TokenEndpoint extends InvisibleAction {
 
     private AccessTokenRestEndpoint accessTokenRestEndpoint;
@@ -32,14 +35,14 @@ public class TokenEndpoint extends InvisibleAction {
     }
 
     @RequirePOST
-    @WebMethod(name = "access-token")
+    @WebMethod(name = ACCESS_TOKEN_PATH_END)
     public void doAccessToken(StaplerRequest request,
                               StaplerResponse response) throws ServletException, IOException {
         accessTokenRestEndpoint.handleAccessToken(request, response);
     }
 
     @RequirePOST
-    @WebMethod(name = "request-token")
+    @WebMethod(name = REQUEST_TOKEN_PATH_END)
     public void doRequestToken(StaplerRequest req,
                                StaplerResponse resp) throws ServletException, IOException {
         consumerRegistrar.registerConsumer("stash-consumer", "foo");
