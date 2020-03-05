@@ -196,7 +196,7 @@ public class OAuth1aRequestFilterTest {
     public void assertThatFailureResultWithPermissionDeniedMessageIsReturnedForUserWithValidTokenThatCannotLogIn() throws IOException, ServletException {
         setupRequestWithParameters(rsaConsumerParameterMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
-        doThrow(new NoSuchUserException()).when(trustedUnderlyingSystemAuthorizerFilter)
+        doThrow(new NoSuchUserException("User gaurav does not exist")).when(trustedUnderlyingSystemAuthorizerFilter)
                 .authorize(argThat(u -> u.equals(USER)), argThat(r -> r.equals(request)), isA(HttpServletResponse.class), argThat(c -> c.equals(chain)));
 
         filter.doFilter(request, response, chain);

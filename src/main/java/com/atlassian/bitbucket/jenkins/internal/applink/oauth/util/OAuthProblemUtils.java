@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.util;
 
-import net.oauth.OAuth;
+import net.oauth.OAuth.Problems;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
 
@@ -14,10 +14,10 @@ import java.util.logging.Logger;
  */
 public class OAuthProblemUtils {
 
-    public static void logOAuthProblem(final OAuthMessage message,
-                                       final OAuthProblemException ope,
-                                       final Logger logger) {
-        if (OAuth.Problems.TIMESTAMP_REFUSED.equals(ope.getProblem())) {
+    public static void logOAuthProblem(OAuthMessage message,
+                                       OAuthProblemException ope,
+                                       Logger logger) {
+        if (Problems.TIMESTAMP_REFUSED.equals(ope.getProblem())) {
             logger.log(Level.WARNING, "Rejecting OAuth request for url \"{}\" due to invalid timestamp ({}). " +
                                       "This is most likely due to our system clock not being " +
                                       "synchronized with the consumer's clock.",
@@ -37,9 +37,10 @@ public class OAuthProblemUtils {
         }
     }
 
-    public static void logOAuthRequest(final HttpServletRequest request,
-                                       final String message, final java.util.logging.Logger logger) {
-        if (logger.isLoggable(Level.FINE)) {
+    public static void logOAuthRequest(HttpServletRequest request,
+                                       String message,
+                                       Logger logger) {
+        logger.log(Level.FINE, () -> {
             StringBuffer buffer = new StringBuffer();
             buffer.append(message);
             buffer.append(" Headers: [");
@@ -52,8 +53,7 @@ public class OAuthProblemUtils {
                 buffer.append(", ");
             }
             buffer.append("]");
-
-            logger.log(Level.FINE, buffer.toString());
-        }
+            return buffer.toString();
+        });
     }
 }

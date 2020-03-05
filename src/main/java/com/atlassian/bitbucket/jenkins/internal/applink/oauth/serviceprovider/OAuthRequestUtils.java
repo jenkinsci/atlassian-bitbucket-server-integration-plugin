@@ -70,7 +70,7 @@ public final class OAuthRequestUtils {
         // all the oauth request parameters must be present and oauth_token must not be empty
         return params.keySet().containsAll(OAUTH_DATA_REQUEST_PARAMS) &&
                params.containsKey(OAUTH_TOKEN) &&
-               isEmpty(params.get(OAUTH_TOKEN)) &&
+               !isEmpty(params.get(OAUTH_TOKEN)) &&
                !isAccessTokenRequest(request);
     }
 

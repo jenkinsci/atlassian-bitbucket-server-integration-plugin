@@ -6,6 +6,7 @@ import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 
+import javax.annotation.CheckForNull;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 public class TrustedJenkinsAuthorizer implements TrustedUnderlyingSystemAuthorizerFilter {
@@ -30,10 +32,11 @@ public class TrustedJenkinsAuthorizer implements TrustedUnderlyingSystemAuthoriz
                 filterChain.doFilter(request, response);
             }
         } else {
-            throw new NoSuchUserException();
+            throw new NoSuchUserException(format("No such user %s in the system", userName));
         }
     }
 
+    @CheckForNull
     User getUser(String userName) {
         return User.getById(userName, false);
     }
