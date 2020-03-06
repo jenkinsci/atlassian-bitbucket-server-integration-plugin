@@ -1,26 +1,18 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer;
 
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.AbstractPersistentStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.StoreException;
 import com.google.common.annotations.VisibleForTesting;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.converters.extended.NamedMapConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import hudson.BulkChange;
-import hudson.CopyOnWrite;
-import hudson.XmlFile;
 import hudson.model.Saveable;
-import hudson.model.listeners.SaveableListener;
-import hudson.util.CopyOnWriteMap;
 import hudson.util.XStream2;
-import jenkins.model.Jenkins;
-import jenkins.util.io.OnMaster;
 
-import java.io.File;
-import java.io.IOException;
+import javax.inject.Singleton;
 import java.net.URI;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -32,47 +24,49 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.logging.Logger;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
-import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
- * todo
+ * A {@link ServiceProviderConsumerStore} implementation that persists the {@link Consumer consumers} to an XML file
+ * <p>
+ * Only one instance of this class must be created per Jenkins instance.
+ *
+ * @see Saveable
+ * @see XStream2
  */
-public class PersistentServiceProviderConsumerStore implements ServiceProviderConsumerStore, Saveable, OnMaster {
-
-    @VisibleForTesting
-    static final transient XStream2 CONSUMERS;
+@Singleton
+public class PersistentServiceProviderConsumerStore extends AbstractPersistentStore<Consumer>
+        implements ServiceProviderConsumerStore {
 
     private static final Logger log = Logger.getLogger(PersistentServiceProviderConsumerStore.class.getName());
 
-    static {
-        CONSUMERS = new XStream2();
-        CONSUMERS.registerConverter(new NamedMapConverter(CONSUMERS.getMapper(), "oauth-consumer",
-                "consumer-key", String.class, "consumer-details", Consumer.class), 100);
-    }
-
-    @CopyOnWrite
-    @VisibleForTesting
-    volatile Map<String, Consumer> consumerEntryMap;
+    private static final String CONSUMER_STORE_ENTRY_NAME = "oauth-consumer";
+    private static final String CONSUMER_STORE_KEY_NAME = "consumer-key";
+    private static final String CONSUMER_STORE_VALUE_NAME = "consumer-details";
 
     public PersistentServiceProviderConsumerStore() {
-        CONSUMERS.registerConverter(new ConsumerConverter());
+        super("oauth-consumers.xml", new ConsumerConverter());
+    }
+
+    @VisibleForTesting
+    PersistentServiceProviderConsumerStore(Map<String, Consumer> consumerMap) {
+        this();
+        this.entityMap = consumerMap;
     }
 
     @Override
     public void add(Consumer consumer) {
         requireNonNull(consumer, "consumer");
         load();
-        if (consumerEntryMap.containsKey(consumer.getKey())) {
+        if (entityMap.containsKey(consumer.getKey())) {
             log.warning(() -> String.format("Consumer with key '%s' already exists.", consumer.getKey()));
             throw new StoreException("Consumer already exists");
         }
-        consumerEntryMap.put(consumer.getKey(), consumer);
+        entityMap.put(consumer.getKey(), consumer);
         save();
     }
 
@@ -80,60 +74,36 @@ public class PersistentServiceProviderConsumerStore implements ServiceProviderCo
     public Optional<Consumer> get(String key) {
         requireNonNull(key, "key");
         load();
-        return ofNullable(consumerEntryMap.get(key));
+        return ofNullable(entityMap.get(key));
     }
 
     @Override
     public void delete(String key) {
         requireNonNull(key, "key");
         load();
-        if (consumerEntryMap.remove(key) != null) {
+        if (entityMap.remove(key) != null) {
             save();
         }
     }
 
-    public synchronized void load() {
-        if (consumerEntryMap != null) {
-            return;
-        }
-
-        XmlFile configFile = getConfigFile();
-        if (configFile.exists()) {
-            try {
-                configFile.unmarshal(this);
-            } catch (IOException e) {
-                log.log(SEVERE, "Failed to load OAuth consumers from disk", e);
-                throw new StoreException("Failed to load OAuth consumers");
-            }
-        }
-        // consumerEntryMap will be unmarshalled as a HashMap if the config file exists, otherwise will be null. Either
-        // way, we convert it to the Jenkins-provided concurrent copy-on-write Map that will be copied on each save and
-        // written to disk, until the next Jenkins restart
-        consumerEntryMap = new CopyOnWriteMap.Hash<>(consumerEntryMap != null ? consumerEntryMap : emptyMap());
+    @Override
+    protected Class<Consumer> getEntityClass() {
+        return Consumer.class;
     }
 
     @Override
-    public synchronized void save() {
-        if (BulkChange.contains(this)) {
-            return;
-        }
-
-        try {
-            getConfigFile().write(this);
-        } catch (IOException e) {
-            log.log(SEVERE, "Failed to persist OAuth consumers to disk", e);
-            throw new StoreException("Failed to persist OAuth consumers");
-        }
-        SaveableListener.fireOnChange(this, getConfigFile());
+    protected String getStoreEntryName() {
+        return CONSUMER_STORE_ENTRY_NAME;
     }
 
-    /**
-     * The file where {@link Consumer consumers} are saved
-     */
-    @VisibleForTesting
-    protected XmlFile getConfigFile() {
-        // TODO: use a more specific directory than root - https://bulldog.internal.atlassian.com/browse/BBSDEV-21416
-        return new XmlFile(CONSUMERS, new File(Jenkins.get().getRootDir(), "oauth-consumers.xml"));
+    @Override
+    protected String getStoreKeyName() {
+        return CONSUMER_STORE_KEY_NAME;
+    }
+
+    @Override
+    protected String getStoreValueName() {
+        return CONSUMER_STORE_VALUE_NAME;
     }
 
     private static final class ConsumerConverter implements Converter {
@@ -192,7 +162,7 @@ public class PersistentServiceProviderConsumerStore implements ServiceProviderCo
                 }
                 log.warning(() -> String.format(
                         "Failed to unmarshal OAuth consumer: '%s' node is missing valid values for the following " +
-                                "child nodes: [%s]", PUBLIC_KEY, String.join(",", missingItems)));
+                        "child nodes: [%s]", PUBLIC_KEY, String.join(",", missingItems)));
                 throw new StoreException("Failed to unmarshal OAuth consumer");
             }
             KeyFactory keyFactory;
@@ -240,8 +210,8 @@ public class PersistentServiceProviderConsumerStore implements ServiceProviderCo
             if (!(source instanceof Consumer)) {
                 log.warning(() ->
                         String.format("Source must be of type '%s', but it's ", Consumer.class.getName()) +
-                                (source != null ? String.format("of type '%s' instead", source.getClass().getName()) :
-                                        "null"));
+                        (source != null ? String.format("of type '%s' instead", source.getClass().getName()) :
+                                "null"));
                 throw new StoreException("Failed to unmarshal OAuth consumer");
             }
             Consumer consumer = (Consumer) source;

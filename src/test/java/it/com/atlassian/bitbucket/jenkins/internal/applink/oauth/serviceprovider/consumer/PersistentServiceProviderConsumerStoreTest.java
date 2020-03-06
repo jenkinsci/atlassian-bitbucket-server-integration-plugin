@@ -1,37 +1,38 @@
-package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer;
+package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.RSAKeys;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.StoreException;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.PersistentServiceProviderConsumerStore;
+import com.google.common.annotations.VisibleForTesting;
+import hudson.XmlFile;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
-import org.mockito.quality.Strictness;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.HMAC_SHA1;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.RSA_SHA1;
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.spy;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PersistentServiceProviderConsumerStoreTest {
@@ -75,109 +76,41 @@ public class PersistentServiceProviderConsumerStoreTest {
     }
 
     @Rule
-    public final MockitoRule mockito = MockitoJUnit.rule().strictness(Strictness.WARN);
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private Map<String, Consumer> persistedConsumerMap;
-    private Map<String, Consumer> inMemoryConsumerMap;
+    private File consumersXmlFile;
 
-    private PersistentServiceProviderConsumerStore consumerStore;
+    private TestServiceProviderConsumerStore consumerStore;
 
     @Before
     public void setup() throws IOException {
-        // we use this map to simulate persistence: save() copies in-memory map to this map and load() does the opposite
-        persistedConsumerMap = new HashMap<>();
-        // initial load (to simulate loading persisted consumers on Jenkins startup)
-        persistedConsumerMap.put(RSA_CONSUMER.getKey(), RSA_CONSUMER);
-        persistedConsumerMap.put(HMAC_CONSUMER.getKey(), HMAC_CONSUMER);
-        persistedConsumerMap.put(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey(), HMAC_CONSUMER_NO_PUBLIC_KEY);
-        inMemoryConsumerMap = new ConcurrentHashMap<>();
-        consumerStore = spy(new PersistentServiceProviderConsumerStore(inMemoryConsumerMap));
-        doAnswer(invocation -> {
-            inMemoryConsumerMap.clear();
-            inMemoryConsumerMap.putAll(persistedConsumerMap);
-            return null;
-        }).when(consumerStore).load();
-        doAnswer(invocation -> {
-            persistedConsumerMap.clear();
-            persistedConsumerMap.putAll(inMemoryConsumerMap);
-            return null;
-        }).when(consumerStore).save();
+        consumersXmlFile = tempFolder.newFile("oauth-tokens.xml");
+        consumerStore = new TestServiceProviderConsumerStore(consumersXmlFile);
     }
 
     @Test
-    public void testAdd() {
-        Consumer newConsumer = Consumer.key("new-consumer-rsa")
-                .name("Another Consumer using RSA")
-                .description("This is another Consumer also using RSA signature method")
-                .signatureMethod(RSA_SHA1)
-                .publicKey(KEY_PAIR2.getPublic())
-                .callback(URI.create("http://consumer/callback3"))
-                .build();
+    public void testSaveAndLoad() {
+        consumerStore.setEntityMap(new ConcurrentHashMap<>());
+        consumerStore.getEntityMap().put(RSA_CONSUMER.getKey(), RSA_CONSUMER);
+        consumerStore.getEntityMap().put(HMAC_CONSUMER.getKey(), HMAC_CONSUMER);
+        consumerStore.getEntityMap().put(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey(), HMAC_CONSUMER_NO_PUBLIC_KEY);
 
-        consumerStore.add(newConsumer);
+        // Save the consumers to disk (temp XML file)
+        consumerStore.save();
 
-        assertThat(consumerStore.get("new-consumer-rsa"), optionalWithValue(isConsumer(newConsumer)));
-        assertThat(inMemoryConsumerMap, allOf(aMapWithSize(4),
-                hasEntry(is(RSA_CONSUMER.getKey()), isConsumer(RSA_CONSUMER)),
-                hasEntry(is(HMAC_CONSUMER.getKey()), isConsumer(HMAC_CONSUMER)),
-                hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), isConsumer(HMAC_CONSUMER_NO_PUBLIC_KEY)),
-                hasEntry(is(newConsumer.getKey()), isConsumer(newConsumer))
+        // clear the consumer map so they are loaded from disk (temp XML file) next time 'load()' is called
+        consumerStore.setEntityMap(null);
+
+        consumerStore.load();
+
+        assertThat(consumerStore.getEntityMap(), allOf(aMapWithSize(3),
+                hasEntry(is(RSA_CONSUMER.getKey()), matches(RSA_CONSUMER)),
+                hasEntry(is(HMAC_CONSUMER.getKey()), matches(HMAC_CONSUMER)),
+                hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), matches(HMAC_CONSUMER_NO_PUBLIC_KEY))
         ));
     }
 
-    @Test(expected = StoreException.class)
-    public void testAddExistingThrowsException() {
-        consumerStore.add(RSA_CONSUMER);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testAddNullInputThrowsException() {
-        consumerStore.add(null);
-    }
-
-    @Test
-    public void testGet() {
-        assertThat(consumerStore.get(RSA_CONSUMER.getKey()), optionalWithValue(isConsumer(RSA_CONSUMER)));
-        assertThat(consumerStore.get(HMAC_CONSUMER.getKey()), optionalWithValue(isConsumer(HMAC_CONSUMER)));
-        assertThat(consumerStore.get(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()),
-                optionalWithValue(isConsumer(HMAC_CONSUMER_NO_PUBLIC_KEY)));
-        assertThat(consumerStore.get("non-existent-consumer"), emptyOptional());
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testGetNullInputThrowsException() {
-        consumerStore.get(null);
-    }
-
-    @Test
-    public void testDelete() {
-        consumerStore.delete(HMAC_CONSUMER.getKey());
-
-        assertThat(consumerStore.get(HMAC_CONSUMER.getKey()), emptyOptional());
-        assertThat(inMemoryConsumerMap, allOf(aMapWithSize(2),
-                hasEntry(is(RSA_CONSUMER.getKey()), isConsumer(RSA_CONSUMER)),
-                hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), isConsumer(HMAC_CONSUMER_NO_PUBLIC_KEY))
-        ));
-    }
-
-    @Test
-    public void testDeleteNonExistentConsumer() {
-        consumerStore.delete("non-existent-consumer");
-
-        assertThat(consumerStore.get("non-existent-consumer"), emptyOptional());
-        assertThat(inMemoryConsumerMap, allOf(aMapWithSize(3),
-                hasEntry(is(RSA_CONSUMER.getKey()), isConsumer(RSA_CONSUMER)),
-                hasEntry(is(HMAC_CONSUMER.getKey()), isConsumer(HMAC_CONSUMER)),
-                hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), isConsumer(HMAC_CONSUMER_NO_PUBLIC_KEY))
-        ));
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testDeleteNullInputThrowsException() {
-        consumerStore.delete(null);
-    }
-
-    private static ConsumerMatcher isConsumer(Consumer consumer) {
+    private static ConsumerMatcher matches(Consumer consumer) {
         return new ConsumerMatcher(consumer);
     }
 
@@ -272,6 +205,35 @@ public class PersistentServiceProviderConsumerStoreTest {
         @Override
         public void describeTo(Description description) {
             description.appendText("is ").appendValue(expected);
+        }
+    }
+
+    /*
+     * The reason for this class (as opposed to a mock/spy) is that Jenkins' (XStream2) XML (un)marshalling machinery
+     * doesn't like mock/spy instances and throws an error when it tries to marshal the mock/spy instance inside the
+     * 'save()' method by serializing to XML file: 'getConfigFile().write(this)'
+     */
+    private static class TestServiceProviderConsumerStore extends PersistentServiceProviderConsumerStore {
+
+        private final transient File consumersXmlFile;
+
+        private TestServiceProviderConsumerStore(File consumersXmlFile) {
+            this.consumersXmlFile = consumersXmlFile;
+        }
+
+        @Override
+        protected XmlFile getConfigFile() {
+            return new XmlFile(xStream, consumersXmlFile);
+        }
+
+        @VisibleForTesting
+        public Map<String, Consumer> getEntityMap() {
+            return entityMap;
+        }
+
+        @VisibleForTesting
+        public void setEntityMap(Map<String, Consumer> entityMap) {
+            this.entityMap = entityMap;
         }
     }
 }
