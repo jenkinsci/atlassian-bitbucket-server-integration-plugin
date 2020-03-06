@@ -1,7 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token;
 
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.AbstractPersistentStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.StoreException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Authorization;
 import com.google.common.annotations.VisibleForTesting;
@@ -9,24 +10,14 @@ import com.thoughtworks.xstream.converters.ConversionException;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.converters.extended.NamedMapConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import hudson.BulkChange;
-import hudson.CopyOnWrite;
-import hudson.XmlFile;
 import hudson.model.Saveable;
-import hudson.util.CopyOnWriteMap;
-import hudson.util.Secret;
 import hudson.util.XStream2;
-import jenkins.model.Jenkins;
-import jenkins.util.io.OnMaster;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,12 +30,10 @@ import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprov
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newRequestToken;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenUtils.isTokenExpired;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenUtils.isTokenSessionExpired;
-import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.logging.Level.SEVERE;
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * A {@link ServiceProviderTokenStore} implementation that persists the {@link ServiceProviderToken tokens} to an XML
@@ -56,7 +45,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * @see XStream2
  */
 @Singleton
-public class PersistentServiceProviderTokenStore implements ServiceProviderTokenStore, Saveable, OnMaster {
+public class PersistentServiceProviderTokenStore extends AbstractPersistentStore<ServiceProviderToken>
+        implements ServiceProviderTokenStore {
 
     private static final Logger log = Logger.getLogger(PersistentServiceProviderTokenStore.class.getName());
 
@@ -64,40 +54,36 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     private static final String TOKEN_STORE_KEY_NAME = "token-value";
     private static final String TOKEN_STORE_VALUE_NAME = "token-details";
 
-    @VisibleForTesting
-    final transient XStream2 tokenStream;
-
-    @CopyOnWrite
-    @VisibleForTesting
-    volatile Map<String, ServiceProviderToken> tokenMap;
-
     @Inject
-    public PersistentServiceProviderTokenStore(ServiceProviderConsumerStore consumerStore) {
-        tokenStream = new XStream2();
-        tokenStream.registerConverter(new NamedMapConverter(tokenStream.getMapper(), TOKEN_STORE_ENTRY_NAME,
-                TOKEN_STORE_KEY_NAME, String.class, TOKEN_STORE_VALUE_NAME, ServiceProviderToken.class), 100);
-        tokenStream.registerConverter(new ServiceProviderTokenConverter(consumerStore));
+    public PersistentServiceProviderTokenStore(ConsumerStore consumerStore) {
+        super("oauth-tokens.xml", new ServiceProviderTokenConverter(consumerStore));
+    }
+
+    @VisibleForTesting
+    PersistentServiceProviderTokenStore(ConsumerStore consumerStore, Map<String, ServiceProviderToken> tokenMap) {
+        this(consumerStore);
+        this.entityMap = tokenMap;
     }
 
     @Override
     public Optional<ServiceProviderToken> get(String token) {
         requireNonNull(token, "token");
         load();
-        return ofNullable(tokenMap.get(token));
+        return ofNullable(entityMap.get(token));
     }
 
     @Override
     public Iterable<ServiceProviderToken> getAccessTokensForUser(String username) {
         requireNonNull(username, "username");
         load();
-        return tokenMap.values().stream().filter(token -> Objects.equals(username, token.getUser())).collect(toList());
+        return entityMap.values().stream().filter(token -> Objects.equals(username, token.getUser())).collect(toList());
     }
 
     @Override
     public ServiceProviderToken put(ServiceProviderToken token) {
         requireNonNull(token, "token");
         load();
-        tokenMap.put(token.getToken(), token);
+        entityMap.put(token.getToken(), token);
         save();
         return token;
     }
@@ -106,7 +92,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     public void remove(String token) {
         requireNonNull(token, "token");
         load();
-        if (tokenMap.remove(token) != null) {
+        if (entityMap.remove(token) != null) {
             save();
         }
     }
@@ -115,8 +101,8 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     public void removeExpiredTokens() {
         load();
         boolean needToSave = false;
-        for (ServiceProviderToken token : tokenMap.values()) {
-            if (isTokenExpired(token) && tokenMap.remove(token.getToken()) != null) {
+        for (ServiceProviderToken token : entityMap.values()) {
+            if (isTokenExpired(token) && entityMap.remove(token.getToken()) != null) {
                 needToSave = true;
             }
         }
@@ -129,8 +115,8 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
     public void removeExpiredSessions() {
         load();
         boolean needToSave = false;
-        for (ServiceProviderToken token : tokenMap.values()) {
-            if (isTokenSessionExpired(token) && tokenMap.remove(token.getToken()) != null) {
+        for (ServiceProviderToken token : entityMap.values()) {
+            if (isTokenSessionExpired(token) && entityMap.remove(token.getToken()) != null) {
                 needToSave = true;
             }
         }
@@ -144,10 +130,10 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
         requireNonNull(consumerKey, "consumerKey");
         load();
         boolean needToSave = false;
-        for (ServiceProviderToken token : tokenMap.values()) {
+        for (ServiceProviderToken token : entityMap.values()) {
             Consumer consumer = token.getConsumer();
             if (consumer != null && Objects.equals(consumerKey, consumer.getKey()) &&
-                tokenMap.remove(token.getToken()) != null) {
+                entityMap.remove(token.getToken()) != null) {
                 needToSave = true;
             }
         }
@@ -156,46 +142,24 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
         }
     }
 
-    public synchronized void load() {
-        if (tokenMap != null) {
-            return;
-        }
-
-        XmlFile configFile = getConfigFile();
-        if (configFile.exists()) {
-            try {
-                configFile.unmarshal(this);
-            } catch (IOException e) {
-                log.log(SEVERE, "Failed to load OAuth tokens from disk", e);
-                throw new StoreException("Failed to load OAuth tokens", e);
-            }
-        }
-        // tokenMap will be unmarshalled as a HashMap if the config file exists, otherwise will be null. Either
-        // way, we convert it to the Jenkins-provided concurrent copy-on-write Map that will be copied on each save and
-        // written to disk, until the next Jenkins restart
-        tokenMap = new CopyOnWriteMap.Hash<>(tokenMap != null ? tokenMap : emptyMap());
+    @Override
+    protected Class<ServiceProviderToken> getEntityClass() {
+        return ServiceProviderToken.class;
     }
 
     @Override
-    public synchronized void save() {
-        if (BulkChange.contains(this)) {
-            return;
-        }
-
-        try {
-            getConfigFile().write(this);
-        } catch (IOException e) {
-            log.log(SEVERE, "Failed to persist OAuth tokens to disk", e);
-            throw new StoreException("Failed to persist OAuth tokens", e);
-        }
+    protected String getStoreValueName() {
+        return TOKEN_STORE_VALUE_NAME;
     }
 
-    /**
-     * The file where {@link ServiceProviderToken tokens} are saved
-     */
-    @VisibleForTesting
-    protected XmlFile getConfigFile() {
-        return new XmlFile(tokenStream, new File(Jenkins.get().getRootDir(), "oauth-tokens.xml"));
+    @Override
+    protected String getStoreKeyName() {
+        return TOKEN_STORE_KEY_NAME;
+    }
+
+    @Override
+    protected String getStoreEntryName() {
+        return TOKEN_STORE_ENTRY_NAME;
     }
 
     private static final class ServiceProviderTokenConverter implements Converter {
@@ -217,9 +181,9 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
         private static final String SESSION_LAST_RENEWAL_TIME = "last-renewal-time";
         private static final String SESSION_TIME_TO_LIVE = "time-to-live";
 
-        private final ServiceProviderConsumerStore consumerStore;
+        private final ConsumerStore consumerStore;
 
-        private ServiceProviderTokenConverter(ServiceProviderConsumerStore consumerStore) {
+        private ServiceProviderTokenConverter(ConsumerStore consumerStore) {
             this.consumerStore = consumerStore;
         }
 
@@ -318,13 +282,6 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
             }
 
             try {
-                Optional<Consumer> consumer = consumerStore.get(consumerKey);
-
-                if (!consumer.isPresent()) {
-                    log.warning("Consumer not found: " + consumerKey);
-                    throw new StoreException("Consumer not found");
-                }
-
                 ServiceProviderToken.ServiceProviderTokenBuilder tokenBuilder = (accessToken ?
                         newAccessToken(tokenValue) :
                         newRequestToken(tokenValue))
@@ -335,7 +292,7 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
                         .verifier(verifier)
                         .creationTime(creationTime)
                         .timeToLive(timeToLive)
-                        .consumer(consumer.get());
+                        .consumer(consumerStore.get(consumerKey));
 
                 if (AUTHORIZED == authorization && user != null) {
                     tokenBuilder.authorizedBy(user);
@@ -428,22 +385,6 @@ public class PersistentServiceProviderTokenStore implements ServiceProviderToken
                 session.timeToLive(timeToLive);
             }
             return session.build();
-        }
-
-        @Nullable
-        private static String encrypt(@Nullable String unencryptedValue) {
-            if (isBlank(unencryptedValue)) {
-                return unencryptedValue;
-            }
-            return Secret.fromString(unencryptedValue).getEncryptedValue();
-        }
-
-        @Nullable
-        private static String decrypt(@Nullable String encryptedValue) {
-            if (isBlank(encryptedValue)) {
-                return encryptedValue;
-            }
-            return Secret.toString(Secret.decrypt(encryptedValue));
         }
     }
 }
