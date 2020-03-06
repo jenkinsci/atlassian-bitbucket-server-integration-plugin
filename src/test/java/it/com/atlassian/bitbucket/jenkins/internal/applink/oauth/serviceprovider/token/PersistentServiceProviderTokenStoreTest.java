@@ -1,40 +1,47 @@
-package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token;
+package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.PersistentServiceProviderTokenStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session;
+import com.google.common.annotations.VisibleForTesting;
+import hudson.XmlFile;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-import org.mockito.quality.Strictness;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session.newSession;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newAccessToken;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newRequestToken;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER_WITH_2LO;
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
 import static java.lang.System.currentTimeMillis;
-import static java.time.Duration.*;
+import static java.time.Duration.ofDays;
+import static java.time.Duration.ofHours;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PersistentServiceProviderTokenStoreTest {
 
     private static final ServiceProviderToken REQUEST_TOKEN_1 = newRequestToken("req-token1")
@@ -88,177 +95,45 @@ public class PersistentServiceProviderTokenStoreTest {
             .build();
 
     @Rule
-    public final MockitoRule mockito = MockitoJUnit.rule().strictness(Strictness.WARN);
+    public final JenkinsRule jenkins = new JenkinsRule();
+
+    @Rule
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
+
+    private File tokensXmlFile;
 
     @Mock
     private ConsumerStore consumerStore;
 
-    private Map<String, ServiceProviderToken> persistedTokenMap;
-    private Map<String, ServiceProviderToken> inMemoryTokenMap;
-
-    private PersistentServiceProviderTokenStore tokenStore;
+    private TestServiceProviderTokenStore tokenStore;
 
     @Before
-    public void setUp() {
-        // we use this map to simulate persistence: save() copies in-memory map to this map and load() does the opposite
-        persistedTokenMap = new HashMap<>();
-        // initial load (to simulate loading persisted tokens on Jenkins startup)
-        persistedTokenMap.put(REQUEST_TOKEN_1.getToken(), REQUEST_TOKEN_1);
-        persistedTokenMap.put(REQUEST_TOKEN_2.getToken(), REQUEST_TOKEN_2);
-        persistedTokenMap.put(ACCESS_TOKEN_1.getToken(), ACCESS_TOKEN_1);
-        persistedTokenMap.put(ACCESS_TOKEN_2.getToken(), ACCESS_TOKEN_2);
-        inMemoryTokenMap = new ConcurrentHashMap<>();
+    public void setup() throws IOException {
+        tokensXmlFile = tempFolder.newFile("oauth-tokens.xml");
+        tokenStore = new TestServiceProviderTokenStore(consumerStore, tokensXmlFile);
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
         when(consumerStore.get(RSA_CONSUMER_WITH_2LO.getKey())).thenReturn(RSA_CONSUMER_WITH_2LO);
-        tokenStore = spy(new PersistentServiceProviderTokenStore(consumerStore, inMemoryTokenMap));
-        doAnswer(invocation -> {
-            inMemoryTokenMap.clear();
-            inMemoryTokenMap.putAll(persistedTokenMap);
-            return null;
-        }).when(tokenStore).load();
-        doAnswer(invocation -> {
-            persistedTokenMap.clear();
-            persistedTokenMap.putAll(inMemoryTokenMap);
-            return null;
-        }).when(tokenStore).save();
     }
 
     @Test
-    public void testGet() {
-        assertThat(tokenStore.get(REQUEST_TOKEN_2.getToken()), optionalWithValue(requestToken(REQUEST_TOKEN_2)));
-        assertThat(tokenStore.get(ACCESS_TOKEN_1.getToken()), optionalWithValue(accessToken(ACCESS_TOKEN_1)));
-        assertThat(tokenStore.get("some-non-existent-token"), emptyOptional());
-    }
+    public void testSaveAndLoad() {
+        tokenStore.setEntityMap(new HashMap<>());
+        tokenStore.getEntityMap().put(REQUEST_TOKEN_1.getToken(), REQUEST_TOKEN_1);
+        tokenStore.getEntityMap().put(REQUEST_TOKEN_2.getToken(), REQUEST_TOKEN_2);
+        tokenStore.getEntityMap().put(ACCESS_TOKEN_1.getToken(), ACCESS_TOKEN_1);
+        tokenStore.getEntityMap().put(ACCESS_TOKEN_2.getToken(), ACCESS_TOKEN_2);
 
-    @Test
-    public void testGetAccessTokensForUser() {
-        assertThat(tokenStore.getAccessTokensForUser("test-user2"),
-                containsInAnyOrder(requestToken(REQUEST_TOKEN_2), accessToken(ACCESS_TOKEN_1)));
-        assertThat(tokenStore.getAccessTokensForUser("test-user3"), contains(accessToken(ACCESS_TOKEN_2)));
-        assertThat(tokenStore.getAccessTokensForUser("some-random-user"), emptyIterable());
-    }
+        tokenStore.save();
 
-    @Test
-    public void testPut() {
-        ServiceProviderToken accessToken = newAccessToken("access-token")
-                .callback(URI.create("http://some-callback-url/endpoint"))
-                .consumer(RSA_CONSUMER)
-                .creationTime(currentTimeMillis())
-                .timeToLive(ofDays(1L).toMillis())
-                .tokenSecret("the-secret-token")
-                .authorizedBy("test-user")
-                .session(newSession("session")
-                        .creationTime(currentTimeMillis())
-                        .timeToLive(ofHours(1L).toMillis())
-                        .lastRenewalTime(currentTimeMillis())
-                        .build())
-                .verifier("zzz789")
-                .build();
+        // clear the token map so they are loaded from disk (temp XML file) next time 'load()' is called
+        tokenStore.setEntityMap(null);
 
-        assertThat(tokenStore.put(accessToken), accessToken(accessToken));
+        tokenStore.load();
 
-        assertThat(tokenStore.get(accessToken.getToken()), optionalWithValue(accessToken(accessToken)));
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(5),
+        assertThat(tokenStore.getEntityMap(), allOf(aMapWithSize(4),
                 hasEntry(is(REQUEST_TOKEN_1.getToken()), requestToken(REQUEST_TOKEN_1)),
                 hasEntry(is(REQUEST_TOKEN_2.getToken()), requestToken(REQUEST_TOKEN_2)),
                 hasEntry(is(ACCESS_TOKEN_1.getToken()), accessToken(ACCESS_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2)),
-                hasEntry(is(accessToken.getToken()), accessToken(accessToken))));
-    }
-
-    @Test
-    public void testRemove() {
-        assertThat(tokenStore.get(REQUEST_TOKEN_2.getToken()), optionalWithValue(requestToken(REQUEST_TOKEN_2)));
-
-        tokenStore.remove(REQUEST_TOKEN_2.getToken());
-
-        assertThat(tokenStore.get(REQUEST_TOKEN_2.getToken()), emptyOptional());
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(3),
-                hasEntry(is(REQUEST_TOKEN_1.getToken()), requestToken(REQUEST_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_1.getToken()), accessToken(ACCESS_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2))));
-    }
-
-    @Test
-    public void testRemoveNonExistentToken() {
-        String token = "non-existent-token";
-        assertThat(tokenStore.get(token), emptyOptional());
-        tokenStore.remove(token);
-        assertThat(tokenStore.get(token), emptyOptional());
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(4),
-                hasEntry(is(REQUEST_TOKEN_1.getToken()), requestToken(REQUEST_TOKEN_1)),
-                hasEntry(is(REQUEST_TOKEN_2.getToken()), requestToken(REQUEST_TOKEN_2)),
-                hasEntry(is(ACCESS_TOKEN_1.getToken()), accessToken(ACCESS_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2))));
-    }
-
-    @Test
-    public void testRemoveExpiredTokens() {
-        long creationTime = currentTimeMillis() - ofMinutes(5L).toMillis();
-        long timeToLive = ofMinutes(2L).toMillis();
-        ServiceProviderToken expiredToken = newRequestToken("expired-token")
-                .callback(URI.create("http://some-callback-url/endpoint"))
-                .consumer(RSA_CONSUMER)
-                .creationTime(creationTime)
-                .timeToLive(timeToLive)
-                .tokenSecret("some-random-secret")
-                .authorizedBy("test-user4")
-                .verifier("abc123")
-                .build();
-        tokenStore.put(expiredToken);
-        assertThat(tokenStore.get(expiredToken.getToken()), optionalWithValue(requestToken(expiredToken)));
-
-        tokenStore.removeExpiredTokens();
-
-        assertThat(tokenStore.get(expiredToken.getToken()), emptyOptional());
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(4),
-                hasEntry(is(REQUEST_TOKEN_1.getToken()), requestToken(REQUEST_TOKEN_1)),
-                hasEntry(is(REQUEST_TOKEN_2.getToken()), requestToken(REQUEST_TOKEN_2)),
-                hasEntry(is(ACCESS_TOKEN_1.getToken()), accessToken(ACCESS_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2))));
-    }
-
-    @Test
-    public void testRemoveExpiredSessions() {
-        long now = currentTimeMillis();
-        long sessionCreationTime = now - ofMinutes(10L).toMillis();
-        long sessionLastRenewalTime = now - ofMinutes(5L).toMillis();
-        long sessionTimeToLive = ofMinutes(2L).toMillis();
-        ServiceProviderToken tokenWithExpiredSession = newAccessToken("token-with-expired-session")
-                .callback(URI.create("http://some-callback-url/endpoint"))
-                .consumer(RSA_CONSUMER)
-                .creationTime(currentTimeMillis())
-                .timeToLive(ofDays(2L).toMillis())
-                .tokenSecret("some-random-secret")
-                .authorizedBy("test-user4")
-                .verifier("abc123")
-                .session(newSession("expired-session")
-                        .creationTime(sessionCreationTime)
-                        .lastRenewalTime(sessionLastRenewalTime)
-                        .timeToLive(sessionTimeToLive)
-                        .build())
-                .build();
-        tokenStore.put(tokenWithExpiredSession);
-        assertThat(tokenStore.get(tokenWithExpiredSession.getToken()),
-                optionalWithValue(accessToken(tokenWithExpiredSession)));
-
-        tokenStore.removeExpiredSessions();
-
-        assertThat(tokenStore.get(tokenWithExpiredSession.getToken()), emptyOptional());
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(4),
-                hasEntry(is(REQUEST_TOKEN_1.getToken()), requestToken(REQUEST_TOKEN_1)),
-                hasEntry(is(REQUEST_TOKEN_2.getToken()), requestToken(REQUEST_TOKEN_2)),
-                hasEntry(is(ACCESS_TOKEN_1.getToken()), accessToken(ACCESS_TOKEN_1)),
-                hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2))));
-    }
-
-    public void testRemoveByConsumer() {
-        tokenStore.removeByConsumer(RSA_CONSUMER.getKey());
-
-        assertThat(tokenStore.get(REQUEST_TOKEN_1.getToken()), emptyOptional());
-        assertThat(tokenStore.get(ACCESS_TOKEN_1.getToken()), emptyOptional());
-        assertThat(inMemoryTokenMap, allOf(aMapWithSize(2),
-                hasEntry(is(REQUEST_TOKEN_2.getToken()), requestToken(REQUEST_TOKEN_2)),
                 hasEntry(is(ACCESS_TOKEN_2.getToken()), accessToken(ACCESS_TOKEN_2))));
     }
 
@@ -286,10 +161,10 @@ public class PersistentServiceProviderTokenStoreTest {
         private final long timeToLive;
         private final String user;
         private final String verifier;
-        private final ServiceProviderToken.Session session;
+        private final Session session;
 
         private TokenMatcher(boolean accessToken, URI callback, String consumerKey, String secret, long creationTime,
-                             long timeToLive, String user, String verifier, ServiceProviderToken.Session session) {
+                             long timeToLive, String user, String verifier, Session session) {
             this.callback = callback;
             this.consumerKey = consumerKey;
             this.accessToken = accessToken;
@@ -301,7 +176,7 @@ public class PersistentServiceProviderTokenStoreTest {
             this.session = session;
         }
 
-        private static void describeSession(Description description, ServiceProviderToken.Session session) {
+        private static void describeSession(Description description, Session session) {
             if (session == null) {
                 description.appendText(", session is null");
             } else {
@@ -381,6 +256,36 @@ public class PersistentServiceProviderTokenStoreTest {
                 return false;
             }
             return true;
+        }
+    }
+
+    /*
+     * The reason for this class (as opposed to a mock/spy) is that Jenkins' (XStream2) XML (un)marshalling machinery
+     * doesn't like mock/spy instances and throws an error when it tries to marshal the mock/spy instance inside the
+     * 'save()' method by serializing to XML file: 'getConfigFile().write(this)'
+     */
+    private static class TestServiceProviderTokenStore extends PersistentServiceProviderTokenStore {
+
+        private final transient File tokensXmlFile;
+
+        private TestServiceProviderTokenStore(ConsumerStore consumerStore, File tokensXmlFile) {
+            super(consumerStore);
+            this.tokensXmlFile = tokensXmlFile;
+        }
+
+        @Override
+        protected XmlFile getConfigFile() {
+            return new XmlFile(xStream, tokensXmlFile);
+        }
+
+        @VisibleForTesting
+        public Map<String, ServiceProviderToken> getEntityMap() {
+            return entityMap;
+        }
+
+        @VisibleForTesting
+        public void setEntityMap(Map<String, ServiceProviderToken> entityMap) {
+            this.entityMap = entityMap;
         }
     }
 }
