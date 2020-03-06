@@ -2,7 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.t
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.AbstractPersistentStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.StoreException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Authorization;
 import com.google.common.annotations.VisibleForTesting;
@@ -55,13 +55,13 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
     private static final String TOKEN_STORE_VALUE_NAME = "token-details";
 
     @Inject
-    public PersistentServiceProviderTokenStore(ConsumerStore consumerStore) {
+    public PersistentServiceProviderTokenStore(ServiceProviderConsumerStore consumerStore) {
         super("oauth-tokens.xml", new ServiceProviderTokenConverter(consumerStore));
     }
 
     @VisibleForTesting
-    PersistentServiceProviderTokenStore(ConsumerStore consumerStore, Map<String, ServiceProviderToken> tokenMap) {
-        this(consumerStore);
+    PersistentServiceProviderTokenStore(ServiceProviderConsumerStore ServiceProviderConsumerStore, Map<String, ServiceProviderToken> tokenMap) {
+        this(ServiceProviderConsumerStore);
         this.entityMap = tokenMap;
     }
 
@@ -181,9 +181,9 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
         private static final String SESSION_LAST_RENEWAL_TIME = "last-renewal-time";
         private static final String SESSION_TIME_TO_LIVE = "time-to-live";
 
-        private final ConsumerStore consumerStore;
+        private final ServiceProviderConsumerStore consumerStore;
 
-        private ServiceProviderTokenConverter(ConsumerStore consumerStore) {
+        private ServiceProviderTokenConverter(ServiceProviderConsumerStore consumerStore) {
             this.consumerStore = consumerStore;
         }
 
@@ -282,6 +282,13 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
             }
 
             try {
+                Optional<Consumer> consumer = consumerStore.get(consumerKey);
+
+                if (!consumer.isPresent()) {
+                    log.warning("Consumer not found: " + consumerKey);
+                    throw new StoreException("Consumer not found");
+                }
+
                 ServiceProviderToken.ServiceProviderTokenBuilder tokenBuilder = (accessToken ?
                         newAccessToken(tokenValue) :
                         newRequestToken(tokenValue))
@@ -292,7 +299,7 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
                         .verifier(verifier)
                         .creationTime(creationTime)
                         .timeToLive(timeToLive)
-                        .consumer(consumerStore.get(consumerKey));
+                        .consumer(consumer.get());
 
                 if (AUTHORIZED == authorization && user != null) {
                     tokenBuilder.authorizedBy(user);

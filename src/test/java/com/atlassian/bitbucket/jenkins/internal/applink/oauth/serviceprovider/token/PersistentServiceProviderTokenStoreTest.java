@@ -1,7 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session.newSession;
@@ -91,7 +92,7 @@ public class PersistentServiceProviderTokenStoreTest {
     public final MockitoRule mockito = MockitoJUnit.rule().strictness(Strictness.WARN);
 
     @Mock
-    private ConsumerStore consumerStore;
+    private ServiceProviderConsumerStore consumerStore;
 
     private Map<String, ServiceProviderToken> persistedTokenMap;
     private Map<String, ServiceProviderToken> inMemoryTokenMap;
@@ -108,8 +109,8 @@ public class PersistentServiceProviderTokenStoreTest {
         persistedTokenMap.put(ACCESS_TOKEN_1.getToken(), ACCESS_TOKEN_1);
         persistedTokenMap.put(ACCESS_TOKEN_2.getToken(), ACCESS_TOKEN_2);
         inMemoryTokenMap = new ConcurrentHashMap<>();
-        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
-        when(consumerStore.get(RSA_CONSUMER_WITH_2LO.getKey())).thenReturn(RSA_CONSUMER_WITH_2LO);
+        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
+        when(consumerStore.get(RSA_CONSUMER_WITH_2LO.getKey())).thenReturn(Optional.of(RSA_CONSUMER_WITH_2LO));
         tokenStore = spy(new PersistentServiceProviderTokenStore(consumerStore, inMemoryTokenMap));
         doAnswer(invocation -> {
             inMemoryTokenMap.clear();

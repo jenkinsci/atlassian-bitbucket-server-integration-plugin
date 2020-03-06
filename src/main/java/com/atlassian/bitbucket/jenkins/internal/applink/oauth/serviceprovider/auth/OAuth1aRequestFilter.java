@@ -2,7 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.a
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.OAuthConverter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
@@ -44,14 +44,14 @@ public class OAuth1aRequestFilter implements Filter {
 
     private static final Logger log = Logger.getLogger(OAuth1aRequestFilter.class.getName());
 
-    private final ConsumerStore consumerStore;
+    private final ServiceProviderConsumerStore consumerStore;
     private final ServiceProviderTokenStore tokenStore;
     private final OAuthValidator validator;
     private final Clock clock;
     private final TrustedUnderlyingSystemAuthorizerFilter authorizerFilter;
 
     @Inject
-    public OAuth1aRequestFilter(ConsumerStore consumerStore,
+    public OAuth1aRequestFilter(ServiceProviderConsumerStore consumerStore,
                                 ServiceProviderTokenStore tokenStore,
                                 OAuthValidator validator,
                                 Clock clock,
@@ -213,14 +213,11 @@ public class OAuth1aRequestFilter implements Filter {
     private Consumer validateConsumer(OAuthMessage message) throws IOException, OAuthException {
         // This consumer must exist at the time the token is used.
         String consumerKey = message.getConsumerKey();
-        Consumer consumer = consumerStore.get(consumerKey);
 
-        if (consumer == null) {
+        return consumerStore.get(consumerKey).orElseThrow(() -> {
             log.log(INFO, "Unknown consumer key:'{}' supplied in OAuth request" + consumerKey);
-            throw new OAuthProblemException(CONSUMER_KEY_UNKNOWN);
-        }
-
-        return consumer;
+            return new OAuthProblemException(CONSUMER_KEY_UNKNOWN);
+        });
     }
 
     private void handleOAuthProblemException(HttpServletRequest request, HttpServletResponse response,

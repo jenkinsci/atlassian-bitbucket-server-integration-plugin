@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth;
 
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
@@ -67,7 +67,7 @@ public class OAuth1aRequestFilterTest {
             .build();
 
     @Mock
-    private ConsumerStore serviceProviderConsumerStore;
+    private ServiceProviderConsumerStore consumerStore;
     @Mock
     private ServiceProviderTokenStore store;
     @Mock
@@ -103,17 +103,17 @@ public class OAuth1aRequestFilterTest {
         responseOutputStream = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(new ByteArrayServletOutputStream(responseOutputStream));
         when(clock.millis()).thenReturn(System.currentTimeMillis());
-        when(serviceProviderConsumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
+        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
 
         filter =
-                new OAuth1aRequestFilter(serviceProviderConsumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter);
+                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test
     public void assertThatFailureResultWhenTheConsumerNoLongerExists() throws IOException, ServletException {
         setupRequestWithParameters(rsaConsumerParameterMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
-        when(serviceProviderConsumerStore.get(RSA_CONSUMER.getKey())).thenReturn(null);
+        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(null);
 
         filter.doFilter(request, response, chain);
 

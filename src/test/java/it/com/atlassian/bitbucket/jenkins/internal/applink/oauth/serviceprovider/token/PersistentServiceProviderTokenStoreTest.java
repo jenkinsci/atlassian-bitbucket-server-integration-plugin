@@ -1,7 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.PersistentServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session;
@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session.newSession;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.newAccessToken;
@@ -103,7 +104,7 @@ public class PersistentServiceProviderTokenStoreTest {
     private File tokensXmlFile;
 
     @Mock
-    private ConsumerStore consumerStore;
+    private ServiceProviderConsumerStore consumerStore;
 
     private TestServiceProviderTokenStore tokenStore;
 
@@ -111,8 +112,8 @@ public class PersistentServiceProviderTokenStoreTest {
     public void setup() throws IOException {
         tokensXmlFile = tempFolder.newFile("oauth-tokens.xml");
         tokenStore = new TestServiceProviderTokenStore(consumerStore, tokensXmlFile);
-        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(RSA_CONSUMER);
-        when(consumerStore.get(RSA_CONSUMER_WITH_2LO.getKey())).thenReturn(RSA_CONSUMER_WITH_2LO);
+        when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
+        when(consumerStore.get(RSA_CONSUMER_WITH_2LO.getKey())).thenReturn(Optional.of(RSA_CONSUMER_WITH_2LO));
     }
 
     @Test
@@ -268,7 +269,7 @@ public class PersistentServiceProviderTokenStoreTest {
 
         private final transient File tokensXmlFile;
 
-        private TestServiceProviderTokenStore(ConsumerStore consumerStore, File tokensXmlFile) {
+        private TestServiceProviderTokenStore(ServiceProviderConsumerStore consumerStore, File tokensXmlFile) {
             super(consumerStore);
             this.tokensXmlFile = tokensXmlFile;
         }
