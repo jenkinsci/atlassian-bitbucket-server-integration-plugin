@@ -150,6 +150,12 @@ public class PersistentServiceProviderConsumerStoreTest {
     }
 
     @Test
+    public void testGetAll() {
+        assertThat(consumerStore.getAll(), containsInAnyOrder(isConsumer(RSA_CONSUMER), isConsumer(HMAC_CONSUMER),
+                isConsumer(HMAC_CONSUMER_NO_PUBLIC_KEY)));
+    }
+
+    @Test
     public void testDelete() {
         consumerStore.delete(HMAC_CONSUMER.getKey());
 

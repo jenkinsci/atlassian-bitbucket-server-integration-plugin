@@ -78,6 +78,12 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
     }
 
     @Override
+    public Iterable<Consumer> getAll() {
+        load();
+        return entityMap.values();
+    }
+
+    @Override
     public void delete(String key) {
         requireNonNull(key, "key");
         load();
