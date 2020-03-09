@@ -143,6 +143,11 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
                         break;
                     case PUBLIC_KEY_FORMAT:
                         publicKeyFormat = nodeValue;
+                        break;
+                    default:
+                        log.fine(() ->
+                                String.format("Unknown consumer entry node '%s' with value '%s' is ignored.",
+                                        nodeName, nodeValue));
                 }
                 reader.moveUp();
             }
@@ -170,7 +175,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
                 keyFactory = KeyFactory.getInstance(publicKeyAlgorithm);
             } catch (NoSuchAlgorithmException e) {
                 log.log(WARNING, "Failed to unmarshal OAuth consumer", e);
-                throw new StoreException("Failed to unmarshal OAuth consumer");
+                throw new StoreException("Failed to unmarshal OAuth consumer", e);
             }
             byte[] publicKeyDecoded = Base64.getDecoder().decode(publicKeyEncoded);
             KeySpec keySpec;
@@ -187,7 +192,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
                 publicKey = keyFactory.generatePublic(keySpec);
             } catch (InvalidKeySpecException e) {
                 log.log(WARNING, "Failed to unmarshal OAuth consumer", e);
-                throw new StoreException("Failed to unmarshal OAuth consumer");
+                throw new StoreException("Failed to unmarshal OAuth consumer", e);
             }
             return publicKey;
         }
@@ -208,7 +213,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
         @Override
         public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
             if (!(source instanceof Consumer)) {
-                log.warning(() ->
+                log.severe(() ->
                         String.format("Source must be of type '%s', but it's ", Consumer.class.getName()) +
                         (source != null ? String.format("of type '%s' instead", source.getClass().getName()) :
                                 "null"));
@@ -258,6 +263,11 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
                         break;
                     case PUBLIC_KEY:
                         publicKey = unmarshalPublicKey(reader);
+                        break;
+                    default:
+                        log.fine(() ->
+                                String.format("Unknown token entry node '%s' with value '%s' is ignored.",
+                                        nodeName, nodeValue));
                 }
                 reader.moveUp();
             }

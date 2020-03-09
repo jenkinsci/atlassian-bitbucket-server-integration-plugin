@@ -196,7 +196,7 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
         public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
             requireNonNull(source, "source");
             if (!(source instanceof ServiceProviderToken)) {
-                log.warning(() -> String.format("Cannot marshal source of type '%s'", source.getClass()));
+                log.severe(() -> String.format("Cannot marshal source of type '%s'", source.getClass()));
                 throw new StoreException("Cannot marshal token: incorrect source type");
             }
 
