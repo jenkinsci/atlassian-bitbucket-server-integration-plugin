@@ -110,10 +110,9 @@ public class BitbucketBuildStatusFactoryTest {
         assertThat(result.getResultKey(), equalTo(externalId));
         assertThat(result.getDuration(), equalTo(duration));
         assertThat(result.getTestResults(), notNullValue());
-        assertThat(result.getTestResults().getSummary(), notNullValue());
-        assertThat(result.getTestResults().getSummary().getFailed(), equalTo(failCount));
-        assertThat(result.getTestResults().getSummary().getIgnored(), equalTo(skipCount));
-        assertThat(result.getTestResults().getSummary().getSuccessful(), equalTo(passCount));
+        assertThat(result.getTestResults().getFailed(), equalTo(failCount));
+        assertThat(result.getTestResults().getIgnored(), equalTo(skipCount));
+        assertThat(result.getTestResults().getSuccessful(), equalTo(passCount));
     }
 
     @Test

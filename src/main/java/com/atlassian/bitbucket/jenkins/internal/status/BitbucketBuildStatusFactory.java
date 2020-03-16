@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
-import com.atlassian.bitbucket.jenkins.internal.model.TestResultsSummary;
 import hudson.model.Job;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -33,7 +32,7 @@ public final class BitbucketBuildStatusFactory {
         }
         BitbucketBuildStatus.Builder bbs = new BitbucketBuildStatus.Builder(key, state, url)
                 .setName(parent.getFullDisplayName())
-                .setServer(Jenkins.get().getRootUrl())
+                .setServerIdentifier(Jenkins.get().getRootUrl())
                 .setResultKey(build.getExternalizableId())
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()))
                 .setTestResults(getTestResults(build));
@@ -47,8 +46,8 @@ public final class BitbucketBuildStatusFactory {
     private static TestResults getTestResults(Run<?, ?> build) {
         TestResultAction results = build.getAction(TestResultAction.class);
         if (results != null) {
-            return new TestResults(new TestResultsSummary(results.getTotalCount() - results.getFailCount() - results.getSkipCount(),
-                    results.getFailCount(), results.getSkipCount()));
+            return new TestResults(results.getTotalCount() - results.getFailCount() - results.getSkipCount(),
+                    results.getFailCount(), results.getSkipCount());
         }
         return null;
     }

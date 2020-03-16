@@ -18,7 +18,7 @@ public class BitbucketBuildStatus {
     private final String key;
     private final String name;
     private final String resultKey;
-    private final String server;
+    private final String serverIdentifier;
     private final BuildState state;
     private final TestResults testResults;
     private final String url;
@@ -29,7 +29,7 @@ public class BitbucketBuildStatus {
                                 @JsonProperty("key") String key,
                                 @JsonProperty("name") String name,
                                 @JsonProperty("resultKey") String resultKey,
-                                @JsonProperty("server") String server,
+                                @JsonProperty("serverIdentifier") String serverIdentifier,
                                 @JsonProperty("state") BuildState state,
                                 @JsonProperty("testResults") TestResults testResults,
                                 @JsonProperty("url") String url) {
@@ -41,7 +41,7 @@ public class BitbucketBuildStatus {
         this.key = key;
         this.name = name;
         this.resultKey = resultKey;
-        this.server = server;
+        this.serverIdentifier = serverIdentifier;
         this.state = state;
         this.testResults = testResults;
         this.url = url;
@@ -74,10 +74,10 @@ public class BitbucketBuildStatus {
         return resultKey;
     }
 
-    @JsonProperty(value = "server")
+    @JsonProperty(value = "serverIdentifier")
     @Nullable
-    public String getServer() {
-        return server;
+    public String getServerIdentifier() {
+        return serverIdentifier;
     }
 
     @JsonProperty(value = "state")
@@ -103,7 +103,7 @@ public class BitbucketBuildStatus {
         private String key;
         private String name;
         private String resultKey;
-        private String server;
+        private String serverIdentifier;
         private BuildState state;
         private TestResults testResults;
         private String url;
@@ -115,7 +115,7 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(description, duration, key, name, resultKey, server, state, testResults, url);
+            return new BitbucketBuildStatus(description, duration, key, name, resultKey, serverIdentifier, state, testResults, url);
         }
 
         public Builder setDescription(String description) {
@@ -137,8 +137,8 @@ public class BitbucketBuildStatus {
             return this;
         }
 
-        public Builder setServer(String server) {
-            this.server = server;
+        public Builder setServerIdentifier(String serverIdentifier) {
+            this.serverIdentifier = serverIdentifier;
             return this;
         }
 
