@@ -72,7 +72,7 @@ public class BitbucketPostBuildStatusTest {
         when(jenkinsProvider.get()).thenReturn(jenkins);
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
-        when(build.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+        when(build.getAction(any())).thenReturn(revisionAction);
     }
 
     @Test
