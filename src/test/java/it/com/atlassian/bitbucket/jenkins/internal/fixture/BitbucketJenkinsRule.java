@@ -3,6 +3,10 @@ package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
+import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.DirectEntryPrivateKeySource;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.PrivateKeySource;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -39,6 +43,7 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
     private static final Logger LOGGER = Logger.getLogger("");
     private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();
     private static final AtomicReference<PersonalToken> READ_PERSONAL_TOKEN = new AtomicReference<>();
+    private String sshCredentialId;
     private BitbucketServerConfiguration bitbucketServerConfiguration;
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private HtmlPage currentPage;
@@ -129,6 +134,12 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
                 "", BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
         addCredentials(readCredentials);
 
+        sshCredentialId = UUID.randomUUID().toString();
+        PrivateKeySource keySource = new DirectEntryPrivateKeySource(TestUtils.readFileToString("/ssh/test-key"));
+        Credentials sshCredentials = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, sshCredentialId,
+                "git", keySource, null, "");
+        addCredentials(sshCredentials);
+
         bitbucketServerConfiguration =
                 new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
         bitbucketServerConfiguration.setServerName(SERVER_NAME);
@@ -157,6 +168,10 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         store.addCredentials(domain, credentials);
+    }
+
+    public String getSshCredentialsId() {
+        return sshCredentialId;
     }
 
     private static final class BitbucketTokenCleanUpThread extends Thread {

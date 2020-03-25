@@ -5,8 +5,8 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
-
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class BitbucketUtils {
@@ -78,6 +78,40 @@ public class BitbucketUtils {
                 .when()
                 .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos/" + repo + "/branches")
                 .getBody();
+    }
+
+    public static void createSshPublicKey() {
+        Map<String, Object> createSshKeyRequest = new HashMap<>();
+        createSshKeyRequest.put("text", TestUtils.readFileToString("/ssh/test-key.pub"));
+
+        RestAssured.given()
+                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .body(createSshKeyRequest)
+                .expect()
+                .statusCode(201)
+                .when()
+                .post(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys");
+    }
+
+    public static void deleteSshPublicKey() {
+        RestAssured.given()
+                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .expect()
+                .statusCode(204)
+                .when()
+                .delete(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys");
     }
 
     public static PersonalToken createPersonalToken(String... permissions) {

@@ -42,11 +42,13 @@ public class BitbucketSCMIT {
     @BeforeClass
     public static void init() {
         BitbucketUtils.createRepoFork();
+        BitbucketUtils.createSshPublicKey();
     }
 
     @AfterClass
     public static void onComplete() {
         BitbucketUtils.deleteRepoFork();
+        BitbucketUtils.deleteSshPublicKey();
     }
 
     @Before
@@ -62,6 +64,17 @@ public class BitbucketSCMIT {
     @Test
     public void testCheckout() throws Exception {
         project.setScm(createScmWithSpecs("*/master"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+
+        assertEquals(SUCCESS, build.getResult());
+        assertTrue(build.getWorkspace().child("add_file").isDirectory());
+    }
+
+    @Test
+    public void testCheckoutWithSsh() throws Exception {
+        project.setScm(createSCMWithSshCredentials());
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -160,5 +173,9 @@ public class BitbucketSCMIT {
 
     private BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
         return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
+    }
+
+    private BitbucketSCM createSCMWithSshCredentials() {
+        return createScm(bbJenkinsRule, true, "rep_1", singletonList(new BranchSpec("*/master")));
     }
 }

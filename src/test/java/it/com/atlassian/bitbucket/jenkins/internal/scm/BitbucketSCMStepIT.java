@@ -37,7 +37,7 @@ public class BitbucketSCMStepIT {
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
         TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),
-                credentialsId, PROJECT_NAME, REPO_NAME, serverId, "");
+                credentialsId, "", PROJECT_NAME, REPO_NAME, serverId, "");
         assertThat(scmStep.getBranches(), hasSize(1));
         assertThat(scmStep.getBranches().get(0).getName(), equalTo("master"));
         assertThat(scmStep.getCloneUrl(), containsStringIgnoringCase(CLONE_URL));

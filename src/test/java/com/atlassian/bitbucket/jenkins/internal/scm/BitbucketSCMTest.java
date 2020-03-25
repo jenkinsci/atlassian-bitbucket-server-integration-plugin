@@ -74,6 +74,7 @@ public class BitbucketSCMTest {
                 "1",
                 Collections.emptyList(),
                 credentialsId,
+                "",
                 Collections.emptyList(),
                 "",
                 project,

@@ -126,7 +126,7 @@ public class RetryingWebhookHandlerTest {
     }
 
     private BitbucketSCMRepository createSCMRepository() {
-        return new BitbucketSCMRepository(JOB_CREDENTIALS, PROJECT, PROJECT, REPO, REPO, SERVER_ID, "");
+        return new BitbucketSCMRepository(JOB_CREDENTIALS, "", PROJECT, PROJECT, REPO, REPO, SERVER_ID, "");
     }
 
     private BitbucketWebhookClient mockWebhookClient(BitbucketClientFactory clientFactory) {
