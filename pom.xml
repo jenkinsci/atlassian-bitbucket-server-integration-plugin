@@ -17,7 +17,7 @@
         <disableTestInjection>false</disableTestInjection>
         <java.level>8</java.level>
         <jackson.version>2.9.9</jackson.version>
-        <jenkins.version>2.162</jenkins.version>
+        <jenkins.version>2.184</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <name>Bitbucket Server Integration</name>
@@ -143,6 +143,29 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>1.13</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>trilead-putty-extension</artifactId>
+            <version>1.2</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>trilead-ssh2</artifactId>
+            <version>build-217-jenkins-14</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>trilead-ssh2</artifactId>
+            <version>build-217-jenkins-14</version>
+        </dependency>
+        <dependency>
+            <groupId>net.i2p.crypto</groupId>
+            <artifactId>eddsa</artifactId>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
