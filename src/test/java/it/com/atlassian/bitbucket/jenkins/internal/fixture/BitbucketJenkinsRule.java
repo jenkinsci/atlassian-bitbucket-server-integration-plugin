@@ -39,15 +39,15 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 public final class BitbucketJenkinsRule extends JenkinsRule {
 
     public static final String SERVER_NAME = "Bitbucket server";
-
-    private static final Logger LOGGER = Logger.getLogger("");
     private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();
+    private static final Logger LOGGER = Logger.getLogger("");
     private static final AtomicReference<PersonalToken> READ_PERSONAL_TOKEN = new AtomicReference<>();
-    private String sshCredentialId;
-    private BitbucketServerConfiguration bitbucketServerConfiguration;
+    private static final AtomicReference<Integer> SSH_KEY_ID = new AtomicReference<>();
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+    private BitbucketServerConfiguration bitbucketServerConfiguration;
     private HtmlPage currentPage;
     private FileHandler handler;
+    private String sshCredentialId;
     private WebClient webClient;
 
     public BitbucketJenkinsRule() {
@@ -134,6 +134,11 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
                 "", BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
         addCredentials(readCredentials);
 
+        if (SSH_KEY_ID.get() == null) {
+            SSH_KEY_ID.set(createSshPublicKey());
+            Runtime.getRuntime().addShutdownHook(new BitbucketSshKeyCleanupThread(SSH_KEY_ID.get()));
+        }
+
         sshCredentialId = UUID.randomUUID().toString();
         PrivateKeySource keySource = new DirectEntryPrivateKeySource(TestUtils.readFileToString("/ssh/test-key"));
         Credentials sshCredentials = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, sshCredentialId,
@@ -146,6 +151,18 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         addBitbucketServer(bitbucketServerConfiguration);
     }
 
+    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
+        return bitbucketPluginConfiguration;
+    }
+
+    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
+        return bitbucketServerConfiguration;
+    }
+
+    public String getSshCredentialsId() {
+        return sshCredentialId;
+    }
+
     public HtmlPage visit(String relativePath) throws IOException, SAXException {
         HtmlPage htmlPage = webClient.goTo(relativePath);
         currentPage = htmlPage;
@@ -156,22 +173,24 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         webClient.waitForBackgroundJavaScript(2000);
     }
 
-    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
-        return bitbucketServerConfiguration;
-    }
-
-    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
-        return bitbucketPluginConfiguration;
-    }
-
     private void addCredentials(Credentials credentials) throws IOException {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         store.addCredentials(domain, credentials);
     }
 
-    public String getSshCredentialsId() {
-        return sshCredentialId;
+    private static final class BitbucketSshKeyCleanupThread extends Thread {
+
+        private final Integer sshKeyId;
+
+        private BitbucketSshKeyCleanupThread(Integer sshKeyId) {
+            this.sshKeyId = sshKeyId;
+        }
+
+        @Override
+        public void run() {
+            BitbucketUtils.deleteSshPublicKey(sshKeyId);
+        }
     }
 
     private static final class BitbucketTokenCleanUpThread extends Thread {

@@ -42,13 +42,11 @@ public class BitbucketSCMIT {
     @BeforeClass
     public static void init() {
         BitbucketUtils.createRepoFork();
-        BitbucketUtils.createSshPublicKey();
     }
 
     @AfterClass
     public static void onComplete() {
         BitbucketUtils.deleteRepoFork();
-        BitbucketUtils.deleteSshPublicKey();
     }
 
     @Before

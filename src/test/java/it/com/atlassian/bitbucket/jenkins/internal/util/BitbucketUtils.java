@@ -5,6 +5,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -21,43 +22,10 @@ public class BitbucketUtils {
     public static final String PROJECT_NAME = "Project 1";
     public static final String PROJECT_READ_PERMISSION = "PROJECT_READ";
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
-    public static final String REPO_SLUG = "rep_1";
     public static final String REPO_NAME = "rep 1";
-    public static String REPO_FORK_SLUG = "";
+    public static final String REPO_SLUG = "rep_1";
     public static String REPO_FORK_NAME = "";
-
-    public static void createRepoFork() {
-        HashMap<String, Object> createForkRequest = new HashMap<>();
-        HashMap<String, Object> projectProperties = new HashMap<>();
-        REPO_FORK_NAME = REPO_FORK_SLUG = UUID.randomUUID().toString();
-
-        projectProperties.put("key", PROJECT_KEY);
-        createForkRequest.put("name", REPO_FORK_SLUG);
-        createForkRequest.put("project", projectProperties);
-
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                    .contentType(ContentType.JSON)
-                .body(createForkRequest)
-                .expect()
-                    .statusCode(201)
-                .when()
-                    .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_SLUG)
-                    .getBody();
-    }
-
-    public static void deleteRepoFork() {
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .expect()
-                    .statusCode(202)
-                .when()
-                    .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_FORK_SLUG);
-    }
+    public static String REPO_FORK_SLUG = "";
 
     public static void createBranch(String project,
                                     String repo,
@@ -78,40 +46,6 @@ public class BitbucketUtils {
                 .when()
                 .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos/" + repo + "/branches")
                 .getBody();
-    }
-
-    public static void createSshPublicKey() {
-        Map<String, Object> createSshKeyRequest = new HashMap<>();
-        createSshKeyRequest.put("text", TestUtils.readFileToString("/ssh/test-key.pub"));
-
-        RestAssured.given()
-                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
-                .log()
-                .ifValidationFails()
-                .auth()
-                .preemptive()
-                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .contentType(ContentType.JSON)
-                .body(createSshKeyRequest)
-                .expect()
-                .statusCode(201)
-                .when()
-                .post(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys");
-    }
-
-    public static void deleteSshPublicKey() {
-        RestAssured.given()
-                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
-                .log()
-                .ifValidationFails()
-                .auth()
-                .preemptive()
-                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .contentType(ContentType.JSON)
-                .expect()
-                .statusCode(204)
-                .when()
-                .delete(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys");
     }
 
     public static PersonalToken createPersonalToken(String... permissions) {
@@ -135,6 +69,54 @@ public class BitbucketUtils {
         return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
     }
 
+    public static void createRepoFork() {
+        HashMap<String, Object> createForkRequest = new HashMap<>();
+        HashMap<String, Object> projectProperties = new HashMap<>();
+        REPO_FORK_NAME = REPO_FORK_SLUG = UUID.randomUUID().toString();
+
+        projectProperties.put("key", PROJECT_KEY);
+        createForkRequest.put("name", REPO_FORK_SLUG);
+        createForkRequest.put("project", projectProperties);
+
+        RestAssured.given()
+                .log()
+                .ifValidationFails()
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .body(createForkRequest)
+                .expect()
+                .statusCode(201)
+                .when()
+                .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_SLUG)
+                .getBody();
+    }
+
+    /**
+     * This submits a public SSH key to the admin account, and returns the ID of that key for removal in cleanup later.
+     *
+     * @return the id of the SSH key
+     */
+    public static Integer createSshPublicKey() {
+        Map<String, Object> createSshKeyRequest = new HashMap<>();
+        createSshKeyRequest.put("text", TestUtils.readFileToString("/ssh/test-key.pub"));
+
+        ResponseBody<Response> response = RestAssured.given()
+                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .body(createSshKeyRequest)
+                .expect()
+                .statusCode(201)
+                .when()
+                .post(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys")
+                .getBody();
+        return response.path("id");
+    }
+
     public static void deletePersonalToken(String tokenId) {
         RestAssured.given()
                 .log()
@@ -150,6 +132,37 @@ public class BitbucketUtils {
                         BITBUCKET_BASE_URL
                         + "/rest/access-tokens/latest/users/admin/"
                         + tokenId);
+    }
+
+    public static void deleteRepoFork() {
+        RestAssured.given()
+                .log()
+                .ifValidationFails()
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                .statusCode(202)
+                .when()
+                .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + REPO_FORK_SLUG);
+    }
+
+    /**
+     * Deletes the SSH key with the given ID provided by the create method.
+     *
+     * @param id the id of the SSH key
+     */
+    public static void deleteSshPublicKey(Integer id) {
+        RestAssured.given()
+                .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .expect()
+                .statusCode(204)
+                .when()
+                .delete(String.format("%s/rest/ssh/1.0/keys/%d", BITBUCKET_BASE_URL, id));
     }
 
     public static void deleteWebhook(String projectKey, String repoSlug, int webhookId) {
