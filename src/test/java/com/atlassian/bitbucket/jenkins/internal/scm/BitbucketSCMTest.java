@@ -15,8 +15,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BitbucketSCMTest {
 
@@ -85,15 +84,16 @@ public class BitbucketSCMTest {
             public SCMDescriptor<?> getDescriptor() {
                 BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);
-                when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
-                        .thenReturn(Optional.of(bitbucketServerConfiguration));
-                when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
-                        .thenReturn(Optional.empty());
-                when(descriptor.getBitbucketScmHelper(
-                        nullable(String.class),
-                        nullable(GlobalCredentialsProvider.class),
-                        nullable(String.class)))
-                        .thenReturn(mock(BitbucketScmHelper.class));
+                doReturn(Optional.of(bitbucketServerConfiguration))
+                        .when(descriptor).getConfiguration(argThat(serverId -> !isBlank(serverId)));
+                doReturn(Optional.empty())
+                        .when(descriptor).getConfiguration(argThat(StringUtils::isBlank));
+                doReturn(mock(BitbucketScmHelper.class))
+                        .when(descriptor).getBitbucketScmHelper(
+                                nullable(String.class),
+                                nullable(GlobalCredentialsProvider.class),
+                                nullable(String.class)
+                        );
                 return descriptor;
             }
         };
