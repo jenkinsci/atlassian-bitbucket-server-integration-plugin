@@ -14,6 +14,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
+import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BuildStatusPosterTest {
 
+    private static final String PROJECT_NAME = "Project Name";
     private static final String REVISION_SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
     private static final String SERVER_ID = "FakeServerId";
     private static final String SERVER_URL = "http://www.example.com";
@@ -59,6 +61,8 @@ public class BuildStatusPosterTest {
     @Mock
     private PrintStream logger;
     @Mock
+    private Jenkins parent;
+    @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private BitbucketBuildStatusClient postClient;
@@ -73,6 +77,11 @@ public class BuildStatusPosterTest {
 
     @Before
     public void setup() {
+        when(project.getName()).thenReturn(PROJECT_NAME);
+        when(project.getDisplayName()).thenReturn(PROJECT_NAME);
+        when(project.getParent()).thenReturn(parent);
+        when(parent.getFullName()).thenReturn("");
+        when(parent.getFullDisplayName()).thenReturn("");
         when(build.isBuilding()).thenReturn(true);
         when(build.getId()).thenReturn("10");
         when(build.getDurationString()).thenReturn("23 sec");
@@ -127,6 +136,6 @@ public class BuildStatusPosterTest {
         buildStatusPoster.postBuildStatus(build, listener);
         verify(postClient).post(captor.capture());
         BitbucketBuildStatus status = captor.getValue();
-        assertThat(status.getKey(), equalTo(build.getId()));
+        assertThat(status.getKey(), equalTo(PROJECT_NAME));
     }
 }

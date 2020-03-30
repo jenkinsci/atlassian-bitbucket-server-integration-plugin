@@ -7,7 +7,7 @@ import hudson.model.listeners.RunListener;
 
 import javax.inject.Inject;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScm;
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScmOrBitbucketScmSource;
 
 @SuppressWarnings("unused")
 @Extension
@@ -18,7 +18,7 @@ public class BitbucketPostBuildStatusListener<R extends Run<?, ?>> extends RunLi
 
     @Override
     public void onCompleted(R run, TaskListener listener) {
-        if (hasBitbucketScm(run)) {
+        if (hasBitbucketScmOrBitbucketScmSource(run)) {
             buildStatusPoster.postBuildStatus(run, listener);
         }
     }

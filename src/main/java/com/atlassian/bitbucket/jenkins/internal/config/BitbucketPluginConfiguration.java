@@ -1,15 +1,18 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.util.FormValidation;
 import hudson.util.FormValidation.Kind;
+import jenkins.branch.MultiBranchProject;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
+import jenkins.scm.api.SCMSource;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -136,7 +139,28 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
                                 }
                             }
                         });
+                Jenkins.get().getAllItems(MultiBranchProject.class)
+                        .forEach(project -> processMultiBranchProject(project, changedServerIds));
             }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processMultiBranchProject(MultiBranchProject project, Set<String> changedServerIds) {
+        List<SCMSource> sources = (List<SCMSource>) project.getSources().stream().map(scm -> {
+            if (scm instanceof BitbucketSCMSource) {
+                BitbucketSCMSource src = (BitbucketSCMSource) scm;
+                if (changedServerIds.contains(src.getServerId())) {
+                    return new BitbucketSCMSource(src);
+                }
+            }
+            return scm;
+        }).collect(Collectors.toList());
+        try {
+            project.setSourcesList(sources);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, String.format("Error updating configuration for MultiBranchProject %s.",
+                    project.getName()), e);
         }
     }
 }

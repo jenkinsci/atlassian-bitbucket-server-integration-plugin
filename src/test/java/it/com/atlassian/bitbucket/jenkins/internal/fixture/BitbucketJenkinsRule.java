@@ -11,6 +11,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -127,7 +128,7 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
 
         if (READ_PERSONAL_TOKEN.get() == null) {
             READ_PERSONAL_TOKEN.set(createPersonalToken(PROJECT_READ_PERMISSION));
-            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(ADMIN_PERSONAL_TOKEN.get().getId()));
+            Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(READ_PERSONAL_TOKEN.get().getId()));
         }
         String readCredentialsId = UUID.randomUUID().toString();
         Credentials readCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, readCredentialsId,
@@ -151,18 +152,6 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         addBitbucketServer(bitbucketServerConfiguration);
     }
 
-    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
-        return bitbucketPluginConfiguration;
-    }
-
-    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
-        return bitbucketServerConfiguration;
-    }
-
-    public String getSshCredentialsId() {
-        return sshCredentialId;
-    }
-
     public HtmlPage visit(String relativePath) throws IOException, SAXException {
         HtmlPage htmlPage = webClient.goTo(relativePath);
         currentPage = htmlPage;
@@ -171,6 +160,18 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
 
     public void waitForBackgroundJavaScript() {
         webClient.waitForBackgroundJavaScript(2000);
+    }
+
+    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
+        return bitbucketServerConfiguration;
+    }
+
+    public UsernamePasswordCredentials getAdminToken() {
+        return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
+    }
+
+    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
+        return bitbucketPluginConfiguration;
     }
 
     private void addCredentials(Credentials credentials) throws IOException {

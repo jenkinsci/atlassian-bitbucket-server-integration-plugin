@@ -120,7 +120,7 @@ public class BitbucketUtils {
     public static void deletePersonalToken(String tokenId) {
         RestAssured.given()
                 .log()
-                .all()
+                .ifValidationFails()
                 .auth()
                 .preemptive()
                 .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
