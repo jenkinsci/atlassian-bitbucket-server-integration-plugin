@@ -59,6 +59,8 @@ public class BitbucketPostBuildStatusTest {
     @Mock
     private Revision revision;
     @Mock
+    private BitbucketRevisionAction revisionAction;
+    @Mock
     private GitSCM scm;
 
     @Before
@@ -70,9 +72,7 @@ public class BitbucketPostBuildStatusTest {
         when(jenkinsProvider.get()).thenReturn(jenkins);
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
-        when(build.getProject().getScm()).thenReturn(mock(BitbucketSCM.class));
-        FreeStyleProject workflowJob = mock(FreeStyleProject.class);
-        when(notABuild.getParent()).thenReturn(workflowJob);
+        when(build.getAction(any())).thenReturn(revisionAction);
     }
 
     @Test

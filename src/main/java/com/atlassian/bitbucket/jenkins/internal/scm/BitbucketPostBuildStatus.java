@@ -14,8 +14,6 @@ import hudson.plugins.git.util.BuildData;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.hasBitbucketScmOrBitbucketScmSource;
-
 class BitbucketPostBuildStatus extends GitSCMExtension {
 
     private final JenkinsProvider jenkinsProvider;
@@ -36,10 +34,6 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
         Injector injector = jenkinsProvider.get().getInjector();
         if (injector == null) {
             listener.getLogger().println("Injector could not be found while creating build status");
-            return;
-        }
-
-        if (!hasBitbucketScmOrBitbucketScmSource(run)) {
             return;
         }
 
