@@ -312,7 +312,7 @@ public class BitbucketSCM extends SCM {
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol protocol) {
         return cloneUrls.stream()
-                .filter(link -> protocol.filter.equals(link.getName()))
+                .filter(link -> protocol.name.equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");

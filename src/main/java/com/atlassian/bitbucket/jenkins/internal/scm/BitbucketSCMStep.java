@@ -113,6 +113,7 @@ public class BitbucketSCMStep extends SCMStep {
         }
         BitbucketRepository repository;
         String repoCloneUrl;
+        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
         if (!isBlank(mirrorName)) {
             try {
                 EnrichedBitbucketMirroredRepository mirroredRepository =
@@ -126,7 +127,7 @@ public class BitbucketSCMStep extends SCMStep {
                                                 repositoryName,
                                                 mirrorName));
                 repository = mirroredRepository.getRepository();
-                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
+                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls(), cloneProtocol);
             } catch (MirrorFetchException ex) {
                 projectKey = "";
                 repositorySlug = "";
@@ -137,9 +138,9 @@ public class BitbucketSCMStep extends SCMStep {
             }
         } else {
             repository = scmHelper.getRepository(projectName, repositoryName);
-            repoCloneUrl = getCloneUrl(repository.getCloneUrls());
+            repoCloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
         }
-        this.cloneUrl = repoCloneUrl;
+        cloneUrl = repoCloneUrl;
         projectKey = repository.getProject().getKey();
         repositorySlug = repository.getSlug();
         selfLink = repository.getSelfLink();
@@ -209,9 +210,9 @@ public class BitbucketSCMStep extends SCMStep {
         return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, serverId, bitbucketRepository);
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
         return cloneUrls.stream()
-                .filter(link -> "http".equals(link.getName()))
+                .filter(link -> cloneProtocol.name.equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");

@@ -92,7 +92,15 @@ public class BitbucketSCMSourceIT {
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        BitbucketSCMSource scmSource = new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, repoName, serverId, null);
+        BitbucketSCMSource scmSource = new BitbucketSCMSource(
+                id,
+                credentialsId,
+                "",                     //TODO: Add tests
+                null,
+                PROJECT_NAME,
+                repoName,
+                serverId,
+                null);
         assertThat(scmSource.getTraits(), hasSize(0));
         assertThat(scmSource.getRemote(), containsStringIgnoringCase(cloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
@@ -124,8 +132,14 @@ public class BitbucketSCMSourceIT {
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMSource scmSource = new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                PROJECT_NAME, repoName, serverId, null);
+        SCMSource scmSource = new BitbucketSCMSource(id,
+                credentialsId,
+                "",                         //TODO: Add tests
+                new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                PROJECT_NAME,
+                repoName,
+                serverId,
+                null);
         WorkflowMultiBranchProject project = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
 
         BranchSource branchSource = new BranchSource(scmSource);

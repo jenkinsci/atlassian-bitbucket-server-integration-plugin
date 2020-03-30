@@ -94,6 +94,7 @@ public class BitbucketSCMSourceTest {
         return new BitbucketSCMSource(
                 "1",
                 credentialsId,
+                "",                 //TODO: Add tests
                 Collections.emptyList(),
                 projectName,
                 repo,

@@ -152,6 +152,22 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         addBitbucketServer(bitbucketServerConfiguration);
     }
 
+    public UsernamePasswordCredentials getAdminToken() {
+        return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
+    }
+
+    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
+        return bitbucketPluginConfiguration;
+    }
+
+    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
+        return bitbucketServerConfiguration;
+    }
+
+    public String getSshCredentialId() {
+        return sshCredentialId;
+    }
+
     public HtmlPage visit(String relativePath) throws IOException, SAXException {
         HtmlPage htmlPage = webClient.goTo(relativePath);
         currentPage = htmlPage;
@@ -160,18 +176,6 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
 
     public void waitForBackgroundJavaScript() {
         webClient.waitForBackgroundJavaScript(2000);
-    }
-
-    public BitbucketServerConfiguration getBitbucketServerConfiguration() {
-        return bitbucketServerConfiguration;
-    }
-
-    public UsernamePasswordCredentials getAdminToken() {
-        return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
-    }
-
-    public BitbucketPluginConfiguration getBitbucketPluginConfiguration() {
-        return bitbucketPluginConfiguration;
     }
 
     private void addCredentials(Credentials credentials) throws IOException {

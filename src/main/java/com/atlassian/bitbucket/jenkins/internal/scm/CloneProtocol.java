@@ -4,9 +4,9 @@ public enum CloneProtocol {
     HTTP("http"),
     SSH("ssh");
 
-    public final String filter;
+    public final String name;
 
-    private CloneProtocol(String filter) {
-        this.filter = filter;
+    private CloneProtocol(String name) {
+        this.name = name;
     }
 }

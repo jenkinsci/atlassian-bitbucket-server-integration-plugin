@@ -51,7 +51,7 @@ public final class ScmUtils {
                 "",
                 branchSpecs,
                 serverConfiguration.getCredentialsId(),
-                bbJenkinsRule.getSshCredentialsId(),
+                bbJenkinsRule.getSshCredentialId(),
                 emptyList(),
                 "",
                 serverConfiguration.getId(),
