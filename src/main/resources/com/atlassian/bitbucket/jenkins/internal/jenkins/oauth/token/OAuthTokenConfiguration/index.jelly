@@ -1,0 +1,34 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+    <l:layout permission="${app.READ}" xmlns:local="local" norefresh="true">
+        <st:include page="sidepanel.jelly"/>
+
+        <l:main-panel>
+            <h1>Authorized Applications</h1>
+            <form method="post" action="revoke">
+                <table class="sortable pane bigtable" id="service-provider-tokens">
+                        <tr style="border-top: 0px;">
+                            <th>${%bitbucket.oauth.token.consumer.name}</th>
+                            <th>${%bitbucket.oauth.token.creation.date}</th>
+                            <th>${%bitbucket.oauth.token.status}</th>
+                            <th>${%bitbucket.oauth.token.action.button}</th>
+                        </tr>
+                         <j:forEach var="d" items="${it.tokens}">
+                            <tr class="center">
+                                <td>${d.consumerName}</td>
+                                <td>${%bitbucket.oauth.token.creation.date.value(d.creationDate)}</td>
+                                <td>${d.tokenStatus}</td>
+                                <td>
+                                    <div>
+                                       <f:submit name="${d.token}" value="${it.REVOKE_BUTTON_NAME}"/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </j:forEach>
+                </table>
+            </form>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

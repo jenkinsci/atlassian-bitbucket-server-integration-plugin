@@ -1,0 +1,10 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
+    <l:side-panel>
+        <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
+        <l:tasks>
+            <l:task icon="images/24x24/up.png" href=".." title="${%bitbucket.oauth.consumer.back}" contextMenu="false"/>
+        </l:tasks>
+    </l:side-panel>
+</j:jelly>

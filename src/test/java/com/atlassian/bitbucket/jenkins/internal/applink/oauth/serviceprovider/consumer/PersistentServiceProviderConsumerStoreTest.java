@@ -183,6 +183,47 @@ public class PersistentServiceProviderConsumerStoreTest {
         consumerStore.delete(null);
     }
 
+    @Test
+    public void testUpdate() {
+        inMemoryConsumerMap.clear();
+        persistedConsumerMap.clear();
+
+        Consumer newConsumer = Consumer.key("new-consumer-rsa")
+                .name("Another Consumer using RSA")
+                .description("This is another Consumer also using RSA signature method")
+                .signatureMethod(RSA_SHA1)
+                .publicKey(KEY_PAIR2.getPublic())
+                .callback(URI.create("http://consumer/callback3"))
+                .build();
+        consumerStore.add(newConsumer);
+
+        Consumer newConsumerUpdate = Consumer.key("new-consumer-rsa")
+                .name("Different")
+                .description("No description")
+                .signatureMethod(HMAC_SHA1)
+                .callback(URI.create("http://consumer/callback3"))
+                .build();
+
+        consumerStore.update(newConsumerUpdate);
+
+        assertThat(consumerStore.get("new-consumer-rsa"), optionalWithValue(isConsumer(newConsumerUpdate)));
+        assertThat(inMemoryConsumerMap, allOf(aMapWithSize(1),
+                hasEntry(is(newConsumerUpdate.getKey()), isConsumer(newConsumerUpdate))
+        ));
+    }
+
+    @Test(expected = StoreException.class)
+    public void testUpdateThrowsExceptionForNonExistingKey() {
+        Consumer newConsumerUpdate = Consumer.key("garbage")
+                .name("Different")
+                .description("No description")
+                .signatureMethod(HMAC_SHA1)
+                .callback(URI.create("http://consumer/callback3"))
+                .build();
+
+        consumerStore.update(newConsumerUpdate);
+    }
+
     private static ConsumerMatcher isConsumer(Consumer consumer) {
         return new ConsumerMatcher(consumer);
     }

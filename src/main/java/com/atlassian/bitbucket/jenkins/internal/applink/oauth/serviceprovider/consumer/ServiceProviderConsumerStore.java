@@ -48,4 +48,12 @@ public interface ServiceProviderConsumerStore {
      * @throws NullPointerException if the given {@code key} is {@code null}
      */
     void delete(String key);
+
+    /**
+     * Updates an existing consumer.
+     * @param consumer the consumer to update
+     * @throws StoreException if a {@link Consumer consumer} with the {@link Consumer#getKey() key} does not
+     * exists
+     */
+    void update(Consumer consumer);
 }

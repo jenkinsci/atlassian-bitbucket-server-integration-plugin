@@ -1,0 +1,42 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <l:layout permission="${app.ADMINISTER}" xmlns:local="local" norefresh="true">
+        <st:include page="sidepanel.jelly"/>
+
+        <l:main-panel>
+            <h1>
+                <img src="${imagesURL}/48x48/${it.iconFileName}" alt="${it.displayName}"/>
+                ${it.displayName}
+            </h1>
+
+            <table class="sortable pane bigtable">
+                <tr style="border-top: 0px;">
+                    <th>${%bitbucket.oauth.consumer.key}</th>
+                    <th>${%bitbucket.oauth.consumer.name}</th>
+                    <th>${%bitbucket.oauth.consumer.callback}</th>
+                </tr>
+                <j:forEach var="d" items="${it.consumers}">
+                    <tr class="center">
+                        <td><a href="${'consumer/'+d.consumerKey}" class="model-link inside">${d.consumerKey}</a></td>
+                        <td>${d.consumerName}</td>
+                        <td>
+                            <j:choose>
+                                <j:when test="${d.callbackUrlSet}">
+                                    <a href="${d.callbackUrl}">${d.callbackUrl}</a>
+                                </j:when>
+                                <j:otherwise>
+                                    ${d.callbackUrl}
+                                </j:otherwise>
+                            </j:choose>
+                        </td>
+                    </tr>
+                </j:forEach>
+            </table>
+            <form method="get" action="create">
+                <p><f:submit value="${%bitbucket.oauth.consumer.create}"/></p>
+            </form>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

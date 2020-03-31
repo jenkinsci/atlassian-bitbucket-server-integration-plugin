@@ -1,0 +1,32 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout permission="${app.READ}">
+        <l:main-panel>
+            <h2>Welcome to ${it.instanceName}</h2>
+            <p>
+                The application <strong>${it.consumerName}</strong> would like to have <strong>${it.accessRequest}</strong>
+                access to your data on <strong>${it.urlName}</strong>. The application will be allowed to use your
+                credentials and authenticate as you (<strong>${it.authenticatedUsername}</strong>) in the future.
+            </p>
+
+            <f:form action="performSubmit" method="POST" name="performSubmit">
+                <f:invisibleEntry field="oauth_token_field">
+                    <f:readOnlyTextbox type="hidden" name="${it.OAUTH_TOKEN_PARAM}" value="${it.token}"/>
+                </f:invisibleEntry>
+                <f:invisibleEntry field="oauth_callback_field">
+                      <f:readOnlyTextbox type="hidden" name="oauth_callback" value="${it.callback}"/>
+                </f:invisibleEntry>
+                <f:bottomButtonBar>
+                    <f:submit name="${it.AUTHORIZE_KEY}" value="Authorize"/>
+                    <f:submit name="${it.CANCEL_KEY}" value="Cancel"/>
+                </f:bottomButtonBar>
+            </f:form>
+
+            <p>
+                By allowing this, you can use <strong>${it.instanceName}</strong> without storing your ${it.instanceName}
+                password in <strong>${it.consumerName}</strong>.
+            </p>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
