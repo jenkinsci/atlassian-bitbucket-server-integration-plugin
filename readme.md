@@ -63,6 +63,12 @@ To create a Jenkins job:
 5. Add a **build step**.
 6. Click **Save**.
 
+## Setting up a Multibranch Pipeline 
+
+To use a different Jenkinsfile for different branches of your Bitbucket Server project, you need to create a Multibranch Pipeline and add the Jenkinsfile to the repo of each branch you want to build. Jenkins will then automatically find, manage, and execute these Pipelines.
+
+Read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline). 
+
 ---
 
 ## Contributing to the plugin
