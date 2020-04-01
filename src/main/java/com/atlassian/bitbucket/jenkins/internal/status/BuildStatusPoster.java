@@ -1,5 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -18,6 +20,8 @@ import javax.inject.Singleton;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.getBitbucketSCM;
 
 @Singleton
 public class BuildStatusPoster {
@@ -48,14 +52,16 @@ public class BuildStatusPoster {
                 if (jenkinsToBitbucketCredentials == null) {
                     Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
                 }
-                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run);
-                listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
 
                 Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
                 BitbucketCredentials credentials =
                         jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
-                bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials)
-                        .getBuildStatusClient(revisionAction.getRevisionSha1())
+                BitbucketClientFactory bbsClient = bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
+                BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
+                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run, ciCapabilities);
+                listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
+
+                bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), getBitbucketSCM(run).orElse(null), ciCapabilities)
                         .post(buildStatus);
             } catch (RuntimeException e) {
                 String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();

@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
@@ -16,9 +17,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -39,6 +38,8 @@ public class BitbucketBuildStatusFactoryTest {
     private Jenkins parent;
     @Mock
     private Project project;
+    @Mock
+    private BitbucketCICapabilities ciCapabilities;
 
     @Before
     public void setup() {
@@ -51,6 +52,7 @@ public class BitbucketBuildStatusFactoryTest {
         when(project.getParent()).thenReturn(parent);
         when(parent.getFullName()).thenReturn("");
         when(parent.getFullDisplayName()).thenReturn("");
+        when(ciCapabilities.supportsRichBuildStatus()).thenReturn(false);
     }
 
     @Test
@@ -58,7 +60,7 @@ public class BitbucketBuildStatusFactoryTest {
         when(build.isBuilding()).thenReturn(false);
         when(build.getResult()).thenReturn(Result.FAILURE);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
     }
@@ -67,7 +69,7 @@ public class BitbucketBuildStatusFactoryTest {
     public void testBuildInProgressStatus() {
         when(build.isBuilding()).thenReturn(true);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.INPROGRESS.toString()));
     }
@@ -77,13 +79,14 @@ public class BitbucketBuildStatusFactoryTest {
         when(build.isBuilding()).thenReturn(false);
         when(build.getResult()).thenReturn(Result.UNSTABLE);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
     }
 
     @Test
     public void testFullBuildSuccessfulStatus() {
+        when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
         String externalId = project.getFullName() + BUILD_DISPLAY_NAME;
         long duration = 123456L;
         int failCount = 1;
@@ -99,7 +102,7 @@ public class BitbucketBuildStatusFactoryTest {
         when(testResultAction.getSkipCount()).thenReturn(skipCount);
         when(testResultAction.getTotalCount()).thenReturn(6);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
 
         assertThat(result.getName(), equalTo(PROJECT_NAME));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
@@ -116,9 +119,29 @@ public class BitbucketBuildStatusFactoryTest {
     }
 
     @Test
+    public void testSuccessfulStatusOldBitbucket() {
+        String externalId = project.getFullName() + BUILD_DISPLAY_NAME;
+        when(build.isBuilding()).thenReturn(false);
+        when(build.getResult()).thenReturn(Result.SUCCESS);
+        when(build.getExternalizableId()).thenReturn(externalId);
+
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+
+        assertThat(result.getName(), equalTo(PROJECT_NAME));
+        assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
+                BUILD_DISPLAY_NAME, BUILD_DURATION)));
+        assertThat(result.getKey(), equalTo(PROJECT_NAME));
+        assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
+        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(build)));
+        assertThat(result.getResultKey(), equalTo(externalId));
+        assertThat(result.getDuration(), nullValue());
+        assertThat(result.getTestResults(), nullValue());
+    }
+
+    @Test
     public void testDurationIsNotSetForInProgress() {
         when(build.isBuilding()).thenReturn(true);
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build);
+        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
         assertThat(result.getDuration(), nullValue());
     }
 }

@@ -1,7 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import javax.annotation.Nullable;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
@@ -24,7 +28,10 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha) {
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable BitbucketSCM bitbucketSCM, BitbucketCICapabilities ciCapabilities) {
+        if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCM != null) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCM.getProjectKey(), bitbucketSCM.getRepositorySlug(), revisionSha);
+        }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }
 

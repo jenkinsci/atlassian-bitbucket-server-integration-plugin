@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
@@ -18,7 +19,7 @@ public final class BitbucketBuildStatusFactory {
 
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 
-    public static BitbucketBuildStatus fromBuild(Run<?, ?> build) {
+    public static BitbucketBuildStatus fromBuild(Run<?, ?> build, BitbucketCICapabilities ciCapabilities) {
         Job<?, ?> parent = build.getParent();
         String key = parent.getFullName();
         String url = DisplayURLProvider.get().getRunURL(build);
@@ -32,12 +33,15 @@ public final class BitbucketBuildStatusFactory {
         }
         BitbucketBuildStatus.Builder bbs = new BitbucketBuildStatus.Builder(key, state, url)
                 .setName(parent.getFullDisplayName())
-                .setServerIdentifier(Jenkins.get().getRootUrl())
                 .setResultKey(build.getExternalizableId())
-                .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()))
-                .setTestResults(getTestResults(build));
-        if (state != BuildState.INPROGRESS) {
-            bbs.setDuration(build.getDuration());
+                .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
+
+        if (ciCapabilities.supportsRichBuildStatus()) {
+            bbs.setServerIdentifier(Jenkins.get().getRootUrl())
+                    .setTestResults(getTestResults(build));
+            if (state != BuildState.INPROGRESS) {
+                bbs.setDuration(build.getDuration());
+            }
         }
         return bbs.build();
     }

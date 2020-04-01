@@ -15,6 +15,7 @@ import java.util.Map;
 public class AtlassianServerCapabilities {
 
     public static final String WEBHOOK_CAPABILITY_KEY = "webhooks";
+    public static final String RICH_BUILDSTATUS_CAPABILITY_KEY = "build";
 
     private final String application;
     private final Map<String, String> capabilities;

@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBuildStatusClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCapabilitiesClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
@@ -11,6 +12,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
@@ -63,9 +65,13 @@ public class BuildStatusPosterTest {
     @Mock
     private Jenkins parent;
     @Mock
-    private BitbucketPluginConfiguration pluginConfiguration;
-    @Mock
     private BitbucketBuildStatusClient postClient;
+    @Mock
+    private BitbucketCICapabilities ciCapabilities;
+    @Mock
+    private BitbucketCapabilitiesClient capabilityClient;
+    @Mock
+    private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private AbstractProject project;
     @Mock
@@ -93,7 +99,9 @@ public class BuildStatusPosterTest {
         when(server.getBaseUrl()).thenReturn(SERVER_URL);
         when(factoryProvider.getClient(eq(SERVER_URL), any(BitbucketCredentials.class)))
                 .thenReturn(factory);
-        when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
+        when(factory.getBuildStatusClient(REVISION_SHA1, null, ciCapabilities)).thenReturn(postClient);
+        when(factory.getCapabilityClient()).thenReturn(capabilityClient);
+        when(capabilityClient.getCICapabilities()).thenReturn(ciCapabilities);
         BitbucketCredentials credentials = mock(BitbucketCredentials.class);
         GlobalCredentialsProvider gcp = mock(GlobalCredentialsProvider.class);
         when(gcp.getGlobalAdminCredentials()).thenReturn(Optional.of(adminCredentials));

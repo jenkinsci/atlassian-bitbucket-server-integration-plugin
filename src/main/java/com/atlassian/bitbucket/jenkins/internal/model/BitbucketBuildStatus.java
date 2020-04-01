@@ -137,7 +137,7 @@ public class BitbucketBuildStatus {
             return this;
         }
 
-        public Builder setServerIdentifier(String serverIdentifier) {
+        public Builder setServerIdentifier(@Nullable String serverIdentifier) {
             this.serverIdentifier = serverIdentifier;
             return this;
         }

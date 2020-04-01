@@ -1,5 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+
+import javax.annotation.Nullable;
+
 /**
  * Factory for Bitbucket Clients.
  */
@@ -23,10 +28,12 @@ public interface BitbucketClientFactory {
     /**
      * Return a client that can post the current status of a build to Bitbucket.
      *
-     * @param revisionSha the revision for the build status
+     * @param revisionSha    the revision for the build status
+     * @param bitbucketSCM   the SCM that holds the repository, if null the status is posted to the old non specific resource
+     * @param ciCapabilities CI capabilities of the remote server
      * @return a client that can post a build status
      */
-    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha);
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable BitbucketSCM bitbucketSCM, BitbucketCICapabilities ciCapabilities);
 
     /**
      * Construct a client that can retrieve the list of mirrored repositories for a given {@code repoId} from Bitbucket.
