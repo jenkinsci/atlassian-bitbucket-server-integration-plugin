@@ -17,7 +17,7 @@ public class BitbucketCICapabilities {
     private final Set<String> ciCapabilities;
 
     @JsonCreator
-    public BitbucketCICapabilities(@JsonProperty(value = "application-buildStatus") Set<String> ciCapabilities) {
+    public BitbucketCICapabilities(@JsonProperty(value = "buildStatus") Set<String> ciCapabilities) {
         this.ciCapabilities = unmodifiableSet(requireNonNull(ciCapabilities, "Application hooks events unavailable"));
     }
 
