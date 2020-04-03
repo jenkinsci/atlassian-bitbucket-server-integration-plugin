@@ -127,19 +127,43 @@ public class BitbucketSCMSourceIT {
     }
 
     @Test
-    public void testFullFlow() throws IOException, InterruptedException, GitAPIException {
+    public void testFullFlowHttp() throws InterruptedException, GitAPIException, IOException {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
         SCMSource scmSource = new BitbucketSCMSource(id,
                 credentialsId,
-                "",                         //TODO: Add tests
+                "",
                 new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
                 PROJECT_NAME,
                 repoName,
                 serverId,
                 null);
+
+        executeFullFlow(scmSource);
+    }
+
+    @Test
+    public void testFullFlowSsh() throws InterruptedException, GitAPIException, IOException {
+        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
+        String credentialsId = serverConf.getCredentialsId();
+        String id = UUID.randomUUID().toString();
+        String serverId = serverConf.getId();
+        SCMSource scmSource = new BitbucketSCMSource(id,
+                credentialsId,
+                bbJenkinsRule.getSshCredentialId(),
+                new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                PROJECT_NAME,
+                repoName,
+                serverId,
+                null);
+
+        executeFullFlow(scmSource);
+    }
+
+    public void executeFullFlow(SCMSource scmSource) throws IOException, InterruptedException, GitAPIException {
+
         WorkflowMultiBranchProject project = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
 
         BranchSource branchSource = new BranchSource(scmSource);

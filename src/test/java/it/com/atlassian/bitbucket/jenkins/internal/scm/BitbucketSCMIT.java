@@ -60,28 +60,6 @@ public class BitbucketSCMIT {
     }
 
     @Test
-    public void testCheckout() throws Exception {
-        project.setScm(createScmWithSpecs("*/master"));
-        project.save();
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-
-        assertEquals(SUCCESS, build.getResult());
-        assertTrue(build.getWorkspace().child("add_file").isDirectory());
-    }
-
-    @Test
-    public void testCheckoutWithSsh() throws Exception {
-        project.setScm(createSCMWithSshCredentials());
-        project.save();
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-
-        assertEquals(SUCCESS, build.getResult());
-        assertTrue(build.getWorkspace().child("add_file").isDirectory());
-    }
-
-    @Test
     public void testCheckoutAndPush() throws Exception {
         String uniqueMessage = UUID.randomUUID().toString();
         Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh")
@@ -114,6 +92,17 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    public void testCheckoutWithHttp() throws Exception {
+        project.setScm(createScmWithSpecs("*/master"));
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+
+        assertEquals(SUCCESS, build.getResult());
+        assertTrue(build.getWorkspace().child("add_file").isDirectory());
+    }
+
+    @Test
     public void testCheckoutWithMultipleBranches() throws Exception {
         project.setScm(createScmWithSpecs("*/master", "*/basic_branching"));
         project.save();
@@ -142,6 +131,17 @@ public class BitbucketSCMIT {
     }
 
     @Test
+    public void testCheckoutWithSsh() throws Exception {
+        project.setScm(createSCMWithSshCredentials());
+        project.save();
+
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+
+        assertEquals(SUCCESS, build.getResult());
+        assertTrue(build.getWorkspace().child("add_file").isDirectory());
+    }
+
+    @Test
     public void testPostBuildStatus() throws Exception {
         project.setScm(createScmWithSpecs("*/master"));
         project.save();
@@ -162,18 +162,18 @@ public class BitbucketSCMIT {
                      revisionAction.getRevisionSha1());
     }
 
-    private BitbucketSCM createScmWithSpecs(String... refs) {
-        List<BranchSpec> branchSpecs = Arrays.stream(refs)
-                .map(BranchSpec::new)
-                .collect(Collectors.toList());
-        return createScm(bbJenkinsRule, branchSpecs);
-    }
-
     private BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
         return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
     }
 
     private BitbucketSCM createSCMWithSshCredentials() {
         return createScm(bbJenkinsRule, true, "rep_1", singletonList(new BranchSpec("*/master")));
+    }
+
+    private BitbucketSCM createScmWithSpecs(String... refs) {
+        List<BranchSpec> branchSpecs = Arrays.stream(refs)
+                .map(BranchSpec::new)
+                .collect(Collectors.toList());
+        return createScm(bbJenkinsRule, branchSpecs);
     }
 }
