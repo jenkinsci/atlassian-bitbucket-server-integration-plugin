@@ -53,12 +53,30 @@ Then run the tests from inside the `acceptance-tests` folder:
 
 ```
 cd acceptance-tests
-mvn test
+mvn verify
 ```
 
 This will run all the tests.
 
 You can also run individual tests inside your IDE of choice (e.g. Intellij IDEA).
+
+## Changing the browser and Jenkins version
+
+To override the browser for WebDriver tests (currently set to `firefox-container`, meaning the tests will run in Firefox 
+inside a Selenium-provided container), pass in the `BROWSER` environment variable when running the tests.
+
+```
+BROWSER=safari mvn verify
+```
+For more details and the full list of supported browsers, see [the docs](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md).
+
+To override the Jenkins version used for the tests, pass in the `JENKINS_VERSION` environment variable:
+
+```
+JENKINS_VERSION=2.176.4 mvn verify
+```
+
+For more on managing the versions of Jenkins and plugins under test, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/SUT-VERSIONS.md).
 
 ## Running against an existing Jenkins instance
 
@@ -96,5 +114,15 @@ For more details see: [prelaunching Jenkins under test](https://github.com/jenki
 
 ## Developing new tests
 
+---
+Note on developing in Intellij (similar steps may be required with other IDEs too):  
 The `acceptance-tests` Maven module may not be automatically picked up and imported by Intellij when you import the 
 project. To import the module, right click on the `pom.xml` in the `acceptance-tests` module and click `Add as Maven Project`.
+---
+
+### Writing a new JUnit test
+
+The easiest way to develop a new test is to extend [AbstractJUnitTest](https://github.com/jenkinsci/acceptance-test-harness/blob/master/src/main/java/org/jenkinsci/test/acceptance/junit/AbstractJUnitTest.java).
+That way, you'll get a bunch of things already injected into your test, like the `JenkinsAcceptanceTestRule` which is 
+responsible for starting up a Jenkins instance for testing, among other things.  
+For more details, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/JUNIT.md).
