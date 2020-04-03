@@ -16,7 +16,6 @@ public class JenkinsApplinksClient {
     private static final String CREATE_OAUTH_CONSUMER_PATH = "/bbs-oauth/create/performCreate";
 
     private final ObjectMapper jsonSerializer = new ObjectMapper();
-
     private final String baseUrl;
 
     public JenkinsApplinksClient(String baseUrl) {

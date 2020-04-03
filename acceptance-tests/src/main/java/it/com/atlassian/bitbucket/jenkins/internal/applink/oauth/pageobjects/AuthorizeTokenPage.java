@@ -42,12 +42,7 @@ public class AuthorizeTokenPage extends PageObject {
         control(By.cssSelector("span[name=\"authorize\"] > span.first-child > button")).click();
         return waitWithTimeout()
                 .withMessage("Redirect URL must contain the 'oauth_verifier' query param")
-                .until(() -> URLEncodedUtils.parse(URI.create(getCurrentUrl()), UTF_8).stream()
-                        .filter(nvp -> "oauth_verifier".equalsIgnoreCase(nvp.getName()))
-                        .findFirst()
-                        .map(NameValuePair::getValue)
-                        .orElseThrow(() ->
-                                new AssertionError("Redirect url must contain an 'oauth_verifier' query parameter")));
+                .until(this::untilOAuthVerifierQueryParamIsPresent);
     }
 
     /**
@@ -59,12 +54,7 @@ public class AuthorizeTokenPage extends PageObject {
         control(By.cssSelector("span[name=\"cancel\"] > span.first-child > button")).click();
         String oAuthVerifier = waitWithTimeout()
                 .withMessage("Redirect URL must contain the 'oauth_verifier' query param")
-                .until(() -> URLEncodedUtils.parse(URI.create(getCurrentUrl()), UTF_8).stream()
-                        .filter(nvp -> "oauth_verifier".equalsIgnoreCase(nvp.getName()))
-                        .findFirst()
-                        .map(NameValuePair::getValue)
-                        .orElseThrow(() ->
-                                new AssertionError("Redirect url must contain an 'oauth_verifier' query parameter")));
+                .until(this::untilOAuthVerifierQueryParamIsPresent);
         assertThat(oAuthVerifier, equalToIgnoringWhiteSpace("denied"));
     }
 
@@ -79,6 +69,15 @@ public class AuthorizeTokenPage extends PageObject {
                 });
         assertThat("Request token to be authorized has the wrong value", requestTokenValue,
                 equalToIgnoringWhiteSpace(requestToken));
+    }
+
+    private String untilOAuthVerifierQueryParamIsPresent() {
+        return URLEncodedUtils.parse(URI.create(getCurrentUrl()), UTF_8).stream()
+                .filter(nvp -> "oauth_verifier".equalsIgnoreCase(nvp.getName()))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElseThrow(() ->
+                        new AssertionError("Redirect url must contain an 'oauth_verifier' query parameter"));
     }
 
     private Wait<CapybaraPortingLayer> waitWithTimeout() {

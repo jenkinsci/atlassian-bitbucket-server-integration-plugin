@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.jenkinsci.test.acceptance.Matchers.loggedInAs;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
-import static org.jenkinsci.test.acceptance.plugins.matrix_auth.ProjectBasedMatrixAuthorizationStrategy.authorizeUserAsAdmin;
 import static org.junit.Assert.assertNotNull;
 
 @WithPlugins({"mailer", "matrix-auth", "atlassian-bitbucket-server-integration"})
@@ -70,8 +69,9 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
 
         securityConfig.configure();
         ProjectBasedMatrixAuthorizationStrategy matrixAuthzConfig =
-                authorizeUserAsAdmin(admin.fullName(), securityConfig)
-                        .useAuthorizationStrategy(ProjectBasedMatrixAuthorizationStrategy.class);
+                securityConfig.useAuthorizationStrategy(ProjectBasedMatrixAuthorizationStrategy.class);
+        MatrixRow adminMatrixRow = matrixAuthzConfig.addUser(admin.fullName());
+        adminMatrixRow.admin();
         MatrixRow user1MatrixRow = matrixAuthzConfig.addUser(user1.fullName());
         user1MatrixRow.on(OVERALL_READ);
         MatrixRow user2MatrixRow = matrixAuthzConfig.addUser(user2.fullName());

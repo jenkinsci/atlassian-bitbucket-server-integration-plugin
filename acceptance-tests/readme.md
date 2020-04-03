@@ -58,7 +58,7 @@ mvn test
 
 This will run all the tests.
 
-You can also run individual tests inside Intellij as usual.
+You can also run individual tests inside your IDE of choice (e.g. Intellij IDEA).
 
 ## Running against an existing Jenkins instance
 
