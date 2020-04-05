@@ -74,7 +74,7 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
 
     @Override
     public String getDisplayName() {
-        return "Update Consumer Configuration";
+        return "Edit Consumer Details";
     }
 
     @Override

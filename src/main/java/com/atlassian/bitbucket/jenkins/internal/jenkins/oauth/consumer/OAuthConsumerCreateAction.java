@@ -13,7 +13,6 @@ import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.inject.Inject;
 import javax.servlet.ServletException;
 import java.net.URISyntaxException;
 
@@ -60,13 +59,5 @@ public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthCons
     @SuppressWarnings("unused") // Stapler
     @Symbol("oauth-consumer-create")
     public static class DescriptorImpl extends Descriptor<OAuthConsumerCreateAction> {
-
-        @Inject
-        private ServiceProviderConsumerStore consumerStore;
-
-        @Override
-        public String getDisplayName() {
-            return "Update OAuth Consumer";
-        }
     }
 }

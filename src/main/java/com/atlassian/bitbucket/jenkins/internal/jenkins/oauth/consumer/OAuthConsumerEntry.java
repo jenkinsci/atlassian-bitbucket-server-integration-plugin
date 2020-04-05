@@ -102,7 +102,7 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
         public FormValidation doCheckConsumerKey(@QueryParameter String consumerKey) {
             String k = consumerKey.replaceAll("-", "");
             if (!isAlphanumeric(k)) {
-                return FormValidation.error("Only Alphanumeric Consumer Key allowed");
+                return FormValidation.error("Enter a Key");
             } else if (consumerStore.get(consumerKey).isPresent()) {
                 return FormValidation.error("Key with the same name already exists");
             } else {
@@ -112,7 +112,7 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
 
         public FormValidation doCheckConsumerName(@QueryParameter String consumerName) {
             if (isBlank(consumerName)) {
-                return FormValidation.error("Please provide a valid non empty consumer name");
+                return FormValidation.error("Enter a consumer name");
             }
             return FormValidation.ok();
         }

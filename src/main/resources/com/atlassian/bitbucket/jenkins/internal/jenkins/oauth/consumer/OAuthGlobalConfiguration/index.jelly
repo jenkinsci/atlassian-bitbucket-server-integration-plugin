@@ -8,8 +8,13 @@
         <l:main-panel>
             <h1>
                 <img src="${imagesURL}/48x48/${it.iconFileName}" alt="${it.displayName}"/>
-                ${it.displayName}
+                ${%bitbucket.oauth.consumer.title}
             </h1>
+            <p>
+                Grant a Bitbucket Server instance access to Jenkins by registering it as a consumer below.
+                Then create an Application Link in Bitbucket Server to complete the authorization process.
+                <a>Learn more</a>
+            </p>
 
             <table class="sortable pane bigtable">
                 <tr style="border-top: 0px;">

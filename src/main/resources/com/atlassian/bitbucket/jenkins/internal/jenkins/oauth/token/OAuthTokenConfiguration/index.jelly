@@ -6,7 +6,7 @@
         <st:include page="sidepanel.jelly"/>
 
         <l:main-panel>
-            <h1>Authorized Applications</h1>
+            <h1>${%bitbucket.oauth.token.header}</h1>
             <form method="post" action="revoke">
                 <table class="sortable pane bigtable" id="service-provider-tokens">
                         <tr style="border-top: 0px;">
