@@ -162,7 +162,7 @@ public class BitbucketSCMSourceIT {
         executeFullFlow(scmSource);
     }
 
-    public void executeFullFlow(SCMSource scmSource) throws IOException, InterruptedException, GitAPIException {
+    private void executeFullFlow(SCMSource scmSource) throws IOException, InterruptedException, GitAPIException {
 
         WorkflowMultiBranchProject project = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
 
