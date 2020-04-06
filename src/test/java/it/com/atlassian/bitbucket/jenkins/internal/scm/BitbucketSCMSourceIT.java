@@ -40,10 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -159,6 +156,7 @@ public class BitbucketSCMSourceIT {
                 serverId,
                 null);
 
+        addSshHostVerificationKeyToKnownHosts();
         executeFullFlow(scmSource);
     }
 
@@ -282,5 +280,20 @@ public class BitbucketSCMSourceIT {
                 .post(sourceRepoUrl);
         BitbucketRepository repository = objectMapper.readValue(body.asString(), BitbucketRepository.class);
         return repository;
+    }
+
+    private void addSshHostVerificationKeyToKnownHosts() throws IOException {
+       /*Process p = Runtime.getRuntime().exec("ssh-keyscan -H localhost ");
+       File sshFolder = new File(System.getProperty("user.dir") + "/.ssh");
+       File file = new File(System.getProperty("user.dir") + "/.ssh/known_hosts");
+       sshFolder.mkdirs();
+       FileOutputStream fop = new FileOutputStream(file);
+
+       if (!file.exists()) {
+            file.createNewFile();
+       }
+       IOUtils.write(IOUtils.toString(p.getInputStream(), Charsets.UTF_8), fop);
+       fop.close();
+       p.destroy();*/
     }
 }

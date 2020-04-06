@@ -41,7 +41,7 @@ public class BitbucketSCMStepIT {
                 credentialsId, "", PROJECT_NAME, REPO_NAME, serverId, "");
         assertThat(scmStep.getBranches(), hasSize(1));
         assertThat(scmStep.getBranches().get(0).getName(), equalTo("master"));
-        assertThat(scmStep.getCloneUrl(), containsStringIgnoringCase(CLONE_URL_SSH));
+        assertThat(scmStep.getCloneUrl(), containsStringIgnoringCase(CLONE_URL_HTTP));
         assertThat(scmStep.getCredentialsId(), equalTo(credentialsId));
         assertThat(scmStep.getId(), equalTo(id));
         assertThat(scmStep.getProjectKey(), equalTo(PROJECT_KEY));
