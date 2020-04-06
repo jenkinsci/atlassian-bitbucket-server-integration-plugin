@@ -3,8 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.r
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.OAuthConverter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenFactory;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.ByteArrayServletOutputStream;
 import net.oauth.*;
 import org.junit.Before;
@@ -27,6 +27,7 @@ import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprov
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Session.newSession;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER_WITH_2LO;
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Tokens.*;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.USER;
 import static net.oauth.OAuth.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,23 +41,12 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class AccessTokenRestEndpointTest {
 
-    private static final String SESSION_HANDLE = "abcd";
-    private static final String TOKEN_VALUE = "1234";
-    private static final String TOKEN_SECRET = "5678";
-    private static final String VERIFIER = "9876";
-
-    private static final ServiceProviderToken UNAUTHORIZED_REQUEST_TOKEN =
-            ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret(TOKEN_SECRET).consumer(RSA_CONSUMER).build();
-    private static final ServiceProviderToken AUTHORIZED_REQUEST_TOKEN =
-            UNAUTHORIZED_REQUEST_TOKEN.authorize(USER, VERIFIER);
     private static final ServiceProviderToken EXPIRED_AUTHORIZED_REQUEST_TOKEN =
             ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret(TOKEN_SECRET).consumer(RSA_CONSUMER).creationTime(
                     System.currentTimeMillis() -
                     ServiceProviderToken.DEFAULT_REQUEST_TOKEN_TTL * 2).authorizedBy(USER).verifier(VERIFIER).build();
     private static final OAuthAccessor AUTHORIZED_REQUEST_ACCESSOR =
             OAuthConverter.createOAuthAccessor(AUTHORIZED_REQUEST_TOKEN);
-    private static final ServiceProviderToken ACCESS_TOKEN =
-            ServiceProviderToken.newAccessToken(TOKEN_VALUE).tokenSecret(TOKEN_SECRET).consumer(RSA_CONSUMER).authorizedBy(USER).session(newSession(SESSION_HANDLE).build()).build();
     private static final ServiceProviderToken ACCESS_TOKEN_WITH_EXPIRED_SESSION =
             ServiceProviderToken.newAccessToken(TOKEN_VALUE).tokenSecret(TOKEN_SECRET).consumer(RSA_CONSUMER).authorizedBy(USER).session(newSession(SESSION_HANDLE).creationTime(
                     System.currentTimeMillis() - DEFAULT_SESSION_TTL * 3).lastRenewalTime(

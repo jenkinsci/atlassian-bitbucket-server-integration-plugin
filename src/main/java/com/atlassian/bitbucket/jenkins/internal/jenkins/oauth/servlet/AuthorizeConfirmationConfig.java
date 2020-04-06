@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.ex
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.OAuthProblemUtils;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsAuthWrapper;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Action;
@@ -43,13 +44,18 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
     public static final String AUTHORIZE_KEY = "authorize";
     public static final String CANCEL_KEY = "cancel";
     public static final String OAUTH_TOKEN_PARAM = "oauth_token";
-    private static final String DENIED_STATUS = "denied";
+
     private static final Logger LOGGER = Logger.getLogger(AuthorizeConfirmationConfig.class.getName());
+    private static final String DENIED_STATUS = "denied";
     private static final int VERIFIER_LENGTH = 6;
+
+    private AuthorizeConfirmationConfigDescriptor descriptor;
     private String callback;
     private ServiceProviderToken serviceProviderToken;
 
-    private AuthorizeConfirmationConfig(String rawToken, String callback) throws OAuthProblemException {
+    private AuthorizeConfirmationConfig(AuthorizeConfirmationConfigDescriptor descriptor, String rawToken,
+                                        String callback) throws OAuthProblemException {
+        this.descriptor = descriptor;
         serviceProviderToken = getTokenForAuthorization(rawToken);
         this.callback = callback;
     }
@@ -61,7 +67,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
         JSONObject data = request.getSubmittedForm();
         Map<String, String[]> params = request.getParameterMap();
 
-        Principal userPrincipal = Jenkins.getAuthentication();
+        Principal userPrincipal = descriptor.jenkinsAuthWrapper.getAuthentication();
         if (ANONYMOUS.getPrincipal().equals(userPrincipal.getName())) {
             return HttpResponses.error(SC_UNAUTHORIZED, "User not logged in.");
         }
@@ -116,7 +122,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
 
     @Override
     public AuthorizeConfirmationConfigDescriptor getDescriptor() {
-        return (AuthorizeConfirmationConfigDescriptor) super.getDescriptor();
+        return descriptor;
     }
 
     public String getDisplayName() {
@@ -131,7 +137,8 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
 
     @SuppressWarnings("unused") //Stapler
     public String getIconUrl() {
-        return Jenkins.get().getRootUrl() + "/plugin/atlassian-bitbucket-server-integration/images/bitbucket-to-jenkins.png";
+        return Jenkins.get().getRootUrl() +
+               "/plugin/atlassian-bitbucket-server-integration/images/bitbucket-to-jenkins.png";
     }
 
     @SuppressWarnings("unused") //Stapler
@@ -173,14 +180,19 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
     public static class AuthorizeConfirmationConfigDescriptor extends Descriptor<AuthorizeConfirmationConfig> {
 
         @Inject
+        private JenkinsAuthWrapper jenkinsAuthWrapper;
+        @Inject
         private Clock clock;
         @Inject
         private Randomizer randomizer;
         @Inject
         private ServiceProviderTokenStore tokenStore;
 
-        AuthorizeConfirmationConfigDescriptor(ServiceProviderTokenStore tokenStore, Randomizer randomizer,
+        AuthorizeConfirmationConfigDescriptor(JenkinsAuthWrapper jenkinsAuthWrapper,
+                                              ServiceProviderTokenStore tokenStore,
+                                              Randomizer randomizer,
                                               Clock clock) {
+            this.jenkinsAuthWrapper = jenkinsAuthWrapper;
             this.tokenStore = tokenStore;
             this.randomizer = randomizer;
             this.clock = clock;
@@ -193,7 +205,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
             try {
                 OAuthMessage requestMessage = OAuthServlet.getMessage(req, null);
                 requestMessage.requireParameters(OAUTH_TOKEN);
-                return new AuthorizeConfirmationConfig(requestMessage.getToken(), requestMessage.getParameter(OAUTH_CALLBACK));
+                return new AuthorizeConfirmationConfig(this, requestMessage.getToken(), requestMessage.getParameter(OAUTH_CALLBACK));
             } catch (OAuthProblemException e) {
                 throw new FormException(e, e.getProblem());
             } catch (IOException e) {
