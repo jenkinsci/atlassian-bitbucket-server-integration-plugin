@@ -3,7 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.Randomizer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.AuthorizeConfirmationConfigDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsAuthWrapper;
 import hudson.model.Descriptor.FormException;
 import jenkins.model.Jenkins;
@@ -35,8 +35,7 @@ import java.util.Optional;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.DEFAULT_REQUEST_TOKEN_TTL;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Tokens.*;
-import static com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.AUTHORIZE_KEY;
-import static com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.OAUTH_TOKEN_PARAM;
+import static com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.*;
 import static java.lang.String.format;
 import static net.oauth.OAuth.OAUTH_CALLBACK;
 import static net.oauth.OAuth.OAUTH_TOKEN;
@@ -141,7 +140,7 @@ public class AuthorizeConfirmationConfigTest {
     }
 
     @Test
-    public void submitReturnsValidator() throws FormException, IOException, ServletException {
+    public void submitWithAuthorizeReturnsValidator() throws FormException, IOException, ServletException {
         ServiceProviderToken unAuthorizedRequestToken =
                 ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER).build();
         when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
@@ -156,6 +155,24 @@ public class AuthorizeConfirmationConfigTest {
         r.generateResponse(request, response, null);
 
         verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY, format("?oauth_token=%s&oauth_verifier=%s", TOKEN_VALUE, VERIFIER));
+    }
+
+    @Test
+    public void submitWithDenyReturnsValidator() throws FormException, IOException, ServletException {
+        ServiceProviderToken unAuthorizedRequestToken =
+                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER).build();
+        when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
+
+        AuthorizeConfirmationConfigDescriptor descriptor = createDescriptor();
+        AuthorizeConfirmationConfig config = descriptor.createInstance(request);
+
+        when(request.getParameterMap()).thenReturn(
+                mapOf(CANCEL_KEY, new String[0],
+                        OAUTH_TOKEN, new String[]{TOKEN_VALUE}));
+        HttpResponse r = config.doPerformSubmit(request);
+        r.generateResponse(request, response, null);
+
+        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY, format("?oauth_token=1234&oauth_verifier=denied", TOKEN_VALUE, VERIFIER));
     }
 
     private AuthorizeConfirmationConfigDescriptor createDescriptor() {
