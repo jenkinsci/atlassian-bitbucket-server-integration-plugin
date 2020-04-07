@@ -2,25 +2,45 @@
 
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
     <l:layout permission="${app.READ}">
+        <style type="text/css">
+            .dialog-container {
+                text-align: center;
+                max-width: 678px;
+            }
+
+            .dialog-image {
+                padding-top: 75px;
+                padding-bottom: 35px;
+            }
+
+            #authorize-warning {
+                background-color:#fcf8e3;
+                border-color:#faebcc;
+                color:#8a6d3b;
+            }
+        </style>
+
         <l:main-panel>
-            <div align="center" style="max-width:678px; ">
-                <div style="padding-top:75px; padding-bottom:35px;">
+            <div class="dialog-container">
+                <div class="dialog-image">
                     <img src="${it.iconUrl}"/>
                 </div>
                 <div>
+                    <j:set var="consumerName" value="${it.consumerName}"/>
+                    <j:set var="username" value="${it.authenticatedUsername}"/>
+                    <j:set var="instanceName" value="${it.instanceName}"/>
                     <h2>
                         <j:choose>
                             <j:when test="${it.getDescriptor().isAuthenticated()}">
-                                ${it.consumerName} wants to access Jenkins as ${it.authenticatedUsername}
+                                ${%bitbucket.oauth.authorize.title.auth(consumerName, username)}
                             </j:when>
                             <j:otherwise>
-                                ${it.consumerName} is requesting access to Jenkins
+                                ${%bitbucket.oauth.authorize.title.noauth(consumerName)}
                             </j:otherwise>
                         </j:choose>
                     </h2>
                     <p>
-                        Clicking allow will give this Bitbucket Server instance read and write access to your data on
-                        Jenkins. This access will persist until it’s revoked.
+                        ${%bitbucket.oauth.authorize.body}
                     </p>
                     <f:form action="performSubmit" method="POST" name="performSubmit">
                         <f:invisibleEntry field="oauth_token_field">
@@ -29,14 +49,13 @@
                         <f:invisibleEntry field="oauth_callback_field">
                             <f:readOnlyTextbox type="hidden" name="oauth_callback" value="${it.callback}"/>
                         </f:invisibleEntry>
-                        <f:submit name="${it.AUTHORIZE_KEY}" value="Allow"/>
-                        <f:submit name="${it.CANCEL_KEY}" value="Deny"/>
+                        <f:submit name="${it.ALLOW_KEY}" value="${%bitbucket.oauth.authorize.allow}"/>
+                        <f:submit name="${it.DENY_KEY}" value="${%bitbucket.oauth.authorize.deny}"/>
                     </f:form>
                 </div>
                 <br/>
-                <div class="alert alert-warning" style="background-color:#fcf8e3; border-color:#faebcc; color:#8a6d3b;">
-                    By allowing this, you can use <strong>${it.instanceName}</strong> without storing your
-                    ${it.instanceName} password in <strong>${it.consumerName}</strong>.
+                <div id="authorize-warning" class="alert alert-warning">
+                    ${%bitbucket.oauth.authorize.warning(instanceName, consumerName)}
                 </div>
             </div>
         </l:main-panel>
