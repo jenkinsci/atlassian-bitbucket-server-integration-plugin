@@ -260,7 +260,8 @@ public class BitbucketSCM extends SCM {
     }
 
     public String getProjectName() {
-        return getBitbucketSCMRepository().getProjectName();
+        BitbucketSCMRepository repository = getBitbucketSCMRepository();
+        return repository.isPrivate() ? repository.getProjectKey() : repository.getProjectName();
     }
 
     public List<BitbucketSCMRepository> getRepositories() {
@@ -299,7 +300,7 @@ public class BitbucketSCM extends SCM {
         return isWebhookRegistered;
     }
 
-    private BitbucketSCMRepository getBitbucketSCMRepository() {
+    public BitbucketSCMRepository getBitbucketSCMRepository() {
         return repositories.get(0);
     }
 
