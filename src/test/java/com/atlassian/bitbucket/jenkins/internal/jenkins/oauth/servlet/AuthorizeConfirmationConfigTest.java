@@ -149,7 +149,7 @@ public class AuthorizeConfirmationConfigTest {
         AuthorizeConfirmationConfig config = descriptor.createInstance(request);
 
         when(request.getParameterMap()).thenReturn(
-                mapOf(AUTHORIZE_KEY, new String[0],
+                mapOf(ALLOW_KEY, new String[0],
                         OAUTH_TOKEN, new String[]{TOKEN_VALUE}));
         HttpResponse r = config.doPerformSubmit(request);
         r.generateResponse(request, response, null);
@@ -167,7 +167,7 @@ public class AuthorizeConfirmationConfigTest {
         AuthorizeConfirmationConfig config = descriptor.createInstance(request);
 
         when(request.getParameterMap()).thenReturn(
-                mapOf(CANCEL_KEY, new String[0],
+                mapOf(DENY_KEY, new String[0],
                         OAUTH_TOKEN, new String[]{TOKEN_VALUE}));
         HttpResponse r = config.doPerformSubmit(request);
         r.generateResponse(request, response, null);

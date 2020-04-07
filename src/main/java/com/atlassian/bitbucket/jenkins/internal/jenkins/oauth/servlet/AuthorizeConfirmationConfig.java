@@ -44,6 +44,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
     public static final String ALLOW_KEY = "authorize";
     public static final String DENY_KEY = "cancel";
     public static final String OAUTH_TOKEN_PARAM = "oauth_token";
+    public static final String OAUTH_CALLBACK_PARAM = OAUTH_CALLBACK;
 
     private static final String DENIED_STATUS = "denied";
     private static final Logger LOGGER = Logger.getLogger(AuthorizeConfirmationConfig.class.getName());
@@ -91,7 +92,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
         getDescriptor().tokenStore.put(newToken);
 
         String callBackUrl =
-                addParameters((String) data.get(OAUTH_CALLBACK),
+                addParameters((String) data.get(OAUTH_CALLBACK_PARAM),
                         OAUTH_TOKEN, newToken.getToken(),
                         OAUTH_VERIFIER,
                         newToken.getAuthorization() == Authorization.AUTHORIZED ? newToken.getVerifier() :

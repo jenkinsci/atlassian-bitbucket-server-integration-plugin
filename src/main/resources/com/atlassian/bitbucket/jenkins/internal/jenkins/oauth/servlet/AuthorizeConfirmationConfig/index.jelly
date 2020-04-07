@@ -47,7 +47,7 @@
                             <f:readOnlyTextbox type="hidden" name="${it.OAUTH_TOKEN_PARAM}" value="${it.token}"/>
                         </f:invisibleEntry>
                         <f:invisibleEntry field="oauth_callback_field">
-                            <f:readOnlyTextbox type="hidden" name="oauth_callback" value="${it.callback}"/>
+                            <f:readOnlyTextbox type="hidden" name="${it.OAUTH_CALLBACK_PARAM}" value="${it.callback}"/>
                         </f:invisibleEntry>
                         <f:submit name="${it.ALLOW_KEY}" value="${%bitbucket.oauth.authorize.allow}"/>
                         <f:submit name="${it.DENY_KEY}" value="${%bitbucket.oauth.authorize.deny}"/>
