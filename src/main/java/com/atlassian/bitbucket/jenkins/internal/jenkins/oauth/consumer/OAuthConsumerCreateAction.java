@@ -42,7 +42,7 @@ public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthCons
 
     @Override
     public String getDisplayName() {
-        return "Create New Consumer";
+        return Messages.bitbucket_oauth_consumer_admin_create_description();
     }
 
     @Override
