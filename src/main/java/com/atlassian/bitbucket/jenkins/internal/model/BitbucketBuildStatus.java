@@ -6,7 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
+import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,6 +19,7 @@ public class BitbucketBuildStatus {
     private final Long duration;
     private final String key;
     private final String name;
+    private final String ref;
     private final String resultKey;
     private final String serverIdentifier;
     private final BuildState state;
@@ -28,6 +31,7 @@ public class BitbucketBuildStatus {
                                 @JsonProperty("duration") Long duration,
                                 @JsonProperty("key") String key,
                                 @JsonProperty("name") String name,
+                                @JsonProperty("ref") String ref,
                                 @JsonProperty("resultKey") String resultKey,
                                 @JsonProperty("serverIdentifier") String serverIdentifier,
                                 @JsonProperty("state") BuildState state,
@@ -40,6 +44,7 @@ public class BitbucketBuildStatus {
         this.duration = duration;
         this.key = key;
         this.name = name;
+        this.ref = ref;
         this.resultKey = resultKey;
         this.serverIdentifier = serverIdentifier;
         this.state = state;
@@ -66,6 +71,12 @@ public class BitbucketBuildStatus {
     @JsonProperty(value = "name")
     public String getName() {
         return name;
+    }
+
+    @JsonProperty(value = "ref")
+    @Nullable
+    public String getRef() {
+        return ref;
     }
 
     @JsonProperty(value = "resultKey")
@@ -102,6 +113,7 @@ public class BitbucketBuildStatus {
         private Long duration;
         private String key;
         private String name;
+        private String ref;
         private String resultKey;
         private String serverIdentifier;
         private BuildState state;
@@ -115,7 +127,7 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(description, duration, key, name, resultKey, serverIdentifier, state, testResults, url);
+            return new BitbucketBuildStatus(description, duration, key, name, ref, resultKey, serverIdentifier, state, testResults, url);
         }
 
         public Builder setDescription(String description) {
@@ -129,6 +141,16 @@ public class BitbucketBuildStatus {
 
         public Builder setName(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder setRef(@Nullable String ref) {
+            if (ref != null && !ref.startsWith("ref")) {
+                Logger.getLogger(BitbucketBuildStatus.class.getName()).warning(
+                        format("Supplied ref '%s' does not start with 'ref', ignoring", ref));
+                return this;
+            }
+            this.ref = ref;
             return this;
         }
 

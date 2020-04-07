@@ -39,6 +39,11 @@ public final class BitbucketBuildStatusFactory {
         if (ciCapabilities.supportsRichBuildStatus()) {
             bbs.setServerIdentifier(Jenkins.get().getRootUrl())
                     .setTestResults(getTestResults(build));
+            BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+            if (revisionAction != null) {
+                bbs.setRef(revisionAction.getRefName());
+            }
+
             if (state != BuildState.INPROGRESS) {
                 bbs.setDuration(build.getDuration());
             }

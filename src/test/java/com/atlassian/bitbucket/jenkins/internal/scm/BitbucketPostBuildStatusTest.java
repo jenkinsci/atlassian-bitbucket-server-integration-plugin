@@ -8,11 +8,14 @@ import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.plugins.git.Branch;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.util.Build;
 import hudson.plugins.git.util.BuildData;
 import jenkins.model.Jenkins;
+import org.eclipse.jgit.lib.ObjectId;
+import org.jenkinsci.plugins.gitclient.GitClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,6 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,6 +49,8 @@ public class BitbucketPostBuildStatusTest {
     private ArgumentCaptor<BitbucketRevisionAction> captor;
     private BitbucketPostBuildStatus extension;
     @Mock
+    private GitClient gitClient;
+    @Mock
     private Injector injector;
     @Mock
     private Jenkins jenkins;
@@ -56,6 +64,8 @@ public class BitbucketPostBuildStatusTest {
     private PrintStream logger;
     @Mock
     private Run<FreeStyleProject, ?> notABuild;
+    @Mock
+    private ObjectId objectId;
     @Mock
     private Revision revision;
     @Mock
@@ -76,16 +86,9 @@ public class BitbucketPostBuildStatusTest {
     }
 
     @Test
-    public void testNoBuildData() {
-        extension.decorateCheckoutCommand(scm, build, null, listener, null);
-        verifyZeroInteractions(buildStatusPoster);
-        verify(logger).println("Build data was not found while creating a build status");
-    }
-
-    @Test
     public void testNoInjector() {
         when(jenkins.getInjector()).thenReturn(null);
-        extension.decorateCheckoutCommand(scm, build, null, listener, null);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verify(build, never()).addAction(any());
         verifyZeroInteractions(buildStatusPoster);
         verify(logger).println("Injector could not be found while creating build status");
@@ -94,7 +97,7 @@ public class BitbucketPostBuildStatusTest {
     @Test
     public void testNoPoster() {
         when(scm.getBuildData(build)).thenReturn(buildData);
-        extension.decorateCheckoutCommand(scm, build, null, listener, null);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verify(logger).println("Build Status Poster instance could not be found while creating a build status");
     }
 
@@ -102,7 +105,7 @@ public class BitbucketPostBuildStatusTest {
     public void testPostStatus() {
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
-        extension.decorateCheckoutCommand(scm, build, null, listener, null);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verify(build).addAction(captor.capture());
         BitbucketRevisionAction action = captor.getValue();
         assertThat(action.getServerId(), equalTo(SERVER_ID));
@@ -112,7 +115,46 @@ public class BitbucketPostBuildStatusTest {
 
     @Test
     public void testRunNotOfTypeBuild() {
-        extension.decorateCheckoutCommand(scm, notABuild, null, listener, null);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verifyZeroInteractions(buildStatusPoster);
+    }
+
+    @Test
+    public void testExtractingBranch() {
+        String ref = "refs/heads/master";
+        when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
+        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
+        when(scm.getBuildData(build)).thenReturn(buildData);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
+        verify(build).addAction(captor.capture());
+        BitbucketRevisionAction action = captor.getValue();
+        assertThat(action.getRefName(), equalTo(ref));
+    }
+
+    @Test
+    public void testExtractBranchWithoutRefsPrefix() {
+        String ref = "master";
+        when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
+        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
+        when(scm.getBuildData(build)).thenReturn(buildData);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
+        verify(build).addAction(captor.capture());
+        BitbucketRevisionAction action = captor.getValue();
+        assertThat(action.getRefName(), equalTo("refs/heads/" + ref));
+    }
+
+    @Test
+    public void testMultipleBranches() {
+        String ref = "refs/heads/master";
+        List<Branch> branches = Arrays.asList(new Branch(ref, objectId),
+                new Branch("refs/heads/featureBranch", objectId),
+                new Branch("refs/heads/feature/branch", objectId));
+        when(revision.getBranches()).thenReturn(branches);
+        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
+        when(scm.getBuildData(build)).thenReturn(buildData);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
+        verify(build).addAction(captor.capture());
+        BitbucketRevisionAction action = captor.getValue();
+        assertThat(action.getRefName(), equalTo(ref));
     }
 }
