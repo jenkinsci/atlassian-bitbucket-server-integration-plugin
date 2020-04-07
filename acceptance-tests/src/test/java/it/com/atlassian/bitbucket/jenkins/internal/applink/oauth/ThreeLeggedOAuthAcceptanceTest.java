@@ -133,6 +133,14 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
         return accessToken;
     }
 
+    /*
+     * Logs user in via the Jenkins login page.
+     * The combination of the ATH-provided {@link Login} page object and the Jenkins login page can be quite flakey,
+     * hence the added wait after login here. Unfortunately, it's not possible to add any more wait before login (i.e.
+     * wait for the login page to be completely loaded before providing the credentials and clicking submit), unless we
+     * write our own login page object, so due to the very optimistic one second wait hard-coded in the page object,
+     * this can still be a bit flakey.
+     */
     private void login(User user) {
         waitFor(jenkins.login().doLogin(user))
                 .withTimeout(10, SECONDS)
