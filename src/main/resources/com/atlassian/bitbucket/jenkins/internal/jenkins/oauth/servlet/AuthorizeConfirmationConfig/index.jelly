@@ -3,20 +3,29 @@
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
     <l:layout permission="${app.READ}">
         <style type="text/css">
+            :root {
+                --dialog-width: 678px;
+                --image-padding-top: 75px;
+                --image-padding-bottom: 35px;
+                --warning-bg-color: #fcf8e3;
+                --warning-border-color: #faebcc;
+                --warning-fg-color: #8a6d3b;
+            }
+
             .dialog-container {
                 text-align: center;
-                max-width: 678px;
+                max-width: var(--dialog-width);
             }
 
             .dialog-image {
-                padding-top: 75px;
-                padding-bottom: 35px;
+                padding-top: var(--image-padding-top);
+                padding-bottom: var(--image-padding-bottom);
             }
 
-            #authorize-warning {
-                background-color:#fcf8e3;
-                border-color:#faebcc;
-                color:#8a6d3b;
+            .alert-warning {
+                background-color: var(--warning-bg-color);
+                border-color: var(--warning-border-color);
+                color: var(--warning-fg-color);
             }
         </style>
 
@@ -47,7 +56,7 @@
                             <f:readOnlyTextbox type="hidden" name="${it.OAUTH_TOKEN_PARAM}" value="${it.token}"/>
                         </f:invisibleEntry>
                         <f:invisibleEntry field="oauth_callback_field">
-                            <f:readOnlyTextbox type="hidden" name="${it.OAUTH_CALLBACK_PARAM}" value="${it.callback}"/>
+                            <f:readOnlyTextbox type="hidden" name="oauth_callback" value="${it.callback}"/>
                         </f:invisibleEntry>
                         <f:submit name="${it.ALLOW_KEY}" value="${%bitbucket.oauth.authorize.allow}"/>
                         <f:submit name="${it.DENY_KEY}" value="${%bitbucket.oauth.authorize.deny}"/>
