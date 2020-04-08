@@ -172,7 +172,8 @@ public class AuthorizeConfirmationConfigTest {
         HttpResponse r = config.doPerformSubmit(request);
         r.generateResponse(request, response, null);
 
-        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY, format("?oauth_token=1234&oauth_verifier=denied", TOKEN_VALUE, VERIFIER));
+        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY,
+                format("?oauth_token=1234&oauth_verifier=denied", TOKEN_VALUE, VERIFIER));
     }
 
     private AuthorizeConfirmationConfigDescriptor createDescriptor() {

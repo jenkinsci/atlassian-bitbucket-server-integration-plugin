@@ -56,10 +56,14 @@ public class TestData {
         public static final ServiceProviderToken AUTHORIZED_REQUEST_TOKEN =
                 UNAUTHORIZED_REQUEST_TOKEN.authorize(USER, VERIFIER);
 
-        public static final ServiceProviderToken ACCESS_TOKEN = ServiceProviderToken.newAccessToken(TOKEN_VALUE)
-                .tokenSecret(TOKEN_SECRET)
-                .consumer(RSA_CONSUMER)
-                .authorizedBy(USER)
-                .session(newSession(SESSION_HANDLE).build()).build();
+        public static final ServiceProviderToken ACCESS_TOKEN = createAccessTokenForUser(USER);
+
+        public static ServiceProviderToken createAccessTokenForUser(String user) {
+            return ServiceProviderToken.newAccessToken(TOKEN_VALUE)
+                    .tokenSecret(TOKEN_SECRET)
+                    .consumer(RSA_CONSUMER)
+                    .authorizedBy(user)
+                    .session(newSession(SESSION_HANDLE).build()).build();
+        }
     }
 }

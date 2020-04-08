@@ -106,7 +106,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
 
     @SuppressWarnings("unused") //Stapler
     public String getAuthenticatedUsername() {
-        return Jenkins.getAuthentication().getName();
+        return descriptor.jenkinsAuthWrapper.getAuthentication().getName();
     }
 
     public String getCallback() {
@@ -218,7 +218,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
         }
 
         public boolean isAuthenticated() {
-            return Jenkins.getAuthentication().isAuthenticated();
+            return jenkinsAuthWrapper.getAuthentication().isAuthenticated();
         }
     }
 }
