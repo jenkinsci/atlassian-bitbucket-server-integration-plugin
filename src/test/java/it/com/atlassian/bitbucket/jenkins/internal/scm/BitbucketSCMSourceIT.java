@@ -156,7 +156,6 @@ public class BitbucketSCMSourceIT {
                 serverId,
                 null);
 
-        addSshHostVerificationKeyToKnownHosts();
         executeFullFlow(scmSource);
     }
 
@@ -280,20 +279,5 @@ public class BitbucketSCMSourceIT {
                 .post(sourceRepoUrl);
         BitbucketRepository repository = objectMapper.readValue(body.asString(), BitbucketRepository.class);
         return repository;
-    }
-
-    private void addSshHostVerificationKeyToKnownHosts() throws IOException {
-       /*Process p = Runtime.getRuntime().exec("ssh-keyscan -H localhost ");
-       File sshFolder = new File(System.getProperty("user.dir") + "/.ssh");
-       File file = new File(System.getProperty("user.dir") + "/.ssh/known_hosts");
-       sshFolder.mkdirs();
-       FileOutputStream fop = new FileOutputStream(file);
-
-       if (!file.exists()) {
-            file.createNewFile();
-       }
-       IOUtils.write(IOUtils.toString(p.getInputStream(), Charsets.UTF_8), fop);
-       fop.close();
-       p.destroy();*/
     }
 }
