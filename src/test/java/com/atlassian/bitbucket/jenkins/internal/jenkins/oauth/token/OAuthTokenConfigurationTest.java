@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.to
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsAuthWrapper;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.apache.commons.text.TextStringBuilder;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +17,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,7 +49,6 @@ public class OAuthTokenConfigurationTest {
     @Mock
     private StaplerResponse response;
     private Authentication authentication = new UsernamePasswordAuthenticationToken(TEST_USER, "test");
-    private TextStringBuilder stringBuilder = new TextStringBuilder();
 
     private OAuthTokenConfiguration instance;
 
@@ -59,8 +56,6 @@ public class OAuthTokenConfigurationTest {
     public void setup() throws IOException {
         instance = new OAuthTokenConfiguration(jenkinsAuthWrapper, clock, store);
         when(jenkinsAuthWrapper.getAuthentication()).thenReturn(authentication);
-        when(request.getRequestURL()).thenReturn(new StringBuffer("htpp://localhost:8080/jenkins"));
-        when(response.getWriter()).thenReturn(new PrintWriter(stringBuilder.asWriter()));
     }
 
     @Test
