@@ -29,6 +29,7 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
         this(serverId, new DefaultJenkinsProvider());
     }
 
+    @Override
     public Revision decorateRevisionToBuild(GitSCM scm, Run<?, ?> run, GitClient git, TaskListener listener, Revision marked, Revision rev) throws GitException {
         Injector injector = jenkinsProvider.get().getInjector();
         if (injector == null) {
@@ -49,7 +50,7 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
                 .findFirst()
                 .orElse(null);
         if (buildData == null || buildData.lastBuild == null) {
-            run.addAction(new BitbucketRevisionAction(ref, marked.getSha1String(), serverId));
+            run.addAction(new BitbucketRevisionAction(ref, rev.getSha1String(), serverId));
         } else {
             run.addAction(new BitbucketRevisionAction(ref, buildData.lastBuild.getRevision().getSha1String(), serverId));
         }

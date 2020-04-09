@@ -145,9 +145,9 @@ public class BitbucketBuildStatus {
         }
 
         public Builder setRef(@Nullable String ref) {
-            if (ref != null && !ref.startsWith("ref")) {
+            if (ref != null && !ref.startsWith("refs/")) {
                 Logger.getLogger(BitbucketBuildStatus.class.getName()).warning(
-                        format("Supplied ref '%s' does not start with 'ref', ignoring", ref));
+                        format("Supplied ref '%s' does not start with 'refs/', ignoring", ref));
                 return this;
             }
             this.ref = ref;
