@@ -5,6 +5,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsA
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsOAuthClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.AuthorizeTokenPage;
+import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -26,13 +27,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage.isSuccessfulLogin;
 import static org.apache.commons.lang3.RandomStringUtils.randomNumeric;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.jenkinsci.test.acceptance.Matchers.loggedInAs;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.junit.Assert.assertNotNull;
 
@@ -133,18 +133,8 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
         return accessToken;
     }
 
-    /*
-     * Logs user in via the Jenkins login page.
-     * The combination of the ATH-provided {@link Login} page object and the Jenkins login page can be quite flakey,
-     * hence the added wait after login here. Unfortunately, it's not possible to add any more wait before login (i.e.
-     * wait for the login page to be completely loaded before providing the credentials and clicking submit), unless we
-     * write our own login page object, so due to the very optimistic one second wait hard-coded in the page object,
-     * this can still be a bit flakey.
-     */
     private void login(User user) {
-        waitFor(jenkins.login().doLogin(user))
-                .withTimeout(10, SECONDS)
-                .until(loggedInAs(user.fullName()));
+        assertThat(new LoginPage(jenkins).load().login(user), isSuccessfulLogin());
     }
 
     private String getBaseUrl() {
