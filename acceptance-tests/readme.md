@@ -78,7 +78,7 @@ JENKINS_VERSION=2.176.4 mvn verify
 
 For more on managing the versions of Jenkins and plugins under test, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/SUT-VERSIONS.md).
 
-## Running against an existing Jenkins instance
+### Running against an existing Jenkins instance
 
 Having the test framework start up and set up a Jenkins instance per test is very slow, so sometimes we might want to 
 run the tests against an external running instance of Jenkins. To do that, use the following environment variables:
@@ -92,23 +92,25 @@ JENKINS_URL=<jenkins-instance-url> (e.g. http://localhost:8080/)
 This is, for example, handy when developing new tests and having to run the test over and over again, so that you don't 
 have to wait for Jenkins to startup every single time.
 
-### Running an external Jenkins instance for testing
+#### Running an external Jenkins instance for testing
 
-Unfortunately, running a vanilla Jenkins instance (e.g. using a downloaded `war` or the maven `hpi` plugin) won't work 
-because of some missing plugins that the Jenkins acceptance test framework seems to rely on, e.g.:
+Unfortunately, running a vanilla Jenkins instance (e.g. using a downloaded `war` or the maven `hpi` plugin) currently
+doesn't work because of some missing plugins that the Jenkins acceptance test framework relies on, e.g.:
 
 ```
 java.lang.RuntimeException: Test suite requires in pre-installed Jenkins plugin https://wiki.jenkins-ci.org/display/JENKINS/Form+Element+Path+Plugin
 ```
 
-The surest way to run a Jenkins instance for these tests is to clone the Jenkins 
+The surest and easiest way to run a Jenkins instance for these tests is to clone the Jenkins 
 [Acceptance Test Harness framework](https://github.com/jenkinsci/acceptance-test-harness) and run the `jut-server.sh` script:
 
 ```
 git clone git@github.com:jenkinsci/acceptance-test-harness.git
 cd acceptance-test-harness
-./jut-server.sh
+JENKINS_VERSION=2.176.1 ./jut-server.sh
 ```
+
+Then copy-paste the base URL of the Jenkins instance (printed in the console) and use it to run the test as mentioned above.
 
 For more details see: [prelaunching Jenkins under test](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/PRELAUNCH.md)
 
@@ -126,3 +128,49 @@ The easiest way to develop a new test is to extend [AbstractJUnitTest](https://g
 That way, you'll get a bunch of things already injected into your test, like the `JenkinsAcceptanceTestRule` which is 
 responsible for starting up a Jenkins instance for testing, among other things.  
 For more details, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/JUNIT.md).
+
+### Setting up (matrix-based) security
+
+To set up fine-grained (project-level & matrix-based) security for tests, inject the security test helper into your test:
+
+```
+public class MyAcceptanceTest {
+
+    @Inject
+    private ProjectBasedMatrixSecurityConfigurer security;
+
+    @Before
+    public void setUp() {
+        User testUser = security.newUser();
+        ...
+        security..addGlobalPermissions(
+                        ImmutableMap.of(
+                            testUser, perms -> perms.on(OVERALL_READ),
+                            ...
+                        ));
+        ...
+    }
+}
+```
+
+The security helper class is auto-wired to clean up after each test, if the tests are run against anexternal/pre-launched
+Jenkins instance, i.e. the `ExistingController` is being used (see "Running against an existing Jenkins instance" above
+for how this works).
+This is because acceptance test harness checks for some plugins being installed on start-up (again, see above), and to
+do so, it makes a few REST calls as anonymous user, and if a different security/authorization strategy than "Anyone can
+do anything" is enabled, then it will fail.
+
+---
+If you see the following `403 Forbidden` error when running tests against an existing/pre-launched Jenkins instance:
+
+```
+java.lang.RuntimeException: Test suite requires in pre-installed Jenkins plugin https://wiki.jenkins-ci.org/display/JENKINS/Form+Element+Path+Plugin
+HTTP/1.1 403 Forbidden [Date: Fri, 17 Apr 2020 03:22:28 GMT, X-Content-Type-Options: nosniff, Set-Cookie: JSESSIONID.126c29bf=node012bk7u7wo68pk11jhop3n47f854.node0;Path=/;HttpOnly, Expires: Thu, 01 Jan 1970 00:00:00 GMT, Content-Type: text/html;charset=utf-8, X-Hudson: 1.395, X-Jenkins: 2.176.1, X-Jenkins-Session: 0e8f577c, X-Hudson-CLI-Port: 45373, X-Jenkins-CLI-Port: 45373, X-Jenkins-CLI2-Port: 45373, X-You-Are-Authenticated-As: anonymous, X-You-Are-In-Group-Disabled: JENKINS-39402: use -Dhudson.security.AccessDeniedException2.REPORT_GROUP_HEADERS=true or use /whoAmI to diagnose, X-Required-Permission: hudson.model.Hudson.Read, X-Permission-Implied-By: hudson.security.Permission.GenericRead, X-Permission-Implied-By: hudson.model.Hudson.Administer, Content-Length: 843, Server: Jetty(9.4.z-SNAPSHOT)] org.apache.http.conn.BasicManagedEntity@585c13de
+
+```
+
+It most probably means that the security helper's automatic clean-up has failed to disable security after the previous 
+test run.
+To fix this, login to the Jenkins instance using the admin user (username: `admin`, password: `admin`), and manually
+disable security, then run the tests again.
+---

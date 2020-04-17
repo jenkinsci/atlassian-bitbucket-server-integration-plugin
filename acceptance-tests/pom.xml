@@ -14,7 +14,7 @@
         <plugin.build.dir>../target</plugin.build.dir>
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
-        <acceptance-test-harness.version>1.70</acceptance-test-harness.version>
+        <jenkins.acceptance-test-harness.version>1.71</jenkins.acceptance-test-harness.version>
         <httpclient.version>4.5.10</httpclient.version>
         <jenkins.version>2.176.1</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>${acceptance-test-harness.version}</version>
+            <version>${jenkins.acceptance-test-harness.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
