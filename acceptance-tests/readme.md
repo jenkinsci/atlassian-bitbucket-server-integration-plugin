@@ -2,11 +2,13 @@
 
 This module contains the acceptance tests for the Bitbucket Server integration plugin, including the UI tests.
 
+These tests are written using the Jenkins [Acceptance Test Harness](https://github.com/jenkinsci/acceptance-test-harness) (ATH) framework.
+
 ## Running the tests
 
-The Jenkins [Acceptance Test Harness framework](https://github.com/jenkinsci/acceptance-test-harness) runs an instance 
-of Jenkins per test and installs the plugin under test using the `.hpi` file in the `../target` folder, defined using 
-the `LOCAL_JARS` environment variable. For example, using `maven-surefire-plugin`:
+Jenkins ATH runs an instance of Jenkins per test and installs the plugin under test using the `.hpi` file it finds in 
+the `target` folder of the plugin module. The location of the target dir with the `.hpi` file, is passed to ATH using 
+the `LOCAL_JARS` environment variable. For example, if using `maven-surefire-plugin` for running tests (recommended):
 
 ```
 <plugin>
@@ -24,7 +26,7 @@ the `LOCAL_JARS` environment variable. For example, using `maven-surefire-plugin
 </plugin>
 ```
 
-To build the `.hpi` file, build the plugin from the project root folder:
+To build the `.hpi` file, build the plugin from the project root folder (or the plugin module):
 
 ```
 mvn clean package -DskipTests
@@ -68,7 +70,7 @@ inside a Selenium-provided container), pass in the `BROWSER` environment variabl
 ```
 BROWSER=safari mvn verify
 ```
-For more details and the full list of supported browsers, see [the docs](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md).
+For more details and the full list of supported browsers, see https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md
 
 To override the Jenkins version used for the tests, pass in the `JENKINS_VERSION` environment variable:
 
@@ -76,7 +78,7 @@ To override the Jenkins version used for the tests, pass in the `JENKINS_VERSION
 JENKINS_VERSION=2.176.4 mvn verify
 ```
 
-For more on managing the versions of Jenkins and plugins under test, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/SUT-VERSIONS.md).
+For more on managing the versions of Jenkins and plugins under test, see: https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/SUT-VERSIONS.md
 
 ### Running against an existing Jenkins instance
 
@@ -101,8 +103,8 @@ doesn't work because of some missing plugins that the Jenkins acceptance test fr
 java.lang.RuntimeException: Test suite requires in pre-installed Jenkins plugin https://wiki.jenkins-ci.org/display/JENKINS/Form+Element+Path+Plugin
 ```
 
-The surest and easiest way to run a Jenkins instance for these tests is to clone the Jenkins 
-[Acceptance Test Harness framework](https://github.com/jenkinsci/acceptance-test-harness) and run the `jut-server.sh` script:
+The surest and easiest way to run a Jenkins instance for these tests is to clone the [Acceptance Test Harness framework](https://github.com/jenkinsci/acceptance-test-harness) 
+and run the `jut-server.sh` script:
 
 ```
 git clone git@github.com:jenkinsci/acceptance-test-harness.git
@@ -112,7 +114,7 @@ JENKINS_VERSION=2.176.1 ./jut-server.sh
 
 Then copy-paste the base URL of the Jenkins instance (printed in the console) and use it to run the test as mentioned above.
 
-For more details see: [prelaunching Jenkins under test](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/PRELAUNCH.md)
+For more details see: https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/PRELAUNCH.md
 
 ## Developing new tests
 
@@ -127,7 +129,7 @@ project. To import the module, right click on the `pom.xml` in the `acceptance-t
 The easiest way to develop a new test is to extend [AbstractJUnitTest](https://github.com/jenkinsci/acceptance-test-harness/blob/master/src/main/java/org/jenkinsci/test/acceptance/junit/AbstractJUnitTest.java).
 That way, you'll get a bunch of things already injected into your test, like the `JenkinsAcceptanceTestRule` which is 
 responsible for starting up a Jenkins instance for testing, among other things.  
-For more details, see [this doc](https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/JUNIT.md).
+For more details, see: https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/JUNIT.md
 
 ### Setting up (matrix-based) security
 
@@ -137,7 +139,7 @@ To set up fine-grained (project-level & matrix-based) security for tests, inject
 public class MyAcceptanceTest {
 
     @Inject
-    private ProjectBasedMatrixSecurityConfigurer security;
+    private ProjectBasedMatrixSecurityHelper security;
 
     @Before
     public void setUp() {
@@ -160,6 +162,18 @@ This is because acceptance test harness checks for some plugins being installed 
 do so, it makes a few REST calls as anonymous user, and if a different security/authorization strategy than "Anyone can
 do anything" is enabled, then it will fail.
 
+**Note:** to set up matrix-based security, you need to install the `matrix-auth` plugin using the `@WithPlugins` annotation:
+
+```
+@WithPlugins({"matrix-auth"})
+public class MyAcceptanceTest extends AbstractJUnitTest {
+
+    @Inject
+    private ProjectBasedMatrixSecurityHelper security;
+...
+}
+``` 
+
 ---
 If you see the following `403 Forbidden` error when running tests against an existing/pre-launched Jenkins instance:
 
@@ -174,3 +188,63 @@ test run.
 To fix this, login to the Jenkins instance using the admin user (username: `admin`, password: `admin`), and manually
 disable security, then run the tests again.
 ---
+
+### Writing new `PageObject`s
+
+To write a new page object (e.g. for a new Jenkins UI/page), the easiest way is to extend the abstract [PageObject](https://github.com/jenkinsci/acceptance-test-harness/blob/92a8ad674454f65ee105d1bbd9685be1d084e893/src/main/java/org/jenkinsci/test/acceptance/po/PageObject.java)
+provided by Jenkins ATH. For page areas (e.g. a specific form inside a page), extend `PageAreaImpl` instead.
+
+You can use all the standard/core Selenium/WedDriver stuff directly, like `WebDriverWait`, etc., but `PageObject`
+provides some convenience methods and utils (like `Control`) that you can use instead:
+
+```
+public class MyPage extends PageObject {
+
+    public void waitForElementThenDoSomething() {
+         int timeoutSec = 10;
+         By selector = By.name("element_name");
+         // Keep checking for the existence of the element matching 'selector' until timeout is reached (10 seconds), 
+         // then fail with a NoSuchElementException, but not before that
+         WebElement element = waitFor(this).withMessage("Element matching %s is present", selector)
+                .withTimeout(timeoutSec, TimeUnit.SECONDS)
+                .ignoring(NoSuchElementException.class)
+                .until(() -> find(selector));
+         element.click();
+```
+
+For existing Jenkins UI (like config pages, build setup, etc.), use the existing page objects provided by the acceptance 
+test harness, in the [org.jenkinsci.test.acceptance.po](https://github.com/jenkinsci/acceptance-test-harness/tree/master/src/main/java/org/jenkinsci/test/acceptance/po) 
+package, __unless there's a very good reason to write one from scratch.__
+
+For more details on writing page objects for Jenkins, see: https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/PAGE-OBJECTS.md
+
+#### LoginPage
+
+Even though ATH provides a `Login` page object, that page object has shown to be a bit flaky in our experience, so we've 
+developed a replacement `LoginPage` (in this repo in the `it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects` 
+package), which has some more explicit waits and longer timeouts than the default page object has. To use it to login:
+
+```
+User user = ...
+assertThat(new LoginPage(jenkins).load().login(user), LoginPage.isSuccessfulLogin());
+```
+
+If you're using `ProjectBasedMatrixSecurityHelper` for setting up matrix-based security (see above), then you can 
+use the login method in the helper instead.
+
+```
+public class MyAcceptanceTest {
+
+    @Inject
+    private ProjectBasedMatrixSecurityHelper security;
+
+    @Test
+    public void testSomething() {
+        User user = security.newUser();
+        ...
+        security.login(user);
+        ...
+    }
+...
+}
+```

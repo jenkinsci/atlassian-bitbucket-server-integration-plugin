@@ -34,7 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * public class MyAcceptanceTest {
  *
  *     @Inject
- *     private ProjectBasedMatrixSecurityConfigurer security;
+ *     private ProjectBasedMatrixSecurityHelper security;
  *
  *     @Before
  *     public void setUp() {
