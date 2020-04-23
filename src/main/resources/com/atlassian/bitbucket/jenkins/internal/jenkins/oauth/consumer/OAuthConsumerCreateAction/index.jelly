@@ -1,0 +1,26 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
+         xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:t="/lib/hudson">
+    <l:layout title="${%config(it.displayName)}" norefresh="true">
+        <st:include page="sidepanel.jelly"/>
+
+        <l:main-panel>
+            <h2>${it.displayName}</h2>
+            <hr/>
+
+            <j:set var="descriptor" value="${it.consumerDescriptor}"/>
+            <j:scope>
+                <f:form action="performCreate" method="POST" name="performCreate">
+                    <f:invisibleEntry>
+                        <input type="hidden" name="stapler-class" value="${descriptor.clazz.name}" />
+                    </f:invisibleEntry>
+                    <st:include from="${descriptor}" page="${descriptor.configPage}" />
+                    <f:bottomButtonBar>
+                        <f:submit value="${%bitbucket.oauth.save}"/>
+                    </f:bottomButtonBar>
+                </f:form>
+            </j:scope>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

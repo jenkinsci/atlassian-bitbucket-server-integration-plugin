@@ -19,6 +19,7 @@
         <jackson.version>2.9.9</jackson.version>
         <jenkins.version>2.162</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <net.oauth.version>20100527</net.oauth.version>
     </properties>
     <name>Bitbucket Server Integration</name>
     <description>This Jenkins plugin streamlines configuring Jenkins jobs to clone/fetch from Bitbucket Server.</description>
@@ -166,6 +167,17 @@
         </dependency>
 
         <dependency>
+            <groupId>net.oauth.core</groupId>
+            <artifactId>oauth</artifactId>
+            <version>${net.oauth.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.oauth.core</groupId>
+            <artifactId>oauth-provider</artifactId>
+            <version>${net.oauth.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>2.21.0</version>
@@ -186,6 +198,12 @@
                     <artifactId>jaxb-osgi</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>hamcrest-optional</artifactId>
+            <version>1.1.5</version>
+            <scope>test</scope>
         </dependency>
         <!--to mock Bitbucket Server-->
         <dependency>

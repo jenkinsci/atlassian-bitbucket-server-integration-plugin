@@ -40,7 +40,7 @@ public class BitbucketScmHelper {
         try {
             BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
             try {
-                return getRepositoryByNameOrSlug(project.getName(), repositoryName, clientFactory);
+                return getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
             } catch (NotFoundException e) {
                 LOGGER.info("Error creating the Bitbucket SCM: Cannot find the repository " + project.getName() + "/" +
                             repositoryName);

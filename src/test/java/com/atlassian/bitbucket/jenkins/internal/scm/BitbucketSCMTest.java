@@ -12,11 +12,11 @@ import java.util.Optional;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BitbucketSCMTest {
 
@@ -50,6 +50,36 @@ public class BitbucketSCMTest {
         assertThat(bitbucketSCM.getCredentialsId(), is(equalTo(credentialsId)));
         assertThat(bitbucketSCM.getServerId(), is(equalTo(serverId)));
         assertThat(bitbucketSCM.getProjectName(), is(equalTo(projectName)));
+    }
+
+    @Test
+    public void testPrivateProjectName() {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String projectName = "USER";
+        String projectKey = "~USER";
+
+        BitbucketSCMRepository scmRepository =
+                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+        BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
+        doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
+
+        assertEquals(projectKey, scm.getProjectName());
+    }
+
+    @Test
+    public void testProjectName() {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String projectName = "Project 1";
+        String projectKey = "PROJECT_1";
+
+        BitbucketSCMRepository scmRepository =
+                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+        BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
+        doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
+
+        assertEquals(projectName, scm.getProjectName());
     }
 
     private BitbucketSCM createInstance(String credentialId) {
