@@ -39,6 +39,7 @@ public class BitbucketPostBuildStatusTest {
 
     private static final String SERVER_ID = "TestServerID";
     private static final String SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
+    private static final String REPO_NAME = "test-repo";
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private AbstractBuild<?, ?> build;
     @Mock
@@ -66,16 +67,20 @@ public class BitbucketPostBuildStatusTest {
     private Run<FreeStyleProject, ?> notABuild;
     @Mock
     private ObjectId objectId;
+    private BitbucketRefNameExtractorFactory refNameExtractorFactory;
     @Mock
     private Revision revision;
     @Mock
     private BitbucketRevisionAction revisionAction;
     @Mock
     private GitSCM scm;
+    private String masterRef;
+    private Branch masterBranch;
 
     @Before
     public void setup() {
-        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider);
+        refNameExtractorFactory = spy(new BitbucketRefNameExtractorFactory());
+        extension = new BitbucketPostBuildStatus(SERVER_ID, REPO_NAME, jenkinsProvider, refNameExtractorFactory);
         buildData.lastBuild = lastBuild;
         when(lastBuild.getRevision()).thenReturn(revision);
         when(revision.getSha1String()).thenReturn(SHA1);
@@ -83,6 +88,10 @@ public class BitbucketPostBuildStatusTest {
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
         when(build.getAction(any())).thenReturn(revisionAction);
+        // for all job types other than multi-branch (i.e. all job/run types that extend AbstractBuild), the branch
+        // names we get from 'revision' are pre-pended with '<repo-name>/'
+        masterRef = "master";
+        masterBranch = new Branch(REPO_NAME + "/" + masterRef, objectId);
     }
 
     @Test
@@ -121,19 +130,22 @@ public class BitbucketPostBuildStatusTest {
 
     @Test
     public void testExtractingBranch() {
-        String ref = "refs/heads/master";
-        when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
+        when(revision.getBranches()).thenReturn(Collections.singletonList(masterBranch));
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verify(build).addAction(captor.capture());
         BitbucketRevisionAction action = captor.getValue();
-        assertThat(action.getRefName(), equalTo(ref));
+        assertThat(action.getRefName(), equalTo("refs/heads/" + masterRef));
     }
 
     @Test
-    public void testExtractBranchWithoutRefsPrefix() {
-        String ref = "master";
+    public void testExtractBranchWithoutRepoNamePrefix() {
+        // If the job/run is of type multi-branch (WorkflowRun), then the branch names have no prefix
+        // WorkflowRunBitbucketRefNameExtractor expects the 'ref' to not be prepended with the repo name
+        when(refNameExtractorFactory.forBuildType(build.getClass()))
+                .thenReturn(new BitbucketRefNameExtractorFactory.WorkflowRunBitbucketRefNameExtractor());
+        String ref = "branch1";
         when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
@@ -145,16 +157,17 @@ public class BitbucketPostBuildStatusTest {
 
     @Test
     public void testMultipleBranches() {
-        String ref = "refs/heads/master";
-        List<Branch> branches = Arrays.asList(new Branch(ref, objectId),
-                new Branch("refs/heads/featureBranch", objectId),
-                new Branch("refs/heads/feature/branch", objectId));
+        // for all job types other than multi-branch (i.e. all job/run types that extend AbstractBuild), the branch
+        // names we get from 'revision' are prepended with '<repo-name>/'
+        List<Branch> branches = Arrays.asList(masterBranch,
+                new Branch(REPO_NAME + "/featureBranch", objectId),
+                new Branch(REPO_NAME + "/feature/branch", objectId));
         when(revision.getBranches()).thenReturn(branches);
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
         verify(build).addAction(captor.capture());
         BitbucketRevisionAction action = captor.getValue();
-        assertThat(action.getRefName(), equalTo(ref));
+        assertThat(action.getRefName(), equalTo("refs/heads/" + masterRef));
     }
 }

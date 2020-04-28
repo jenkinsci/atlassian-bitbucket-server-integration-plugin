@@ -201,7 +201,7 @@ public class BitbucketSCMSource extends SCMSource {
         repository = bitbucketSCMRepository;
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), serverId);
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), serverId, bitbucketSCMRepository.getRepositoryName());
         gitSCMSource.setTraits(traits);
         gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
     }
@@ -435,10 +435,12 @@ public class BitbucketSCMSource extends SCMSource {
     private static class CustomGitSCMSource extends GitSCMSource {
 
         private final String serverId;
+        private final String repositoryName;
 
-        public CustomGitSCMSource(String remote, @Nullable String serverId) {
+        public CustomGitSCMSource(String remote, @Nullable String serverId, String repositoryName) {
             super(remote);
             this.serverId = serverId == null ? "" : serverId;
+            this.repositoryName = repositoryName;
         }
 
         public void accessibleRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
@@ -449,7 +451,7 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         public List<GitSCMExtension> getExtensions() {
-            return Collections.singletonList(new BitbucketPostBuildStatus(serverId));
+            return Collections.singletonList(new BitbucketPostBuildStatus(serverId, repositoryName));
         }
     }
 }

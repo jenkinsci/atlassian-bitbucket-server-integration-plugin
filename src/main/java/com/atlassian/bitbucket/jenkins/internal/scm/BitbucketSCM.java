@@ -74,7 +74,7 @@ public class BitbucketSCM extends SCM {
             @CheckForNull String repositoryName,
             @CheckForNull String serverId,
             @CheckForNull String mirrorName) {
-        this(id, branches, extensions, gitTool, serverId);
+        this(id, branches, extensions, gitTool, serverId, repositoryName);
 
         DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
@@ -134,7 +134,7 @@ public class BitbucketSCM extends SCM {
             @CheckForNull String gitTool,
             @CheckForNull String serverId,
             BitbucketRepository repository) {
-        this(id, branches, extensions, gitTool, serverId);
+        this(id, branches, extensions, gitTool, serverId, repository.getName());
         setRepositoryDetails(credentialsId, serverId, "", repository);
     }
 
@@ -153,7 +153,8 @@ public class BitbucketSCM extends SCM {
             @CheckForNull List<BranchSpec> branches,
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
-            @CheckForNull String serverId) {
+            @CheckForNull String serverId,
+            String repositoryName) {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = new ArrayList<>();
         this.extensions = new ArrayList<>();
@@ -167,7 +168,7 @@ public class BitbucketSCM extends SCM {
             this.extensions.addAll(extensions);
         }
         if (!isBlank(serverId)) {
-            this.extensions.add(new BitbucketPostBuildStatus(serverId));
+            this.extensions.add(new BitbucketPostBuildStatus(serverId, repositoryName));
         }
     }
 
