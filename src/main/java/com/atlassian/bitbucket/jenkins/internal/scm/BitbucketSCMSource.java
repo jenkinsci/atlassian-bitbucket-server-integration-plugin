@@ -52,6 +52,7 @@ public class BitbucketSCMSource extends SCMSource {
     private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private volatile boolean isWebhookRegistered;
 
     @DataBoundConstructor
     public BitbucketSCMSource(
@@ -176,9 +177,22 @@ public class BitbucketSCMSource extends SCMSource {
         return getBitbucketSCMRepository().getServerId();
     }
 
+    public boolean isValid() {
+        return getMirrorName() != null && isNotBlank(getProjectKey()) && isNotBlank(getProjectName()) &&
+                isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) && isNotBlank(getServerId());
+    }
+
     @Override
     public List<SCMSourceTrait> getTraits() {
         return traits;
+    }
+
+    public boolean isWebhookRegistered() {
+        return isWebhookRegistered;
+    }
+
+    public void setWebhookRegistered(boolean webhookRegistered) {
+        isWebhookRegistered = webhookRegistered;
     }
 
     @Override
