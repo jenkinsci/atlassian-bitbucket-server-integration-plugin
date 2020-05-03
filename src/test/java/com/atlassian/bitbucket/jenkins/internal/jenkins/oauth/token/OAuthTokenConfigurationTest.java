@@ -53,7 +53,7 @@ public class OAuthTokenConfigurationTest {
     private OAuthTokenConfiguration instance;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() {
         instance = new OAuthTokenConfiguration(jenkinsAuthWrapper, clock, store);
         when(jenkinsAuthWrapper.getAuthentication()).thenReturn(authentication);
     }
