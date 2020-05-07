@@ -15,6 +15,7 @@ import hudson.plugins.git.util.Build;
 import hudson.plugins.git.util.BuildData;
 import jenkins.model.Jenkins;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +81,7 @@ public class BitbucketPostBuildStatusTest {
     @Before
     public void setup() {
         refNameExtractorFactory = spy(new BitbucketRefNameExtractorFactory());
-        extension = new BitbucketPostBuildStatus(SERVER_ID, REPO_NAME, jenkinsProvider, refNameExtractorFactory);
+        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider, refNameExtractorFactory);
         buildData.lastBuild = lastBuild;
         when(lastBuild.getRevision()).thenReturn(revision);
         when(revision.getSha1String()).thenReturn(SHA1);
@@ -88,6 +89,9 @@ public class BitbucketPostBuildStatusTest {
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
         when(build.getAction(any())).thenReturn(revisionAction);
+        RemoteConfig bitbucketRepository = mock(RemoteConfig.class);
+        when(scm.getRepositories()).thenReturn(Collections.singletonList(bitbucketRepository));
+        when(bitbucketRepository.getName()).thenReturn(REPO_NAME);
         // for all job types other than multi-branch (i.e. all job/run types that extend AbstractBuild), the branch
         // names we get from 'revision' are pre-pended with '<repo-name>/'
         masterRef = "master";
@@ -112,6 +116,21 @@ public class BitbucketPostBuildStatusTest {
 
     @Test
     public void testPostStatus() {
+        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
+        when(scm.getBuildData(build)).thenReturn(buildData);
+        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
+        verify(build).addAction(captor.capture());
+        BitbucketRevisionAction action = captor.getValue();
+        assertThat(action.getServerId(), equalTo(SERVER_ID));
+        assertThat(action.getRevisionSha1(), equalTo(SHA1));
+        verify(buildStatusPoster).postBuildStatus(build, listener);
+    }
+
+    // For PostBuildStatus instances persisted before an upgrade to 1.1.2 or above
+    @Test
+    public void testPostStatusWithLegacyExtension() {
+        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider, null);
+
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
         when(scm.getBuildData(build)).thenReturn(buildData);
         extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);

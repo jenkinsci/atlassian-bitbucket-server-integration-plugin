@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
+import com.atlassian.bitbucket.jenkins.internal.util.GitSCMUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Injector;
 import hudson.model.Run;
@@ -19,20 +20,18 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
 
     private final JenkinsProvider jenkinsProvider;
     private final String serverId;
-    private final String repositoryName;
-    private final BitbucketRefNameExtractorFactory refNameExtractorFactory;
+    private BitbucketRefNameExtractorFactory refNameExtractorFactory;
 
     @VisibleForTesting
-    BitbucketPostBuildStatus(String serverId, String repositoryName, JenkinsProvider jenkinsProvider,
+    BitbucketPostBuildStatus(String serverId, JenkinsProvider jenkinsProvider,
                              BitbucketRefNameExtractorFactory refNameExtractorFactory) {
         this.serverId = serverId;
-        this.repositoryName = repositoryName;
         this.jenkinsProvider = jenkinsProvider;
         this.refNameExtractorFactory = refNameExtractorFactory;
     }
 
     public BitbucketPostBuildStatus(String serverId, String repositoryName) {
-        this(serverId, repositoryName, new DefaultJenkinsProvider(), new BitbucketRefNameExtractorFactory());
+        this(serverId, new DefaultJenkinsProvider(), new BitbucketRefNameExtractorFactory());
     }
 
     @Override
@@ -43,6 +42,11 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
             listener.getLogger().println("Injector could not be found while creating build status");
             return rev;
         }
+        // If the class was serialized before upgrading to 1.1.2
+        if (refNameExtractorFactory == null) {
+            refNameExtractorFactory = new BitbucketRefNameExtractorFactory();
+        }
+        String repositoryName = GitSCMUtil.getGitRepository(scm).getName();
 
         BuildData buildData = scm.getBuildData(run);
 
