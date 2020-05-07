@@ -1,4 +1,7 @@
 {
+  "configuration": {
+    "createdBy": "jenkins"
+  },
   "name": "WebhookName",
   "events": [
     "repo:refs_changed",

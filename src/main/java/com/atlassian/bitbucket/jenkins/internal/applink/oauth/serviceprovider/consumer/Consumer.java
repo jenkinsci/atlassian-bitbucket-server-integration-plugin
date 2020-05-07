@@ -8,6 +8,7 @@ import java.security.PublicKey;
 import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 
 /**
  * <p>Immutable representation of an OAuth consumer.  At a minimum a consumer is required to have a key, a name, and a
@@ -85,28 +86,29 @@ public final class Consumer {
      * @return the RSA public key for the consumer
      */
     public Optional<PublicKey> getPublicKey() {
-        return Optional.ofNullable(publicKey);
+        return ofNullable(publicKey);
     }
 
     /**
      * Returns the optional description of the consumer as it would be displayed to the user, empty if the
      * description was not set.
      *
-     * @return the optional description of the consumer as it would be displayed to the user, {@code null} if the
-     * description was not set.
+     * @return the optional description of the consumer as it would be displayed to the user, or
+     *         {@link Optional#empty() empty} if the description was not set
      */
-    public String getDescription() {
-        return description;
+    public Optional<String> getDescription() {
+        return ofNullable(description);
     }
 
     /**
      * Returns the default callback {@code URI} used after a request token has been authorized if no callback
      * {@code URI} was provided in the authorization request.
      *
-     * @return the default callback {@code URI} used after a request token has been authorized
+     * @return the default callback {@code URI} used after a request token has been authorized if one is provided,
+     *         {@link Optional#empty() empty} otherwise
      */
-    public URI getCallback() {
-        return callback;
+    public Optional<URI> getCallback() {
+        return ofNullable(callback);
     }
 
     /**
@@ -116,7 +118,7 @@ public final class Consumer {
      * @return the secret
      */
     public Optional<String> getConsumerSecret() {
-        return Optional.ofNullable(consumerSecret);
+        return ofNullable(consumerSecret);
     }
 
     @Override

@@ -21,7 +21,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
@@ -250,7 +249,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
 
         @Override
         public AuthorizeConfirmationConfig newInstance(@Nullable StaplerRequest req,
-                                                       @Nonnull JSONObject formData) throws FormException {
+                                                       JSONObject formData) throws FormException {
             return createInstance(req);
         }
 

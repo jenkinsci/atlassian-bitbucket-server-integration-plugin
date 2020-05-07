@@ -240,8 +240,8 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
             Consumer consumer = (Consumer) source;
             addNode(writer, CONSUMER_KEY, consumer.getKey());
             addNode(writer, CONSUMER_NAME, consumer.getName());
-            addNode(writer, CONSUMER_DESCRIPTION, consumer.getDescription());
-            addNode(writer, CALLBACK_URL, consumer.getCallback());
+            consumer.getDescription().ifPresent(description -> addNode(writer, CONSUMER_DESCRIPTION, description));
+            consumer.getCallback().ifPresent(callback -> addNode(writer, CALLBACK_URL, callback));
             addNode(writer, SIGNATURE_METHOD, consumer.getSignatureMethod());
             consumer.getConsumerSecret().ifPresent(secret -> addNode(writer, CONSUMER_SECRET, secret));
             consumer.getPublicKey().ifPresent(pubKey -> addPublicKeyNode(writer, pubKey));

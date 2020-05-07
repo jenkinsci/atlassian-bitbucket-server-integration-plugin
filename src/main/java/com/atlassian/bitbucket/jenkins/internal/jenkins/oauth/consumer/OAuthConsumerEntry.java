@@ -11,7 +11,6 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import java.net.URI;
@@ -70,12 +69,10 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
         return consumer.getCallback() != null;
     }
 
-    @Nonnull
     public String getConsumerKey() {
         return consumer.getKey();
     }
 
-    @Nonnull
     public String getConsumerName() {
         return consumer.getName();
     }

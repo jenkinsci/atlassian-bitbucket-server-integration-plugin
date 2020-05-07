@@ -14,6 +14,7 @@ import net.oauth.OAuthValidator;
 import net.oauth.server.OAuthServlet;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -240,6 +241,7 @@ public class OAuth1aRequestFilter implements Filter {
         sendError(request, response, SC_INTERNAL_SERVER_ERROR, message);
     }
 
+    @Nullable
     private String getLogicalUri(HttpServletRequest request) {
         String uriPathBeforeForwarding = (String) request.getAttribute(FORWARD_REQUEST_URI);
         if (uriPathBeforeForwarding == null) {
