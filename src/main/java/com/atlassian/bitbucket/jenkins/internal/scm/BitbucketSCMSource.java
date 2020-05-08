@@ -451,7 +451,7 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         public List<GitSCMExtension> getExtensions() {
-            return Collections.singletonList(new BitbucketPostBuildStatus(serverId, repositoryName));
+            return Collections.singletonList(new BitbucketPostBuildStatus(serverId));
         }
     }
 }
