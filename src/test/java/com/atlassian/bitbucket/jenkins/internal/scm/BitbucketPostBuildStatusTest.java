@@ -68,7 +68,6 @@ public class BitbucketPostBuildStatusTest {
     private Run<FreeStyleProject, ?> notABuild;
     @Mock
     private ObjectId objectId;
-    private BitbucketRefNameExtractorFactory refNameExtractorFactory;
     @Mock
     private Revision revision;
     @Mock
@@ -80,8 +79,7 @@ public class BitbucketPostBuildStatusTest {
 
     @Before
     public void setup() {
-        refNameExtractorFactory = spy(new BitbucketRefNameExtractorFactory());
-        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider, refNameExtractorFactory);
+        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider);
         buildData.lastBuild = lastBuild;
         when(lastBuild.getRevision()).thenReturn(revision);
         when(revision.getSha1String()).thenReturn(SHA1);
@@ -126,21 +124,6 @@ public class BitbucketPostBuildStatusTest {
         verify(buildStatusPoster).postBuildStatus(build, listener);
     }
 
-    // For PostBuildStatus instances persisted before an upgrade to 1.1.2 or above
-    @Test
-    public void testPostStatusWithLegacyExtension() {
-        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider, null);
-
-        when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
-        when(scm.getBuildData(build)).thenReturn(buildData);
-        extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
-        verify(build).addAction(captor.capture());
-        BitbucketRevisionAction action = captor.getValue();
-        assertThat(action.getServerId(), equalTo(SERVER_ID));
-        assertThat(action.getRevisionSha1(), equalTo(SHA1));
-        verify(buildStatusPoster).postBuildStatus(build, listener);
-    }
-
     @Test
     public void testRunNotOfTypeBuild() {
         extension.decorateRevisionToBuild(scm, build, gitClient, listener, revision, revision);
@@ -162,8 +145,6 @@ public class BitbucketPostBuildStatusTest {
     public void testExtractBranchWithoutRepoNamePrefix() {
         // If the job/run is of type multi-branch (WorkflowRun), then the branch names have no prefix
         // WorkflowRunBitbucketRefNameExtractor expects the 'ref' to not be prepended with the repo name
-        when(refNameExtractorFactory.forBuildType(build.getClass()))
-                .thenReturn(new BitbucketRefNameExtractorFactory.WorkflowRunBitbucketRefNameExtractor());
         String ref = "branch1";
         when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);
