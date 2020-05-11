@@ -12,6 +12,8 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,8 +55,14 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     @Override
     public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
                              ResponseConsumer<T> consumer) {
+        return executePost(url, credential, requestBodyAsJson, consumer, Collections.emptyMap());
+    }
+
+    @Override
+    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
+                             ResponseConsumer<T> consumer, Map<String, String> headers) {
         Request.Builder requestBuilder =
-                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url);
+                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url).headers(Headers.of(headers));
         return executeRequest(requestBuilder, credential, consumer);
     }
 

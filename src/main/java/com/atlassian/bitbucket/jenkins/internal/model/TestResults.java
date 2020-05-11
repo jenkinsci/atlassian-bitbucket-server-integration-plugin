@@ -32,4 +32,9 @@ public class TestResults {
     public int getIgnored() {
         return ignored;
     }
+
+    @Override
+    public String toString() {
+        return String.format("successful:%d,failed:%d,skipped:%d", successful, failed, ignored);
+    }
 }

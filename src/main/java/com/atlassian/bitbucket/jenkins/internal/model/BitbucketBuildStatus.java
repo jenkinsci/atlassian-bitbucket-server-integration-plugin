@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -105,6 +106,23 @@ public class BitbucketBuildStatus {
     @JsonProperty(value = "url")
     public String getUrl() {
         return url;
+    }
+
+    public String getSignature() {
+        return new StringBuilder()
+                .append(getDescription())
+                .append(Optional.ofNullable(getDuration())
+                        .map(Object::toString).orElse(""))
+                .append(getKey())
+                .append(getName())
+                .append(Optional.ofNullable(getRef()).orElse(""))
+                .append(Optional.ofNullable(getResultKey()).orElse(""))
+                .append(Optional.ofNullable(getServerIdentifier()).orElse(""))
+                .append(getState())
+                .append(Optional.ofNullable(getTestResults())
+                        .map(Object::toString).orElse(""))
+                .append(getUrl())
+                .toString();
     }
 
     public static class Builder {

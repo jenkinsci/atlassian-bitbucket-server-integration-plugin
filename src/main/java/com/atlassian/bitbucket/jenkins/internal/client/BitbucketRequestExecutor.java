@@ -14,6 +14,7 @@ import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
@@ -129,6 +130,17 @@ public class BitbucketRequestExecutor {
      */
     public <T> void makePostRequest(HttpUrl url, T requestPayload) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
+    }
+
+    /**
+     * Makes a POST request to the given URL with given request payload.
+     *
+     * @param url            the URL to make the request to
+     * @param requestPayload JSON payload which will be marshalled to send it with POST.
+     * @param <T>            Type of Request payload.
+     */
+    public <T> void makePostRequest(HttpUrl url, T requestPayload, Map<String, String> headers) {
+        httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE, headers);
     }
 
     /**
