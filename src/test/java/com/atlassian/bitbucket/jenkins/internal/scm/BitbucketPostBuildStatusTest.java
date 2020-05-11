@@ -15,6 +15,7 @@ import hudson.plugins.git.util.Build;
 import hudson.plugins.git.util.BuildData;
 import jenkins.model.Jenkins;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +68,6 @@ public class BitbucketPostBuildStatusTest {
     private Run<FreeStyleProject, ?> notABuild;
     @Mock
     private ObjectId objectId;
-    private BitbucketRefNameExtractorFactory refNameExtractorFactory;
     @Mock
     private Revision revision;
     @Mock
@@ -79,8 +79,7 @@ public class BitbucketPostBuildStatusTest {
 
     @Before
     public void setup() {
-        refNameExtractorFactory = spy(new BitbucketRefNameExtractorFactory());
-        extension = new BitbucketPostBuildStatus(SERVER_ID, REPO_NAME, jenkinsProvider, refNameExtractorFactory);
+        extension = new BitbucketPostBuildStatus(SERVER_ID, jenkinsProvider);
         buildData.lastBuild = lastBuild;
         when(lastBuild.getRevision()).thenReturn(revision);
         when(revision.getSha1String()).thenReturn(SHA1);
@@ -88,6 +87,9 @@ public class BitbucketPostBuildStatusTest {
         when(jenkins.getInjector()).thenReturn(injector);
         when(listener.getLogger()).thenReturn(logger);
         when(build.getAction(any())).thenReturn(revisionAction);
+        RemoteConfig bitbucketRepository = mock(RemoteConfig.class);
+        when(scm.getRepositories()).thenReturn(Collections.singletonList(bitbucketRepository));
+        when(bitbucketRepository.getName()).thenReturn(REPO_NAME);
         // for all job types other than multi-branch (i.e. all job/run types that extend AbstractBuild), the branch
         // names we get from 'revision' are pre-pended with '<repo-name>/'
         masterRef = "master";
@@ -143,8 +145,6 @@ public class BitbucketPostBuildStatusTest {
     public void testExtractBranchWithoutRepoNamePrefix() {
         // If the job/run is of type multi-branch (WorkflowRun), then the branch names have no prefix
         // WorkflowRunBitbucketRefNameExtractor expects the 'ref' to not be prepended with the repo name
-        when(refNameExtractorFactory.forBuildType(build.getClass()))
-                .thenReturn(new BitbucketRefNameExtractorFactory.WorkflowRunBitbucketRefNameExtractor());
         String ref = "branch1";
         when(revision.getBranches()).thenReturn(Collections.singletonList(new Branch(ref, objectId)));
         when(injector.getInstance(BuildStatusPoster.class)).thenReturn(buildStatusPoster);

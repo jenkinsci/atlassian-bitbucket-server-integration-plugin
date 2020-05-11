@@ -168,7 +168,7 @@ public class BitbucketSCM extends SCM {
             this.extensions.addAll(extensions);
         }
         if (!isBlank(serverId)) {
-            this.extensions.add(new BitbucketPostBuildStatus(serverId, repositoryName));
+            this.extensions.add(new BitbucketPostBuildStatus(serverId));
         }
     }
 

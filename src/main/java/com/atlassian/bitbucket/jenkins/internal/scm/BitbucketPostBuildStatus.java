@@ -19,20 +19,15 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
 
     private final JenkinsProvider jenkinsProvider;
     private final String serverId;
-    private final String repositoryName;
-    private final BitbucketRefNameExtractorFactory refNameExtractorFactory;
 
     @VisibleForTesting
-    BitbucketPostBuildStatus(String serverId, String repositoryName, JenkinsProvider jenkinsProvider,
-                             BitbucketRefNameExtractorFactory refNameExtractorFactory) {
+    BitbucketPostBuildStatus(String serverId, JenkinsProvider jenkinsProvider) {
         this.serverId = serverId;
-        this.repositoryName = repositoryName;
         this.jenkinsProvider = jenkinsProvider;
-        this.refNameExtractorFactory = refNameExtractorFactory;
     }
 
-    public BitbucketPostBuildStatus(String serverId, String repositoryName) {
-        this(serverId, repositoryName, new DefaultJenkinsProvider(), new BitbucketRefNameExtractorFactory());
+    public BitbucketPostBuildStatus(String serverId) {
+        this(serverId, new DefaultJenkinsProvider());
     }
 
     @Override
@@ -43,6 +38,10 @@ class BitbucketPostBuildStatus extends GitSCMExtension {
             listener.getLogger().println("Injector could not be found while creating build status");
             return rev;
         }
+        BitbucketRefNameExtractorFactory refNameExtractorFactory = new BitbucketRefNameExtractorFactory();
+        String repositoryName = (scm.getRepositories().stream().findFirst()
+                .orElseThrow(() -> new BitbucketSCMException("No repository found in the GitSCM")))
+                .getName();
 
         BuildData buildData = scm.getBuildData(run);
 
