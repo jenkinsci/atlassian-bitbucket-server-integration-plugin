@@ -110,17 +110,9 @@ public class BitbucketBuildStatus {
 
     public String getSignature() {
         return new StringBuilder()
-                .append(getDescription())
-                .append(Optional.ofNullable(getDuration())
-                        .map(Object::toString).orElse(""))
                 .append(getKey())
-                .append(getName())
                 .append(Optional.ofNullable(getRef()).orElse(""))
-                .append(Optional.ofNullable(getResultKey()).orElse(""))
-                .append(Optional.ofNullable(getServerIdentifier()).orElse(""))
                 .append(getState())
-                .append(Optional.ofNullable(getTestResults())
-                        .map(Object::toString).orElse(""))
                 .append(getUrl())
                 .toString();
     }
