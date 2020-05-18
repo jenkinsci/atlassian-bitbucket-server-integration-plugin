@@ -63,7 +63,7 @@ To create a Jenkins job:
 5. Add a **build step**.
 6. Click **Save**.
 
-**Note:** Currently, when creating a Pipeline or Multibranch Pipeline job, the use of a Jenkinsfile is required. Other pipeline scripting methods are not supported.
+**Note:** A Jenkinsfile is required when creating a Pipeline or Multibranch Pipeline job. Other pipeline scripting methods are not yet supported. 
 
 ## Setting up a Multibranch Pipeline 
 
