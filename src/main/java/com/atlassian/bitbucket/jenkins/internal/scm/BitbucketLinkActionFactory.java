@@ -8,10 +8,7 @@ import hudson.util.FormValidation;
 import jenkins.model.TransientActionFactory;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 
 @Extension
 public class BitbucketLinkActionFactory extends TransientActionFactory<Project> {
@@ -25,13 +22,13 @@ public class BitbucketLinkActionFactory extends TransientActionFactory<Project> 
         BitbucketSCM bitbucketSCM = (BitbucketSCM) target.getScm();
         BitbucketSCM.DescriptorImpl descriptor = (BitbucketSCM.DescriptorImpl) bitbucketSCM.getDescriptor();
         Optional<BitbucketServerConfiguration> maybeConfig = descriptor.getConfiguration(bitbucketSCM.getServerId());
+        String serverId = Objects.toString(bitbucketSCM.getServerId(), "");
+        String credentialsId = Objects.toString(bitbucketSCM.getCredentialsId(), "");
 
         FormValidation configValid = FormValidation.aggregate(Arrays.asList(
-                maybeConfig.map(config -> config.validate()).orElse(FormValidation.error("Config not present")),
-                descriptor.doCheckProjectName(bitbucketSCM.getServerId(), bitbucketSCM.getCredentialsId(),
-                        bitbucketSCM.getProjectName()),
-                descriptor.doCheckRepositoryName(bitbucketSCM.getServerId(), bitbucketSCM.getCredentialsId(),
-                        bitbucketSCM.getProjectName(), bitbucketSCM.getRepositoryName())
+                maybeConfig.map(BitbucketServerConfiguration::validate).orElse(FormValidation.error("Config not present")),
+                descriptor.doCheckProjectName(serverId, credentialsId, bitbucketSCM.getProjectName()),
+                descriptor.doCheckRepositoryName(serverId, credentialsId, bitbucketSCM.getProjectName(), bitbucketSCM.getRepositoryName())
         ));
 
         if (configValid.kind == FormValidation.Kind.ERROR) {
