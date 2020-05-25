@@ -46,7 +46,6 @@ import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketSCM extends SCM {
@@ -56,7 +55,6 @@ public class BitbucketSCM extends SCM {
     private GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
-    private final List<GitSCMExtension> extensions;
     private final String gitTool;
     private final String id;
     // this is to enable us to support future multiple repositories
@@ -140,10 +138,11 @@ public class BitbucketSCM extends SCM {
 
     /**
      * Regenerate SCM by looking up new repo URLs etc.
+     *
      * @param oldScm old scm to copy values from
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
-        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), oldScm.getExtensions(),
+        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), emptyList(),
                 oldScm.getGitTool(), oldScm.getProjectName(), oldScm.getRepositoryName(), oldScm.getServerId(),
                 oldScm.getMirrorName());
     }
@@ -157,18 +156,11 @@ public class BitbucketSCM extends SCM {
             String repositoryName) {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = new ArrayList<>();
-        this.extensions = new ArrayList<>();
         this.gitTool = gitTool;
         repositories = new ArrayList<>(1);
 
         if (branches != null) {
             this.branches.addAll(branches);
-        }
-        if (extensions != null) {
-            this.extensions.addAll(extensions);
-        }
-        if (!isBlank(serverId)) {
-            this.extensions.add(new BitbucketPostBuildStatus(serverId));
         }
     }
 
@@ -247,15 +239,6 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getCredentialsId();
     }
 
-    public List<GitSCMExtension> getExtensions() {
-        if (gitSCM == null) {
-            return emptyList();
-        }
-        return gitSCM.getExtensions().stream()
-                .filter(extension -> !(extension instanceof BitbucketPostBuildStatus))
-                .collect(toList());
-    }
-
     public String getId() {
         return id;
     }
@@ -324,7 +307,7 @@ public class BitbucketSCM extends SCM {
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
         gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
-                gitTool, extensions);
+                gitTool, emptyList());
     }
 
     private void setEmptyRepsitory(@CheckForNull String credentialsId,
