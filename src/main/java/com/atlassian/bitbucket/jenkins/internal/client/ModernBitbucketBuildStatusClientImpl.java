@@ -45,11 +45,12 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
         this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceIdentityProvider());
     }
 
-    public Map<String, String> generateSignature(BitbucketBuildStatus buildStatus) {
+    public Map<String, String> generateHeaders(BitbucketBuildStatus buildStatus) {
         Map<String, String> headers = new HashMap<>();
+        RSAPrivateKey key = instanceIdentityProvider.getInstanceIdentity().getPrivate();
+        String algorithm = "SHA256 with" + key.getAlgorithm();
+
         try {
-            RSAPrivateKey key = instanceIdentityProvider.getInstanceIdentity().getPrivate();
-            String algorithm = "SHA256 with" + key.getAlgorithm();
             Signature sig = Signature.getInstance(algorithm);
             sig.initSign(key);
 
@@ -81,6 +82,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
                 .addPathSegment("builds")
                 .addPathSegment(buildStatus.getKey())
                 .build();
-        bitbucketRequestExecutor.makePostRequest(url, buildStatus, generateSignature(buildStatus));
+        bitbucketRequestExecutor.makePostRequest(url, buildStatus, generateHeaders(buildStatus));
     }
 }

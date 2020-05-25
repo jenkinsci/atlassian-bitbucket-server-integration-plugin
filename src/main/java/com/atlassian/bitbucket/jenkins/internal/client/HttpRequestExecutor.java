@@ -56,7 +56,7 @@ public interface HttpRequestExecutor {
      * @param requestBodyAsJson the request payload to send in JSON format
      * @param consumer          on successful execution, {@link Response} will be passed to consumer
      * @param <T>               result that consumer wish to return
-     * @return result computed by consumer.
+     * @return result computed by consumer
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws ConnectionFailureException if the server did not respond
      * @throws NotFoundException          if the requested url does not exist
@@ -75,7 +75,7 @@ public interface HttpRequestExecutor {
      * @param requestBodyAsJson the request payload to send in JSON format
      * @param consumer          on successful execution, {@link Response} will be passed to consumer
      * @param <T>               result that consumer wish to return
-     * @return result computed by consumer.
+     * @return result computed by consumer
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws ConnectionFailureException if the server did not respond
      * @throws NotFoundException          if the requested url does not exist
