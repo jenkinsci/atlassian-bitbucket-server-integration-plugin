@@ -7,18 +7,21 @@ import com.atlassian.bitbucket.jenkins.internal.provider.InstanceIdentityProvide
 import com.google.common.annotations.VisibleForTesting;
 import okhttp3.HttpUrl;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatusClient {
 
-    private static final String BBS_BUILD_STATUS_SIGNATURE_ID = "BBS-Signature";
+    private static final String BUILD_STATUS_SIGNATURE_ID = "BBS-Signature";
+    private static final String BUILD_STATUS_SIGNATURE_ALGORITHM_ID = "BBS-Signature-Algorithm";
     private static final String BUILD_STATUS_VERSION = "1.0";
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final InstanceIdentityProvider instanceIdentityProvider;
@@ -46,11 +49,18 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
         Map<String, String> headers = new HashMap<>();
         try {
             RSAPrivateKey key = instanceIdentityProvider.getInstanceIdentity().getPrivate();
-            Signature sig = Signature.getInstance("SHA256with" + key.getAlgorithm());
+            String algorithm = "SHA256 with" + key.getAlgorithm();
+            Signature sig = Signature.getInstance(algorithm);
             sig.initSign(key);
-            sig.update(buildStatus.getSignature().getBytes("UTF-8"));
-            headers.put(BBS_BUILD_STATUS_SIGNATURE_ID, Base64.getEncoder().encodeToString(sig.sign()));
-        } catch (Exception e) {
+
+            sig.update(buildStatus.getKey().getBytes(UTF_8));
+            sig.update(Objects.toString(buildStatus.getRef(), "").getBytes(UTF_8));
+            sig.update(buildStatus.getState().getBytes(UTF_8));
+            sig.update(buildStatus.getUrl().getBytes(UTF_8));
+
+            headers.put(BUILD_STATUS_SIGNATURE_ID, Base64.getEncoder().encodeToString(sig.sign()));
+            headers.put(BUILD_STATUS_SIGNATURE_ALGORITHM_ID, algorithm);
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             throw new BitbucketClientException("Exception signing build status", e);
         }
         return headers;
@@ -58,7 +68,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
 
     @Override
     public void post(BitbucketBuildStatus buildStatus) {
-        //projects/PROJECT_1/repos/rep_1/commits/abc1234avcacac/builds/buildkey
         HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                 .addPathSegment("rest")
                 .addPathSegment("api")

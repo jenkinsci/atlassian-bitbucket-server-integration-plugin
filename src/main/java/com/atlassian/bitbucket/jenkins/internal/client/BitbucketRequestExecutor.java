@@ -109,9 +109,9 @@ public class BitbucketRequestExecutor {
      * Makes a POST request to the given URL with given request payload.
      *
      * @param url             the URL to make the request to
-     * @param requestPayload, JSON payload which will be marshalled to send it with POST.
+     * @param requestPayload, JSON payload which will be marshalled to send it with POST
      * @param returnType,     class of expected return type
-     * @param <T>             type of Request payload.
+     * @param <T>             type of Request payload
      * @param <R>             return type
      * @return the result
      */
@@ -125,8 +125,8 @@ public class BitbucketRequestExecutor {
      * Makes a POST request to the given URL with given request payload.
      *
      * @param url            the URL to make the request to
-     * @param requestPayload JSON payload which will be marshalled to send it with POST.
-     * @param <T>            Type of Request payload.
+     * @param requestPayload JSON payload which will be marshalled to send it with POST
+     * @param <T>            Type of Request payload
      */
     public <T> void makePostRequest(HttpUrl url, T requestPayload) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
@@ -136,8 +136,8 @@ public class BitbucketRequestExecutor {
      * Makes a POST request to the given URL with given request payload.
      *
      * @param url            the URL to make the request to
-     * @param requestPayload JSON payload which will be marshalled to send it with POST.
-     * @param <T>            Type of Request payload.
+     * @param requestPayload JSON payload which will be marshalled to send it with POST
+     * @param <T>            Type of Request payload
      */
     public <T> void makePostRequest(HttpUrl url, T requestPayload, Map<String, String> headers) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE, headers);
