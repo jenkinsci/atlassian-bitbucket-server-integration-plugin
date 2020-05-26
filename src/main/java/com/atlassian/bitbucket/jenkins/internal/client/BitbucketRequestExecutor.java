@@ -115,21 +115,11 @@ public class BitbucketRequestExecutor {
      * @param <R>             return type
      * @return the result
      */
-    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
+    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Map<String, String> headers,
+                                                       Class<R> returnType) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
         return httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), response ->
-                new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
-    }
-
-    /**
-     * Makes a POST request to the given URL with given request payload.
-     *
-     * @param url            the URL to make the request to
-     * @param requestPayload JSON payload which will be marshalled to send it with POST
-     * @param <T>            Type of Request payload
-     */
-    public <T> void makePostRequest(HttpUrl url, T requestPayload) {
-        httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE);
+                new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())), headers);
     }
 
     /**

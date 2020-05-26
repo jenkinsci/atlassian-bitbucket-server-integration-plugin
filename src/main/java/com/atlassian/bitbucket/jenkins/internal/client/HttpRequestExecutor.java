@@ -49,25 +49,6 @@ public interface HttpRequestExecutor {
     <T> T executeGet(HttpUrl url, BitbucketCredentials credentials, ResponseConsumer<T> consumer);
 
     /**
-     * Executes a POST with a given URL and request payload.
-     *
-     * @param url               The URL to hit on bitbucket server end
-     * @param credentials       Credentials that will be used in making calls
-     * @param requestBodyAsJson the request payload to send in JSON format
-     * @param consumer          on successful execution, {@link Response} will be passed to consumer
-     * @param <T>               result that consumer wish to return
-     * @return result computed by consumer
-     * @throws AuthorizationException     if the credentials did not allow access to the given url
-     * @throws ConnectionFailureException if the server did not respond
-     * @throws NotFoundException          if the requested url does not exist
-     * @throws BadRequestException        if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException       if the server failed to process the request
-     * @throws BitbucketClientException   for all errors not already captured
-     */
-    <T> T executePost(HttpUrl url, BitbucketCredentials credentials, String requestBodyAsJson,
-                      ResponseConsumer<T> consumer);
-
-    /**
      * Executes a POST with a given URL and request payload, with any custom headers.
      *
      * @param url               The URL to hit on bitbucket server end

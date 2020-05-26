@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import static java.lang.String.valueOf;
@@ -66,6 +67,7 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
         return bitbucketRequestExecutor.makePostRequest(
                 url,
                 request,
+                Collections.emptyMap(),
                 BitbucketWebhook.class).getBody();
     }
 
