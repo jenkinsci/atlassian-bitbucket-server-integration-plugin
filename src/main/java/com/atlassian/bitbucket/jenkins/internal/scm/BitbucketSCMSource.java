@@ -195,12 +195,12 @@ public class BitbucketSCMSource extends SCMSource {
                 .orElse("");
     }
 
-    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository, @Nullable String serverId) {
+    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
         repository = bitbucketSCMRepository;
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
         gitSCMSource =
-                new CustomGitSCMSource(remoteConfig.getUrl(), serverId, bitbucketSCMRepository.getRepositoryName());
+                new CustomGitSCMSource(remoteConfig.getUrl());
         gitSCMSource.setTraits(traits);
         gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
     }
@@ -230,7 +230,7 @@ public class BitbucketSCMSource extends SCMSource {
                 new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
                         serverId, mirrorName);
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @SuppressWarnings("Duplicates")
@@ -248,7 +248,7 @@ public class BitbucketSCMSource extends SCMSource {
                 new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @Symbol("BbS")
@@ -430,7 +430,7 @@ public class BitbucketSCMSource extends SCMSource {
      */
     private static class CustomGitSCMSource extends GitSCMSource {
 
-        public CustomGitSCMSource(String remote, @Nullable String serverId, String repositoryName) {
+        public CustomGitSCMSource(String remote) {
             super(remote);
         }
 

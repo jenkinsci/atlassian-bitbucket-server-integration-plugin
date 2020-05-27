@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketSCMAction;
 import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.FilePath;
@@ -194,9 +193,6 @@ public class BitbucketSCM extends SCM {
             @CheckForNull File changelogFile,
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
-        if (build.getAction(BitbucketSCMAction.class) == null) {
-            build.addAction(new BitbucketSCMAction(this));
-        }
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
     }
 

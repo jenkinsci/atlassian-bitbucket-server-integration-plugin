@@ -41,7 +41,7 @@ public final class BitbucketBuildStatusFactory {
                     .setTestResults(getTestResults(build));
             BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
             if (revisionAction != null) {
-                bbs.setRef(revisionAction.getRefName());
+                bbs.setRef(revisionAction.getBranchAsRefFormat());
             }
 
             if (state != BuildState.INPROGRESS) {
