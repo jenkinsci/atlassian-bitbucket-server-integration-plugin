@@ -15,7 +15,6 @@ import hudson.scm.SCM;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import io.restassured.response.ResponseBody;
 import io.restassured.specification.RequestSpecification;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import jenkins.branch.BranchSource;
@@ -78,7 +77,8 @@ public class BitbucketSCMSourceIT {
         bbCredentials = bbJenkinsRule.getAdminToken();
         BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG, repoName);
         repoSlug = repository.getSlug();
-        cloneUrl = repository.getCloneUrls().stream().filter(repo -> "http".equals(repo.getName())).findFirst().orElse(null).getHref();
+        cloneUrl =
+                repository.getCloneUrls().stream().filter(repo -> "http".equals(repo.getName())).findFirst().orElse(null).getHref();
     }
 
     @After
@@ -92,7 +92,8 @@ public class BitbucketSCMSourceIT {
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        BitbucketSCMSource scmSource = new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, repoName, serverId, null);
+        BitbucketSCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, repoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
         assertThat(scmSource.getRemote(), containsStringIgnoringCase(cloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
@@ -124,9 +125,11 @@ public class BitbucketSCMSourceIT {
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMSource scmSource = new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                PROJECT_NAME, repoName, serverId, null);
-        WorkflowMultiBranchProject project = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
+        SCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                        PROJECT_NAME, repoName, serverId, null);
+        WorkflowMultiBranchProject project =
+                bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
 
         BranchSource branchSource = new BranchSource(scmSource);
 
@@ -139,7 +142,8 @@ public class BitbucketSCMSourceIT {
         }
         PseudoRun<WorkflowJob> lastSuccessfulBuild = project.getLastSuccessfulBuild();
 
-        CredentialsProvider cr = new UsernamePasswordCredentialsProvider(bbCredentials.getUsername(), bbCredentials.getPassword().getPlainText());
+        CredentialsProvider cr =
+                new UsernamePasswordCredentialsProvider(bbCredentials.getUsername(), bbCredentials.getPassword().getPlainText());
         File checkoutDir = temporaryFolder.newFolder("repositoryCheckout");
         Git gitRepo = Git.cloneRepository()
                 .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
@@ -161,7 +165,8 @@ public class BitbucketSCMSourceIT {
             FileUtils.copyInputStreamToFile(in, jenkinsFile);
         }
         gitRepo.add().addFilepattern("Jenkinsfile").call();
-        RevCommit commit = gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+        RevCommit commit =
+                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
         String commitId = commit.getId().getName();
         gitRepo.push().setCredentialsProvider(cr).call();
 
@@ -191,11 +196,13 @@ public class BitbucketSCMSourceIT {
             System.out.println("Waiting for build status to appear");
             Thread.sleep(100);
         }
-        TypeReference<BitbucketPage<BitbucketBuildStatus>> pageRef = new TypeReference<BitbucketPage<BitbucketBuildStatus>>() {
-        };
+        TypeReference<BitbucketPage<BitbucketBuildStatus>> pageRef =
+                new TypeReference<BitbucketPage<BitbucketBuildStatus>>() {
+                };
         BitbucketPage<BitbucketBuildStatus> statues = objectMapper.readValue(response.asString(), pageRef);
 
-        while (statues.getSize() < 1 || !statues.getValues().stream().allMatch(status -> "SUCCESSFUL".equals(status.getState()))) {
+        while (statues.getSize() < 1 ||
+               !statues.getValues().stream().allMatch(status -> "SUCCESSFUL".equals(status.getState()))) {
 
             System.out.println("Waiting for build status become successful");
             Thread.sleep(200);
@@ -208,41 +215,5 @@ public class BitbucketSCMSourceIT {
         assertEquals("Wrong number of jobs", 1, jobs.size());
         assertEquals(branchName, jobs.get(0).getName());
         Thread.sleep(1000);
-    }
-
-    private void deleteRepository(String projectKey, String repoName) {
-        String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoName;
-        RestAssured
-                .expect()
-                .statusCode(202)
-                .log().ifValidationFails()
-                .given()
-                .contentType("application/json")
-                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .when()
-                .delete(sourceRepoUrl);
-    }
-
-    private BitbucketRepository forkRepository(String projectKey, String repoSlug, String forkName) throws IOException {
-        String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug;
-
-        ResponseBody body = RestAssured
-                .expect()
-                .statusCode(201)
-                .log().ifValidationFails()
-                .given()
-                .contentType("application/json")
-                .body("{" +
-                        //"\"slug\": \"" + forkKey + "\"," +
-                        "\"name\": \"" + forkName + "\"," +
-                        "    \"project\": {" +
-                        "        \"key\": \"" + projectKey + "\"" +
-                        "    }\n" +
-                        "}")
-                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .when()
-                .post(sourceRepoUrl);
-        BitbucketRepository repository = objectMapper.readValue(body.asString(), BitbucketRepository.class);
-        return repository;
     }
 }

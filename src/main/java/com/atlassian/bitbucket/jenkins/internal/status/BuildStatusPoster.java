@@ -46,7 +46,7 @@ public class BuildStatusPoster<R extends Run<?, ?>> extends RunListener<R> {
             "Failed to post build status as the provided Bitbucket Server config does not exist";
 
     @Inject
-    BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
     private BitbucketPluginConfiguration pluginConfiguration;
     @Inject
@@ -58,6 +58,9 @@ public class BuildStatusPoster<R extends Run<?, ?>> extends RunListener<R> {
         if (bitbucketRevisionAction != null) {
             postBuildStatus(bitbucketRevisionAction, r, listener);
         }
+    }
+
+    public void postBuildStatus(Run<?, ?> build, TaskListener listener) {
     }
 
     private void postBuildStatus(BitbucketRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
@@ -98,12 +101,6 @@ public class BuildStatusPoster<R extends Run<?, ?>> extends RunListener<R> {
         return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
     }
 
-    @Inject
-    public void setJenkinsToBitbucketCredentials(
-            JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
-        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
-    }
-
     @Extension
     public static class LocalSCMListener extends SCMListener {
 
@@ -114,7 +111,7 @@ public class BuildStatusPoster<R extends Run<?, ?>> extends RunListener<R> {
         public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                                @CheckForNull File changelogFile,
                                @CheckForNull SCMRevisionState pollingBaseline) {
-            if (!(scm instanceof GitSCM)) {
+            if (!(scm instanceof GitSCM || scm instanceof BitbucketSCM)) {
                 return;
             }
 

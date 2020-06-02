@@ -1,11 +1,14 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -15,8 +18,7 @@ public class BitbucketUtils {
             System.getProperty("bitbucket.admin.password", "admin");
     public static final String BITBUCKET_ADMIN_USERNAME =
             System.getProperty("bitbucket.admin.username", "admin");
-    public static final String BITBUCKET_BASE_URL =
-            System.getProperty("bitbucket.baseurl", TestUtils.BITBUCKET_BASE_URL);
+    public static final String BITBUCKET_BASE_URL = TestUtils.BITBUCKET_BASE_URL;
     public static final String PROJECT_KEY = "PROJECT_1";
     public static final String PROJECT_NAME = "Project 1";
     public static final String PROJECT_READ_PERMISSION = "PROJECT_READ";
@@ -25,6 +27,7 @@ public class BitbucketUtils {
     public static final String REPO_NAME = "rep 1";
     public static String REPO_FORK_SLUG = "";
     public static String REPO_FORK_NAME = "";
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
     public static void createRepoFork() {
         HashMap<String, Object> createForkRequest = new HashMap<>();
@@ -132,6 +135,42 @@ public class BitbucketUtils {
                 .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug +
                         "/webhooks/" + webhookId)
                 .getBody();
+    }
+
+    public static BitbucketRepository forkRepository(String projectKey, String repoSlug, String forkName) throws IOException {
+        String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug;
+
+        ResponseBody body = RestAssured
+                .expect()
+                .statusCode(201)
+                .log().ifValidationFails()
+                .given()
+                .contentType("application/json")
+                .body("{" +
+                      //"\"slug\": \"" + forkKey + "\"," +
+                      "\"name\": \"" + forkName + "\"," +
+                      "    \"project\": {" +
+                      "        \"key\": \"" + projectKey + "\"" +
+                      "    }\n" +
+                      "}")
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .when()
+                .post(sourceRepoUrl);
+        BitbucketRepository repository = objectMapper.readValue(body.asString(), BitbucketRepository.class);
+        return repository;
+    }
+
+    public static void deleteRepository(String projectKey, String repoName) {
+        String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoName;
+        RestAssured
+                .expect()
+                .statusCode(202)
+                .log().ifValidationFails()
+                .given()
+                .contentType("application/json")
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .when()
+                .delete(sourceRepoUrl);
     }
 
     public static final class PersonalToken {

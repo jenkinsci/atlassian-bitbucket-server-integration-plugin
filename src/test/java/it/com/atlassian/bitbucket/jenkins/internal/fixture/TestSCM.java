@@ -16,6 +16,6 @@ public class TestSCM extends BitbucketSCM {
 
     @Override
     public SCMDescriptor<?> getDescriptor() {
-        return (SCMDescriptor) Jenkins.getInstance().getDescriptorOrDie(BitbucketSCM.class);
+        return (SCMDescriptor) Jenkins.get().getDescriptorOrDie(BitbucketSCM.class);
     }
 }
