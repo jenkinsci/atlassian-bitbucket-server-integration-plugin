@@ -97,7 +97,9 @@ public class LocalSCMListener extends SCMListener {
         BitbucketSCM bitbucketSCM = scm instanceof BitbucketSCM ? (BitbucketSCM) scm : null;
         if (bitbucketSCM != null && bitbucketSCM.getServerId() != null) {
             GitSCM gitSCM = ((BitbucketSCM) scm).getGitSCM();
-            handleCheckout(bitbucketSCM, gitSCM, build, listener);
+            if (gitSCM != null) {
+                handleCheckout(bitbucketSCM, gitSCM, build, listener);
+            }
         }
     }
 
