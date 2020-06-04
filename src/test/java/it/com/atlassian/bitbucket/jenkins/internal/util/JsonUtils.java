@@ -4,12 +4,26 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 public class JsonUtils {
+
+    public static <T> String marshall(T requestPayload) {
+        requireNonNull(requestPayload);
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(requestPayload);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class HudsonResponse<T> {
