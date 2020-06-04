@@ -1,10 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import hudson.model.FreeStyleProject;
-import hudson.plugins.git.BranchSpec;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketProxyRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.GitHelper;
@@ -21,18 +18,11 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import wiremock.org.apache.http.HttpStatus;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities.RICH_BUILD_STATUS_CAPABILITY;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler.MASTER_BRANCH_PATTERN;
-import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.marshall;
 import static java.lang.String.format;
 
 /**
@@ -68,15 +58,6 @@ public class BuildStatusPosterIT {
                 repository.getCloneUrls().stream().filter(repo -> "http".equals(repo.getName())).findFirst().orElse(null).getHref();
         gitHelper.initialize(temporaryFolder.newFolder("repositoryCheckout"), cloneUrl);
         jenkinsProjectHandler = new JenkinsProjectHandler(bbJenkinsRule);
-
-        String capabilityUrl = "/rest/api/latest/build/capabilities";
-        BitbucketCICapabilities bitbucketCICapabilities =
-                new BitbucketCICapabilities(Collections.singleton(RICH_BUILD_STATUS_CAPABILITY));
-        bitbucketProxyRule.getWireMock().stubFor(get(
-                urlPathMatching(capabilityUrl))
-                .willReturn(
-                        aResponse().withHeader("Content-Type", "application/json")
-                                .withBody(marshall(bitbucketCICapabilities))));
     }
 
     @After
@@ -228,12 +209,5 @@ public class BuildStatusPosterIT {
 
     private String checkInJenkinsFile(String content) throws Exception {
         return gitHelper.addFileToRepo("master", "Jenkinsfile", content);
-    }
-
-    private BitbucketSCM createScmWithSpecs(String... refs) {
-        List<BranchSpec> branchSpecs = Arrays.stream(refs)
-                .map(BranchSpec::new)
-                .collect(Collectors.toList());
-        return createScm(bbJenkinsRule, repoSlug, branchSpecs);
     }
 }
