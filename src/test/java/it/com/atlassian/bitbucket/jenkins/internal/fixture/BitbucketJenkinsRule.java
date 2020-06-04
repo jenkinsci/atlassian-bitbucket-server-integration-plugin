@@ -33,7 +33,7 @@ import java.util.logging.SimpleFormatter;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 
-public final class BitbucketJenkinsRule extends JenkinsRule {
+public class BitbucketJenkinsRule extends JenkinsRule {
 
     public static final String SERVER_NAME = "Bitbucket server";
 

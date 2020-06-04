@@ -1,55 +1,35 @@
 package it.com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
-import com.cloudbees.hudson.plugins.folder.computed.PseudoRun;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import hudson.model.Project;
+import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
-import jenkins.scm.api.SCMSource;
-import org.apache.commons.io.FileUtils;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.TextProgressMonitor;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketProxyRule;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.GitHelper;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import wiremock.org.apache.http.HttpStatus;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler.MASTER_BRANCH_PATTERN;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static java.lang.String.format;
-import static wiremock.com.google.common.base.Charsets.UTF_8;
 
 /**
  * Following test does not start Bitbucket server. Instead, it tries to mock build status API.
@@ -61,59 +41,46 @@ import static wiremock.com.google.common.base.Charsets.UTF_8;
  */
 public class BuildStatusPosterIT {
 
-    private final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
-    private final WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
     private final Timeout testTimeout = new Timeout(0, TimeUnit.MINUTES);
+    private final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+    private final BitbucketProxyRule bitbucketProxyRule = new BitbucketProxyRule(bbJenkinsRule);
+    private final GitHelper gitHelper = new GitHelper(bbJenkinsRule);
+
     @Rule
     public final TestRule chain = RuleChain.outerRule(temporaryFolder)
             .around(testTimeout)
-            .around(bbJenkinsRule)
-            .around((statement, description) -> {
-                wireMockRule.start();
-                wireMockRule.stubFor(any(anyUrl()).willReturn(aResponse().proxiedFrom(BITBUCKET_BASE_URL)));
-                System.setProperty("bitbucket.baseurl", wireMockRule.baseUrl());
-                return statement;
-            })
-            .around(wireMockRule);
+            .around(bitbucketProxyRule.getRule());
 
-    private UsernamePasswordCredentials bbCredentials;
-    private String cloneUrl;
-    private ObjectMapper objectMapper = new ObjectMapper();
-    private String repoName;
     private String repoSlug;
-    private Project<?, ?> project;
-    private Git gitRepo;
+    private JenkinsProjectHandler jenkinsProjectHandler;
 
     @Before
     public void setUp() throws Exception {
-        repoName = REPO_NAME + "-fork";
-        bbCredentials = bbJenkinsRule.getAdminToken();
+        String repoName = REPO_NAME + "-fork";
         BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG, repoName);
         repoSlug = repository.getSlug();
-        cloneUrl =
+        String cloneUrl =
                 repository.getCloneUrls().stream().filter(repo -> "http".equals(repo.getName())).findFirst().orElse(null).getHref();
-        gitCheckout();
+        gitHelper.initialize(temporaryFolder.newFolder("repositoryCheckout"), cloneUrl);
+        jenkinsProjectHandler = new JenkinsProjectHandler(bbJenkinsRule);
     }
 
     @After
-    public void teardown() throws Exception {
-        if (project != null) {
-            project.delete();
-        }
-        deleteRepository(PROJECT_KEY, repoName);
+    public void teardown() {
+        jenkinsProjectHandler.cleanup();
+        deleteRepository(PROJECT_KEY, repoSlug);
+        gitHelper.cleanup();
     }
 
     @Test
     public void testAgainstFreeStyle() throws Exception {
-        project = bbJenkinsRule.createFreeStyleProject();
-        project.setScm(createScmWithSpecs("*/master"));
-        project.save();
+        FreeStyleProject project =
+                jenkinsProjectHandler.createFreeStyleProject(repoSlug, MASTER_BRANCH_PATTERN);
 
-        String latestCommit = gitRepo.log().setMaxCount(1).call().iterator().next().getName();
         String url =
-                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, REPO_SLUG, latestCommit);
-        wireMockRule.stubFor(post(
+                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
+        bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
@@ -124,7 +91,6 @@ public class BuildStatusPosterIT {
 
     @Test
     public void testAgainstPipelineWithBBCheckOutInScript() throws Exception {
-        WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, "wf");
         String bbSnippet =
                 format("bbs_checkout branches: [[name: '*/master']], credentialsId: '%s', projectName: '%s', repositoryName: '%s', serverId: '%s'",
                         bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
@@ -137,31 +103,23 @@ public class BuildStatusPosterIT {
                         bbSnippet +
                         "   }" +
                         "}";
-        wfj.setDefinition(new CpsFlowDefinition(script, true));
+        WorkflowJob wfj = jenkinsProjectHandler.createPipelineJob("wfj", script);
 
-        String latestCommit = gitRepo.log().setMaxCount(1).call().iterator().next().getName();
         String url =
-                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, REPO_SLUG, latestCommit);
-        wireMockRule.stubFor(post(
+                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
+        bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
-        Future<WorkflowRun> startCondition = wfj.scheduleBuild2(0).getStartCondition();
-        WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
-
-        while (!workflowRun.equals(wfj.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for workflow run to finish");
-            Thread.sleep(200);
-        }
+        jenkinsProjectHandler.runPipelineJob(wfj);
 
         verify(postRequestedFor(urlPathMatching(url)));
     }
 
     @Test
-    public void testAgainstPiplelineWithBitbucketSCM() throws Exception {
-        WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, "wf");
-        BitbucketSCM scm = createScmWithSpecs("*/master");
-        wfj.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
+    public void testAgainstPipelineWithBitbucketSCM() throws Exception {
+        WorkflowJob wfj =
+                jenkinsProjectHandler.createPipelineJobWithBitbucketScm("wfj", repoSlug, MASTER_BRANCH_PATTERN);
 
         String latestCommit = checkInJenkinsFile(
                 "pipeline {\n" +
@@ -178,41 +136,20 @@ public class BuildStatusPosterIT {
 
         String url =
                 format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, repoSlug, latestCommit);
-        wireMockRule.stubFor(post(
+        bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
-        Future<WorkflowRun> startCondition = wfj.scheduleBuild2(0).getStartCondition();
-        WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
-
-        while (!workflowRun.equals(wfj.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for workflow run to finish");
-            Thread.sleep(300);
-        }
+        jenkinsProjectHandler.runPipelineJob(wfj);
 
         verify(postRequestedFor(urlPathMatching(url)));
     }
 
     @Test
-    @Ignore
     public void testAgainstMultibranchWithBBCheckout() throws Exception {
-        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
-        String id = UUID.randomUUID().toString();
-        String serverId = serverConf.getId();
+        WorkflowMultiBranchProject mbp = jenkinsProjectHandler.createMultibranchJob("mbp", PROJECT_KEY, repoSlug);
 
-        WorkflowMultiBranchProject mbp = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "wfmb");
-        SCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                        PROJECT_NAME, repoName, serverId, null);
-        BranchSource branchSource = new BranchSource(scmSource);
-
-        branchSource.setStrategy(new DefaultBranchPropertyStrategy(null));
-        mbp.setSourcesList(Collections.singletonList(branchSource));
-        Future queueFuture = mbp.scheduleBuild2(0).getFuture();
-        while (!queueFuture.isDone()) { //wait for the branch scanning to complete before proceeding
-            Thread.sleep(100);
-        }
+        jenkinsProjectHandler.performBranchScanning(mbp);
 
         String latestCommit = checkInJenkinsFile(
                 "pipeline {\n" +
@@ -229,54 +166,55 @@ public class BuildStatusPosterIT {
 
         String url =
                 format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)/([a-z0-9]*)", PROJECT_KEY, repoSlug, latestCommit);
-        wireMockRule.stubFor(post(
+        bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
-        queueFuture = mbp.scheduleBuild2(0).getFuture();
-        while (!queueFuture.isDone()) { //wait for the branch scanning to complete before proceeding
-            Thread.sleep(100);
-        }
-        PseudoRun<WorkflowJob> lastSuccessfulBuild = mbp.getLastSuccessfulBuild();
-
-        TimeUnit.HOURS.sleep(1);
-
-        while (lastSuccessfulBuild.equals(mbp.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for branch detection to run");
-            Thread.sleep(200);
-        }
-
-        WorkflowJob master = mbp.getItem("master");
-        Future<WorkflowRun> startCondition = master.scheduleBuild2(0).getStartCondition();
-        WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
-
-        while (!workflowRun.equals(master.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for workflow run to finish");
-            Thread.sleep(300);
-        }
+        jenkinsProjectHandler.performBranchScanning(mbp);
+        jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master");
 
         verify(postRequestedFor(urlPathMatching(url)));
     }
 
-    private String checkInJenkinsFile(String content) throws IOException, GitAPIException {
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(bbCredentials.getUsername(), bbCredentials.getPassword().getPlainText());
-        File checkoutDir = temporaryFolder.newFolder("repositoryCheckoutJenkinsFile");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(cloneUrl)
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
-        File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
-        FileUtils.writeStringToFile(jenkinsFile, content, UTF_8);
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
-        final RevCommit rev =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+    @Test
+    public void testCorrectGitCommitIdUsed() throws Exception {
+        String bbSnippet =
+                format("bbs_checkout branches: [[name: '*/master']], credentialsId: '%s', projectName: '%s', repositoryName: '%s', serverId: '%s'",
+                        bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
+                        PROJECT_KEY,
+                        repoSlug,
+                        bbJenkinsRule.getBitbucketServerConfiguration().getId());
+        String script = "node {\n" +
+                        "   \n" +
+                        "   stage('checkout') { \n" +
+                        bbSnippet +
+                        "   }" +
+                        "}";
+        WorkflowJob wfj = jenkinsProjectHandler.createPipelineJob("wj", script);
 
-        gitRepo.push().setCredentialsProvider(cr).call();
-        return rev.getName();
+        String url =
+                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
+        bitbucketProxyRule.getWireMock().stubFor(post(
+                urlPathMatching(url))
+                .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
+
+        jenkinsProjectHandler.runPipelineJob(wfj);
+
+        verify(postRequestedFor(urlPathMatching(url)));
+
+        String latestCommit = gitHelper.pushEmptyCommit("test message");
+        url =
+                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)", PROJECT_KEY, repoSlug, latestCommit);
+        bitbucketProxyRule.getWireMock().stubFor(post(
+                urlPathMatching(url))
+                .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
+        jenkinsProjectHandler.runPipelineJob(wfj);
+
+        verify(postRequestedFor(urlPathMatching(url)));
+    }
+
+    private String checkInJenkinsFile(String content) throws Exception {
+        return gitHelper.addFileToRepo("master", "Jenkinsfile", content);
     }
 
     private BitbucketSCM createScmWithSpecs(String... refs) {
@@ -284,18 +222,5 @@ public class BuildStatusPosterIT {
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
         return createScm(bbJenkinsRule, repoSlug, branchSpecs);
-    }
-
-    private void gitCheckout() throws IOException, GitAPIException {
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(bbCredentials.getUsername(), bbCredentials.getPassword().getPlainText());
-        File checkoutDir = temporaryFolder.newFolder("repositoryCheckout");
-        gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(cloneUrl)
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
     }
 }

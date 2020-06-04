@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.Action;
 
 import javax.annotation.CheckForNull;
@@ -10,17 +10,15 @@ public class BitbucketRevisionAction implements Action {
 
     public static final String REF_PREFIX = "refs/heads/";
 
-    private final BitbucketSCM bitbucketSCM;
+    private final BitbucketSCMRepository bitbucketSCMRepository;
     private final String branchName;
     private final String revisionSha1;
-    private final String serverId;
 
-    public BitbucketRevisionAction(BitbucketSCM bitbucketSCM, @Nullable String branchName, String revisionSha1,
-                                   String serverId) {
-        this.bitbucketSCM = bitbucketSCM;
+    public BitbucketRevisionAction(BitbucketSCMRepository bitbucketSCMRepository, @Nullable String branchName,
+                                   String revisionSha1) {
+        this.bitbucketSCMRepository = bitbucketSCMRepository;
         this.branchName = branchName;
         this.revisionSha1 = revisionSha1;
-        this.serverId = serverId;
     }
 
     @CheckForNull
@@ -35,8 +33,8 @@ public class BitbucketRevisionAction implements Action {
         return null;
     }
 
-    public BitbucketSCM getBitbucketSCM() {
-        return bitbucketSCM;
+    public BitbucketSCMRepository getBitbucketSCMRepo() {
+        return bitbucketSCMRepository;
     }
 
     @CheckForNull
@@ -51,10 +49,6 @@ public class BitbucketRevisionAction implements Action {
 
     public String getRevisionSha1() {
         return revisionSha1;
-    }
-
-    public String getServerId() {
-        return serverId;
     }
 
     @CheckForNull

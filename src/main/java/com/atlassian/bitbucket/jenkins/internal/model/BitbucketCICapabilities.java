@@ -12,7 +12,7 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCICapabilities {
 
-    private static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
+    public static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
 
     private final Set<String> ciCapabilities;
 

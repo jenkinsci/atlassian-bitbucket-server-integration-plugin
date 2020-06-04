@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -45,9 +46,10 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable BitbucketSCM bitbucketSCM, BitbucketCICapabilities ciCapabilities) {
-        if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCM != null) {
-            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCM.getProjectKey(), bitbucketSCM.getRepositorySlug(), revisionSha);
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable
+            BitbucketSCMRepository bitbucketSCMRepo, BitbucketCICapabilities ciCapabilities) {
+        if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCMRepo != null) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(), bitbucketSCMRepo.getRepositorySlug(), revisionSha);
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }

@@ -6,7 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import okhttp3.Request;
 import okio.Buffer;
@@ -46,7 +46,7 @@ public class BitbucketClientFactoryImplTest {
     @Mock
     private BitbucketCICapabilities ciCapabilities;
     @Mock
-    private BitbucketSCM bitbucketSCM;
+    private BitbucketSCMRepository bitbucketSCMRepo;
 
     @Before
     public void setup() {
@@ -95,8 +95,8 @@ public class BitbucketClientFactoryImplTest {
         when(provider.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
 
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
-        when(bitbucketSCM.getProjectKey()).thenReturn(projectKey);
-        when(bitbucketSCM.getRepositorySlug()).thenReturn(repoSlug);
+        when(bitbucketSCMRepo.getProjectKey()).thenReturn(projectKey);
+        when(bitbucketSCMRepo.getRepositorySlug()).thenReturn(repoSlug);
 
         BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
                 .setName("Local BBS Project")
@@ -109,7 +109,8 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
 
-        BitbucketBuildStatusClient client = anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCM, ciCapabilities, provider);
+        BitbucketBuildStatusClient client =
+                anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCMRepo, ciCapabilities, provider);
         client.post(buildStatus);
 
         Request clientRequest = mockExecutor.getRequest(url);
@@ -121,7 +122,8 @@ public class BitbucketClientFactoryImplTest {
     public void testGetMirroredRepositories() {
         mockExecutor.mapUrlToResult(
                 BITBUCKET_BASE_URL + "/rest/mirroring/1.0/repos/1/mirrors", readMirroredRepositoriesResponseFromFile());
-        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage = anonymousClientFactory.getMirroredRepositoriesClient(1).getMirroredRepositoryDescriptors();
+        BitbucketPage<BitbucketMirroredRepositoryDescriptor> repositoryPage =
+                anonymousClientFactory.getMirroredRepositoriesClient(1).getMirroredRepositoryDescriptors();
         assertEquals(2, repositoryPage.getSize());
         assertEquals(25, repositoryPage.getLimit());
         assertEquals(true, repositoryPage.isLastPage());
