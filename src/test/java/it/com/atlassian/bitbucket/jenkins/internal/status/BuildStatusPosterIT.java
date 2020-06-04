@@ -159,7 +159,7 @@ public class BuildStatusPosterIT {
                 "}");
 
         String url =
-                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)%2F([a-z0-9]*)", PROJECT_KEY, repoSlug, latestCommit);
+                format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)%%2F([a-z0-9]*)", PROJECT_KEY, repoSlug, latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
