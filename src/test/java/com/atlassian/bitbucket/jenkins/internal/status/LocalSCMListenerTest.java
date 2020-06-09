@@ -2,10 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import hudson.model.AbstractBuild;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import org.eclipse.jgit.lib.Config;
@@ -17,10 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner.Silent;
 
 import java.net.URISyntaxException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
@@ -37,6 +34,8 @@ public class LocalSCMListenerTest {
     private TaskListener taskListener;
     @Mock
     private BitbucketSCM bitbucketSCM;
+    @Mock
+    private BitbucketSCMRepository scmRepository;
     private LocalSCMListener listener;
     private Map<String, String> buildMap = new HashMap<>();
 
@@ -44,7 +43,6 @@ public class LocalSCMListenerTest {
     public void setup() throws URISyntaxException {
         buildMap.put(GitSCM.GIT_BRANCH, "master");
         buildMap.put(GitSCM.GIT_COMMIT, "c1");
-        listener = new LocalSCMListener(buildStatusPoster);
         when(bitbucketSCM.getGitSCM()).thenReturn(gitSCM);
         doAnswer(invocation -> {
             Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
@@ -52,7 +50,11 @@ public class LocalSCMListenerTest {
             return null;
         }).when(gitSCM).buildEnvironment(notNull(), anyMap());
         RemoteConfig rc = new RemoteConfig(new Config(), "origin");
-        when(gitSCM.getRepositories()).thenReturn(Collections.singletonList(rc));
+        when(gitSCM.getRepositories()).thenReturn(singletonList(rc));
+        when(scmRepository.getRepositorySlug()).thenReturn("repo1");
+        when(bitbucketSCM.getServerId()).thenReturn("ServerId");
+        when(bitbucketSCM.getBitbucketSCMRepository()).thenReturn(scmRepository);
+        listener = new LocalSCMListener(buildStatusPoster);
     }
 
     @Test
@@ -70,10 +72,6 @@ public class LocalSCMListenerTest {
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);
 
-        BitbucketSCMRepository scmRepository = mock(BitbucketSCMRepository.class);
-        when(bitbucketSCM.getServerId()).thenReturn("ServerId");
-        when(bitbucketSCM.getBitbucketSCMRepository()).thenReturn(scmRepository);
-
         listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).postBuildStatus(
@@ -81,5 +79,40 @@ public class LocalSCMListenerTest {
                         revision -> revision.getBitbucketSCMRepo().equals(scmRepository)),
                 argThat(r -> r.equals(build)),
                 argThat(tl -> tl.equals(taskListener)));
+    }
+
+    @Test
+    public void buildStatusForPipelineWithJenkinsFileFromBitbucketSCM() throws Exception {
+        listener = new TestLocalSCMListener(true, buildStatusPoster);
+
+        //Can't mock WorkFlow classes so using Project instead.
+        Project job = mock(Project.class);
+        Run run = mock(Run.class);
+        when(run.getParent()).thenReturn(job);
+        when(job.getSCMs()).thenReturn(singletonList(bitbucketSCM));
+        when(gitSCM.getKey()).thenReturn("repo-key");
+
+        listener.onCheckout(run, gitSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster).postBuildStatus(
+                argThat(
+                        revision -> revision.getBitbucketSCMRepo().equals(scmRepository)),
+                argThat(r -> r.equals(run)),
+                argThat(tl -> tl.equals(taskListener)));
+    }
+
+    private static class TestLocalSCMListener extends LocalSCMListener {
+
+        private final boolean isWorkflowRun;
+
+        private TestLocalSCMListener(boolean isWorkflowRun, BuildStatusPoster buildStatusPoster) {
+            super(buildStatusPoster);
+            this.isWorkflowRun = isWorkflowRun;
+        }
+
+        @Override
+        boolean isWorkflowRun(Run<?, ?> build) {
+            return isWorkflowRun;
+        }
     }
 }

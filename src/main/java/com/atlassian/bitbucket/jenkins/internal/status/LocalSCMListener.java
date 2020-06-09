@@ -1,6 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRefNameExtractorFactory;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.ItemGroup;
@@ -42,13 +45,13 @@ public class LocalSCMListener extends SCMListener {
             return;
         }
 
-        if (build instanceof WorkflowRun) {
-            //case 1 - bb_checkout step in the script (pipeline or groovy)
-            if (scm instanceof BitbucketSCM) {
-                handleBitbucketSCMCheckout(build, scm, listener);
-                return;
-            }
+        //case 1 - bb_checkout step in the script (pipeline or groovy)
+        if (scm instanceof BitbucketSCM) {
+            handleBitbucketSCMCheckout(build, scm, listener);
+            return;
+        }
 
+        if (isWorkflowRun(build)) {
             //case 2 - Script does not have explicit checkout statement. Proceed to inspect SCM on item
             Job<?, ?> job = build.getParent();
             ItemGroup parent = job.getParent();
@@ -80,9 +83,11 @@ public class LocalSCMListener extends SCMListener {
                             .ifPresent(bScm -> handleCheckout(bScm, gitScm, build, listener));
                 }
             }
-        } else { // A simple case of Freestyle job
-            handleBitbucketSCMCheckout(build, scm, listener);
         }
+    }
+
+    boolean isWorkflowRun(Run<?, ?> build) {
+        return build instanceof WorkflowRun;
     }
 
     /**
@@ -117,9 +122,8 @@ public class LocalSCMListener extends SCMListener {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
-        String repositoryName = (underlyingScm.getRepositories().stream().findFirst()
-                .orElseThrow(() -> new BitbucketSCMException("No repository found in the GitSCM")))
-                .getName();
+        String repoSlug = bitbucketSCMRepository.getRepositorySlug();
+        String repositoryName = repoSlug != null ? repoSlug : bitbucketSCMRepository.getRepositoryName();
         String branch = env.get(GitSCM.GIT_BRANCH);
         BitbucketRefNameExtractorFactory refNameExtractorFactory = new BitbucketRefNameExtractorFactory();
         String branchName = branch != null ?

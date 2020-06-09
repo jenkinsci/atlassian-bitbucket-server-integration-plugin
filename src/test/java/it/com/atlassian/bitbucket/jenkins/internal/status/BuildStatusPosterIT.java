@@ -26,12 +26,9 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static java.lang.String.format;
 
 /**
- * Following test does not start Bitbucket server. Instead, it tries to mock build status API.
- * The primary reason is to aid parallel development in BBS and Jenkins Plugin and no released
- * version of BBS available to test against. We could release against SNAPSHOT release as well
- * but we also have long running feature branch.
- *
- * The secondary reason is, starting only Jenkins is quick and we can cover more cases.
+ * Following tests uses real Bitbucket server and Jenkins for integration testing however the build status is posted against
+ * a stub. One of the primary reason is parallel development. Since we can only start *released* bitbucket server, we would
+ * like to proceed with end to end testing. The secondary benefit is that we have more control over assertions.
  */
 public class BuildStatusPosterIT {
 
