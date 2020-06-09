@@ -122,8 +122,7 @@ public class LocalSCMListener extends SCMListener {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
-        String repoSlug = bitbucketSCMRepository.getRepositorySlug();
-        String repositoryName = repoSlug != null ? repoSlug : bitbucketSCMRepository.getRepositoryName();
+        String repositoryName = bitbucketSCMRepository.getRepositorySlug();
         String branch = env.get(GitSCM.GIT_BRANCH);
         BitbucketRefNameExtractorFactory refNameExtractorFactory = new BitbucketRefNameExtractorFactory();
         String branchName = branch != null ?
