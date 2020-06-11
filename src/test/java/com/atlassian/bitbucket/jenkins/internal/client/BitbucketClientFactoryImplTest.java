@@ -5,10 +5,13 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceIdentityProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import okhttp3.Request;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +31,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -87,6 +92,11 @@ public class BitbucketClientFactoryImplTest {
         String repoSlug = "myRepo";
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
 
+        InstanceIdentity identity = mock(InstanceIdentity.class);
+        InstanceIdentityProvider provider = mock(InstanceIdentityProvider.class);
+        when(identity.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
+        when(provider.getInstanceIdentity()).thenReturn(identity);
+
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
         when(bitbucketSCM.getProjectKey()).thenReturn(projectKey);
         when(bitbucketSCM.getRepositorySlug()).thenReturn(repoSlug);
@@ -102,7 +112,7 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
 
-        BitbucketBuildStatusClient client = anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCM, ciCapabilities);
+        BitbucketBuildStatusClient client = anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCM, ciCapabilities, provider);
         client.post(buildStatus);
 
         Request clientRequest = mockExecutor.getRequest(url);
