@@ -59,7 +59,7 @@ public class BuildStatusPoster {
                 BitbucketClientFactory bbsClient = bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
                 BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
                 BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run, ciCapabilities);
-                listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
+                listener.getLogger().println(String.format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName()));
 
                 bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), getBitbucketSCM(run).orElse(null), ciCapabilities)
                         .post(buildStatus);

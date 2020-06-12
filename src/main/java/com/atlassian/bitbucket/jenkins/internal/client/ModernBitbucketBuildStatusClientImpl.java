@@ -23,7 +23,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
 
     @Override
     public void post(BitbucketBuildStatus buildStatus) {
-        //projects/PROJECT_1/repos/rep_1/commits/abc1234avcacac/builds/buildkey
         HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                 .addPathSegment("rest")
                 .addPathSegment("api")
@@ -35,7 +34,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
                 .addPathSegment("commits")
                 .addPathSegment(revisionSha)
                 .addPathSegment("builds")
-                .addPathSegment(buildStatus.getKey())
                 .build();
         bitbucketRequestExecutor.makePostRequest(url, buildStatus);
     }

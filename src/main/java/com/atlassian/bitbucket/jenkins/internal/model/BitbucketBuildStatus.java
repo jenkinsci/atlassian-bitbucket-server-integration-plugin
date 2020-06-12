@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BitbucketBuildStatus {
 
+    private final String buildId;
     private final String description;
     private final Long duration;
     private final String key;
@@ -27,7 +28,8 @@ public class BitbucketBuildStatus {
     private final String url;
 
     @JsonCreator
-    public BitbucketBuildStatus(@JsonProperty("description") String description,
+    public BitbucketBuildStatus(@JsonProperty("buildId") String buildId,
+                                @JsonProperty("description") String description,
                                 @JsonProperty("duration") Long duration,
                                 @JsonProperty("key") String key,
                                 @JsonProperty("name") String name,
@@ -40,6 +42,7 @@ public class BitbucketBuildStatus {
         requireNonNull(key, "key");
         requireNonNull(state, "state");
         requireNonNull(url, "url");
+        this.buildId = buildId;
         this.description = description;
         this.duration = duration;
         this.key = key;
@@ -50,6 +53,11 @@ public class BitbucketBuildStatus {
         this.state = state;
         this.testResults = testResults;
         this.url = url;
+    }
+
+    @JsonProperty(value = "buildId")
+    public String getBuildId() {
+        return buildId;
     }
 
     @JsonProperty(value = "description")
@@ -109,6 +117,7 @@ public class BitbucketBuildStatus {
 
     public static class Builder {
 
+        private String buildId;
         private String description;
         private Long duration;
         private String key;
@@ -127,7 +136,12 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(description, duration, key, name, ref, resultKey, serverIdentifier, state, testResults, url);
+            return new BitbucketBuildStatus(buildId, description, duration, key, name, ref, resultKey, serverIdentifier, state, testResults, url);
+        }
+
+        public Builder setBuildID(String buildId) {
+            this.buildId = buildId;
+            return this;
         }
 
         public Builder setDescription(String description) {

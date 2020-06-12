@@ -96,8 +96,8 @@ public class BitbucketClientFactoryImplTest {
                 .setDescription("#15 in progress")
                 .build();
 
-        String url = String.format("%s/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/%s", BITBUCKET_BASE_URL,
-                projectKey, repoSlug, REVISION, "15");
+        String url = String.format("%s/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds", BITBUCKET_BASE_URL,
+                projectKey, repoSlug, REVISION);
         String requestString = readFileToString("/build-status-request.json");
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
