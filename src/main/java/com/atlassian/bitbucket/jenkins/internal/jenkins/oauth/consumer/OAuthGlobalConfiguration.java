@@ -59,6 +59,16 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
         return new OAuthConsumerUpdateAction(key, consumerStore, serviceProviderTokenStore);
     }
 
+    /**
+     * Creates an info action with the existing consumer matching a given key, that displays help on how to set up an applink
+     *
+     * @param key the key of the existing consumer
+     * @return an update action for an existing consumer
+     */
+    public OAuthConsumerApplinkInfoAction getApplinkInfo(String key) {
+        return new OAuthConsumerApplinkInfoAction(key, consumerStore);
+    }
+
     public Action getTokens() {
         return tokenConfiguration;
     }
