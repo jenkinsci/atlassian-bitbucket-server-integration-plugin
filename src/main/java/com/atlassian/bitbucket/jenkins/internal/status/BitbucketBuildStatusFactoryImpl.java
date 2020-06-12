@@ -59,6 +59,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
 
         if (isRich) {
+            bbs.setBuildId(key);
             bbs.setServerIdentifier(jenkinsProvider.get().getRootUrl()).setTestResults(getTestResults(build));
             BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
             if (revisionAction != null) {
