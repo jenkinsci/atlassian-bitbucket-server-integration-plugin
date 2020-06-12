@@ -54,6 +54,7 @@ public class BitbucketSCM extends SCM {
     private GitSCM gitSCM;
     // avoid a difficult upgrade task.
     private final List<BranchSpec> branches;
+    private final List<GitSCMExtension> extensions;
     private final String gitTool;
     private final String id;
     // this is to enable us to support future multiple repositories
@@ -141,7 +142,7 @@ public class BitbucketSCM extends SCM {
      * @param oldScm old scm to copy values from
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
-        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), emptyList(),
+        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), oldScm.getExtensions(),
                 oldScm.getGitTool(), oldScm.getProjectName(), oldScm.getRepositoryName(), oldScm.getServerId(),
                 oldScm.getMirrorName());
     }
@@ -155,11 +156,15 @@ public class BitbucketSCM extends SCM {
             String repositoryName) {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = new ArrayList<>();
+        this.extensions = new ArrayList<>();
         this.gitTool = gitTool;
         repositories = new ArrayList<>(1);
 
         if (branches != null) {
             this.branches.addAll(branches);
+        }
+        if (extensions != null) {
+            this.extensions.addAll(extensions);
         }
     }
 
@@ -235,6 +240,10 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getCredentialsId();
     }
 
+    public List<GitSCMExtension> getExtensions() {
+        return gitSCM.getExtensions();
+    }
+
     public String getId() {
         return id;
     }
@@ -303,7 +312,7 @@ public class BitbucketSCM extends SCM {
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
         gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
-                gitTool, emptyList());
+                gitTool, extensions);
     }
 
     private void setEmptyRepsitory(@CheckForNull String credentialsId,
