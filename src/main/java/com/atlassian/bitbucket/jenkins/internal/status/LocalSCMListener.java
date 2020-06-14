@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRefNameExtractorFac
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.ItemGroup;
@@ -14,6 +15,7 @@ import hudson.model.listeners.SCMListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
+import jenkins.branch.BranchSource;
 import jenkins.branch.MultiBranchProject;
 import jenkins.triggers.SCMTriggerItem;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -23,6 +25,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Extension
 public class LocalSCMListener extends SCMListener {
@@ -47,38 +50,41 @@ public class LocalSCMListener extends SCMListener {
 
         //case 1 - bb_checkout step in the script (pipeline or groovy)
         if (scm instanceof BitbucketSCM) {
-            handleBitbucketSCMCheckout(build, scm, listener);
+            handleBitbucketSCMCheckout(build, (BitbucketSCM) scm, listener);
             return;
         }
 
         if (isWorkflowRun(build)) {
-            //case 2 - Script does not have explicit checkout statement. Proceed to inspect SCM on item
+            // Case 2 - Script does not have explicit checkout statement. Proceed to inspect SCM on item
             Job<?, ?> job = build.getParent();
-            ItemGroup parent = job.getParent();
-            //Case 2.1 - Multi branch workflow job
-            if (parent != null && parent instanceof MultiBranchProject) {
+            GitSCM gitScm = (GitSCM) scm;
+            ItemGroup<?> parent = getJobParent(job);
+            if (parent instanceof MultiBranchProject) { // Case 2.1 - Multi branch workflow job
                 MultiBranchProject<?, ?> multiBranchProject = (MultiBranchProject<?, ?>) parent;
-                GitSCM gitScm = (GitSCM) scm;
                 multiBranchProject
                         .getSources()
                         .stream()
-                        .map(branchSource -> branchSource.getSource())
-                        .filter(s -> s instanceof BitbucketSCMSource)
+                        .map(BranchSource::getSource)
+                        .filter(BitbucketSCMSource.class::isInstance)
                         .map(BitbucketSCMSource.class::cast)
                         .filter(bbsSource ->
                                 filterSource(gitScm, bbsSource))
                         .findFirst()
-                        .ifPresent(s -> handleCheckout(s.getBitbucketSCMRepository(), gitScm, build, listener));
+                        .ifPresent(scmSource ->
+                                handleCheckout(scmSource.getBitbucketSCMRepository(), gitScm, build, listener));
             } else { // Case 2.2 - Part of pipeline run
-                //Handle only SCM jobs.
-                GitSCM gitScm = (GitSCM) scm;
+                // Handle only SCM jobs.
                 if (job instanceof SCMTriggerItem) {
                     SCMTriggerItem scmItem = (SCMTriggerItem) job;
                     scmItem.getSCMs()
                             .stream()
-                            .filter(s -> s instanceof BitbucketSCM)
-                            .map(s -> (BitbucketSCM) s)
-                            .filter(bScm -> bScm.getGitSCM().getKey().equals(scm.getKey()))
+                            .filter(BitbucketSCM.class::isInstance)
+                            .map(BitbucketSCM.class::cast)
+                            .filter(bScm -> {
+                                GitSCM bGitScm = bScm.getGitSCM();
+                                return bGitScm != null &&
+                                       Objects.equals(bGitScm.getKey(), scm.getKey());
+                            })
                             .findFirst()
                             .ifPresent(bScm -> handleCheckout(bScm, gitScm, build, listener));
                 }
@@ -86,6 +92,12 @@ public class LocalSCMListener extends SCMListener {
         }
     }
 
+    @VisibleForTesting
+    ItemGroup<?> getJobParent(Job<?, ?> job) {
+        return job.getParent();
+    }
+
+    @VisibleForTesting
     boolean isWorkflowRun(Run<?, ?> build) {
         return build instanceof WorkflowRun;
     }
@@ -94,16 +106,19 @@ public class LocalSCMListener extends SCMListener {
      * The assumption is the remote URL specified in GitSCM should be same as remote URL specified in
      * Bitbucket Source.
      */
-    private boolean filterSource(GitSCM gitScm, BitbucketSCMSource bbsSource) {
-        return gitScm.getUserRemoteConfigs().stream().anyMatch(userRemoteConfig -> userRemoteConfig.getUrl().equals(bbsSource.getRemote()));
+    @VisibleForTesting
+    boolean filterSource(GitSCM gitScm, BitbucketSCMSource bbsSource) {
+        return gitScm.getUserRemoteConfigs()
+                .stream()
+                .anyMatch(userRemoteConfig ->
+                        Objects.equals(userRemoteConfig.getUrl(), bbsSource.getRemote()));
     }
 
-    private void handleBitbucketSCMCheckout(Run<?, ?> build, SCM scm, TaskListener listener) {
-        BitbucketSCM bitbucketSCM = scm instanceof BitbucketSCM ? (BitbucketSCM) scm : null;
-        if (bitbucketSCM != null && bitbucketSCM.getServerId() != null) {
-            GitSCM gitSCM = ((BitbucketSCM) scm).getGitSCM();
+    private void handleBitbucketSCMCheckout(Run<?, ?> build, BitbucketSCM scm, TaskListener listener) {
+        if (scm.getServerId() != null) {
+            GitSCM gitSCM = scm.getGitSCM();
             if (gitSCM != null) {
-                handleCheckout(bitbucketSCM, gitSCM, build, listener);
+                handleCheckout(scm, gitSCM, build, listener);
             }
         }
     }

@@ -19,6 +19,7 @@ import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
@@ -50,7 +51,8 @@ public class JenkinsProjectHandler {
         return wfj;
     }
 
-    public WorkflowJob createPipelineJobWithBitbucketScm(String name, String repoSlug, String branchPattern) throws Exception {
+    public WorkflowJob createPipelineJobWithBitbucketScm(String name, String repoSlug,
+                                                         String branchPattern) throws Exception {
         WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, "wf");
         BitbucketSCM scm = createScmWithSpecs(repoSlug, branchPattern);
         wfj.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
@@ -90,6 +92,12 @@ public class JenkinsProjectHandler {
     }
 
     public void runWorkflowJobForBranch(WorkflowMultiBranchProject mbp, String branch) throws Exception {
+        runWorkflowJobForBranch(mbp, branch, build -> {
+        });
+    }
+
+    public void runWorkflowJobForBranch(WorkflowMultiBranchProject mbp, String branch,
+                                        Consumer<WorkflowRun> onBuildCompletion) throws Exception {
         WorkflowJob master = mbp.getItem("master");
         Future<WorkflowRun> startCondition = master.scheduleBuild2(0).getStartCondition();
         WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
@@ -98,9 +106,16 @@ public class JenkinsProjectHandler {
             System.out.println("Waiting for workflow run to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
+
+        onBuildCompletion.accept(workflowRun);
     }
 
     public void runPipelineJob(WorkflowJob workflowJob) throws Exception {
+        runPipelineJob(workflowJob, build -> {
+        });
+    }
+
+    public void runPipelineJob(WorkflowJob workflowJob, Consumer<WorkflowRun> onBuildCompletion) throws Exception {
         Future<WorkflowRun> startCondition = workflowJob.scheduleBuild2(0).getStartCondition();
         WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
 
@@ -108,6 +123,8 @@ public class JenkinsProjectHandler {
             System.out.println("Waiting for workflow run to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
+
+        onBuildCompletion.accept(workflowRun);
     }
 
     public void cleanup() {
