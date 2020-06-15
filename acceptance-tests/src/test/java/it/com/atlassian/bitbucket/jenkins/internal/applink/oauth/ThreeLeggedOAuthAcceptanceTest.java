@@ -1,23 +1,19 @@
 package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth;
 
 import com.github.scribejava.core.model.*;
+import com.google.common.collect.ImmutableMap;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsApplinksClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsOAuthClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.AuthorizeTokenPage;
-import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage;
+import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.jenkinsci.test.acceptance.controller.JenkinsController;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
-import org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow;
-import org.jenkinsci.test.acceptance.plugins.matrix_auth.ProjectBasedMatrixAuthorizationStrategy;
-import org.jenkinsci.test.acceptance.plugins.matrix_auth.ProjectMatrixProperty;
-import org.jenkinsci.test.acceptance.po.FreeStyleJob;
-import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
-import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
+import org.jenkinsci.test.acceptance.po.Job;
 import org.jenkinsci.test.acceptance.po.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,8 +23,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 
-import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage.isSuccessfulLogin;
-import static org.apache.commons.lang3.RandomStringUtils.randomNumeric;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
@@ -42,53 +36,37 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
     @Inject
     private JenkinsController controller;
 
+    @Inject
+    private ProjectBasedMatrixSecurityHelper security;
+
     private JenkinsOAuthClient oAuthClient;
 
-    private FreeStyleJob job;
+    private Job job;
 
-    private User admin;
     private User user1;
     private User user2;
 
     @Before
-    public void setup() throws Exception {
+    public void setUp() throws Exception {
         JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
         oAuthClient = new JenkinsOAuthClient(getBaseUrl(), oAuthConsumer.getKey(), oAuthConsumer.getSecret());
 
-        // Enable security
-        GlobalSecurityConfig securityConfig = new GlobalSecurityConfig(jenkins);
-        securityConfig.configure();
-        JenkinsDatabaseSecurityRealm realm = securityConfig.useRealm(JenkinsDatabaseSecurityRealm.class);
-        realm.allowUsersToSignUp(true);
-        securityConfig.save();
+        user1 = security.newUser();
+        user2 = security.newUser();
 
-        user1 = realm.signup("stash-user" + randomNumeric(8));
-        user2 = realm.signup("stash-user" + randomNumeric(8));
-        admin = realm.signup("admin-user" + randomNumeric(8));
-
-        securityConfig.configure();
-        ProjectBasedMatrixAuthorizationStrategy matrixAuthzConfig =
-                securityConfig.useAuthorizationStrategy(ProjectBasedMatrixAuthorizationStrategy.class);
-        MatrixRow adminMatrixRow = matrixAuthzConfig.addUser(admin.fullName());
-        adminMatrixRow.admin();
-        MatrixRow user1MatrixRow = matrixAuthzConfig.addUser(user1.fullName());
-        user1MatrixRow.on(OVERALL_READ);
-        MatrixRow user2MatrixRow = matrixAuthzConfig.addUser(user2.fullName());
-        user2MatrixRow.on(OVERALL_READ);
-        securityConfig.save();
+        security.addGlobalPermissions(ImmutableMap.of(
+                user1, perms -> perms.on(OVERALL_READ),
+                user2, perms -> perms.on(OVERALL_READ)
+        ));
 
         job = jenkins.jobs.create();
         job.save();
 
-        job.configure();
-        ProjectMatrixProperty pmp = new ProjectMatrixProperty(job);
-        pmp.enable.check();
-        MatrixRow user1JobMatrixRow = pmp.addUser(user1.fullName());
-        user1JobMatrixRow.on(ITEM_READ);
-        MatrixRow user2JobMatrixRow = pmp.addUser(user2.fullName());
-        user2JobMatrixRow.on(ITEM_BUILD, ITEM_READ);
-        job.save();
+        security.addProjectPermissions(job, ImmutableMap.of(
+                user1, perms -> perms.on(ITEM_READ),
+                user2, perms -> perms.on(ITEM_BUILD, ITEM_READ)
+        ));
 
         jenkins.logout();
     }
@@ -110,7 +88,7 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
     }
 
     private OAuth1AccessToken getAccessToken(User user) {
-        login(user);
+        security.login(user);
 
         OAuth1RequestToken requestToken = oAuthClient.getRequestToken();
         assertNotNull(requestToken);
@@ -131,10 +109,6 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
         assertNotNull(accessToken);
         assertThat(accessToken.getToken(), not(isEmptyOrNullString()));
         return accessToken;
-    }
-
-    private void login(User user) {
-        assertThat(new LoginPage(jenkins).load().login(user), isSuccessfulLogin());
     }
 
     private String getBaseUrl() {

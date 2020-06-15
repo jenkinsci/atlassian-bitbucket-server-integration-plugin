@@ -234,8 +234,8 @@ public class PersistentServiceProviderConsumerStoreTest {
 
         private Matcher<String> key;
         private Matcher<String> name;
-        private Matcher<String> desc;
-        private Matcher<URI> callback;
+        private Matcher<Optional<String>> desc;
+        private Matcher<Optional<URI>> callback;
         private Matcher<Optional<String>> secret;
         private Matcher<SignatureMethod> signatureMethod;
         private Matcher<Optional<PublicKey>> publicKey;

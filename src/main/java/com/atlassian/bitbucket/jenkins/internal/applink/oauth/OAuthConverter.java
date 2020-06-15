@@ -7,6 +7,7 @@ import net.oauth.OAuthAccessor;
 import net.oauth.OAuthConsumer;
 import net.oauth.signature.RSA_SHA1;
 
+import java.net.URI;
 import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
@@ -40,7 +41,7 @@ public class OAuthConverter {
      * @return the OAuthConsumer
      */
     public static OAuthConsumer toOAuthConsumer(Consumer consumer) {
-        String callback = consumer.getCallback() != null ? consumer.getCallback().toString() : null;
+        String callback = consumer.getCallback().map(URI::toString).orElse(null);
         OAuthConsumer oauthConsumer = new OAuthConsumer(callback,
                 consumer.getKey(),
                 consumer.getConsumerSecret().orElse(null),
