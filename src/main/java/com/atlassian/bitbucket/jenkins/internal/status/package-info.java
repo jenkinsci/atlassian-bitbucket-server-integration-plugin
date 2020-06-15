@@ -9,7 +9,7 @@
  *       <li>Multi branch pipeline job</ol>
  *  </ol>
  *
- *  <p>Pipeline and multibranch pipeline can have build steps mentioned in
+ *  <p>Pipeline and multibranch pipeline can have build steps mentioned in:
  *  <ol>
  *  <li> Inline groovy script
  *  <li> Fetched from Git repository (Jenkinsfile). This can be specified as either through Bitbucket SCM or through Git SCM.
@@ -26,7 +26,7 @@
  *
  * <p>We assume that for a build status to be posted, there needs to be some association with {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM}
  * or {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource}
- * This can be done in following ways. We will send the build status in all of these cases.
+ * This can be done in following ways. We will send the build status in all of these cases:
  * <ol>
  *     <li> Freestyle job has Bitbucket SCM. For simply GitSCM, we will not post any build status since we don't have credentials and server id.
  *     <li> Pipeline job has Bitbucket SCM to fetch jenkins file.
@@ -42,7 +42,7 @@
  *     <li> Workflow job has an option of lightweight checkout. This is to fetch Jenkinsfile. This is not a representation of build being run.</li>
  * </ol>
  *
- * Overall workflow of sending build status is as follows,
+ * Overall workflow of sending build status is as follows:
  * <ol>
  *     <li>We add SCM Listener {@link com.atlassian.bitbucket.jenkins.internal.status.LocalSCMListener} which listens for checkouts</li>
  *     <li>On a checkout completion, we check association with {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM} or {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource}</li>

@@ -46,11 +46,12 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     }
 
     @Override
-    // TODO: could bitbucketSCMRepo be null?
-    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable
-            BitbucketSCMRepository bitbucketSCMRepo, BitbucketCICapabilities ciCapabilities) {
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
+                                                           @Nullable BitbucketSCMRepository bitbucketSCMRepo,
+                                                           BitbucketCICapabilities ciCapabilities) {
         if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCMRepo != null) {
-            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(), bitbucketSCMRepo.getRepositorySlug(), revisionSha);
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
+                    bitbucketSCMRepo.getRepositorySlug(), revisionSha);
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }

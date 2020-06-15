@@ -198,9 +198,9 @@ public class BitbucketSCMSource extends SCMSource {
     private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
         repository = bitbucketSCMRepository;
         UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
-        gitSCMSource =
-                new CustomGitSCMSource(remoteConfig.getUrl());
+                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null,
+                        bitbucketSCMRepository.getCredentialsId());
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl());
         gitSCMSource.setTraits(traits);
         gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
     }
@@ -423,10 +423,10 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     /**
-     * This class exists to work around the following issues
-     * We do not want to re-implement the retrieve found in the GitSCMSource, however it is protected so we can't
-     * access it from our class. This class inherits from the GitSCMSource and thus can access it and expose a method
-     * wrapper.
+     * This class exists to work around the following issue: we do not want to re-implement the retrieve found in the
+     * {@link GitSCMSource}, however it is protected so we can't access it from our class.
+     * <p>
+     * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
      */
     private static class CustomGitSCMSource extends GitSCMSource {
 

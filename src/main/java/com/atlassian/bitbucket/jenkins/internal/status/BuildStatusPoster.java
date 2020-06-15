@@ -63,11 +63,11 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     public void postBuildStatus(BitbucketRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
         Optional<BitbucketServerConfiguration> serverOptional =
                 pluginConfiguration.getServerById(revisionAction.getBitbucketSCMRepo().getServerId());
-        if (!serverOptional.isPresent()) {
+        if (serverOptional.isPresent()) {
+            postBuildStatus(serverOptional.get(), revisionAction, run, listener);
+        } else {
             listener.error(NO_SERVER_MSG);
-            return;
         }
-        postBuildStatus(serverOptional.get(), revisionAction, run, listener);
     }
 
     private void postBuildStatus(BitbucketServerConfiguration server, BitbucketRevisionAction revisionAction,
@@ -104,4 +104,3 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
     }
 }
-
