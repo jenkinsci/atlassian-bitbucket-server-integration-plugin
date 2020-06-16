@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runners.model.Statement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +17,8 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.BI
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.marshall;
 
 public class BitbucketProxyRule {
+
+    public static final String BITBUCKET_BASE_URL_SYSTEM_PROPERTY = "bitbucket.baseurl";
 
     private final BitbucketJenkinsRule bitbucketJenkinsRule;
     private final WireMockRule wireMockRule =
@@ -31,8 +34,17 @@ public class BitbucketProxyRule {
                     wireMockRule.start();
                     wireMockRule.stubFor(any(anyUrl()).willReturn(aResponse().proxiedFrom(BITBUCKET_BASE_URL)));
                     fixCapabilities();
-                    System.setProperty("bitbucket.baseurl", wireMockRule.baseUrl());
-                    return statement;
+                    System.setProperty(BITBUCKET_BASE_URL_SYSTEM_PROPERTY, wireMockRule.baseUrl());
+                    return new Statement() {
+                        @Override
+                        public void evaluate() throws Throwable {
+                            try {
+                                statement.evaluate();
+                            } finally {
+                                System.setProperty(BITBUCKET_BASE_URL_SYSTEM_PROPERTY, BITBUCKET_BASE_URL);
+                            }
+                        }
+                    };
                 })
                 .around(wireMockRule);
     }
