@@ -62,7 +62,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
     @Test
     public void testPost() {
-        BitbucketBuildStatus buildStatus = createTestBuildStatus("ref/testref");
+        BitbucketBuildStatus buildStatus = createTestBuildStatus("refs/testref");
         client.post(buildStatus);
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
 
@@ -87,7 +87,6 @@ public class ModernBitbucketBuildStatusClientImplTest {
                 .setDescription("Test description")
                 .setTestResults(new TestResults(42, 21, 12))
                 .setName("Test-Name")
-                .setResultKey("Result-Key")
                 .setDuration(21L)
                 .setRef(StringUtils.stripToNull(ref))
                 .build();

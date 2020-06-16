@@ -20,9 +20,8 @@ public class BitbucketBuildStatus {
     private final Long duration;
     private final String key;
     private final String name;
+    private final String parent;
     private final String ref;
-    private final String resultKey;
-    private final String serverIdentifier;
     private final BuildState state;
     private final TestResults testResults;
     private final String url;
@@ -33,9 +32,8 @@ public class BitbucketBuildStatus {
                                 @JsonProperty("duration") Long duration,
                                 @JsonProperty("key") String key,
                                 @JsonProperty("name") String name,
+                                @JsonProperty("parent") String parent,
                                 @JsonProperty("ref") String ref,
-                                @JsonProperty("resultKey") String resultKey,
-                                @JsonProperty("serverIdentifier") String serverIdentifier,
                                 @JsonProperty("state") BuildState state,
                                 @JsonProperty("testResults") TestResults testResults,
                                 @JsonProperty("url") String url) {
@@ -47,9 +45,8 @@ public class BitbucketBuildStatus {
         this.duration = duration;
         this.key = key;
         this.name = name;
+        this.parent = parent;
         this.ref = ref;
-        this.resultKey = resultKey;
-        this.serverIdentifier = serverIdentifier;
         this.state = state;
         this.testResults = testResults;
         this.url = url;
@@ -81,22 +78,16 @@ public class BitbucketBuildStatus {
         return name;
     }
 
+    @JsonProperty(value = "parent")
+    @Nullable
+    public String getParent() {
+        return parent;
+    }
+
     @JsonProperty(value = "ref")
     @Nullable
     public String getRef() {
         return ref;
-    }
-
-    @JsonProperty(value = "resultKey")
-    @Nullable
-    public String getResultKey() {
-        return resultKey;
-    }
-
-    @JsonProperty(value = "serverIdentifier")
-    @Nullable
-    public String getServerIdentifier() {
-        return serverIdentifier;
     }
 
     @JsonProperty(value = "state")
@@ -122,9 +113,8 @@ public class BitbucketBuildStatus {
         private Long duration;
         private String key;
         private String name;
+        private String parent;
         private String ref;
-        private String resultKey;
-        private String serverIdentifier;
         private BuildState state;
         private TestResults testResults;
         private String url;
@@ -136,7 +126,7 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(buildId, description, duration, key, name, ref, resultKey, serverIdentifier, state, testResults, url);
+            return new BitbucketBuildStatus(buildId, description, duration, key, name, parent, ref, state, testResults, url);
         }
 
         public Builder setBuildId(String buildId) {
@@ -159,6 +149,11 @@ public class BitbucketBuildStatus {
             return this;
         }
 
+        public Builder setParent(String parent) {
+            this.parent = parent;
+            return this;
+        }
+
         public Builder setRef(@Nullable String ref) {
             if (ref != null && !ref.startsWith("refs/")) {
                 Logger.getLogger(BitbucketBuildStatus.class.getName()).warning(
@@ -166,16 +161,6 @@ public class BitbucketBuildStatus {
                 return this;
             }
             this.ref = ref;
-            return this;
-        }
-
-        public Builder setResultKey(String resultKey) {
-            this.resultKey = resultKey;
-            return this;
-        }
-
-        public Builder setServerIdentifier(@Nullable String serverIdentifier) {
-            this.serverIdentifier = serverIdentifier;
             return this;
         }
 

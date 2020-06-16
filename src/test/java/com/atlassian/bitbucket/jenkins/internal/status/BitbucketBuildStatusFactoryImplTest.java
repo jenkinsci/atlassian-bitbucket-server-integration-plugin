@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import hudson.model.AbstractBuild;
 import hudson.model.Project;
 import hudson.model.Result;
@@ -28,8 +27,6 @@ public class BitbucketBuildStatusFactoryImplTest {
     private static final String PROJECT_NAME = "Project Name";
 
     @Mock
-    private JenkinsProvider jenkinsProvider;
-    @Mock
     private DisplayURLProvider displayURLProvider;
     @Mock
     private AbstractBuild build;
@@ -49,9 +46,6 @@ public class BitbucketBuildStatusFactoryImplTest {
         when(parent.getFullName()).thenReturn("");
         when(parent.getFullDisplayName()).thenReturn("");
         when(displayURLProvider.getRunURL(build)).thenReturn(BUILD_URL);
-        Jenkins jenkins = mock(Jenkins.class);
-        when(jenkinsProvider.get()).thenReturn(jenkins);
-        when(jenkins.getRootUrl()).thenReturn("http://localhost:8080/jenkins");
     }
 
     @Test
@@ -107,7 +101,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(PROJECT_NAME));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getResultKey(), equalTo(externalId));
+        assertThat(result.getBuildId(), equalTo(externalId));
         assertThat(result.getDuration(), equalTo(duration));
         assertThat(result.getTestResults(), notNullValue());
         assertThat(result.getTestResults().getFailed(), equalTo(failCount));
@@ -130,7 +124,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(PROJECT_NAME));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getResultKey(), equalTo(externalId));
+        assertThat(result.getBuildId(), equalTo(externalId));
         assertThat(result.getDuration(), nullValue());
         assertThat(result.getTestResults(), nullValue());
         verify(displayURLProvider).getRunURL(build);
@@ -149,7 +143,7 @@ public class BitbucketBuildStatusFactoryImplTest {
 
     private BitbucketBuildStatus createBitbucketBuildStatus(boolean createRich) {
         BitbucketBuildStatusFactoryImpl statusFactory =
-                new BitbucketBuildStatusFactoryImpl(jenkinsProvider, displayURLProvider);
+                new BitbucketBuildStatusFactoryImpl(displayURLProvider);
         if (createRich) {
             return statusFactory.createRichBuildStatus(build);
         }

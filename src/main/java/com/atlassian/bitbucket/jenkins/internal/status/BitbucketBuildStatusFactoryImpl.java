@@ -3,12 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
-import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.tasks.junit.TestResultAction;
+import jenkins.branch.MultiBranchProject;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import javax.annotation.Nullable;
@@ -19,15 +19,13 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
 
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 
-    private final JenkinsProvider jenkinsProvider;
     private final DisplayURLProvider displayURLProvider;
 
     public BitbucketBuildStatusFactoryImpl() {
-        this(new DefaultJenkinsProvider(), DisplayURLProvider.get());
+        this(DisplayURLProvider.get());
     }
 
-    BitbucketBuildStatusFactoryImpl(JenkinsProvider jenkinsProvider, DisplayURLProvider displayURLProvider) {
-        this.jenkinsProvider = jenkinsProvider;
+    BitbucketBuildStatusFactoryImpl(DisplayURLProvider displayURLProvider) {
         this.displayURLProvider = displayURLProvider;
     }
 
@@ -42,8 +40,8 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
     }
 
     private BitbucketBuildStatus fromBuild(Run<?, ?> build, boolean isRich) {
-        Job<?, ?> parent = build.getParent();
-        String key = parent.getFullName();
+        Job<?, ?> job = build.getParent();
+        String key = job.getFullName();
         String url = displayURLProvider.getRunURL(build);
         BuildState state;
         if (build.isBuilding()) {
@@ -54,14 +52,17 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
             state = BuildState.FAILED;
         }
         BitbucketBuildStatus.Builder bbs = new BitbucketBuildStatus.Builder(key, state, url)
-                .setName(parent.getFullDisplayName())
-                .setResultKey(build.getExternalizableId())
+                .setName(job.getDisplayName())
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
 
         if (isRich) {
-            bbs.setBuildId(key);
-            bbs.setServerIdentifier(jenkinsProvider.get().getRootUrl()).setTestResults(getTestResults(build));
             BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+            ItemGroup parent = job.getParent();
+
+            bbs.setBuildId(build.getId())
+                    .setTestResults(getTestResults(build))
+                    .setParent(parent instanceof MultiBranchProject ? parent.getFullName() : job.getFullName());
+
             if (revisionAction != null) {
                 bbs.setRef(revisionAction.getBranchAsRefFormat());
             }
