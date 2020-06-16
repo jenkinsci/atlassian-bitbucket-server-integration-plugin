@@ -52,9 +52,9 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     @Override
     public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
-                             ResponseConsumer<T> consumer) {
+                             ResponseConsumer<T> consumer, Headers headers) {
         Request.Builder requestBuilder =
-                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url);
+                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url).headers(headers);
         return executeRequest(requestBuilder, credential, consumer);
     }
 

@@ -135,8 +135,9 @@ public class BitbucketBuildStatus {
             return this;
         }
 
-        public void setDuration(long duration) {
+        public Builder setDuration(long duration) {
             this.duration = duration;
+            return this;
         }
 
         public Builder setName(String name) {
