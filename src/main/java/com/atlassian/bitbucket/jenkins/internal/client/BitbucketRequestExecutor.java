@@ -8,13 +8,13 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
@@ -115,7 +115,7 @@ public class BitbucketRequestExecutor {
      * @param <R>             return type
      * @return the result
      */
-    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Map<String, String> headers,
+    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Headers headers,
                                                        Class<R> returnType) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
         return httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), response ->
@@ -129,7 +129,7 @@ public class BitbucketRequestExecutor {
      * @param requestPayload JSON payload which will be marshalled to send it with POST
      * @param <T>            Type of Request payload
      */
-    public <T> void makePostRequest(HttpUrl url, T requestPayload, Map<String, String> headers) {
+    public <T> void makePostRequest(HttpUrl url, T requestPayload, Headers headers) {
         httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE, headers);
     }
 

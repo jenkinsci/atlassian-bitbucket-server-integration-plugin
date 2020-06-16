@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 
 import java.util.Collection;
@@ -67,7 +68,7 @@ public class BitbucketWebhookClientImpl implements BitbucketWebhookClient {
         return bitbucketRequestExecutor.makePostRequest(
                 url,
                 request,
-                Collections.emptyMap(),
+                Headers.of(Collections.emptyMap()),
                 BitbucketWebhook.class).getBody();
     }
 

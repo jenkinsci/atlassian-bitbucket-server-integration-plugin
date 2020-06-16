@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 
 import java.util.Collections;
@@ -28,6 +29,6 @@ public class BitbucketBuildStatusClientImpl implements BitbucketBuildStatusClien
                 .addPathSegment("commits")
                 .addPathSegment(revisionSha)
                 .build();
-        bitbucketRequestExecutor.makePostRequest(url, buildStatus, Collections.emptyMap());
+        bitbucketRequestExecutor.makePostRequest(url, buildStatus, Headers.of(Collections.emptyMap()));
     }
 }

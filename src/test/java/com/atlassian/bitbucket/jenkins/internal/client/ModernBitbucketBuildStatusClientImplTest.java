@@ -3,13 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
-import com.atlassian.bitbucket.jenkins.internal.provider.InstanceIdentityProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import jcifs.util.Base64;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
-import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -24,7 +25,6 @@ import java.security.KeyPair;
 import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,24 +39,25 @@ public class ModernBitbucketBuildStatusClientImplTest {
     private static final String SHA1 = "5ab78046a50050b8aa3e4accf80950a60f716391";
 
     @Captor
-    ArgumentCaptor<Map<String, String>> captor;
+    ArgumentCaptor<Headers> captor;
     ModernBitbucketBuildStatusClientImpl client;
     @Mock
     BitbucketRequestExecutor executor;
     @Mock
-    InstanceIdentityProvider identityProvider;
-    @Mock
-    InstanceIdentity instanceIdentity;
-    KeyPair keyPair;
+    InstanceKeyPairProvider keyPairProvider;
+    static KeyPair keyPair;
+
+    @BeforeClass
+    public static void init() {
+        keyPair = TestUtils.createTestKeyPair();
+    }
 
     @Before
-    public void init() {
-        keyPair = TestUtils.createTestKeyPair();
-        when(identityProvider.getInstanceIdentity()).thenReturn(instanceIdentity);
-        when(instanceIdentity.getPrivate()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
+    public void setup() {
+        when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
         when(executor.getBaseUrl()).thenReturn(HttpUrl.parse(BASE_URL));
 
-        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, identityProvider);
+        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider);
     }
 
     @Test
@@ -65,7 +66,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
         client.post(buildStatus);
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
 
-        Map<String, String> headers = captor.getValue();
+        Headers headers = captor.getValue();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
     }
@@ -76,7 +77,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
         client.post(buildStatus);
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
 
-        Map<String, String> headers = captor.getValue();
+        Headers headers = captor.getValue();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
     }
@@ -92,7 +93,11 @@ public class ModernBitbucketBuildStatusClientImplTest {
                 .build();
     }
 
-    private boolean matchSignature(BitbucketBuildStatus buildStatus, String signature) {
+    private boolean matchSignature(BitbucketBuildStatus buildStatus, @Nullable String signature) {
+        if (signature == null) {
+            return false;
+        }
+
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         try {
             Signature verifySignature = Signature.getInstance("SHA256withRSA");

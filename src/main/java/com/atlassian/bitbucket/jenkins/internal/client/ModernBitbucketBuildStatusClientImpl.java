@@ -1,9 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
-import com.atlassian.bitbucket.jenkins.internal.provider.DefaultInstanceIdentityProvider;
-import com.atlassian.bitbucket.jenkins.internal.provider.InstanceIdentityProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultInstanceKeyPairProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.google.common.annotations.VisibleForTesting;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.log4j.Logger;
 
@@ -27,7 +28,7 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
     private static final Logger LOGGER = Logger.getLogger(ModernBitbucketBuildStatusClientImpl.class.getName());
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
-    private final InstanceIdentityProvider instanceIdentityProvider;
+    private final InstanceKeyPairProvider instanceKeyPairProvider;
     private final String projectKey;
     private final String repoSlug;
     private final String revisionSha;
@@ -35,9 +36,9 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
     @VisibleForTesting
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha,
-                                         InstanceIdentityProvider instanceIdentityProvider) {
+                                         InstanceKeyPairProvider instanceKeyPairProvider) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
-        this.instanceIdentityProvider = requireNonNull(instanceIdentityProvider, "instanceIdentityProvider");
+        this.instanceKeyPairProvider = requireNonNull(instanceKeyPairProvider, "instanceIdentityProvider");
         this.revisionSha = requireNonNull(stripToNull(revisionSha), "revisionSha");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repoSlug = requireNonNull(stripToNull(repoSlug), "repoSlug");
@@ -45,7 +46,7 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
 
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha) {
-        this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceIdentityProvider());
+        this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceKeyPairProvider());
     }
 
     @Override
@@ -66,9 +67,9 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
         bitbucketRequestExecutor.makePostRequest(url, buildStatus, generateHeaders(buildStatus));
     }
 
-    private Map<String, String> generateHeaders(BitbucketBuildStatus buildStatus) {
+    private Headers generateHeaders(BitbucketBuildStatus buildStatus) {
         Map<String, String> headers = new HashMap<>();
-        RSAPrivateKey key = instanceIdentityProvider.getInstanceIdentity().getPrivate();
+        RSAPrivateKey key = instanceKeyPairProvider.getPrivate();
         String algorithm = SIGNING_ALGORITHM + "with" + key.getAlgorithm();
 
         try {
@@ -86,8 +87,8 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
             headers.put(BUILD_STATUS_SIGNATURE_ALGORITHM_ID, algorithm);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             LOGGER.warn("Error signing build status, continuing without signature:", e);
-            return Collections.emptyMap();
+            return Headers.of(Collections.emptyMap());
         }
-        return headers;
+        return Headers.of(headers);
     }
 }

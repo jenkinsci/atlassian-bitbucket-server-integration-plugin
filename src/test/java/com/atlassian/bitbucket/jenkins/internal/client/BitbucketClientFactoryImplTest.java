@@ -5,13 +5,12 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.atlassian.bitbucket.jenkins.internal.provider.InstanceIdentityProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import okhttp3.Request;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
-import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -92,10 +91,8 @@ public class BitbucketClientFactoryImplTest {
         String repoSlug = "myRepo";
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
 
-        InstanceIdentity identity = mock(InstanceIdentity.class);
-        InstanceIdentityProvider provider = mock(InstanceIdentityProvider.class);
-        when(identity.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
-        when(provider.getInstanceIdentity()).thenReturn(identity);
+        InstanceKeyPairProvider provider = mock(InstanceKeyPairProvider.class);
+        when(provider.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
 
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
         when(bitbucketSCM.getProjectKey()).thenReturn(projectKey);
