@@ -1,0 +1,30 @@
+
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
+         xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:t="/lib/hudson">
+    <l:layout title="${%config(it.displayName)}" norefresh="true">
+        <st:include page="sidepanel.jelly"/>
+
+        <l:main-panel>
+            <h2>${%bitbucket.oauth.applinks.title}</h2>
+            <hr/>
+            <p>
+                ${%bitbucket.oauth.applinks.info}
+            </p>
+
+            <j:set var="descriptor" value="${it.consumerDescriptor}"/>
+            <j:scope>
+                <f:entry field="requestTokenUrl" title="${%bitbucket.oauth.applinks.request.title}">
+                    <f:readOnlyTextbox value="${it.requestTokenUrl}"/>
+                </f:entry>
+                <f:entry field="accessTokenUrl" title="${%bitbucket.oauth.applinks.access.title}">
+                    <f:readOnlyTextbox value="${it.accessTokenUrl}"/>
+                </f:entry>
+                <f:entry field="authorizeUrl" title="${%bitbucket.oauth.applinks.authorize.title}">
+                    <f:readOnlyTextbox value="${it.authorizeUrl}"/>
+                </f:entry>
+            </j:scope>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

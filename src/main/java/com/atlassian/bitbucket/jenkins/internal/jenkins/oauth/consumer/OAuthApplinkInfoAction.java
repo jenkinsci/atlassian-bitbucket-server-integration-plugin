@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.google.common.annotations.VisibleForTesting;
@@ -12,21 +11,17 @@ import org.kohsuke.stapler.StaplerResponse;
 
 import javax.annotation.CheckForNull;
 
-public class OAuthConsumerApplinkInfoAction extends AbstractDescribableImpl<OAuthConsumerUpdateAction> implements Action, ModelObjectWithContextMenu {
+public class OAuthApplinkInfoAction extends AbstractDescribableImpl<OAuthConsumerUpdateAction> implements Action, ModelObjectWithContextMenu {
 
     private JenkinsProvider jenkinsProvider;
-    private String consumerKey;
-    private ServiceProviderConsumerStore consumerStore;
 
-    public OAuthConsumerApplinkInfoAction(String consumerKey, ServiceProviderConsumerStore consumerStore) {
-        this(consumerKey, consumerStore, new DefaultJenkinsProvider());
+    public OAuthApplinkInfoAction() {
+        this(new DefaultJenkinsProvider());
     }
 
     @VisibleForTesting
-    public OAuthConsumerApplinkInfoAction(String consumerKey, ServiceProviderConsumerStore consumerStore, JenkinsProvider jenkinsProvider) {
+    public OAuthApplinkInfoAction(JenkinsProvider jenkinsProvider) {
         this.jenkinsProvider = jenkinsProvider;
-        this.consumerKey = consumerKey;
-        this.consumerStore = consumerStore;
     }
 
     @Override
@@ -36,17 +31,17 @@ public class OAuthConsumerApplinkInfoAction extends AbstractDescribableImpl<OAut
 
     @SuppressWarnings("unused") //Stapler
     public String getRequestTokenUrl() {
-        return jenkinsProvider.get().getRootUrl() + "/bitbucket/oauth/request-token";
+        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/request-token";
     }
 
     @SuppressWarnings("unused") //Stapler
     public String getAccessTokenUrl() {
-        return jenkinsProvider.get().getRootUrl() + "/bitbucket/oauth/access-token";
+        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/access-token";
     }
 
     @SuppressWarnings("unused") //Stapler
     public String getAuthorizeUrl() {
-        return jenkinsProvider.get().getRootUrl() + "/bbs-oauth/authorize";
+        return jenkinsProvider.get().getRootUrl() + "bbs-oauth/authorize";
     }
 
     @CheckForNull
@@ -64,6 +59,6 @@ public class OAuthConsumerApplinkInfoAction extends AbstractDescribableImpl<OAut
     @CheckForNull
     @Override
     public String getUrlName() {
-        return consumerKey;
+        return "info";
     }
 }

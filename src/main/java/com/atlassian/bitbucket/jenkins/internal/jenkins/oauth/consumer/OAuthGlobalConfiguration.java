@@ -62,11 +62,11 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     /**
      * Creates an info action with the existing consumer matching a given key, that displays help on how to set up an applink
      *
-     * @param key the key of the existing consumer
      * @return an update action for an existing consumer
      */
-    public OAuthConsumerApplinkInfoAction getApplinkInfo(String key) {
-        return new OAuthConsumerApplinkInfoAction(key, consumerStore);
+    @SuppressWarnings("unused") // Stapler
+    public Action getInfo() {
+        return new OAuthApplinkInfoAction();
     }
 
     public Action getTokens() {
