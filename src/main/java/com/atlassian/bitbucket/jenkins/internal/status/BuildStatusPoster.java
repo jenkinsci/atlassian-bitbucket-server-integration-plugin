@@ -58,7 +58,7 @@ public class BuildStatusPoster {
                         jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
                 BitbucketClientFactory bbsClient = bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
                 BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
-                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run, ciCapabilities);
+                BitbucketBuildStatus buildStatus = new BitbucketBuildStatusFactory().fromBuild(run, ciCapabilities);
                 listener.getLogger().println(String.format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName()));
 
                 bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), getBitbucketSCM(run).orElse(null), ciCapabilities)

@@ -3,12 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
-import hudson.model.AbstractBuild;
-import hudson.model.Project;
-import hudson.model.Result;
+import hudson.model.*;
 import hudson.tasks.junit.TestResultAction;
+import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,98 +19,150 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBuildStatusFactoryTest {
 
-    private static final String BUILD_DISPLAY_NAME = "#15";
     private static final String BUILD_DURATION = "400 secs";
+    private static final String BUILD_ID = "15";
+    private static final String BUILD_DISPLAY_NAME = "#" + BUILD_ID;
     private static final String BUILD_URL = "http://www.example.com:8000";
-    private static final String PROJECT_NAME = "Project Name";
+    private static final String FREESTYLE_PROJECT_NAME = "Freestyle Project";
+    private static final String WORKFLOW_JOB_NAME = "branch-name";
+    private static final String WORKFLOW_PROJECT_NAME = "MultiBranch Project";
 
     @Rule
     public final JenkinsRule jenkinsRule = new JenkinsRule();
+    private BitbucketBuildStatusFactory buildStatusFactory;
     @Mock
-    private AbstractBuild build;
+    private BitbucketCICapabilities ciCapabilities;
+    @Mock
+    private Run freeStyleRun;
+    private Job freeStyleProject;
     @Mock
     private Jenkins parent;
     @Mock
-    private Project project;
+    private Run workflowRun;
+    private Job workflowJob;
     @Mock
-    private BitbucketCICapabilities ciCapabilities;
+    private MultiBranchProject<?, ?> workflowProject;
 
     @Before
     public void setup() {
-        when(build.getUrl()).thenReturn(BUILD_URL);
-        when(build.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
-        when(build.getDurationString()).thenReturn(BUILD_DURATION);
-        when(build.getParent()).thenReturn(project);
-        when(project.getName()).thenReturn(PROJECT_NAME);
-        when(project.getDisplayName()).thenReturn(PROJECT_NAME);
-        when(project.getParent()).thenReturn(parent);
+        when(workflowProject.getName()).thenReturn(WORKFLOW_PROJECT_NAME);
+
+        buildStatusFactory = spy(new BitbucketBuildStatusFactory());
+        freeStyleProject = new FreeStyleProject((ItemGroup) parent, FREESTYLE_PROJECT_NAME);
+        workflowJob = new WorkflowJob(workflowProject, WORKFLOW_JOB_NAME);
+
+        when(freeStyleRun.getUrl()).thenReturn(BUILD_URL);
+        when(freeStyleRun.getId()).thenReturn(BUILD_ID);
+        when(freeStyleRun.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
+        when(freeStyleRun.getDurationString()).thenReturn(BUILD_DURATION);
+        when(freeStyleRun.getParent()).thenReturn(freeStyleProject);
+        when(workflowRun.getUrl()).thenReturn(BUILD_URL);
+        when(workflowRun.getId()).thenReturn(BUILD_ID);
+        when(workflowRun.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
+        when(workflowRun.getDurationString()).thenReturn(BUILD_DURATION);
+        doReturn(workflowJob).when(workflowRun).getParent();
+
         when(parent.getFullName()).thenReturn("");
-        when(parent.getFullDisplayName()).thenReturn("");
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(false);
+        doReturn(parent).when(workflowProject).getParent();
     }
 
     @Test
-    public void testBuildFailedStatus() {
-        when(build.isBuilding()).thenReturn(false);
-        when(build.getResult()).thenReturn(Result.FAILURE);
+    public void testBuildStatusFailed() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.FAILURE);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
     }
 
     @Test
-    public void testBuildInProgressStatus() {
-        when(build.isBuilding()).thenReturn(true);
+    public void testBuildStatusFreestyleSuccessful() {
+        when(freeStyleRun.isBuilding()).thenReturn(false);
+        when(freeStyleRun.getResult()).thenReturn(Result.SUCCESS);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(freeStyleRun, ciCapabilities);
+
+        assertThat(result.getName(), equalTo(FREESTYLE_PROJECT_NAME));
+        assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
+                BUILD_DISPLAY_NAME, BUILD_DURATION)));
+        assertThat(result.getKey(), equalTo(freeStyleProject.getFullName()));
+        assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
+        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(freeStyleRun)));
+    }
+
+    @Test
+    public void testBuildStatusInProgress() {
+        when(workflowRun.isBuilding()).thenReturn(true);
+
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.INPROGRESS.toString()));
     }
 
     @Test
-    public void testBuildUnstableStatus() {
-        when(build.isBuilding()).thenReturn(false);
-        when(build.getResult()).thenReturn(Result.UNSTABLE);
+    public void testBuildStatusUnstable() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.UNSTABLE);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
 
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
     }
 
     @Test
-    public void testFullBuildSuccessfulStatus() {
+    public void testBuildStatusWorkflowSuccessful() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.SUCCESS);
+
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
+
+        assertThat(result.getName(), equalTo(WORKFLOW_JOB_NAME));
+        assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
+                BUILD_DISPLAY_NAME, BUILD_DURATION)));
+        assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
+        assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
+        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(workflowRun)));
+    }
+
+    @Test
+    public void testDurationIsNotSetForInProgress() {
+        when(workflowRun.isBuilding()).thenReturn(true);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
+        assertThat(result.getDuration(), nullValue());
+    }
+
+    @Test
+    public void testModernBuildStatusFreestyleSuccessful() {
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
-        String externalId = project.getFullName() + BUILD_DISPLAY_NAME;
         long duration = 123456L;
         int failCount = 1;
         int skipCount = 2;
         int passCount = 3;
         TestResultAction testResultAction = mock(TestResultAction.class);
-        when(build.isBuilding()).thenReturn(false);
-        when(build.getResult()).thenReturn(Result.SUCCESS);
-        when(build.getExternalizableId()).thenReturn(externalId);
-        when(build.getDuration()).thenReturn(duration);
-        when(build.getAction(TestResultAction.class)).thenReturn(testResultAction);
+        when(freeStyleRun.isBuilding()).thenReturn(false);
+        when(freeStyleRun.getResult()).thenReturn(Result.SUCCESS);
+        when(freeStyleRun.getDuration()).thenReturn(duration);
+        when(freeStyleRun.getAction(TestResultAction.class)).thenReturn(testResultAction);
         when(testResultAction.getFailCount()).thenReturn(failCount);
         when(testResultAction.getSkipCount()).thenReturn(skipCount);
-        when(testResultAction.getTotalCount()).thenReturn(6);
+        when(testResultAction.getTotalCount()).thenReturn(failCount + skipCount + passCount);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(freeStyleRun, ciCapabilities);
 
-        assertThat(result.getName(), equalTo(PROJECT_NAME));
+        assertThat(result.getName(), equalTo(freeStyleProject.getDisplayName()));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
-        assertThat(result.getKey(), equalTo(PROJECT_NAME));
+        assertThat(result.getKey(), equalTo(freeStyleProject.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(build)));
-        assertThat(result.getResultKey(), equalTo(externalId));
+        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(freeStyleRun)));
+        assertThat(result.getParent(), equalTo(freeStyleProject.getFullName()));
         assertThat(result.getDuration(), equalTo(duration));
         assertThat(result.getTestResults(), notNullValue());
         assertThat(result.getTestResults().getFailed(), equalTo(failCount));
@@ -119,29 +171,34 @@ public class BitbucketBuildStatusFactoryTest {
     }
 
     @Test
-    public void testSuccessfulStatusOldBitbucket() {
-        String externalId = project.getFullName() + BUILD_DISPLAY_NAME;
-        when(build.isBuilding()).thenReturn(false);
-        when(build.getResult()).thenReturn(Result.SUCCESS);
-        when(build.getExternalizableId()).thenReturn(externalId);
+    public void testModernBuildStatusWorkflowSuccessful() {
+        when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
+        long duration = 123456L;
+        int failCount = 1;
+        int skipCount = 2;
+        int passCount = 3;
+        TestResultAction testResultAction = mock(TestResultAction.class);
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.SUCCESS);
+        when(workflowRun.getDuration()).thenReturn(duration);
+        when(workflowRun.getAction(TestResultAction.class)).thenReturn(testResultAction);
+        when(testResultAction.getFailCount()).thenReturn(failCount);
+        when(testResultAction.getSkipCount()).thenReturn(skipCount);
+        when(testResultAction.getTotalCount()).thenReturn(failCount + skipCount + passCount);
 
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
+        BitbucketBuildStatus result = buildStatusFactory.fromBuild(workflowRun, ciCapabilities);
 
-        assertThat(result.getName(), equalTo(PROJECT_NAME));
+        assertThat(result.getName(), equalTo(workflowJob.getDisplayName()));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
-        assertThat(result.getKey(), equalTo(PROJECT_NAME));
+        assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(build)));
-        assertThat(result.getResultKey(), equalTo(externalId));
-        assertThat(result.getDuration(), nullValue());
-        assertThat(result.getTestResults(), nullValue());
-    }
-
-    @Test
-    public void testDurationIsNotSetForInProgress() {
-        when(build.isBuilding()).thenReturn(true);
-        BitbucketBuildStatus result = BitbucketBuildStatusFactory.fromBuild(build, ciCapabilities);
-        assertThat(result.getDuration(), nullValue());
+        assertThat(result.getUrl(), equalTo(DisplayURLProvider.get().getRunURL(workflowRun)));
+        assertThat(result.getParent(), equalTo(workflowProject.getFullName()));
+        assertThat(result.getDuration(), equalTo(duration));
+        assertThat(result.getTestResults(), notNullValue());
+        assertThat(result.getTestResults().getFailed(), equalTo(failCount));
+        assertThat(result.getTestResults().getIgnored(), equalTo(skipCount));
+        assertThat(result.getTestResults().getSuccessful(), equalTo(passCount));
     }
 }
