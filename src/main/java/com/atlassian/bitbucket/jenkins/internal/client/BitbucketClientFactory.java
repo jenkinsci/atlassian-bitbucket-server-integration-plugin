@@ -3,8 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 
-import javax.annotation.Nullable;
-
 /**
  * Factory for Bitbucket Clients.
  */
@@ -29,12 +27,11 @@ public interface BitbucketClientFactory {
      * Return a client that can post the current status of a build to Bitbucket.
      *
      * @param revisionSha      the revision for the build status
-     * @param bitbucketSCMRepo the SCM Repo, if null the status is posted to the old non specific resource
+     * @param bitbucketSCMRepo the (Bitbucket) SCM Repo
      * @param ciCapabilities   CI capabilities of the remote server
      * @return a client that can post a build status
      */
-    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
-                                                    @Nullable BitbucketSCMRepository bitbucketSCMRepo,
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketSCMRepository bitbucketSCMRepo,
                                                     BitbucketCICapabilities ciCapabilities);
 
     /**

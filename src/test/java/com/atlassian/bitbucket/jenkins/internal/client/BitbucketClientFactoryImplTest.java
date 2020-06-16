@@ -77,7 +77,8 @@ public class BitbucketClientFactoryImplTest {
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
 
-        BitbucketBuildStatusClient client = anonymousClientFactory.getBuildStatusClient(REVISION, null, ciCapabilities);
+        BitbucketBuildStatusClient client =
+                anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCMRepo, ciCapabilities);
         client.post(buildStatus);
 
         Request clientRequest = mockExecutor.getRequest(url);

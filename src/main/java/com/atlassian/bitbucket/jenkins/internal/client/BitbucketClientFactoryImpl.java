@@ -9,8 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 
-import javax.annotation.Nullable;
-
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
@@ -47,9 +45,9 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
-                                                           @Nullable BitbucketSCMRepository bitbucketSCMRepo,
+                                                           BitbucketSCMRepository bitbucketSCMRepo,
                                                            BitbucketCICapabilities ciCapabilities) {
-        if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCMRepo != null) {
+        if (ciCapabilities.supportsRichBuildStatus()) {
             return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
                     bitbucketSCMRepo.getRepositorySlug(), revisionSha);
         }
