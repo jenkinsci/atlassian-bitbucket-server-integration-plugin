@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -8,76 +7,100 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.google.inject.Guice;
+import hudson.Extension;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.listeners.RunListener;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketScmRunHelper.getBitbucketSCM;
-
-@Singleton
-public class BuildStatusPoster {
+@Extension
+public class BuildStatusPoster extends RunListener<Run<?, ?>> {
 
     private static final String BUILD_STATUS_ERROR_MSG = "Failed to post build status, additional information:";
-    private static final String BUILD_STATUS_FORMAT = "Posting build status of %s to %s";
+    private static final String BUILD_STATUS_FORMAT = "Posting build status of %s to %s for commit id [%s]";
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private static final String NO_SERVER_MSG =
             "Failed to post build status as the provided Bitbucket Server config does not exist";
+
     @Inject
-    BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     @Inject
     private BitbucketPluginConfiguration pluginConfiguration;
-    private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Inject
+    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Inject
+    private BitbucketBuildStatusFactory bitbucketBuildStatusFactory;
 
-    public void postBuildStatus(Run<?, ?> run, TaskListener listener) {
-        BitbucketRevisionAction revisionAction = run.getAction(BitbucketRevisionAction.class);
-        if (revisionAction == null) {
-            return;
+    public BuildStatusPoster() {
+    }
+
+    public BuildStatusPoster(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                             BitbucketPluginConfiguration pluginConfiguration,
+                             JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
+                             BitbucketBuildStatusFactory bitbucketBuildStatusFactory) {
+        this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
+        this.pluginConfiguration = pluginConfiguration;
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
+        this.bitbucketBuildStatusFactory = bitbucketBuildStatusFactory;
+    }
+
+    @Override
+    public void onCompleted(Run<?, ?> r, @Nonnull TaskListener listener) {
+        BitbucketRevisionAction bitbucketRevisionAction = r.getAction(BitbucketRevisionAction.class);
+        if (bitbucketRevisionAction != null) {
+            postBuildStatus(bitbucketRevisionAction, r, listener);
         }
+    }
+
+    public void postBuildStatus(BitbucketRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
         Optional<BitbucketServerConfiguration> serverOptional =
-                pluginConfiguration.getServerById(revisionAction.getServerId());
+                pluginConfiguration.getServerById(revisionAction.getBitbucketSCMRepo().getServerId());
         if (serverOptional.isPresent()) {
-            BitbucketServerConfiguration server = serverOptional.get();
-            GlobalCredentialsProvider globalCredentialsProvider =
-                    server.getGlobalCredentialsProvider(run.getParent());
-            try {
-                if (jenkinsToBitbucketCredentials == null) {
-                    Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
-                }
-
-                Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
-                BitbucketCredentials credentials =
-                        jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
-                BitbucketClientFactory bbsClient = bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
-                BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
-                BitbucketBuildStatus buildStatus = BitbucketBuildStatusFactory.fromBuild(run, ciCapabilities);
-                listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName());
-
-                bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), getBitbucketSCM(run).orElse(null), ciCapabilities)
-                        .post(buildStatus);
-            } catch (RuntimeException e) {
-                String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
-                LOGGER.info(errorMsg);
-                listener.getLogger().println(errorMsg);
-                LOGGER.log(Level.FINE, "Stacktrace from build status failure", e);
-            }
+            postBuildStatus(serverOptional.get(), revisionAction, run, listener);
         } else {
             listener.error(NO_SERVER_MSG);
         }
     }
 
-    @Inject
-    public void setJenkinsToBitbucketCredentials(
-            JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
-        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
+    private void postBuildStatus(BitbucketServerConfiguration server, BitbucketRevisionAction revisionAction,
+                                 Run<?, ?> run, TaskListener listener) {
+        GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
+        try {
+            BitbucketClientFactory bbsClient = getBbsClient(server, globalCredentialsProvider);
+            BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
+
+            BitbucketBuildStatus buildStatus;
+            if (ciCapabilities.supportsRichBuildStatus()) {
+                buildStatus = bitbucketBuildStatusFactory.createRichBuildStatus(run);
+            } else {
+                buildStatus = bitbucketBuildStatusFactory.createLegacyBuildStatus(run);
+            }
+
+            listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1());
+
+            bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), revisionAction.getBitbucketSCMRepo(), ciCapabilities)
+                    .post(buildStatus);
+        } catch (RuntimeException e) {
+            String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
+            LOGGER.info(errorMsg);
+            listener.getLogger().println(errorMsg);
+            LOGGER.log(Level.FINE, "Stacktrace from build status failure", e);
+        }
+    }
+
+    private BitbucketClientFactory getBbsClient(BitbucketServerConfiguration server,
+                                                GlobalCredentialsProvider globalCredentialsProvider) {
+        Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
+        BitbucketCredentials credentials =
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
+        return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
     }
 }
-

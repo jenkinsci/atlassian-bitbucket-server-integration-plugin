@@ -15,7 +15,7 @@ import static java.nio.file.Files.readAllBytes;
 
 public class TestUtils {
 
-    public static final String BITBUCKET_BASE_URL = "http://localhost:7990/bitbucket";
+    public static final String BITBUCKET_BASE_URL = System.getProperty("bitbucket.baseurl", "http://localhost:7990/bitbucket");
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     public static final String PROJECT = "proj";
     public static final String REPO = "repo";
