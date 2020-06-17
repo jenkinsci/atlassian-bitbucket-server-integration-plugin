@@ -32,13 +32,13 @@ public class BitbucketBuildStatusFactoryTest {
     @Mock
     private DisplayURLProvider displayUrlProvider;
     @Mock
-    private Run freeStyleRun;
-    private Job freeStyleProject;
+    private Run<?, ?> freeStyleRun;
+    private Job<?, ?> freeStyleProject;
     @Mock
     private Jenkins parent;
     @Mock
-    private Run workflowRun;
-    private Job workflowJob;
+    private Run<?, ?> workflowRun;
+    private Job<?, ?> workflowJob;
     @Mock
     private MultiBranchProject<?, ?> workflowProject;
 
