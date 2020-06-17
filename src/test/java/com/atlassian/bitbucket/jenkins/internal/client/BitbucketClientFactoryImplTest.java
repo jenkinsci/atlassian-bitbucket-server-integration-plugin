@@ -11,6 +11,7 @@ import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import okhttp3.Request;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -92,8 +93,10 @@ public class BitbucketClientFactoryImplTest {
         String repoSlug = "myRepo";
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
 
-        InstanceKeyPairProvider provider = mock(InstanceKeyPairProvider.class);
-        when(provider.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
+        InstanceKeyPairProvider keyPairProvider = mock(InstanceKeyPairProvider.class);
+        when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
+        DisplayURLProvider displayURLProvider = mock(DisplayURLProvider.class);
+        when(displayURLProvider.getRoot()).thenReturn("http://localhost:8080/jenkins");
 
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
         when(bitbucketSCMRepo.getProjectKey()).thenReturn(projectKey);
@@ -111,7 +114,7 @@ public class BitbucketClientFactoryImplTest {
         Buffer b = new Buffer();
 
         BitbucketBuildStatusClient client =
-                anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCMRepo, ciCapabilities, provider);
+                anonymousClientFactory.getBuildStatusClient(REVISION, bitbucketSCMRepo, ciCapabilities, keyPairProvider, displayURLProvider);
         client.post(buildStatus);
 
         Request clientRequest = mockExecutor.getRequest(url);

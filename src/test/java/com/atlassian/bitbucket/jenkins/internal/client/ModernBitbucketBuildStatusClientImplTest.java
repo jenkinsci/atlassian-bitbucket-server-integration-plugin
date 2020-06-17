@@ -9,6 +9,7 @@ import jcifs.util.Base64;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,6 +46,8 @@ public class ModernBitbucketBuildStatusClientImplTest {
     BitbucketRequestExecutor executor;
     @Mock
     InstanceKeyPairProvider keyPairProvider;
+    @Mock
+    DisplayURLProvider displayURLProvider;
     static KeyPair keyPair;
 
     @BeforeClass
@@ -54,10 +57,11 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
     @Before
     public void setup() {
+        when(displayURLProvider.getRoot()).thenReturn("http://localhost:8080/jenkins");
         when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
         when(executor.getBaseUrl()).thenReturn(HttpUrl.parse(BASE_URL));
 
-        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider);
+        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider, displayURLProvider);
     }
 
     @Test

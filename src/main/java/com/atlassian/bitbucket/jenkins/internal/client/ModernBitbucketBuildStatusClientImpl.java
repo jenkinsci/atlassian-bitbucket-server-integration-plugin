@@ -7,6 +7,7 @@ import com.google.common.annotations.VisibleForTesting;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.log4j.Logger;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatusClient {
 
+    private static final String BASE_URL_HEADER_ID = "base-url";
     private static final String BUILD_STATUS_SIGNATURE_ALGORITHM_ID = "BBS-Signature-Algorithm";
     private static final String BUILD_STATUS_SIGNATURE_ID = "BBS-Signature";
     private static final String BUILD_STATUS_VERSION = "1.0";
@@ -28,6 +30,7 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
     private static final Logger LOGGER = Logger.getLogger(ModernBitbucketBuildStatusClientImpl.class.getName());
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final DisplayURLProvider displayURLProvider;
     private final InstanceKeyPairProvider instanceKeyPairProvider;
     private final String projectKey;
     private final String repoSlug;
@@ -36,17 +39,20 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
     @VisibleForTesting
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha,
-                                         InstanceKeyPairProvider instanceKeyPairProvider) {
+                                         InstanceKeyPairProvider instanceKeyPairProvider,
+                                         DisplayURLProvider displayURLProvider) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.instanceKeyPairProvider = requireNonNull(instanceKeyPairProvider, "instanceIdentityProvider");
         this.revisionSha = requireNonNull(stripToNull(revisionSha), "revisionSha");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repoSlug = requireNonNull(stripToNull(repoSlug), "repoSlug");
+        this.displayURLProvider = requireNonNull(displayURLProvider, "displayURLProvider");
     }
 
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha) {
-        this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceKeyPairProvider());
+        this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceKeyPairProvider(),
+                DisplayURLProvider.get());
     }
 
     @Override
@@ -68,6 +74,7 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
 
     private Headers generateHeaders(BitbucketBuildStatus buildStatus) {
         Map<String, String> headers = new HashMap<>();
+        headers.put(BASE_URL_HEADER_ID, displayURLProvider.getRoot());
         RSAPrivateKey key = instanceKeyPairProvider.getPrivate();
         String algorithm = SIGNING_ALGORITHM + "with" + key.getAlgorithm();
 
