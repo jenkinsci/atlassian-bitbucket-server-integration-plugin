@@ -12,13 +12,13 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCICapabilities {
 
-    private static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
+    public static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
 
     private final Set<String> ciCapabilities;
 
     @JsonCreator
     public BitbucketCICapabilities(@JsonProperty(value = "buildStatus") Set<String> ciCapabilities) {
-        this.ciCapabilities = unmodifiableSet(requireNonNull(ciCapabilities, "Application hooks events unavailable"));
+        this.ciCapabilities = unmodifiableSet(requireNonNull(ciCapabilities, "Build status capability missing."));
     }
 
     public Set<String> getCiCapabilities() {

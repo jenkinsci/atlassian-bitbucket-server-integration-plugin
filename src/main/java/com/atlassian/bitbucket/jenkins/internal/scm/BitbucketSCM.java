@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketSCMAction;
 import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.FilePath;
@@ -46,7 +45,6 @@ import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketSCM extends SCM {
@@ -140,6 +138,7 @@ public class BitbucketSCM extends SCM {
 
     /**
      * Regenerate SCM by looking up new repo URLs etc.
+     *
      * @param oldScm old scm to copy values from
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
@@ -166,9 +165,6 @@ public class BitbucketSCM extends SCM {
         }
         if (extensions != null) {
             this.extensions.addAll(extensions);
-        }
-        if (!isBlank(serverId)) {
-            this.extensions.add(new BitbucketPostBuildStatus(serverId));
         }
     }
 
@@ -202,9 +198,6 @@ public class BitbucketSCM extends SCM {
             @CheckForNull File changelogFile,
             @CheckForNull SCMRevisionState baseline)
             throws IOException, InterruptedException {
-        if (build.getAction(BitbucketSCMAction.class) == null) {
-            build.addAction(new BitbucketSCMAction(this));
-        }
         gitSCM.checkout(build, launcher, workspace, listener, changelogFile, baseline);
     }
 
@@ -248,12 +241,7 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        if (gitSCM == null) {
-            return emptyList();
-        }
-        return gitSCM.getExtensions().stream()
-                .filter(extension -> !(extension instanceof BitbucketPostBuildStatus))
-                .collect(toList());
+        return gitSCM.getExtensions();
     }
 
     public String getId() {

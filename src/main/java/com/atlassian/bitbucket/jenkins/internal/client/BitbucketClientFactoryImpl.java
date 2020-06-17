@@ -1,20 +1,23 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.supply.BitbucketCapabilitiesSupplier;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import javax.annotation.Nullable;
+import com.google.common.annotations.VisibleForTesting;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final BitbucketCapabilitiesSupplier capabilitiesSupplier;
 
     BitbucketClientFactoryImpl(String serverUrl, BitbucketCredentials credentials, ObjectMapper objectMapper,
                                HttpRequestExecutor httpRequestExecutor) {
         bitbucketRequestExecutor = new BitbucketRequestExecutor(serverUrl, httpRequestExecutor, objectMapper,
                 credentials);
+        capabilitiesSupplier = new BitbucketCapabilitiesSupplier(bitbucketRequestExecutor);
     }
 
     @Override
@@ -24,13 +27,28 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketCapabilitiesClient getCapabilityClient() {
-        return new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor);
+        return new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor, capabilitiesSupplier);
+    }
+
+    @VisibleForTesting
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
+                                                           BitbucketSCMRepository bitbucketSCMRepo,
+                                                           BitbucketCICapabilities ciCapabilities,
+                                                           InstanceKeyPairProvider instanceKeyPairProvider) {
+        if (ciCapabilities.supportsRichBuildStatus()) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
+                    bitbucketSCMRepo.getRepositorySlug(), revisionSha, instanceKeyPairProvider);
+        }
+        return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }
 
     @Override
-    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable BitbucketSCM bitbucketSCM, BitbucketCICapabilities ciCapabilities) {
-        if (ciCapabilities.supportsRichBuildStatus() && bitbucketSCM != null) {
-            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCM.getProjectKey(), bitbucketSCM.getRepositorySlug(), revisionSha);
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
+                                                           BitbucketSCMRepository bitbucketSCMRepo,
+                                                           BitbucketCICapabilities ciCapabilities) {
+        if (ciCapabilities.supportsRichBuildStatus()) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
+                    bitbucketSCMRepo.getRepositorySlug(), revisionSha);
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }

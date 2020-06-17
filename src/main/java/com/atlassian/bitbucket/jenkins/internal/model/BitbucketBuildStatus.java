@@ -129,7 +129,7 @@ public class BitbucketBuildStatus {
             return new BitbucketBuildStatus(buildId, description, duration, key, name, parent, ref, state, testResults, url);
         }
 
-        public Builder setBuildID(String buildId) {
+        public Builder setBuildId(String buildId) {
             this.buildId = buildId;
             return this;
         }
@@ -139,8 +139,9 @@ public class BitbucketBuildStatus {
             return this;
         }
 
-        public void setDuration(long duration) {
+        public Builder setDuration(long duration) {
             this.duration = duration;
+            return this;
         }
 
         public Builder setName(String name) {

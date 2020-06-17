@@ -1,9 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-
-import javax.annotation.Nullable;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 
 /**
  * Factory for Bitbucket Clients.
@@ -28,12 +26,13 @@ public interface BitbucketClientFactory {
     /**
      * Return a client that can post the current status of a build to Bitbucket.
      *
-     * @param revisionSha    the revision for the build status
-     * @param bitbucketSCM   the SCM that holds the repository, if null the status is posted to the old non specific resource
-     * @param ciCapabilities CI capabilities of the remote server
+     * @param revisionSha      the revision for the build status
+     * @param bitbucketSCMRepo the (Bitbucket) SCM Repo
+     * @param ciCapabilities   CI capabilities of the remote server
      * @return a client that can post a build status
      */
-    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, @Nullable BitbucketSCM bitbucketSCM, BitbucketCICapabilities ciCapabilities);
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketSCMRepository bitbucketSCMRepo,
+                                                    BitbucketCICapabilities ciCapabilities);
 
     /**
      * Construct a client that can retrieve the list of mirrored repositories for a given {@code repoId} from Bitbucket.
@@ -54,7 +53,6 @@ public interface BitbucketClientFactory {
      * Return a search client
      *
      * @param projectName the project name to search for
-     *
      * @return a client that is ready to use
      */
     BitbucketSearchClient getSearchClient(String projectName);
