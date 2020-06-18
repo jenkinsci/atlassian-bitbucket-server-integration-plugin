@@ -84,7 +84,8 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
                 buildStatus = bitbucketBuildStatusFactory.createLegacyBuildStatus(run);
             }
 
-            listener.getLogger().format(BUILD_STATUS_FORMAT, buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1());
+            listener.getLogger().println(String.format(BUILD_STATUS_FORMAT,
+                    buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1()));
 
             bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), revisionAction.getBitbucketSCMRepo(), ciCapabilities)
                     .post(buildStatus);

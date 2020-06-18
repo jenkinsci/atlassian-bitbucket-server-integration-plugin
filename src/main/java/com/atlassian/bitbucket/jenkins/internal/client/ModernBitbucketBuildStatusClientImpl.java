@@ -62,7 +62,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
                 .addPathSegment("commits")
                 .addPathSegment(revisionSha)
                 .addPathSegment("builds")
-                .addPathSegment(buildStatus.getKey())
                 .build();
         bitbucketRequestExecutor.makePostRequest(url, buildStatus, generateHeaders(buildStatus));
     }
