@@ -17,7 +17,7 @@ The plugin enables this in two ways. It adds a Bitbucket Server Source Code Mana
 ## Requirements
 
 - Bitbucket Server 5.5 and above
-- Jenkins 2.162 and above
+- Jenkins 2.190.1 and above
 
 ## Plugin features
 
