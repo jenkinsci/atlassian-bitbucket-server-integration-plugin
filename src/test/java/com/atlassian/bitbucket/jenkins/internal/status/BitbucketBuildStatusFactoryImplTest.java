@@ -19,7 +19,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BitbucketBuildStatusFactoryTest {
+public class BitbucketBuildStatusFactoryImplTest {
 
     private static final String BUILD_DURATION = "400 secs";
     private static final String BUILD_ID = "15";

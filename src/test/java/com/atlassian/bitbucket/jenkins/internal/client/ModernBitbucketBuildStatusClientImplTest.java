@@ -9,6 +9,7 @@ import jcifs.util.Base64;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,7 +36,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @RunWith(MockitoJUnitRunner.class)
 public class ModernBitbucketBuildStatusClientImplTest {
 
-    private static final String BASE_URL = "http://localhost:7990/bitbucket";
+    private static final String BBS_BASE_URL = "http://localhost:7990/bitbucket";
+    private static final String JENKINS_BASE_URL = "http://localhost:8080/jenkins";
     private static final String SHA1 = "5ab78046a50050b8aa3e4accf80950a60f716391";
 
     @Captor
@@ -45,6 +47,8 @@ public class ModernBitbucketBuildStatusClientImplTest {
     BitbucketRequestExecutor executor;
     @Mock
     InstanceKeyPairProvider keyPairProvider;
+    @Mock
+    DisplayURLProvider displayURLProvider;
     static KeyPair keyPair;
 
     @BeforeClass
@@ -54,10 +58,11 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
     @Before
     public void setup() {
+        when(displayURLProvider.getRoot()).thenReturn(JENKINS_BASE_URL);
         when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
-        when(executor.getBaseUrl()).thenReturn(HttpUrl.parse(BASE_URL));
+        when(executor.getBaseUrl()).thenReturn(HttpUrl.parse(BBS_BASE_URL));
 
-        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider);
+        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider, displayURLProvider);
     }
 
     @Test
@@ -68,6 +73,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
         Headers headers = captor.getValue();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
+        assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
     }
 
@@ -79,6 +85,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
         Headers headers = captor.getValue();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
+        assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
     }
 
