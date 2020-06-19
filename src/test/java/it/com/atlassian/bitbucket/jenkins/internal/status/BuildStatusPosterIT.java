@@ -252,7 +252,7 @@ public class BuildStatusPosterIT {
         String refName = bitbucketRevisionAction.getBranchAsRefFormat();
         String jenkinsUrlAsString = jenkinsUrl.toExternalForm();
         ItemGroup<?> parentProject = job.getParent();
-        String parentString = parentProject instanceof MultiBranchProject ? parentProject.getFullName() : job.getFullName();
+        String parentName = parentProject instanceof MultiBranchProject ? parentProject.getFullName() : job.getFullName();
 
         return requestPatternBuilder
                 .withRequestBody(
