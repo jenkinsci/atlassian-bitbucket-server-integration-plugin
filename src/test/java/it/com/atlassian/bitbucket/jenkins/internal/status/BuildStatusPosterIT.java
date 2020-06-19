@@ -4,14 +4,12 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.Job;
-import hudson.model.Run;
+import hudson.model.*;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketProxyRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.GitHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler;
+import jenkins.branch.MultiBranchProject;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.After;
@@ -85,7 +83,7 @@ public class BuildStatusPosterIT {
         FreeStyleProject project =
                 jenkinsProjectHandler.createFreeStyleProject(repoSlug, MASTER_BRANCH_PATTERN);
 
-        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)",
+        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
@@ -113,7 +111,7 @@ public class BuildStatusPosterIT {
                         "}";
         WorkflowJob job = jenkinsProjectHandler.createPipelineJob("wfj", script);
 
-        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)",
+        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
@@ -147,7 +145,7 @@ public class BuildStatusPosterIT {
                 "    }\n" +
                 "}");
 
-        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)",
+        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
@@ -182,7 +180,7 @@ public class BuildStatusPosterIT {
                 "    }\n" +
                 "}");
 
-        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)%%2F([a-z0-9]*)",
+        String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
@@ -215,7 +213,7 @@ public class BuildStatusPosterIT {
                         "}";
         WorkflowJob wfj = jenkinsProjectHandler.createPipelineJob("wj", script);
 
-        String url1 = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)",
+        String url1 = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url1))
@@ -231,7 +229,7 @@ public class BuildStatusPosterIT {
         });
 
         String latestCommit = gitHelper.pushEmptyCommit("test message");
-        String url2 = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds/([a-z0-9]*)",
+        String url2 = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url2))
@@ -253,24 +251,27 @@ public class BuildStatusPosterIT {
         assertNotNull(bitbucketRevisionAction);
         String refName = bitbucketRevisionAction.getBranchAsRefFormat();
         String jenkinsUrlAsString = jenkinsUrl.toExternalForm();
+        ItemGroup<?> parentProject = job.getParent();
+        String parentString = parentProject instanceof MultiBranchProject ? parentProject.getFullName() : job.getFullName();
+
         return requestPatternBuilder
                 .withRequestBody(
                         equalToJson(
                                 format("{" +
+                                       "\"buildId\":\"%s\"," +
                                        "\"description\":\"%s\"," +
                                        "\"duration\":%d," +
                                        "\"key\":\"%s\"," +
                                        "\"name\":\"%s\"," +
+                                       "\"parent\":\"%s\"," +
                                        "\"ref\":\"%s\"," +
-                                       "\"resultKey\":\"%s\"," +
-                                       "\"serverIdentifier\":\"%s\"," +
                                        "\"state\":\"%s\"," +
                                        "\"url\":\"%s%sdisplay/redirect\"" +
                                        "}",
+                                        build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),
-                                        build.getDuration(), job.getFullName(), job.getFullDisplayName(), refName,
-                                        build.getExternalizableId(), jenkinsUrlAsString, buildState, jenkinsUrlAsString,
-                                        build.getUrl())
+                                        build.getDuration(), job.getFullName(), job.getDisplayName(), parentString, refName,
+                                        buildState, jenkinsUrlAsString, build.getUrl())
                         )
                 );
     }
