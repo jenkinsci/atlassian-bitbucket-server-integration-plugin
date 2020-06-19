@@ -270,7 +270,7 @@ public class BuildStatusPosterIT {
                                        "}",
                                         build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),
-                                        build.getDuration(), job.getFullName(), job.getDisplayName(), parentString, refName,
+                                        build.getDuration(), job.getFullName(), job.getDisplayName(), parentName, refName,
                                         buildState, jenkinsUrlAsString, build.getUrl())
                         )
                 );
