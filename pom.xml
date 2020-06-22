@@ -14,7 +14,8 @@
     <properties>
         <bitbucket.version>5.5.9</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
-        <disableTestInjection>false</disableTestInjection>
+        <disableTestInjection>true</disableTestInjection>
+        <surefireTestExclusions>nothing-to-exclude</surefireTestExclusions>
         <java.level>8</java.level>
         <jackson.version>2.9.9</jackson.version>
         <jenkins.version>2.190.1</jenkins.version>
@@ -271,6 +272,7 @@
                          exclude integration tests here. -->
                     <excludes>
                         <exclude>it/**/*.java</exclude>
+                        <exclude>${surefireTestExclusions}</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -416,6 +418,15 @@
                     </plugin>
                 </plugins>
             </reporting>
+        </profile>
+        <profile>
+            <!-- The Injected Tests are causing issues with Mockito with Java 11 on this version of the plugin, so they
+            are disabled by default. For full test coverage, this should profile should be run as well.-->
+            <id>injectedTests</id>
+            <properties>
+                <disableTestInjection>false</disableTestInjection>
+                <surefireTestExclusions>com/**/*.java</surefireTestExclusions>
+            </properties>
         </profile>
         <profile>
             <id>it</id>
