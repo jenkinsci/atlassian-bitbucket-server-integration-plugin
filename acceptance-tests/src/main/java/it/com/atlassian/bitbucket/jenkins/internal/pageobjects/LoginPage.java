@@ -1,4 +1,4 @@
-package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects;
+package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 
 import hudson.util.VersionNumber;
 import org.hamcrest.Description;

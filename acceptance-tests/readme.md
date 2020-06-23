@@ -248,3 +248,21 @@ public class MyAcceptanceTest {
 ...
 }
 ```
+
+## Smoke Tests
+Smoke tests (the tests with `Smoke` in their name) start up a Bitbucket Server instance and use it for testing the 
+end-to-end integration between Bitbucket Server and Jenkins.
+
+To run smoke tests, activate the `smoke-tests` Maven profile:
+
+```
+mvn clean verify -Psmoke-tests
+```
+
+This will use the `bitbucket-maven-plugin` (part of the [Atlassian Plugin SDK](https://developer.atlassian.com/server/framework/atlassian-sdk/working-with-the-sdk/))
+to start up Bitbucket Server.
+
+Like the rest of the acceptance tests, you can run the smoke tests from your IDE of choice (as detailed above), but you 
+will have to start up an instance of Bitbucket Server listening on port `7990` (full base URL 
+`http://localhost:7990/bitbucket`). Alternatively, you can pass in a custom Bitbucket Server base URL using the 
+`bitbucket.baseurl` system property.
