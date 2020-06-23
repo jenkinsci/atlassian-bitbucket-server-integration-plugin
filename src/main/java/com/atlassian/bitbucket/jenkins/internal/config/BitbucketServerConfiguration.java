@@ -229,7 +229,7 @@ public class BitbucketServerConfiguration
             if (isBlank(base.getHost())) {
                 return FormValidation.error(
                         "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
-            } else if (base.getHost().contains("bitbucket.org")) {
+            } else if (base.getHost().endsWith("bitbucket.org")) {
                 return FormValidation.error("This plugin does not support connecting to bitbucket.org. It is for Bitbucket Server instances only.");
             }
         } catch (MalformedURLException e) {

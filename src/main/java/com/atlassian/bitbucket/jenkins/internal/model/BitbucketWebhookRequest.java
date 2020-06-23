@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -8,6 +10,7 @@ import static java.util.Objects.requireNonNull;
 
 public class BitbucketWebhookRequest {
 
+    private final Map<String, String> configuration;
     private final String name;
     private final Set<String> events;
     private final String url;
@@ -18,6 +21,11 @@ public class BitbucketWebhookRequest {
         this.events = events;
         this.url = url;
         this.isActive = isActive;
+        configuration = Collections.singletonMap("createdBy", "jenkins");
+    }
+
+    public Map<String, String> getConfiguration() {
+        return configuration;
     }
 
     public String getName() {

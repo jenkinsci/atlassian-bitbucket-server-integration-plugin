@@ -17,7 +17,7 @@ The plugin enables this in two ways. It adds a Bitbucket Server Source Code Mana
 ## Requirements
 
 - Bitbucket Server 5.5 and above
-- Jenkins 2.162 and above
+- Jenkins 2.190.1 and above
 
 ## Plugin features
 
@@ -62,6 +62,8 @@ To create a Jenkins job:
 4. Under **Build Trigger** select **Bitbucket Server Trigger**.
 5. Add a **build step**.
 6. Click **Save**.
+
+**Note:** A Jenkinsfile is required when creating a Pipeline or Multibranch Pipeline job. Other pipeline scripting methods are not yet supported. 
 
 ## Setting up a Multibranch Pipeline 
 

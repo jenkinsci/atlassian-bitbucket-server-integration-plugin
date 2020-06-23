@@ -1,0 +1,72 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout permission="${app.READ}">
+        <style type="text/css">
+            :root {
+                --dialog-width: 678px;
+                --image-padding-top: 75px;
+                --image-padding-bottom: 35px;
+                --warning-bg-color: #fcf8e3;
+                --warning-border-color: #faebcc;
+                --warning-fg-color: #8a6d3b;
+            }
+
+            .dialog-container {
+                text-align: center;
+                max-width: var(--dialog-width);
+            }
+
+            .dialog-image {
+                padding-top: var(--image-padding-top);
+                padding-bottom: var(--image-padding-bottom);
+            }
+
+            .alert-warning {
+                background-color: var(--warning-bg-color);
+                border-color: var(--warning-border-color);
+                color: var(--warning-fg-color);
+            }
+        </style>
+
+        <l:main-panel>
+            <div class="dialog-container">
+                <div class="dialog-image">
+                    <img src="${it.iconUrl}"/>
+                </div>
+                <div>
+                    <j:set var="consumerName" value="${it.consumerName}"/>
+                    <j:set var="username" value="${it.authenticatedUsername}"/>
+                    <j:set var="instanceName" value="${it.instanceName}"/>
+                    <h2>
+                        <j:choose>
+                            <j:when test="${it.getDescriptor().isAuthenticated()}">
+                                ${%bitbucket.oauth.authorize.title.auth(consumerName, username)}
+                            </j:when>
+                            <j:otherwise>
+                                ${%bitbucket.oauth.authorize.title.noauth(consumerName)}
+                            </j:otherwise>
+                        </j:choose>
+                    </h2>
+                    <p>
+                        ${%bitbucket.oauth.authorize.body}
+                    </p>
+                    <f:form action="performSubmit" method="POST" name="performSubmit">
+                        <f:invisibleEntry field="oauth_token_field">
+                            <f:readOnlyTextbox type="hidden" name="${it.OAUTH_TOKEN_PARAM}" value="${it.token}"/>
+                        </f:invisibleEntry>
+                        <f:invisibleEntry field="oauth_callback_field">
+                            <f:readOnlyTextbox type="hidden" name="oauth_callback" value="${it.callback}"/>
+                        </f:invisibleEntry>
+                        <f:submit name="${it.ALLOW_KEY}" value="${%bitbucket.oauth.authorize.allow}"/>
+                        <f:submit name="${it.DENY_KEY}" value="${%bitbucket.oauth.authorize.deny}"/>
+                    </f:form>
+                </div>
+                <br/>
+                <div id="authorize-warning" class="alert alert-warning">
+                    ${%bitbucket.oauth.authorize.warning(instanceName, consumerName)}
+                </div>
+            </div>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

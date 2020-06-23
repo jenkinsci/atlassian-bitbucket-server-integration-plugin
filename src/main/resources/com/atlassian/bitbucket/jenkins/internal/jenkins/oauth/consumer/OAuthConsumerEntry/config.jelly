@@ -1,0 +1,23 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
+    <f:entry field="consumerKey" title="${%bitbucket.oauth.consumer.key}">
+        <j:choose>
+           <j:when test="${it.update}">
+            <f:readOnlyTextbox checkUrl="" value="${it.consumerKey}"/>
+           </j:when>
+          <j:otherwise>
+             <f:textbox value="${it.consumerKey}"/>
+          </j:otherwise>
+        </j:choose>
+    </f:entry>
+    <f:entry field="consumerName" title="${%bitbucket.oauth.consumer.name}">
+        <f:textbox value="${it.consumerName}"/>
+    </f:entry>
+    <f:entry field="consumerSecret" title="${%bitbucket.oauth.consumer.secret}">
+        <f:password value="${it.consumerSecret}"/>
+    </f:entry>
+    <f:entry field="callbackUrl" title="${%bitbucket.oauth.consumer.callback}">
+        <f:textbox value="${it.callbackUrl}"/>
+    </f:entry>
+</j:jelly>
