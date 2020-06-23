@@ -1,4 +1,4 @@
-package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects;
+package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -21,13 +21,13 @@ import static org.hamcrest.Matchers.equalToIgnoringWhiteSpace;
 /**
  * The page where user authorizes an OAuth request token.
  */
-public class AuthorizeTokenPage extends PageObject {
+public class OAuthAuthorizeTokenPage extends PageObject {
 
     public static final long TIMEOUT_SECONDS = 5L;
 
     private final String requestToken;
 
-    public AuthorizeTokenPage(Jenkins context, URL pageUrl, String requestTokenValue) {
+    public OAuthAuthorizeTokenPage(Jenkins context, URL pageUrl, String requestTokenValue) {
         super(context, pageUrl);
         this.requestToken = requestTokenValue;
     }

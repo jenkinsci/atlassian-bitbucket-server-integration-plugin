@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsApplinksClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsOAuthClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
-import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.AuthorizeTokenPage;
+import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.OAuthAuthorizeTokenPage;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
@@ -97,7 +97,7 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
         String authzUrl = oAuthClient.getAuthorizationUrl(requestToken);
         String oAuthVerifier;
         try {
-            oAuthVerifier = new AuthorizeTokenPage(jenkins, URI.create(authzUrl).toURL(), requestToken.getToken())
+            oAuthVerifier = new OAuthAuthorizeTokenPage(jenkins, URI.create(authzUrl).toURL(), requestToken.getToken())
                     .authorize();
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);

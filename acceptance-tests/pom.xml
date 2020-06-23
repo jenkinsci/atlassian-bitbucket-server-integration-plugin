@@ -15,12 +15,15 @@
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
         <jenkins.acceptance-test-harness.version>1.71</jenkins.acceptance-test-harness.version>
+        <!-- TODO: update to 7.4.0 once 7.4 final is released -->
+        <bitbucket.version>7.4.0-rc2</bitbucket.version>
         <httpclient.version>4.5.10</httpclient.version>
         <jenkins.version>2.190.1</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.10.3</jackson.version>
         <groovy.version>2.4.12</groovy.version>
         <commons-lang3.version>3.10</commons-lang3.version>
+        <jgit.version>4.5.7.201904151645-r</jgit.version>
         <rest-assured.version>3.0.7</rest-assured.version>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -78,6 +81,11 @@
             <artifactId>groovy-xml</artifactId>
             <version>${groovy.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit.junit</artifactId>
+            <version>${jgit.version}</version>
+        </dependency>
     </dependencies>
 
     <repositories>
@@ -94,27 +102,54 @@
     </pluginRepositories>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.0.0-M4</version>
+                    <configuration>
+                        <trimStackTrace>false</trimStackTrace>
+                        <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                        <reuseForks>false</reuseForks>
+                        <environmentVariables>
+                            <!-- Used by Jenkins Acceptance Test Harness -->
+                            <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
+                            <!-- The path to the plugin under test (i.e. the Bitbucket Server integration plugin) -->
+                            <LOCAL_JARS>${plugin.build.dir}/${plugin-under-test.name}.hpi</LOCAL_JARS>
+                            <!-- Always update the (local) plugins with the latest snapshot. This is especially useful if
+                            running the tests against an existing (external) Jenkins instance (see readme.md). -->
+                            <LOCAL_SNAPSHOTS>true</LOCAL_SNAPSHOTS>
+                            <!-- This runs Firefox inside a container. To be able to see the browser when running the test
+                            locally, change it to 'firefox' or 'chrome' (or whatever browser of choice).
+                            See https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md for more
+                            details and the full list of browsers. -->
+                            <BROWSER>firefox-container</BROWSER>
+                        </environmentVariables>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>com.atlassian.maven.plugins</groupId>
+                    <artifactId>bitbucket-maven-plugin</artifactId>
+                    <version>8.0.0</version>
+                    <configuration>
+                        <skipAllPrompts>true</skipAllPrompts>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M4</version>
                 <configuration>
-                    <reuseForks>false</reuseForks>
-                    <environmentVariables>
-                        <!-- Used by Jenkins Acceptance Test Harness -->
-                        <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
-                        <!-- The path to the plugin under test (i.e. the Bitbucket Server integration plugin) -->
-                        <LOCAL_JARS>${plugin.build.dir}/${plugin-under-test.name}.hpi</LOCAL_JARS>
-                        <!-- Always update the (local) plugins with the latest snapshot. This is especially useful if
-                        running the tests against an existing (external) Jenkins instance (see readme.md). -->
-                        <LOCAL_SNAPSHOTS>true</LOCAL_SNAPSHOTS>
-                        <!-- This runs Firefox inside a container. To be able to see the browser when running the test
-                        locally, change it to 'firefox' or 'chrome' (or whatever browser of choice).
-                        See https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md for more
-                        details and the full list of browsers. -->
-                        <BROWSER>firefox-container</BROWSER>
-                    </environmentVariables>
+                    <!-- There are no unit tests in this module, only integration tests. Surefire is used to run
+                         the unit tests, and Failsafe is used to run the integration tests. So we can fully disable
+                         the Surefire plugin below here; it's not necessary. -->
+                    <excludes>
+                        <exclude>it/**/*.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -141,6 +176,107 @@
             <properties>
                 <maven.test.skip>true</maven.test.skip>
             </properties>
+        </profile>
+        <profile>
+            <id>acceptance-tests</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <includes>
+                                <include>it/**/*.java, !*SmokeTest*.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>smoke-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>it/**/*SmokeTest.java</include>
+                            </includes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>integration-test</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>verify</id>
+                                <goals>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.atlassian.maven.plugins</groupId>
+                        <artifactId>bitbucket-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- Speedup startup times -->
+                            <enableDevToolbox>false</enableDevToolbox>
+                            <enablePde>false</enablePde>
+                            <skipRestDocGeneration>true</skipRestDocGeneration>
+                            <allowGoogleTracking>false</allowGoogleTracking>
+                            <skipManifestValidation>true</skipManifestValidation>
+                            <extractDependencies>false</extractDependencies>
+                            <products>
+                                <product>
+                                    <id>bitbucket</id>
+                                    <instanceId>bitbucket</instanceId>
+                                    <version>${bitbucket.version}</version>
+                                    <productDataVersion>${bitbucket.version}</productDataVersion>
+                                </product>
+                            </products>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>runbb</id>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <wait>false</wait>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>stopbb</id>
+                                <goals>
+                                    <goal>stop</goal>
+                                </goals>
+                                <phase>post-integration-test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

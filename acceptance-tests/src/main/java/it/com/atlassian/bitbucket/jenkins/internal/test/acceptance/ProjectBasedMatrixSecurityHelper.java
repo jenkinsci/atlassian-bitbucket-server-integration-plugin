@@ -1,6 +1,6 @@
 package it.com.atlassian.bitbucket.jenkins.internal.test.acceptance;
 
-import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage;
+import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.LoginPage;
 import org.jenkinsci.test.acceptance.controller.ExistingJenkinsController;
 import org.jenkinsci.test.acceptance.controller.JenkinsController;
 import org.jenkinsci.test.acceptance.controller.WinstoneController;
@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.pageobjects.LoginPage.isSuccessfulLogin;
+import static it.com.atlassian.bitbucket.jenkins.internal.pageobjects.LoginPage.isSuccessfulLogin;
 import static org.apache.commons.lang3.RandomStringUtils.randomNumeric;
 import static org.hamcrest.MatcherAssert.assertThat;
 
