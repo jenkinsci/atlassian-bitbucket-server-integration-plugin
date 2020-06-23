@@ -15,7 +15,7 @@ import static java.util.Objects.requireNonNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BitbucketBuildStatus {
 
-    private final String buildId;
+    private final String buildNumber;
     private final String description;
     private final Long duration;
     private final String key;
@@ -27,7 +27,7 @@ public class BitbucketBuildStatus {
     private final String url;
 
     @JsonCreator
-    public BitbucketBuildStatus(@JsonProperty("buildId") String buildId,
+    public BitbucketBuildStatus(@JsonProperty("buildNumber") String buildNumber,
                                 @JsonProperty("description") String description,
                                 @JsonProperty("duration") Long duration,
                                 @JsonProperty("key") String key,
@@ -40,7 +40,7 @@ public class BitbucketBuildStatus {
         requireNonNull(key, "key");
         requireNonNull(state, "state");
         requireNonNull(url, "url");
-        this.buildId = buildId;
+        this.buildNumber = buildNumber;
         this.description = description;
         this.duration = duration;
         this.key = key;
@@ -52,9 +52,9 @@ public class BitbucketBuildStatus {
         this.url = url;
     }
 
-    @JsonProperty(value = "buildId")
-    public String getBuildId() {
-        return buildId;
+    @JsonProperty(value = "buildNumber")
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     @JsonProperty(value = "description")
@@ -108,7 +108,7 @@ public class BitbucketBuildStatus {
 
     public static class Builder {
 
-        private String buildId;
+        private String buildNumber;
         private String description;
         private Long duration;
         private String key;
@@ -126,11 +126,11 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(buildId, description, duration, key, name, parent, ref, state, testResults, url);
+            return new BitbucketBuildStatus(buildNumber, description, duration, key, name, parent, ref, state, testResults, url);
         }
 
-        public Builder setBuildId(String buildId) {
-            this.buildId = buildId;
+        public Builder setBuildNumber(String buildNumber) {
+            this.buildNumber = buildNumber;
             return this;
         }
 

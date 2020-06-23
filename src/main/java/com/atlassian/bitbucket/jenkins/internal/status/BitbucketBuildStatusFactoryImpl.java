@@ -59,7 +59,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
             BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
             ItemGroup parent = job.getParent();
 
-            bbs.setBuildId(build.getId())
+            bbs.setBuildNumber(build.getId())
                     .setTestResults(getTestResults(build))
                     .setParent(parent instanceof MultiBranchProject ? parent.getFullName() : job.getFullName());
 
