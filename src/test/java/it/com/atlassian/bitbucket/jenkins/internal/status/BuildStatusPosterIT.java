@@ -258,7 +258,7 @@ public class BuildStatusPosterIT {
                 .withRequestBody(
                         equalToJson(
                                 format("{" +
-                                       "\"buildId\":\"%s\"," +
+                                       "\"buildNumber\":\"%s\"," +
                                        "\"description\":\"%s\"," +
                                        "\"duration\":%d," +
                                        "\"key\":\"%s\"," +
