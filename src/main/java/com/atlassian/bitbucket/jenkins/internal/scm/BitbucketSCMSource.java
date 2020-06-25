@@ -118,7 +118,7 @@ public class BitbucketSCMSource extends SCMSource {
             setRepositoryDetails(credentialsId, serverId, "", localRepo);
         }
         //register webhook to get notified when new branches are pushed etc.
-        ((DescriptorImpl) getDescriptor()).getRetryingWebhookHandler().register(baseUrl, globalCredentialsProvider, repository);
+        //((DescriptorImpl) getDescriptor()).getRetryingWebhookHandler().register(baseUrl, globalCredentialsProvider, repository);
     }
 
     /**

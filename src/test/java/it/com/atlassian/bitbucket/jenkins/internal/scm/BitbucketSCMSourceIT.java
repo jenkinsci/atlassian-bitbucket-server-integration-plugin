@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.cloudbees.hudson.plugins.folder.computed.PseudoRun;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
+import hudson.triggers.Trigger;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -20,6 +22,7 @@ import io.restassured.specification.RequestSpecification;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.apache.commons.io.FileUtils;
@@ -127,11 +130,13 @@ public class BitbucketSCMSourceIT {
         SCMSource scmSource = new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
                 PROJECT_NAME, repoName, serverId, null);
         WorkflowMultiBranchProject project = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
+        Trigger<MultiBranchProject<?, ?>> trigger = new BitbucketWebhookMultibranchTrigger();
 
         BranchSource branchSource = new BranchSource(scmSource);
 
         branchSource.setStrategy(new DefaultBranchPropertyStrategy(null));
         project.setSourcesList(Collections.singletonList(branchSource));
+        trigger.start(project, true);
 
         Future queueFuture = project.scheduleBuild2(0).getFuture();
         while (!queueFuture.isDone()) { //wait for the branch scanning to complete before proceeding
