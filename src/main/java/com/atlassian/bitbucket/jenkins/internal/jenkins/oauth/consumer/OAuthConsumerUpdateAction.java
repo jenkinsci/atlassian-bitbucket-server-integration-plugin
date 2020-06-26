@@ -4,6 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.co
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthConsumerEntry.OAuthConsumerEntryDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultJenkinsProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Action;
 import jenkins.model.ModelObjectWithContextMenu;
@@ -24,13 +27,21 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
 
     private final String consumerKey;
     private final ServiceProviderConsumerStore consumerStore;
+    private final JenkinsProvider jenkinsProvider;
     private final ServiceProviderTokenStore tokenStore;
+
+    @VisibleForTesting
+    OAuthConsumerUpdateAction(String consumerKey, ServiceProviderConsumerStore consumerStore,
+                                     ServiceProviderTokenStore tokenStore, JenkinsProvider jenkinsProvider) {
+        this.consumerKey = requireNonNull(consumerKey, "consumerKey");
+        this.consumerStore = requireNonNull(consumerStore, "consumerStore");
+        this.jenkinsProvider = requireNonNull(jenkinsProvider, "jenkinsProvider");
+        this.tokenStore = requireNonNull(tokenStore, "tokenStore");
+    }
 
     public OAuthConsumerUpdateAction(String consumerKey, ServiceProviderConsumerStore consumerStore,
                                      ServiceProviderTokenStore tokenStore) {
-        this.consumerKey = requireNonNull(consumerKey, "consumerKey");
-        this.consumerStore = requireNonNull(consumerStore, "consumerStore");
-        this.tokenStore = tokenStore;
+        this(consumerKey, consumerStore, tokenStore, new DefaultJenkinsProvider());
     }
 
     @Override
@@ -80,6 +91,21 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
     @Override
     public String getIconFileName() {
         return "setting.png";
+    }
+
+    @SuppressWarnings("unused") //Stapler
+    public String getRequestTokenUrl() {
+        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/request-token";
+    }
+
+    @SuppressWarnings("unused") //Stapler
+    public String getAccessTokenUrl() {
+        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/access-token";
+    }
+
+    @SuppressWarnings("unused") //Stapler
+    public String getAuthorizeUrl() {
+        return jenkinsProvider.get().getRootUrl() + "bbs-oauth/authorize";
     }
 
     @Override

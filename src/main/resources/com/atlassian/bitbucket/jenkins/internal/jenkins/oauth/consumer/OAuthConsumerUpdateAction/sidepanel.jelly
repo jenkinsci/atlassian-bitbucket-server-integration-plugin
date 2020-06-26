@@ -5,6 +5,7 @@
         <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
         <l:tasks>
             <l:task icon="images/24x24/up.png" href="../.." title="${%bitbucket.oauth.consumer.back}" contextMenu="false"/>
+            <l:task icon="images/24x24/help.png" href="${url}/applinkinfo" title="${%bitbucket.oauth.consumer.applink.info}" />
             <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%bitbucket.oauth.consumer.delete}"/>
         </l:tasks>
     </l:side-panel>
