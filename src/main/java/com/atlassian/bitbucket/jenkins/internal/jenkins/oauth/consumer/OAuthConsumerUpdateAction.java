@@ -17,6 +17,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import java.net.URISyntaxException;
 
@@ -65,6 +66,7 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
         return HttpResponses.redirectViaContextPath(RELATIVE_PATH);
     }
 
+    @Nullable
     @SuppressWarnings("unused") // Stapler
     public OAuthConsumerEntryDescriptor getConsumerDescriptor() {
         OAuthConsumerEntry entry = getConsumerEntry();

@@ -29,7 +29,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Collection;
@@ -189,7 +188,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
 
         @Override
-        public Trigger<?> newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+        public Trigger<?> newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
             return super.newInstance(req, formData);
         }
 

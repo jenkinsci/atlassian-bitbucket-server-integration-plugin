@@ -25,7 +25,6 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.List;
@@ -191,7 +190,6 @@ public class BitbucketSCMStep extends SCMStep {
         return repositoryId;
     }
 
-    @Nonnull
     @Override
     protected SCM createSCM() {
         BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
