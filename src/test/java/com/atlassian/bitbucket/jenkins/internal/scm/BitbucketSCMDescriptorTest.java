@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
+import hudson.model.Item;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +35,8 @@ public class BitbucketSCMDescriptorTest {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Mock
+    private Item item;
 
     @Test
     public void testDoCheckCredentialsId() {
@@ -61,8 +64,8 @@ public class BitbucketSCMDescriptorTest {
 
     @Test
     public void testDoFillCredentialsIdItems() {
-        descriptor.doFillCredentialsIdItems("myBaseUrl", "myCredentialsId");
-        verify(formFill).doFillCredentialsIdItems("myBaseUrl", "myCredentialsId");
+        descriptor.doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
+        verify(formFill).doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
     }
 
     @Test

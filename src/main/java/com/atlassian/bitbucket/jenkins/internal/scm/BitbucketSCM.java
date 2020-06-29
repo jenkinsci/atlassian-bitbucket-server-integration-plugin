@@ -13,6 +13,7 @@ import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -27,6 +28,7 @@ import hudson.scm.*;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -413,9 +415,10 @@ public class BitbucketSCM extends SCM {
 
         @Override
         @POST
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                     @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
-            return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
+            return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
         }
 
         @Override

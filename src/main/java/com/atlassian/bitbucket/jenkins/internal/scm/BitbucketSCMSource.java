@@ -9,13 +9,19 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.model.TaskListener;
+import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
+import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
@@ -27,6 +33,8 @@ import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.gitclient.GitClient;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -311,10 +319,10 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         @POST
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                     @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
+            return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
         }
 
         @Override

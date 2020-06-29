@@ -12,6 +12,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 import com.google.inject.Guice;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
@@ -20,6 +21,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -261,9 +263,10 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         @POST
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                     @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
-            return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
+            return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
         }
 
         @Override

@@ -14,6 +14,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.model.Item;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.security.ACL;
@@ -24,6 +25,7 @@ import net.sf.json.JSONArray;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.HttpResponse;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collection;
@@ -64,9 +66,11 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public ListBoxModel doFillCredentialsIdItems(String baseUrl, String credentialsId) {
+    public ListBoxModel doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
         Jenkins instance = Jenkins.get();
-        if (!instance.hasPermission(Jenkins.ADMINISTER)) {
+
+        if (context == null && !instance.hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return new StandardListBoxModel().includeCurrentValue(credentialsId);
         }
 

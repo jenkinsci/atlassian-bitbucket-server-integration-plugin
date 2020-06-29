@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import hudson.model.Item;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -18,6 +19,8 @@ public class BitbucketSCMStepDescriptorTest {
     private BitbucketScmFormFillDelegate formFill;
     @Mock
     private BitbucketScmFormValidationDelegate formValidation;
+    @Mock
+    private Item item;
 
     @Test
     public void testDoCheckCredentialsId() {
@@ -45,8 +48,8 @@ public class BitbucketSCMStepDescriptorTest {
 
     @Test
     public void testDoFillCredentialsIdItems() {
-        descriptor.doFillCredentialsIdItems("myBaseUrl", "myCredentialsId");
-        verify(formFill).doFillCredentialsIdItems("myBaseUrl", "myCredentialsId");
+        descriptor.doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
+        verify(formFill).doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
     }
 
     @Test
