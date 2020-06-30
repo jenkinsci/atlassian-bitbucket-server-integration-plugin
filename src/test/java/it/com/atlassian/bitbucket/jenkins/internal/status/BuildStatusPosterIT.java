@@ -266,7 +266,7 @@ public class BuildStatusPosterIT {
                                        "\"parent\":\"%s\"," +
                                        "\"ref\":\"%s\"," +
                                        "\"state\":\"%s\"," +
-                                       "\"url\":\"%s%sdisplay/redirect\"" +
+                                       "\"url\":\"%s%s\"" +
                                        "}",
                                         build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),

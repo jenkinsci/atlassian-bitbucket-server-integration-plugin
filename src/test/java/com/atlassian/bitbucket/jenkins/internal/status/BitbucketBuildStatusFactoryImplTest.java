@@ -2,11 +2,11 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import hudson.model.*;
 import hudson.tasks.junit.TestResultAction;
 import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,13 +24,16 @@ public class BitbucketBuildStatusFactoryImplTest {
     private static final String BUILD_DURATION = "400 secs";
     private static final String BUILD_ID = "15";
     private static final String BUILD_DISPLAY_NAME = "#" + BUILD_ID;
-    private static final String BUILD_URL = "http://www.example.com:8000";
+    private static final String BASE_URL = "http://www.example.com:8000";
     private static final String FREESTYLE_PROJECT_NAME = "Freestyle Project";
-    private static final String WORKFLOW_JOB_NAME = "branch-name";
+    private static final String FREESTYLE_BUILD_URL = "/job/Freestyle%20Project/15";
+    private static final String WORKFLOW_JOB_NAME = "folder/branch";
     private static final String WORKFLOW_PROJECT_NAME = "MultiBranch Project";
+    //Yeah that's actually what happens.
+    private static final String WORKFLOW_BUILD_URL = "/job/MultiBranch%20Project/job/folder%252Fbranch/15";
 
     @Mock
-    private DisplayURLProvider displayUrlProvider;
+    private JenkinsProvider jenkinsProvider;
     @Mock
     private Run freeStyleRun;
     private Job freeStyleProject;
@@ -48,16 +51,18 @@ public class BitbucketBuildStatusFactoryImplTest {
 
         freeStyleProject = new FreeStyleProject((ItemGroup) parent, FREESTYLE_PROJECT_NAME);
         workflowJob = new WorkflowJob(workflowProject, WORKFLOW_JOB_NAME);
-        when(displayUrlProvider.getRunURL(workflowRun)).thenReturn(BUILD_URL);
-        when(displayUrlProvider.getRunURL(freeStyleRun)).thenReturn(BUILD_URL);
+        when(jenkinsProvider.get()).thenReturn(parent);
+        when(parent.getRootUrl()).thenReturn(BASE_URL);
 
         when(freeStyleRun.getId()).thenReturn(BUILD_ID);
         when(freeStyleRun.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
         when(freeStyleRun.getDurationString()).thenReturn(BUILD_DURATION);
         when(freeStyleRun.getParent()).thenReturn(freeStyleProject);
+        when(freeStyleRun.getUrl()).thenReturn(FREESTYLE_BUILD_URL);
         when(workflowRun.getId()).thenReturn(BUILD_ID);
         when(workflowRun.getDisplayName()).thenReturn(BUILD_DISPLAY_NAME);
         when(workflowRun.getDurationString()).thenReturn(BUILD_DURATION);
+        when(workflowRun.getUrl()).thenReturn(WORKFLOW_BUILD_URL);
         doReturn(workflowJob).when(workflowRun).getParent();
 
         when(parent.getFullName()).thenReturn("");
@@ -86,7 +91,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(freeStyleProject.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(BUILD_URL));
+        assertThat(result.getUrl(), equalTo(BASE_URL + FREESTYLE_BUILD_URL));
     }
 
     @Test
@@ -120,7 +125,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(BUILD_URL));
+        assertThat(result.getUrl(), equalTo(BASE_URL + WORKFLOW_BUILD_URL));
     }
 
     @Test
@@ -153,7 +158,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(freeStyleProject.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(BUILD_URL));
+        assertThat(result.getUrl(), equalTo(BASE_URL + FREESTYLE_BUILD_URL));
         assertThat(result.getParent(), equalTo(freeStyleProject.getFullName()));
         assertThat(result.getDuration(), equalTo(duration));
         assertThat(result.getTestResults(), notNullValue());
@@ -184,7 +189,7 @@ public class BitbucketBuildStatusFactoryImplTest {
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
         assertThat(result.getState(), equalTo(BuildState.SUCCESSFUL.toString()));
-        assertThat(result.getUrl(), equalTo(BUILD_URL));
+        assertThat(result.getUrl(), equalTo(BASE_URL + WORKFLOW_BUILD_URL));
         assertThat(result.getParent(), equalTo(workflowProject.getFullName()));
         assertThat(result.getDuration(), equalTo(duration));
         assertThat(result.getTestResults(), notNullValue());
@@ -199,7 +204,7 @@ public class BitbucketBuildStatusFactoryImplTest {
 
     private BitbucketBuildStatus createBitbucketBuildStatus(Run<?, ?> run, boolean createRich) {
         BitbucketBuildStatusFactoryImpl statusFactory =
-                new BitbucketBuildStatusFactoryImpl(displayUrlProvider);
+                new BitbucketBuildStatusFactoryImpl(jenkinsProvider);
         return createRich ? statusFactory.createRichBuildStatus(run) :
                             statusFactory.createLegacyBuildStatus(run);
     }
