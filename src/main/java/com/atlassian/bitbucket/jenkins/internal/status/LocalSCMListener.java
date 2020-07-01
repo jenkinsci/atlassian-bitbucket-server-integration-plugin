@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRefNameExtractorFactory;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -137,14 +136,10 @@ public class LocalSCMListener extends SCMListener {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
-        String repositoryName = bitbucketSCMRepository.getRepositorySlug();
         String branch = env.get(GitSCM.GIT_BRANCH);
-        BitbucketRefNameExtractorFactory refNameExtractorFactory = new BitbucketRefNameExtractorFactory();
-        String branchName = branch != null ?
-                refNameExtractorFactory.forBuildType(build.getClass()).extractRefName(branch, repositoryName)
-                : null;
+        String refName = branch != null ? underlyingScm.deriveLocalBranchName(branch) : null;
         BitbucketRevisionAction revisionAction =
-                new BitbucketRevisionAction(bitbucketSCMRepository, branchName, env.get(GitSCM.GIT_COMMIT));
+                new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
     }

@@ -92,7 +92,7 @@ public class BuildStatusPosterIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
 
         verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
     }
 
     @Test
@@ -120,7 +120,7 @@ public class BuildStatusPosterIT {
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                        build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -154,7 +154,7 @@ public class BuildStatusPosterIT {
         jenkinsProjectHandler.runPipelineJob(wfj, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                        build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -190,7 +190,7 @@ public class BuildStatusPosterIT {
         jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master", build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                        build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -222,7 +222,7 @@ public class BuildStatusPosterIT {
         jenkinsProjectHandler.runPipelineJob(wfj, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url1)),
-                        build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                        build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -237,7 +237,7 @@ public class BuildStatusPosterIT {
         jenkinsProjectHandler.runPipelineJob(wfj, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url2)),
-                        build, bbJenkinsRule.getURL(), SUCCESSFUL));
+                        build, bbJenkinsRule.getURL(), SUCCESSFUL, "refs/heads/master"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -245,11 +245,10 @@ public class BuildStatusPosterIT {
     }
 
     private static RequestPatternBuilder requestBody(RequestPatternBuilder requestPatternBuilder, Run<?, ?> build,
-                                                     URL jenkinsUrl, BuildState buildState) {
+                                                     URL jenkinsUrl, BuildState buildState, String refName) {
         Job<?, ?> job = build.getParent();
         BitbucketRevisionAction bitbucketRevisionAction = build.getAction(BitbucketRevisionAction.class);
         assertNotNull(bitbucketRevisionAction);
-        String refName = bitbucketRevisionAction.getBranchAsRefFormat();
         String jenkinsUrlAsString = jenkinsUrl.toExternalForm();
         ItemGroup<?> parentProject = job.getParent();
         String parentName = parentProject instanceof MultiBranchProject ? parentProject.getFullName() : job.getFullName();
