@@ -10,6 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -29,6 +30,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private static final String NO_SERVER_MSG =
             "Failed to post build status as the provided Bitbucket Server config does not exist";
+    private static final String LEGACY_BUILD_STATUS_PROPERTY = "legacyBuildStatus";
 
     @Inject
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
@@ -78,7 +80,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
             BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
 
             BitbucketBuildStatus buildStatus;
-            if (ciCapabilities.supportsRichBuildStatus()) {
+            if (!useLegacyBuildStatus() && ciCapabilities.supportsRichBuildStatus()) {
                 buildStatus = bitbucketBuildStatusFactory.createRichBuildStatus(run);
             } else {
                 buildStatus = bitbucketBuildStatusFactory.createLegacyBuildStatus(run);
@@ -103,5 +105,10 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         BitbucketCredentials credentials =
                 jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
         return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
+    }
+
+    @VisibleForTesting
+    boolean useLegacyBuildStatus() {
+        return Boolean.getBoolean(LEGACY_BUILD_STATUS_PROPERTY);
     }
 }

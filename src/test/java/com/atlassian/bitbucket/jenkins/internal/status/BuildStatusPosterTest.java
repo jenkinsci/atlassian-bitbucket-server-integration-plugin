@@ -59,11 +59,12 @@ public class BuildStatusPosterTest {
                         .withBuildStatusClient(REVISION_SHA1, scmRepository)
                         .withCICapabilities(BitbucketCICapabilities.RICH_BUILD_STATUS_CAPABILITY);
 
-        buildStatusPoster = new BuildStatusPoster(
+        buildStatusPoster = spy(new BuildStatusPoster(
                 clientFactoryMock.getBitbucketClientFactoryProvider(),
                 jenkinsSetupMock.getPluginConfiguration(),
                 jenkinsSetupMock.getJenkinsToBitbucketConverter(),
-                buildStatusFactory);
+                buildStatusFactory));
+        when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(false);
 
         when(run.getProject()).thenReturn(project);
         when(listener.getLogger()).thenReturn(logger);
@@ -115,5 +116,17 @@ public class BuildStatusPosterTest {
 
         verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
         verify(buildStatusFactory).createRichBuildStatus(run);
+    }
+
+    @Test
+    public void testRichBuildStatusUseLegacyEnabled() {
+        when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(true);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
+        verify(buildStatusFactory).createLegacyBuildStatus(run);
     }
 }
