@@ -25,7 +25,8 @@ import java.util.logging.Logger;
 public class BuildStatusPoster extends RunListener<Run<?, ?>> {
 
     private static final String BUILD_STATUS_ERROR_MSG = "Failed to post build status, additional information:";
-    private static final String BUILD_STATUS_FORMAT = "Posting build status of %s to %s for commit id [%s]";
+    private static final String BUILD_STATUS_FORMAT =
+            "Posting build status of %s to %s for commit id [%s] and ref '%s'";
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private static final String NO_SERVER_MSG =
             "Failed to post build status as the provided Bitbucket Server config does not exist";
@@ -85,7 +86,8 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
             }
 
             listener.getLogger().println(String.format(BUILD_STATUS_FORMAT,
-                    buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1()));
+                    buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1(),
+                    buildStatus.getRef()));
 
             bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), revisionAction.getBitbucketSCMRepo(), ciCapabilities)
                     .post(buildStatus);
