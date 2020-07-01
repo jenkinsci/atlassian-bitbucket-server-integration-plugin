@@ -64,6 +64,7 @@ public class BitbucketServerConfiguration
     private final String credentialsId;
     private final String id;
     private String baseUrl;
+    private boolean forcesLegacyBuildStatuses;
     private String serverName;
 
     @DataBoundConstructor
@@ -71,60 +72,21 @@ public class BitbucketServerConfiguration
             String adminCredentialsId,
             String baseUrl,
             @Nullable String credentialsId,
-            @Nullable String id) {
+            @Nullable String id,
+            boolean forcesLegacyBuildStatuses) {
         this.adminCredentialsId = requireNonNull(adminCredentialsId);
         this.baseUrl = requireNonNull(baseUrl);
         this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
+        this.forcesLegacyBuildStatuses = forcesLegacyBuildStatuses;
     }
 
-    /**
-     * For a given item, returns a global credential provider. The credentials are tracked and
-     * this should be the only way to fetch credentials.
-     *
-     * @param item which will use the credential.
-     * @return credential provider
-     */
-    public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
-        return new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                BitbucketTokenCredentials adminCredentials = BitbucketServerConfiguration.this.getAdminCredentials();
-                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
-                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
-            }
-        };
-    }
-
-    /**
-     * Similar to {@link BitbucketServerConfiguration#getGlobalCredentialsProvider(Item)} but without item. This
-     * is usually a case when fetching credentials as part of `doFill` methods.
-     *
-     * @param context a context which will be logged
-     * @return credential provider
-     */
-    public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
-        if (isBlank(context)) {
-            throw new IllegalArgumentException("Please provide a valid non blank context");
-        }
-        return new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                log.fine(format("Using admin credentials for [%s]", context));
-                return Optional.ofNullable(BitbucketServerConfiguration.this.getAdminCredentials());
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                log.fine(format("Using global credentials for [%s]", context));
-                return Optional.ofNullable(BitbucketServerConfiguration.this.getCredentials());
-            }
-        };
+    public BitbucketServerConfiguration(
+            String adminCredentialsId,
+            String baseUrl,
+            @Nullable String credentialsId,
+            @Nullable String id) {
+        this(adminCredentialsId, baseUrl, credentialsId, id, false);
     }
 
     public String getAdminCredentialsId() {
@@ -155,6 +117,55 @@ public class BitbucketServerConfiguration
         return credentialsId;
     }
 
+    /**
+     * Similar to {@link BitbucketServerConfiguration#getGlobalCredentialsProvider(Item)} but without item. This
+     * is usually a case when fetching credentials as part of `doFill` methods.
+     *
+     * @param context a context which will be logged
+     * @return credential provider
+     */
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(String context) {
+        if (isBlank(context)) {
+            throw new IllegalArgumentException("Please provide a valid non blank context");
+        }
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
+                log.fine(format("Using admin credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getAdminCredentials());
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                log.fine(format("Using global credentials for [%s]", context));
+                return Optional.ofNullable(BitbucketServerConfiguration.this.getCredentials());
+            }
+        };
+    }
+
+    /**
+     * For a given item, returns a global credential provider. The credentials are tracked and
+     * this should be the only way to fetch credentials.
+     *
+     * @param item which will use the credential.
+     * @return credential provider
+     */
+    public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
+        return new GlobalCredentialsProvider() {
+            @Override
+            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
+                BitbucketTokenCredentials adminCredentials = BitbucketServerConfiguration.this.getAdminCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+
+            @Override
+            public Optional<Credentials> getGlobalCredentials() {
+                Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
+                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+            }
+        };
+    }
+
     public String getId() {
         return id;
     }
@@ -177,6 +188,25 @@ public class BitbucketServerConfiguration
     @DataBoundSetter
     public void setServerName(String serverName) {
         this.serverName = trimToEmpty(serverName);
+    }
+
+    /**
+     * Returns whether or not the server should only send legacy build statuses
+     *
+     * @return true if server should only receive legacy build statuses; false otherwise
+     */
+    public boolean isForcesLegacyBuildStatuses() {
+        return forcesLegacyBuildStatuses;
+    }
+
+    /**
+     * Sets the option for the server to only send legacy build statuses
+     *
+     * @param forcesLegacyBuildStatuses whether or not the server should only send legacy build statuses
+     */
+    @DataBoundSetter
+    public void setForcesLegacyBuildStatuses(boolean forcesLegacyBuildStatuses) {
+        this.forcesLegacyBuildStatuses = forcesLegacyBuildStatuses;
     }
 
     /**
@@ -346,7 +376,7 @@ public class BitbucketServerConfiguration
 
             BitbucketServerConfiguration config =
                     new BitbucketServerConfiguration(
-                            adminCredentialsId, baseUrl, credentialsId, null);
+                            adminCredentialsId, baseUrl, credentialsId, null, false);
             Credentials credentials = config.getCredentials();
             if (credentials == null && isNotBlank(credentialsId)) {
                 return FormValidation.error("We can't find these credentials. Provide different credentials and try again.");

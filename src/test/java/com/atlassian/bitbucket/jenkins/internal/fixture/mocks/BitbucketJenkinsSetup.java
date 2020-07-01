@@ -33,6 +33,7 @@ public class BitbucketJenkinsSetup {
 
     private BitbucketJenkinsSetup(String serverUrl) {
         when(server.getBaseUrl()).thenReturn(serverUrl);
+        when(server.isForcesLegacyBuildStatuses()).thenReturn(false);
         when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.of(adminCredentials));
         when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(globalCredentials));
 

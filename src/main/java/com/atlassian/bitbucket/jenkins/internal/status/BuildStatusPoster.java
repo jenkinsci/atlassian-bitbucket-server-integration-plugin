@@ -78,7 +78,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
             BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
 
             BitbucketBuildStatus buildStatus;
-            if (ciCapabilities.supportsRichBuildStatus()) {
+            if (!server.isForcesLegacyBuildStatuses() && ciCapabilities.supportsRichBuildStatus()) {
                 buildStatus = bitbucketBuildStatusFactory.createRichBuildStatus(run);
             } else {
                 buildStatus = bitbucketBuildStatusFactory.createLegacyBuildStatus(run);

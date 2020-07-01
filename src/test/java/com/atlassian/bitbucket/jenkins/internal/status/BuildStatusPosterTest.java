@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSetup;
 import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.TestBitbucketClientFactoryHandler;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
@@ -115,5 +116,18 @@ public class BuildStatusPosterTest {
 
         verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
         verify(buildStatusFactory).createRichBuildStatus(run);
+    }
+
+    @Test
+    public void testSuccessfulPostRichBuildStatusDisabled() {
+        BitbucketServerConfiguration serverConfiguration = jenkinsSetupMock.getServerConf();
+        when(serverConfiguration.isForcesLegacyBuildStatuses()).thenReturn(true);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
+        verify(buildStatusFactory).createLegacyBuildStatus(run);
     }
 }

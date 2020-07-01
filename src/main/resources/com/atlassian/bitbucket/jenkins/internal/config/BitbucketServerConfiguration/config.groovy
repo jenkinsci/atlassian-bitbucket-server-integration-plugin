@@ -34,4 +34,8 @@ f.section() {
                 with: "adminCredentialsId,baseUrl,credentialsId"
         )
     }
+
+    f.entry(title: _("bitbucket.legacy.build.status"), field: "forcesLegacyBuildStatuses") {
+        f.checkbox()
+    }
 }

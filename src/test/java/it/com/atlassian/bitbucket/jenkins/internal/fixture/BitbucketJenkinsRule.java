@@ -131,7 +131,7 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         addCredentials(readCredentials);
 
         bitbucketServerConfiguration =
-                new BitbucketServerConfiguration(adminCredentialsId, getBitbucketBaseUrl(), readCredentialsId, null);
+                new BitbucketServerConfiguration(adminCredentialsId, getBitbucketBaseUrl(), readCredentialsId, null, false);
         bitbucketServerConfiguration.setServerName(SERVER_NAME);
         addBitbucketServer(bitbucketServerConfiguration);
     }
