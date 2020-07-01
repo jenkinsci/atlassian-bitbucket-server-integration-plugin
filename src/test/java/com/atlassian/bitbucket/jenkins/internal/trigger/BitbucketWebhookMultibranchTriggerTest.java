@@ -30,7 +30,7 @@ public class BitbucketWebhookMultibranchTriggerTest {
     public static JenkinsRule jenkins = new JenkinsRule();
     @Mock
     private BitbucketServerConfiguration bbsConfig;
-    private BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor descriptor;
+    private BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor;
     @Mock
     private BitbucketPluginConfiguration pluginConfig;
     @Mock
@@ -38,7 +38,7 @@ public class BitbucketWebhookMultibranchTriggerTest {
 
     @Before
     public void setUp() {
-        descriptor = new BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor(webhookHandler, pluginConfig);
+        descriptor = new BitbucketWebhookMultibranchTrigger.DescriptorImpl(webhookHandler, pluginConfig);
     }
 
     @Test
@@ -64,15 +64,15 @@ public class BitbucketWebhookMultibranchTriggerTest {
 
     @Test
     public void testIsApplicableForMultibranch() {
-        BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor descriptor =
-                new BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor();
+        BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor =
+                new BitbucketWebhookMultibranchTrigger.DescriptorImpl();
         assertThat(descriptor.isApplicable(mock(MultiBranchProject.class)), is(true));
     }
 
     @Test
     public void testIsNotApplicableForFreeStyleOrWorkflow() {
-        BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor descriptor =
-                new BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor();
+        BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor =
+                new BitbucketWebhookMultibranchTrigger.DescriptorImpl();
         assertThat(descriptor.isApplicable(new FreeStyleProject((ItemGroup) null, "name")), is(false));
         assertThat(descriptor.isApplicable(new WorkflowJob(null, "name")), is(false));
     }

@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.triggers.Trigger;
@@ -30,8 +31,8 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
     }
 
     @Override
-    public BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor getDescriptor() {
-        return (BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor) super.getDescriptor();
+    public BitbucketWebhookMultibranchTrigger.DescriptorImpl getDescriptor() {
+        return (BitbucketWebhookMultibranchTrigger.DescriptorImpl) super.getDescriptor();
     }
 
     @Override
@@ -40,7 +41,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
         if (!newInstance) {
             return;
         }
-        BitbucketWebhookMultibranchTrigger.BitbucketWebhookMultibranchTriggerDescriptor descriptor = getDescriptor();
+        BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor = getDescriptor();
         project.getSCMSources().stream().filter(scm -> scm instanceof BitbucketSCMSource)
                 .filter(scm -> ((BitbucketSCMSource) scm).isValid())
                 .forEach(scm -> {
@@ -51,7 +52,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
 
     @Symbol("BitbucketWebhookMultibranchTriggerImpl")
     @Extension
-    public static class BitbucketWebhookMultibranchTriggerDescriptor extends TriggerDescriptor {
+    public static class DescriptorImpl extends TriggerDescriptor {
 
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -59,11 +60,11 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
         private RetryingWebhookHandler retryingWebhookHandler;
 
         @SuppressWarnings("unused")
-        public BitbucketWebhookMultibranchTriggerDescriptor() {
+        public DescriptorImpl() {
 
         }
 
-        public BitbucketWebhookMultibranchTriggerDescriptor(RetryingWebhookHandler webhookHandler,
+        public DescriptorImpl(RetryingWebhookHandler webhookHandler,
                                                             BitbucketPluginConfiguration bitbucketPluginConfiguration) {
             this.retryingWebhookHandler = webhookHandler;
             this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
@@ -79,6 +80,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
             return item instanceof MultiBranchProject;
         }
 
+        @VisibleForTesting
         boolean addTrigger(Item item, BitbucketSCMSource scm) {
             try {
                 registerWebhook(item, scm.getBitbucketSCMRepository());
@@ -93,7 +95,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
             return bitbucketPluginConfiguration
                     .getServerById(serverId)
                     .orElseThrow(() -> new BitbucketClientException(
-                            "Server config not found for input server id" + serverId));
+                            "Server config not found for input server id " + serverId));
         }
 
         private void registerWebhook(Item item, BitbucketSCMRepository repository) {
@@ -104,7 +106,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
                     bitbucketServerConfiguration.getBaseUrl(),
                     bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
                     repository);
-            LOGGER.info("Webhook returned -" + webhook);
+            LOGGER.info("Webhook returned - " + webhook);
         }
     }
 }
