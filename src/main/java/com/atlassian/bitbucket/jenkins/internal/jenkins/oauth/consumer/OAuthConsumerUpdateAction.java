@@ -95,6 +95,10 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
         return "setting.png";
     }
 
+    public String getJenkinsBaseUrl() {
+        return jenkinsProvider.get().getRootUrl();
+    }
+
     @SuppressWarnings("unused") //Stapler
     public String getRequestTokenUrl() {
         return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/request-token";

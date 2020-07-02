@@ -2,47 +2,47 @@
 <?jelly escape-by-default='true'?>
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
-         xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:t="/lib/hudson">
+         xmlns:f="/lib/form">
     <l:layout title="${%config(it.displayName)}" norefresh="true">
         <st:include page="sidepanel.jelly"/>
 
         <l:main-panel>
             <h2>${%bitbucket.oauth.applinks.title}</h2>
             <hr/>
-            <p>
-                ${%bitbucket.oauth.applinks.info}
-            </p>
+            <p>${%bitbucket.oauth.applinks.info}</p>
+
+            <h2>${%bitbucket.oauth.applinks.configure.title}</h2>
+            <p>${%bitbucket.oauth.applinks.configure.info}</p>
             <br/>
+
             <j:set var="descriptor" value="${it.consumerDescriptor}"/>
             <j:scope>
-                <h3>Specific for the consumer key stuff</h3>
 
-                ${%bitbucket.oauth.applinks.key.title}
-                <f:entry field="consumerKey" >
+                <p>
+                    ${%bitbucket.oauth.applinks.jenkins.url}
+                    <f:readOnlyTextbox value="${it.jenkinsBaseUrl}"/>
+                </p>
+
+                <h3>${%bitbucket.oauth.applinks.form.title}</h3>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.key.title}
                     <f:readOnlyTextbox value="${it.consumerKey}"/>
-                </f:entry>
-
-                <h3>URLs you also need</h3>
+                </p>
 
                 <p>
-                ${%bitbucket.oauth.applinks.request.title}
-                <f:entry field="requestTokenUrl">
+                    ${%bitbucket.oauth.applinks.request.title}
                     <f:readOnlyTextbox value="${it.requestTokenUrl}"/>
-                </f:entry>
                 </p>
 
                 <p>
-                ${%bitbucket.oauth.applinks.access.title}
-                <f:entry field="accessTokenUrl">
+                    ${%bitbucket.oauth.applinks.access.title}
                     <f:readOnlyTextbox value="${it.accessTokenUrl}"/>
-                </f:entry>
                 </p>
 
                 <p>
-                ${%bitbucket.oauth.applinks.authorize.title}
-                <f:entry field="authorizeUrl">
+                    ${%bitbucket.oauth.applinks.authorize.title}
                     <f:readOnlyTextbox value="${it.authorizeUrl}"/>
-                </f:entry>
                 </p>
             </j:scope>
         </l:main-panel>
