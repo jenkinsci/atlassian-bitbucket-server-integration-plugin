@@ -251,7 +251,9 @@ public class BuildStatusPosterIT {
         assertNotNull(bitbucketRevisionAction);
         String jenkinsUrlAsString = jenkinsUrl.toExternalForm();
         ItemGroup<?> parentProject = job.getParent();
-        String parentName = parentProject instanceof MultiBranchProject ? parentProject.getFullName() : job.getFullName();
+        boolean isMultibranch = parentProject instanceof MultiBranchProject;
+        String parentName = isMultibranch ? parentProject.getFullName() : job.getFullName();
+        String name = isMultibranch ? parentProject.getDisplayName() + " » " + job.getDisplayName() : job.getDisplayName();
 
         return requestPatternBuilder
                 .withRequestBody(
@@ -269,7 +271,7 @@ public class BuildStatusPosterIT {
                                        "}",
                                         build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),
-                                        build.getDuration(), job.getFullName(), job.getDisplayName(), parentName, refName,
+                                        build.getDuration(), job.getFullName(), name, parentName, refName,
                                         buildState, jenkinsUrlAsString, build.getUrl())
                         )
                 );

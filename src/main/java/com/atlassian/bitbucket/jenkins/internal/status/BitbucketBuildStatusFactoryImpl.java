@@ -41,6 +41,11 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
 
     private BitbucketBuildStatus fromBuild(Run<?, ?> build, boolean isRich) {
         Job<?, ?> job = build.getParent();
+        ItemGroup parent = job.getParent();
+        boolean isMultibranch = parent instanceof MultiBranchProject;
+
+        String name = isMultibranch ? parent.getDisplayName() + " » " + job.getDisplayName() : job.getDisplayName();
+
         String key = job.getFullName();
         String url = displayURLProvider.getRunURL(build);
         BuildState state;
@@ -52,16 +57,15 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
             state = BuildState.FAILED;
         }
         BitbucketBuildStatus.Builder bbs = new BitbucketBuildStatus.Builder(key, state, url)
-                .setName(job.getDisplayName())
+                .setName(name)
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
 
         if (isRich) {
             BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
-            ItemGroup parent = job.getParent();
 
             bbs.setBuildNumber(build.getId())
                     .setTestResults(getTestResults(build))
-                    .setParent(parent instanceof MultiBranchProject ? parent.getFullName() : job.getFullName());
+                    .setParent(isMultibranch ? parent.getFullName() : job.getFullName());
 
             if (revisionAction != null) {
                 bbs.setRef(revisionAction.getBranchAsRefFormat());
