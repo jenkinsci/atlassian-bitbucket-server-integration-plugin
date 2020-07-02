@@ -28,6 +28,7 @@ public class BitbucketBuildStatusFactoryImplTest {
     private static final String FREESTYLE_PROJECT_NAME = "Freestyle Project";
     private static final String WORKFLOW_JOB_NAME = "branch-name";
     private static final String WORKFLOW_PROJECT_NAME = "MultiBranch Project";
+    private static final String WORKFLOW_JOB_BBS_NAME = "MultiBranch Project » branch-name";
 
     @Mock
     private DisplayURLProvider displayUrlProvider;
@@ -45,6 +46,7 @@ public class BitbucketBuildStatusFactoryImplTest {
     @Before
     public void setup() {
         when(workflowProject.getName()).thenReturn(WORKFLOW_PROJECT_NAME);
+        when(workflowProject.getDisplayName()).thenReturn(WORKFLOW_PROJECT_NAME);
 
         freeStyleProject = new FreeStyleProject((ItemGroup) parent, FREESTYLE_PROJECT_NAME);
         workflowJob = new WorkflowJob(workflowProject, WORKFLOW_JOB_NAME);
@@ -115,7 +117,7 @@ public class BitbucketBuildStatusFactoryImplTest {
 
         BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun);
 
-        assertThat(result.getName(), equalTo(WORKFLOW_JOB_NAME));
+        assertThat(result.getName(), equalTo(WORKFLOW_JOB_BBS_NAME));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
@@ -179,7 +181,7 @@ public class BitbucketBuildStatusFactoryImplTest {
 
         BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun, true);
 
-        assertThat(result.getName(), equalTo(workflowJob.getDisplayName()));
+        assertThat(result.getName(), equalTo(WORKFLOW_JOB_BBS_NAME));
         assertThat(result.getDescription(), equalTo(BuildState.SUCCESSFUL.getDescriptiveText(
                 BUILD_DISPLAY_NAME, BUILD_DURATION)));
         assertThat(result.getKey(), equalTo(workflowJob.getFullName()));
