@@ -19,6 +19,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.servlet.ServletException;
+import java.net.URI;
 import java.net.URISyntaxException;
 
 import static com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthGlobalConfiguration.RELATIVE_PATH;
@@ -95,23 +96,24 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
         return "setting.png";
     }
 
+    @SuppressWarnings("unused") //Stapler
     public String getJenkinsBaseUrl() {
         return jenkinsProvider.get().getRootUrl();
     }
 
     @SuppressWarnings("unused") //Stapler
-    public String getRequestTokenUrl() {
-        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/request-token";
+    public String getRequestTokenUrl() throws URISyntaxException {
+        return new URI(jenkinsProvider.get().getRootUrl()).getPath() + "bitbucket/oauth/request-token";
     }
 
     @SuppressWarnings("unused") //Stapler
-    public String getAccessTokenUrl() {
-        return jenkinsProvider.get().getRootUrl() + "bitbucket/oauth/access-token";
+    public String getAccessTokenUrl() throws URISyntaxException {
+        return new URI(jenkinsProvider.get().getRootUrl()).getPath() + "bitbucket/oauth/access-token";
     }
 
     @SuppressWarnings("unused") //Stapler
-    public String getAuthorizeUrl() {
-        return jenkinsProvider.get().getRootUrl() + "bbs-oauth/authorize";
+    public String getAuthorizeUrl() throws URISyntaxException {
+        return new URI(jenkinsProvider.get().getRootUrl()).getPath() + "bbs-oauth/authorize";
     }
 
     @Override
