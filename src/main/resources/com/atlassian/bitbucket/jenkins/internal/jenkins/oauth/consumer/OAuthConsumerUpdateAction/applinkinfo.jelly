@@ -11,9 +11,8 @@
             <hr/>
             <p>${%bitbucket.oauth.applinks.info}</p>
 
-            <h2>${%bitbucket.oauth.applinks.configure.title}</h2>
+            <h3>${%bitbucket.oauth.applinks.configure.title}</h3>
             <p>${%bitbucket.oauth.applinks.configure.info}</p>
-            <br/>
 
             <j:set var="descriptor" value="${it.consumerDescriptor}"/>
             <j:scope>
