@@ -17,8 +17,10 @@
                     <th>${%bitbucket.oauth.consumer.key}</th>
                     <th>${%bitbucket.oauth.consumer.name}</th>
                     <th>${%bitbucket.oauth.consumer.callback}</th>
+                    <th>${%bitbucket.oauth.applink.setup}</th>
                 </tr>
                 <j:forEach var="d" items="${it.consumers}">
+                    <j:set var="consumerName" value="${d.consumerName}"/>
                     <tr class="center">
                         <td><a href="${'consumer/'+d.consumerKey}" class="model-link inside">${d.consumerKey}</a></td>
                         <td>${d.consumerName}</td>
@@ -32,6 +34,7 @@
                                 </j:otherwise>
                             </j:choose>
                         </td>
+                        <td><a href="${'consumer/'+d.consumerKey+'/applinkinfo'}">${%bitbucket.oauth.applink.view(consumerName)}</a></td>
                     </tr>
                 </j:forEach>
             </table>
