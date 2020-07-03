@@ -52,6 +52,7 @@ public class BitbucketSCMSource extends SCMSource {
     private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
     public BitbucketSCMSource(
@@ -117,8 +118,6 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketRepository localRepo = scmHelper.getRepository(projectName, repositoryName);
             setRepositoryDetails(credentialsId, sshCredentialsId, serverId, "", localRepo);
         }
-        //register webhook to get notified when new branches are pushed etc.
-        ((DescriptorImpl) getDescriptor()).getRetryingWebhookHandler().register(baseUrl, globalCredentialsProvider, repository);
     }
 
     /**
@@ -182,9 +181,22 @@ public class BitbucketSCMSource extends SCMSource {
         return getBitbucketSCMRepository().getSshCredentialsId();
     }
 
+    public boolean isValid() {
+        return getMirrorName() != null && isNotBlank(getProjectKey()) && isNotBlank(getProjectName()) &&
+                isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) && isNotBlank(getServerId());
+    }
+
     @Override
     public List<SCMSourceTrait> getTraits() {
         return traits;
+    }
+
+    public boolean isWebhookRegistered() {
+        return webhookRegistered;
+    }
+
+    public void setWebhookRegistered(boolean webhookRegistered) {
+        this.webhookRegistered = webhookRegistered;
     }
 
     @Override
