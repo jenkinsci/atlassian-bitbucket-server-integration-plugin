@@ -64,9 +64,9 @@ public class BitbucketSCMIT {
         String uniqueMessage = UUID.randomUUID().toString();
         Shell postScript = new Shell(TestUtils.readFileToString("/push-to-bitbucket.sh")
                 .replaceFirst("uniqueMessage", uniqueMessage)
-                .replaceFirst("REPO_SLUG", BitbucketUtils.REPO_FORK_SLUG));
+                .replaceFirst("REPO_SLUG", BitbucketUtils.repoForkSlug));
 
-        project.setScm(createSCMWithCustomRepo(BitbucketUtils.REPO_FORK_SLUG));
+        project.setScm(createSCMWithCustomRepo(BitbucketUtils.repoForkSlug));
         project.getBuildersList().add(postScript);
         project.save();
 
@@ -85,7 +85,7 @@ public class BitbucketSCMIT {
                         .append("/rest/api/1.0/projects/")
                         .append(BitbucketUtils.PROJECT_KEY)
                         .append("/repos/")
-                        .append(BitbucketUtils.REPO_FORK_SLUG)
+                        .append(BitbucketUtils.repoForkSlug)
                         .append("/commits?since=")
                         .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
                         .toString());

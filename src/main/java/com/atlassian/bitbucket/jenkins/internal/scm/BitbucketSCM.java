@@ -313,7 +313,7 @@ public class BitbucketSCM extends SCM {
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol protocol) {
         return cloneUrls.stream()
-                .filter(link -> protocol.name.equals(link.getName()))
+                .filter(link -> Objects.equals(protocol.name, link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
@@ -440,7 +440,7 @@ public class BitbucketSCM extends SCM {
         @Override
         @POST
         public ListBoxModel doFillSshCredentialsIdItems(@QueryParameter String baseUrl,
-                                                     @QueryParameter String credentialsId) {
+                                                        @QueryParameter String credentialsId) {
             return formFill.doFillSshCredentialsIdItems(baseUrl, credentialsId);
         }
 

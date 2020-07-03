@@ -196,7 +196,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
         return cloneUrls.stream()
-                .filter(link -> cloneProtocol.name.equals(link.getName()))
+                .filter(link -> Objects.equals(cloneProtocol.name, link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
@@ -210,12 +210,12 @@ public class BitbucketSCMSource extends SCMSource {
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), serverId);
         gitSCMSource.setTraits(traits);
-        gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
+        gitSCMSource.setCredentialsId(credentialsId);
     }
 
     @SuppressWarnings("Duplicates")
-    private void setEmptyRepository(@CheckForNull String credentialsId,
-                                    @CheckForNull String sshCredentialsId,
+    private void setEmptyRepository(@Nullable String credentialsId,
+                                    @Nullable String sshCredentialsId,
                                     @CheckForNull String projectName,
                                     @CheckForNull String repositoryName,
                                     @CheckForNull String serverId,
@@ -229,7 +229,7 @@ public class BitbucketSCMSource extends SCMSource {
         setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirrorName, repository);
     }
 
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @CheckForNull String sshCredentialsId,
+    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
                                       @Nullable String serverId, String mirrorName, BitbucketRepository repository) {
         CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
         String cloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
@@ -244,7 +244,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     @SuppressWarnings("Duplicates")
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @CheckForNull String sshCredentialsId,
+    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
                                       @Nullable String serverId, EnrichedBitbucketMirroredRepository repository) {
         if (isBlank(serverId)) {
             return;
