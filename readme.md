@@ -62,7 +62,9 @@ Creating an Application Link to Jenkins enables additional functionality in Bitb
 
 #### Part 1 - Register Bitbucket Server as a consumer
 
-There are two parts to creating an Application Link. The first is done in Jenkins and involves registering Bitbucket Server as a consumer. 
+There are two parts to creating an Application Link. The first is done in Jenkins and involves registering Bitbucket Server as a consumer.
+
+<img src="images/createnewconsumer.png" width="600"> <br/>
 
 To register a consumer: 
 1. In Jenkins go to **Jenkins** > **Manage Jenkins** > **Manage Bitbucket Server consumers**. 
