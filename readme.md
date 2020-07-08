@@ -172,6 +172,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 2.0.0 (9 July 2020)
+- Application Links between Jenkins and Bitbucket Server are now supported
+- Build statuses provide test summaries, duration and log links in Bitbucket Server 7.4 and above
+- Fix issues JENKINS-60274
+- Fix issues JENKINS-61915 and JENKINS-61411
+
 ### 1.1.0 (28 February 2020)
 - Released support for Multibranch Pipeline projects
 - Fix issues JENKINS-60917 and JENKINS-60649 - Webhooks not registering before first build of a pipeline job
