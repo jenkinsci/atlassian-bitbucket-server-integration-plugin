@@ -9,8 +9,10 @@ import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -30,12 +32,13 @@ public class BitbucketBuildStatusFactoryImplTest {
     private static final String WORKFLOW_PROJECT_NAME = "MultiBranch Project";
     private static final String WORKFLOW_JOB_BBS_NAME = "MultiBranch Project » branch-name";
 
+    @Rule
+    public JenkinsRule jenkinsRule = new JenkinsRule();
     @Mock
     private DisplayURLProvider displayUrlProvider;
     @Mock
     private Run freeStyleRun;
     private Job freeStyleProject;
-    @Mock
     private Jenkins parent;
     @Mock
     private Run workflowRun;
@@ -45,6 +48,7 @@ public class BitbucketBuildStatusFactoryImplTest {
 
     @Before
     public void setup() {
+        parent = Jenkins.get();
         when(workflowProject.getName()).thenReturn(WORKFLOW_PROJECT_NAME);
         when(workflowProject.getDisplayName()).thenReturn(WORKFLOW_PROJECT_NAME);
 
@@ -62,7 +66,7 @@ public class BitbucketBuildStatusFactoryImplTest {
         when(workflowRun.getDurationString()).thenReturn(BUILD_DURATION);
         doReturn(workflowJob).when(workflowRun).getParent();
 
-        when(parent.getFullName()).thenReturn("");
+        //when(parent.getFullName()).thenReturn("");
         doReturn(parent).when(workflowProject).getParent();
     }
 
