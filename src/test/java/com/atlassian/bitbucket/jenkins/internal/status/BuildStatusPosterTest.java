@@ -1,141 +1,132 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBuildStatusClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSetup;
+import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.TestBitbucketClientFactoryHandler;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
-import jenkins.model.Jenkins;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner.Silent;
 
 import java.io.PrintStream;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSetup.SERVER_ID;
+import static com.atlassian.bitbucket.jenkins.internal.model.BuildState.SUCCESSFUL;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Silent.class)
 public class BuildStatusPosterTest {
 
     private static final String PROJECT_NAME = "Project Name";
+    private static final String REPO_SLUG = "repo";
     private static final String REVISION_SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
-    private static final String SERVER_ID = "FakeServerId";
     private static final String SERVER_URL = "http://www.example.com";
+    private static final BitbucketSCMRepository scmRepository =
+            new BitbucketSCMRepository(null, PROJECT_NAME, PROJECT_NAME, REPO_SLUG, REPO_SLUG, SERVER_ID, "");
+    private static final BitbucketRevisionAction action =
+            new BitbucketRevisionAction(scmRepository, "master", REVISION_SHA1);
 
-    @ClassRule
-    public static JenkinsRule jenkins = new JenkinsRule();
-
     @Mock
-    private BitbucketTokenCredentials adminCredentials;
-    @Captor
-    private ArgumentCaptor<BitbucketBuildStatus> captor;
-    @Mock
-    private BitbucketRevisionAction action;
-    @Mock
-    private AbstractBuild build;
-    @Mock
-    private BitbucketClientFactory factory;
-    @Mock
-    private BitbucketClientFactoryProvider factoryProvider;
+    private AbstractBuild run;
     @Mock
     private TaskListener listener;
     @Mock
     private PrintStream logger;
     @Mock
-    private Jenkins parent;
-    @Mock
-    private BitbucketPluginConfiguration pluginConfiguration;
-    @Mock
-    private BitbucketBuildStatusClient postClient;
-    @Mock
     private AbstractProject project;
     @Mock
-    private BitbucketServerConfiguration server;
-    @Mock
-    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
-    @InjectMocks
+    private BitbucketBuildStatusFactory buildStatusFactory;
+
+    private BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("key", SUCCESSFUL, "aUrl").build();
+    private TestBitbucketClientFactoryHandler clientFactoryMock;
+    private BitbucketJenkinsSetup jenkinsSetupMock;
     private BuildStatusPoster buildStatusPoster;
 
     @Before
     public void setup() {
-        when(project.getName()).thenReturn(PROJECT_NAME);
-        when(project.getDisplayName()).thenReturn(PROJECT_NAME);
-        when(project.getParent()).thenReturn(parent);
-        when(parent.getFullName()).thenReturn("");
-        when(parent.getFullDisplayName()).thenReturn("");
-        when(build.isBuilding()).thenReturn(true);
-        when(build.getId()).thenReturn("10");
-        when(build.getDurationString()).thenReturn("23 sec");
-        when(build.getProject()).thenReturn(project);
-        when(build.getUrl()).thenReturn("job%2FTest%2520Project%2F14%2F");
-        when(action.getRevisionSha1()).thenReturn(REVISION_SHA1);
-        when(action.getServerId()).thenReturn(SERVER_ID);
+        jenkinsSetupMock = BitbucketJenkinsSetup.create().assignGlobalCredentialProviderToItem(project);
+        clientFactoryMock =
+                TestBitbucketClientFactoryHandler.create(jenkinsSetupMock, jenkinsSetupMock.getBbAdminCredentials())
+                        .withBuildStatusClient(REVISION_SHA1, scmRepository)
+                        .withCICapabilities(BitbucketCICapabilities.RICH_BUILD_STATUS_CAPABILITY);
+
+        buildStatusPoster = spy(new BuildStatusPoster(
+                clientFactoryMock.getBitbucketClientFactoryProvider(),
+                jenkinsSetupMock.getPluginConfiguration(),
+                jenkinsSetupMock.getJenkinsToBitbucketConverter(),
+                buildStatusFactory));
+        when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(false);
+
+        when(run.getProject()).thenReturn(project);
         when(listener.getLogger()).thenReturn(logger);
-        when(server.getBaseUrl()).thenReturn(SERVER_URL);
-        when(factoryProvider.getClient(eq(SERVER_URL), any(BitbucketCredentials.class)))
-                .thenReturn(factory);
-        when(factory.getBuildStatusClient(REVISION_SHA1)).thenReturn(postClient);
-        BitbucketCredentials credentials = mock(BitbucketCredentials.class);
-        GlobalCredentialsProvider gcp = mock(GlobalCredentialsProvider.class);
-        when(gcp.getGlobalAdminCredentials()).thenReturn(Optional.of(adminCredentials));
-        when(server.getGlobalCredentialsProvider(project)).thenReturn(gcp);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(any(BitbucketTokenCredentials.class),
-                any(GlobalCredentialsProvider.class))).thenReturn(credentials);
+        when(buildStatusFactory.createRichBuildStatus(run)).thenReturn(buildStatus);
+        when(buildStatusFactory.createLegacyBuildStatus(run)).thenReturn(buildStatus);
     }
 
     @Test
     public void testBitbucketClientException() {
-        when(build.getAction(BitbucketRevisionAction.class)).thenReturn(action);
-        when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
-        doThrow(BitbucketClientException.class).when(postClient).post(any(BitbucketBuildStatus.class));
-        buildStatusPoster.postBuildStatus(build, listener);
-        verify(postClient).post(any());
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        doThrow(BitbucketClientException.class).when(clientFactoryMock.getBuildStatusClient()).post(any(BitbucketBuildStatus.class));
+        buildStatusPoster.onCompleted(run, listener);
+        verify(clientFactoryMock.getBuildStatusClient()).post(any());
     }
 
     @Test
     public void testNoBuildAction() {
-        when(build.getAction(BitbucketRevisionAction.class)).thenReturn(null);
-        buildStatusPoster.postBuildStatus(build, listener);
-        verifyZeroInteractions(pluginConfiguration);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(null);
+        buildStatusPoster.onCompleted(run, listener);
+        verifyZeroInteractions(jenkinsSetupMock.getPluginConfiguration());
         verifyZeroInteractions(listener);
     }
 
     @Test
     public void testNoMatchingServer() {
-        when(build.getAction(BitbucketRevisionAction.class)).thenReturn(action);
-        when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.empty());
-        buildStatusPoster.postBuildStatus(build, listener);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(jenkinsSetupMock.getPluginConfiguration().getServerById(SERVER_ID)).thenReturn(Optional.empty());
+        buildStatusPoster.onCompleted(run, listener);
         verify(listener).error(eq("Failed to post build status as the provided Bitbucket Server config does not exist"));
-        verifyZeroInteractions(factoryProvider);
+        verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 
     @Test
     public void testSuccessfulPost() {
-        when(build.getAction(BitbucketRevisionAction.class)).thenReturn(action);
-        when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
 
-        buildStatusPoster.postBuildStatus(build, listener);
-        verify(postClient).post(captor.capture());
-        BitbucketBuildStatus status = captor.getValue();
-        assertThat(status.getKey(), equalTo(PROJECT_NAME));
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
+        verify(buildStatusFactory).createLegacyBuildStatus(run);
+    }
+
+    @Test
+    public void testRichBuildStatusForSupportedCapabilities() {
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
+        verify(buildStatusFactory).createRichBuildStatus(run);
+    }
+
+    @Test
+    public void testRichBuildStatusUseLegacyEnabled() {
+        when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(true);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
+        verify(buildStatusFactory).createLegacyBuildStatus(run);
     }
 }

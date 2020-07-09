@@ -58,15 +58,11 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
     }
 
     public String getCallbackUrl() {
-        String callback = "";
-        if (isCallbackUrlSet()) {
-            callback = consumer.getCallback().toString();
-        }
-        return callback;
+        return isCallbackUrlSet() ? consumer.getCallback().get().toString() : "";
     }
 
     public boolean isCallbackUrlSet() {
-        return consumer.getCallback() != null;
+        return consumer.getCallback().isPresent();
     }
 
     public String getConsumerKey() {

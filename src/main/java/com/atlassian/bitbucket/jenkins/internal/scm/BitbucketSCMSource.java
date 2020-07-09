@@ -13,7 +13,6 @@ import hudson.Extension;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -208,11 +207,12 @@ public class BitbucketSCMSource extends SCMSource {
                 .orElse("");
     }
 
-    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository, @Nullable String serverId) {
+    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
         repository = bitbucketSCMRepository;
         UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), serverId);
+                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null,
+                        bitbucketSCMRepository.getCredentialsId());
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl());
         gitSCMSource.setTraits(traits);
         gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
     }
@@ -242,7 +242,7 @@ public class BitbucketSCMSource extends SCMSource {
                 new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
                         serverId, mirrorName);
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @SuppressWarnings("Duplicates")
@@ -260,7 +260,7 @@ public class BitbucketSCMSource extends SCMSource {
                 new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @Symbol("BbS")
@@ -435,31 +435,21 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     /**
-     * This class exists to work around two issues
-     * 1. We do not want to re-implement the retrieve found in the GitSCMSource, however it is protected so we can't
-     * access it from our class. This class inherits from the GitSCMSource and thus can access it and expose a method
-     * wrapper.
-     * 2. We want to inject a custom extension to enable posting build statues. The enforcer will not allow us to access
-     * it directly, so we override the getExtensions method and inject our own extension there.
+     * This class exists to work around the following issue: we do not want to re-implement the retrieve found in the
+     * {@link GitSCMSource}, however it is protected so we can't access it from our class.
+     * <p>
+     * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
      */
     private static class CustomGitSCMSource extends GitSCMSource {
 
-        private final String serverId;
-
-        public CustomGitSCMSource(String remote, @Nullable String serverId) {
+        public CustomGitSCMSource(String remote) {
             super(remote);
-            this.serverId = serverId == null ? "" : serverId;
         }
 
         public void accessibleRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                                        @CheckForNull SCMHeadEvent<?> event,
                                        TaskListener listener) throws IOException, InterruptedException {
             super.retrieve(criteria, observer, event, listener);
-        }
-
-        @Override
-        public List<GitSCMExtension> getExtensions() {
-            return Collections.singletonList(new BitbucketPostBuildStatus(serverId));
         }
     }
 }
