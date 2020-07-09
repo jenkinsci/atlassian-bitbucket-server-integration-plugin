@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Result;
@@ -25,6 +26,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
         this(DisplayURLProvider.get());
     }
 
+    @VisibleForTesting
     BitbucketBuildStatusFactoryImpl(DisplayURLProvider displayURLProvider) {
         this.displayURLProvider = displayURLProvider;
     }

@@ -34,8 +34,8 @@ import static java.lang.String.format;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Following tests uses real Bitbucket server and Jenkins for integration testing however the build status is posted against
- * a stub. One of the primary reason is parallel development. Since we can only start *released* bitbucket server, we would
+ * Following tests use a real Bitbucket Server and Jenkins instance for integration testing, however, the build status is posted against
+ * a stub. One of the primary reasons is parallel development. Since we can only start a *released* bitbucket Server version, we would
  * like to proceed with end to end testing. The secondary benefit is that we have more control over assertions.
  */
 public class BuildStatusPosterIT {
