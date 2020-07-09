@@ -24,6 +24,7 @@ public class BitbucketUtils {
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_NAME = "rep 1";
     public static final String REPO_SLUG = "rep_1";
+
     public static String repoForkName = "";
     public static String repoForkSlug = "";
 

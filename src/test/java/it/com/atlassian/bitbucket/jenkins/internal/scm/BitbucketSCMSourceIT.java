@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 
 public class BitbucketSCMSourceIT {
@@ -95,7 +96,7 @@ public class BitbucketSCMSourceIT {
         BitbucketSCMSource scmSource = new BitbucketSCMSource(
                 id,
                 credentialsId,
-                "",                     //TODO: Add tests
+                "",
                 null,
                 PROJECT_NAME,
                 repoName,

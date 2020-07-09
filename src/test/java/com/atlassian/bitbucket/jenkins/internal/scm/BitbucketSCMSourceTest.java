@@ -23,6 +23,7 @@ import java.util.Optional;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -34,7 +35,7 @@ public class BitbucketSCMSourceTest {
     private static final String sshCloneLink = "@ssh://git@localhost:7990/fake.git";
 
     @Test
-    public void build() {
+    public void testBuildHttp() {
         BitbucketSCMSource scmSource = createInstance("credentialsId", "serverId", "project", "repo");
         SCMHead scmHead = mock(SCMHead.class);
         when(scmHead.getName()).thenReturn("myBranch");
@@ -47,7 +48,7 @@ public class BitbucketSCMSourceTest {
     }
 
     @Test
-    public void buildSsh() {
+    public void testBuildSsh() {
         BitbucketSCMSource scmSource =
                 createInstance("credentialsId", "sshCredentialsId", "serverId", "project", "repo");
         SCMHead scmHead = mock(SCMHead.class);
