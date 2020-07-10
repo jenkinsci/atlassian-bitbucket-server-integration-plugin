@@ -37,7 +37,7 @@ import java.util.logging.SimpleFormatter;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 
-public final class BitbucketJenkinsRule extends JenkinsRule {
+public class BitbucketJenkinsRule extends JenkinsRule {
 
     public static final String SERVER_NAME = "Bitbucket server";
     private static final AtomicReference<PersonalToken> ADMIN_PERSONAL_TOKEN = new AtomicReference<>();
@@ -147,7 +147,7 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         addCredentials(sshCredentials);
 
         bitbucketServerConfiguration =
-                new BitbucketServerConfiguration(adminCredentialsId, BITBUCKET_BASE_URL, readCredentialsId, null);
+                new BitbucketServerConfiguration(adminCredentialsId, getBitbucketBaseUrl(), readCredentialsId, null);
         bitbucketServerConfiguration.setServerName(SERVER_NAME);
         addBitbucketServer(bitbucketServerConfiguration);
     }
@@ -182,6 +182,11 @@ public final class BitbucketJenkinsRule extends JenkinsRule {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
         store.addCredentials(domain, credentials);
+    }
+
+    private String getBitbucketBaseUrl() {
+        String baseUrl = System.getProperty("bitbucket.baseurl");
+        return baseUrl != null ? baseUrl : BITBUCKET_BASE_URL;
     }
 
     private static final class BitbucketSshKeyCleanupThread extends Thread {
