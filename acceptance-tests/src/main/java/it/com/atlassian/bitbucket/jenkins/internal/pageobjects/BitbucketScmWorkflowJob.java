@@ -11,9 +11,9 @@ import java.net.URL;
  * {@code Jenkinsfile} (as opposed to having the build script saved in Jenkins)
  */
 @Describable("org.jenkinsci.plugins.workflow.job.WorkflowJob")
-public class BitbucketScmSourcedWorkflowJob extends WorkflowJob {
+public class BitbucketScmWorkflowJob extends WorkflowJob {
 
-    public BitbucketScmSourcedWorkflowJob(Injector injector, URL url, String name) {
+    public BitbucketScmWorkflowJob(Injector injector, URL url, String name) {
         super(injector, url, name);
     }
 

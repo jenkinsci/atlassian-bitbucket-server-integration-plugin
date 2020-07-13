@@ -14,9 +14,8 @@
         <plugin.build.dir>../target</plugin.build.dir>
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
-        <jenkins.acceptance-test-harness.version>1.71</jenkins.acceptance-test-harness.version>
-        <!-- TODO: update to 7.4.0 once 7.4 final is released -->
-        <bitbucket.version>7.4.0-rc2</bitbucket.version>
+        <jenkins.acceptance-test-harness.version>1.74</jenkins.acceptance-test-harness.version>
+        <bitbucket.version>7.4.0</bitbucket.version>
         <httpclient.version>4.5.10</httpclient.version>
         <jenkins.version>2.190.1</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
