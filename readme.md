@@ -47,6 +47,8 @@ When adding a Bitbucket Server instance you must add at least one Bitbucket Serv
 
 In addition, you can add Bitbucket Server credentials (in the form of username and password) to make it easier for users to set up Jenkins jobs. Users will be able to choose from these credentials to allow Jenkins to authenticate with Bitbucket Server and retrieve their projects.
 
+Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
+
 <img src="images/addinstance.png" width="600"> <br/>
 
 To add a Bitbucket Server instance:
