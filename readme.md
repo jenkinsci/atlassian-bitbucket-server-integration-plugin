@@ -80,6 +80,8 @@ You can also access the Application Link details page by going to **Jenkins** > 
 
 The second part is done in Bitbucket Server and involves creating an Application Link to Jenkins. Many of the details you need to do this are on the Application Link details page mentioned in step 1. 
 
+<img src="images/linkapplications.png" width="600"> <br/>
+
 To create the Application Link: 
 1. In Bitbucket Server go to **Administration** > **Application Links**. 
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
