@@ -21,9 +21,9 @@ public interface TrustedUnderlyingSystemAuthorizerFilter {
      * @param request     the request
      * @param response    the response
      * @param filterChain the filter chain to continue after authorization
-     * @throws IOException
-     * @throws ServletException
-     * @throws NoSuchUserException
+     * @throws IOException for other exceptions
+     * @throws ServletException for problems while operating on request or response
+     * @throws NoSuchUserException if there is no user with the username
      */
     void authorize(String userName, HttpServletRequest request, HttpServletResponse response,
                    FilterChain filterChain) throws IOException, ServletException, NoSuchUserException;
