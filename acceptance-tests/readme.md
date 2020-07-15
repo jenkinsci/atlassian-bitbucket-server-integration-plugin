@@ -260,9 +260,23 @@ mvn clean verify -Psmoke-tests
 ```
 
 This will use the `bitbucket-maven-plugin` (part of the [Atlassian Plugin SDK](https://developer.atlassian.com/server/framework/atlassian-sdk/working-with-the-sdk/))
-to start up Bitbucket Server.
+to start up Bitbucket Server and use Docker to start a Firefox browser for web testing.
 
 Like the rest of the acceptance tests, you can run the smoke tests from your IDE of choice (as detailed above), but you 
 will have to start up an instance of Bitbucket Server listening on port `7990` (full base URL 
 `http://localhost:7990/bitbucket`). Alternatively, you can pass in a custom Bitbucket Server base URL using the 
 `bitbucket.baseurl` system property.
+
+#### Running the smoke tests on macOS
+
+Using Docker to start Firefox does not work on macOS. Instead, you can install the appropriate browser with [Homebrew](https://brew.sh/):
+
+```
+brew install geckodriver
+```
+
+Once you've installed the browser, you can run the smoke tests by specifying the browser type and path:
+
+```
+BROWSER=firefox mvn clean verify -Psmoke-tests -Dwebdriver.gecko.driver="$(brew --prefix geckodriver)/bin/geckodriver"
+```
