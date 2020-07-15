@@ -1,6 +1,5 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -10,6 +9,11 @@ import io.restassured.response.ResponseBody;
 import java.util.HashMap;
 import java.util.UUID;
 
+/**
+ * Copied from {@code it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils} in the main module (under
+ * {@code <project-root>/src/test/java}. Copy over fields and methods as needed, but keep this class as clean as
+ * possible (e.g. no unused fields/methods/constants/etc.).
+ */
 public class BitbucketUtils {
 
     public static final String BITBUCKET_ADMIN_PASSWORD =
@@ -20,17 +24,9 @@ public class BitbucketUtils {
             System.getProperty("bitbucket.baseurl", "http://localhost:7990/bitbucket");
 
     public static final String PROJECT_KEY = "PROJECT_1";
-    public static final String PROJECT_NAME = "Project 1";
-    public static final String PROJECT_ADMIN_PERMISSION = "PROJECT_ADMIN";
     public static final String PROJECT_READ_PERMISSION = "PROJECT_READ";
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
-    public static final String REPO_NAME = "rep 1";
-
-    public static String REPO_FORK_SLUG = "";
-    public static String REPO_FORK_NAME = "";
-
-    private static ObjectMapper objectMapper = new ObjectMapper();
 
     public static BitbucketRepository forkRepository(String projectKey, String repoSlug, String forkName) {
         String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug;
@@ -62,38 +58,6 @@ public class BitbucketUtils {
         return new BitbucketRepository(forkId, forkName, project, forkSlug, forkHttpCloneUrl, forkSshCloneUrl);
     }
 
-    public static void deleteRepoFork(String projectKey, String repoSlug) {
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .expect()
-                    .statusCode(202)
-                .when()
-                    .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug);
-    }
-
-    public static void createBranch(String project,
-                                    String repo,
-                                    String branchName) {
-        HashMap<String, Object> createBranch = new HashMap<>();
-        createBranch.put("name", branchName);
-        createBranch.put("startPoint", "refs/heads/master");
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth()
-                    .preemptive()
-                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                    .contentType(ContentType.JSON)
-                    .body(createBranch)
-                .expect()
-                    .statusCode(200)
-                .when()
-                    .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + project + "/repos/" + repo + "/branches")
-                .getBody();
-    }
-
     public static PersonalToken createPersonalToken(String... permissions) {
         HashMap<String, Object> createTokenRequest = new HashMap<>();
         createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
@@ -113,49 +77,6 @@ public class BitbucketUtils {
                             .put(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin")
                         .getBody();
         return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
-    }
-
-    public static void deletePersonalToken(String tokenId) {
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth()
-                    .preemptive()
-                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                    .contentType(ContentType.JSON)
-                .expect()
-                    .statusCode(204)
-                .when()
-                    .delete(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin/" + tokenId);
-    }
-
-    public static void deleteWebhook(String projectKey, String repoSlug, int webhookId) {
-        RestAssured.given()
-                .log()
-                    .ifValidationFails()
-                    .auth()
-                    .preemptive()
-                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                    .contentType(ContentType.JSON)
-                .expect()
-                    .statusCode(204)
-                .when()
-                    .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug +
-                        "/webhooks/" + webhookId)
-                .getBody();
-    }
-
-    public static void deleteRepository(String projectKey, String repoName) {
-        String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoName;
-        RestAssured
-                .expect()
-                    .statusCode(202)
-                .log().ifValidationFails()
-                .given()
-                    .contentType("application/json")
-                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                .when()
-                    .delete(sourceRepoUrl);
     }
 
     public static final class PersonalToken {
