@@ -108,13 +108,7 @@ public class SmokeTest extends AbstractJUnitTest {
         CredentialsProvider cr =
                 new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
         File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
+        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
@@ -130,16 +124,11 @@ public class SmokeTest extends AbstractJUnitTest {
         gitRepo.push().setCredentialsProvider(cr).call();
 
         // Verify build was triggered
-        Build lastBuild = freeStyleJob.getLastBuild();
-        waitFor(lastBuild)
-                .withMessage("Timed out waiting for the build to start")
-                .withTimeout(ofMinutes(1L))
-                .until(Build::hasStarted);
-        assertThat(lastBuild.getResult(), is(SUCCESS.name()));
+        verifySuccessfulBuild(freeStyleJob.getLastBuild());
 
         // Verify BB has received build status
         fetchBuildStatusesFromBitbucket(commitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(lastBuild.job.name)));
+                assertThat(status, successfulBuildWithKey(freeStyleJob.getLastBuild().job.name)));
     }
 
     @Test
@@ -158,13 +147,7 @@ public class SmokeTest extends AbstractJUnitTest {
         CredentialsProvider cr =
                 new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
         File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
+        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
         File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
@@ -231,13 +214,7 @@ public class SmokeTest extends AbstractJUnitTest {
         CredentialsProvider cr =
                 new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
         File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
+        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
         File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
@@ -314,13 +291,7 @@ public class SmokeTest extends AbstractJUnitTest {
         CredentialsProvider cr =
                 new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
         File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
+        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
@@ -333,12 +304,7 @@ public class SmokeTest extends AbstractJUnitTest {
         gitRepo.push().setCredentialsProvider(cr).call();
 
         // Verify build was triggered
-        Build lastBuild = workflowJob.getLastBuild();
-        waitFor(lastBuild)
-                .withMessage("Timed out waiting for the build to start")
-                .withTimeout(ofMinutes(1L))
-                .until(Build::hasStarted);
-        assertThat(lastBuild.getResult(), is(SUCCESS.name()));
+        verifySuccessfulBuild(workflowJob.getLastBuild());
 
         //TODO - complete the test when this Jenkins issue is resolved (Bitbucket webhook trigger doesn't start Pipeline
         // build if Jenkinsfile is stored on Jenkins): https://issues.jenkins-ci.org/browse/JENKINS-62463
@@ -360,13 +326,7 @@ public class SmokeTest extends AbstractJUnitTest {
         CredentialsProvider cr =
                 new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
         File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
+        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
@@ -382,16 +342,11 @@ public class SmokeTest extends AbstractJUnitTest {
         gitRepo.push().setCredentialsProvider(cr).call();
 
         // Verify build was triggered
-        Build lastBuild = workflowJob.getLastBuild();
-        waitFor(lastBuild)
-                .withMessage("Timed out waiting for the build to start")
-                .withTimeout(ofMinutes(1L))
-                .until(Build::hasStarted);
-        assertThat(lastBuild.getResult(), is(SUCCESS.name()));
+        verifySuccessfulBuild(workflowJob.getLastBuild());
 
         // Verify BB has received build status
         fetchBuildStatusesFromBitbucket(commitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(lastBuild.job.name)));
+                assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
     }
 
     private List<Map<String, ?>> fetchBuildStatusesFromBitbucket(String commitId) {
@@ -426,6 +381,25 @@ public class SmokeTest extends AbstractJUnitTest {
                     return statuses;
                 });
         return buildStatuses;
+    }
+
+    private void verifySuccessfulBuild(Build lastBuild) {
+        waitFor(lastBuild)
+                .withMessage("Timed out waiting for the build to start")
+                .withTimeout(ofMinutes(1L))
+                .until(Build::hasStarted);
+        assertThat(lastBuild.getResult(), is(SUCCESS.name()));
+    }
+
+    private static Git cloneGitRepo(CredentialsProvider cr, File checkoutDir,
+                                    BitbucketRepository forkRepo) throws GitAPIException {
+        return Git.cloneRepository()
+                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
+                .setURI(forkRepo.getHttpCloneUrl())
+                .setCredentialsProvider(cr)
+                .setDirectory(checkoutDir)
+                .setBranch("master")
+                .call();
     }
 
     private static BuildStatusMatcher successfulBuildWithKey(String key) {
