@@ -1,21 +1,11 @@
 package it.com.atlassian.bitbucket.jenkins.internal;
 
 import io.restassured.RestAssured;
-import io.restassured.path.json.JsonPath;
-import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.plugins.credentials.CredentialsPage;
@@ -32,25 +22,29 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
 import java.net.URLEncoder;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 import static io.restassured.http.ContentType.JSON;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.*;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.ECHO_ONLY_JENKINS_FILE_CONTENT;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.JENKINS_FILE_NAME;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofMinutes;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
 
 @WithPlugins({"mailer", "atlassian-bitbucket-server-integration"})
 public class SmokeTest extends AbstractJUnitTest {
+
+    private static final long BUILD_START_TIMEOUT_MINUTES = 1L;
+    private static final long FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES = 1L;
+    private static final String MASTER_BRANCH_NAME = "master";
+    private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -105,30 +99,20 @@ public class SmokeTest extends AbstractJUnitTest {
         freeStyleJob.save();
 
         // Clone (fork) repo and push new file
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
-        File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
-        gitRepo.checkout().setName(branchName).call();
-        File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
         RevCommit commit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
-        String commitId = commit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
+                        ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
 
         // Verify build was triggered
         verifySuccessfulBuild(freeStyleJob.getLastBuild());
 
         // Verify BB has received build status
-        fetchBuildStatusesFromBitbucket(commitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(freeStyleJob.getLastBuild().job.name)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(commit.getId().getName(), freeStyleJob.getLastBuild().job.name);
     }
 
     @Test
@@ -144,41 +128,29 @@ public class SmokeTest extends AbstractJUnitTest {
         multiBranchJob.save();
 
         // Clone (fork) repo
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
-        File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
-        File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
         RevCommit masterCommit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String masterCommitId = masterCommit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         // Push Jenkinsfile to feature branch
         final String branchName = "feature/test-feature";
         gitRepo.branchCreate().setName(branchName).call();
-        gitRepo.checkout().setName(branchName).call();
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
         RevCommit featureBranchCommit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
+                        ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String featureBranchCommitId = featureBranchCommit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         multiBranchJob.open();
         multiBranchJob.reIndex();
         multiBranchJob.waitForBranchIndexingFinished(30);
 
         // Verify build was triggered
-        WorkflowJob masterJob = multiBranchJob.getJob("master");
+        WorkflowJob masterJob = multiBranchJob.getJob(MASTER_BRANCH_NAME);
         Build lastMasterBuild = masterJob.getLastBuild();
         assertThat(lastMasterBuild.getResult(), is(SUCCESS.name()));
 
@@ -188,13 +160,11 @@ public class SmokeTest extends AbstractJUnitTest {
         assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
 
         // Verify BB has received build status
-        String masterBuildName = multiBranchJob.name + "/" + lastMasterBuild.job.name;
-        fetchBuildStatusesFromBitbucket(masterCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(masterBuildName)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(masterCommitId,
+                multiBranchJob.name + "/" + lastMasterBuild.job.name);
 
-        String featureBranchBuildName = multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name;
-        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(featureBranchCommitId,
+                multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name);
     }
 
     @Test
@@ -211,70 +181,52 @@ public class SmokeTest extends AbstractJUnitTest {
         multiBranchJob.save();
 
         // Clone (fork) repo
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
-        File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
-        File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
         RevCommit masterCommit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String masterCommitId = masterCommit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         // Push Jenkinsfile to feature branch
-        final String branchName = "feature/test-feature";
-        gitRepo.branchCreate().setName(branchName).call();
-        gitRepo.checkout().setName(branchName).call();
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
+        final String featureBranchName = "feature/test-feature";
+        gitRepo.branchCreate().setName(featureBranchName).call();
         RevCommit featureBranchCommit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String featureBranchCommitId = featureBranchCommit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         multiBranchJob.waitForBranchIndexingFinished(30);
 
         // Verify build was triggered
-        WorkflowJob masterJob = multiBranchJob.getJob("master");
+        WorkflowJob masterJob = multiBranchJob.getJob(MASTER_BRANCH_NAME);
         Build lastMasterBuild = masterJob.getLastBuild();
         assertThat(lastMasterBuild.getResult(), is(SUCCESS.name()));
 
-        String encodedBranchName = URLEncoder.encode(branchName, UTF_8.name());
+        String encodedBranchName = URLEncoder.encode(featureBranchName, UTF_8.name());
         WorkflowJob featureBranchJob = multiBranchJob.getJob(encodedBranchName);
         Build lastFeatureBranchBuild = featureBranchJob.getLastBuild();
         assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
 
         // Verify build statuses were posted to Bitbucket
-        String masterBuildName = multiBranchJob.name + "/" + lastMasterBuild.job.name;
-        fetchBuildStatusesFromBitbucket(masterCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(masterBuildName)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(masterCommitId,
+                multiBranchJob.name + "/" + lastMasterBuild.job.name);
 
         String featureBranchBuildName = multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name;
-        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(featureBranchCommitId, featureBranchBuildName);
 
         // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
-        File newFile = new File(checkoutDir, "new-file");
-        FileUtils.write(newFile, "I'm a new file", UTF_8);
-        gitRepo.add().addFilepattern("new-file").call();
         RevCommit newFileCommit =
-                gitRepo.commit().setMessage("Adding a new file").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir, "new-file",
+                        "I'm a new file".getBytes(UTF_8));
         String newFileCommitId = newFileCommit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         multiBranchJob.waitForBranchIndexingFinished(30);
 
         // Fetch and verify build status is posted for the new commit
-        fetchBuildStatusesFromBitbucket(newFileCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(newFileCommitId, featureBranchBuildName);
     }
 
     @Test
@@ -282,26 +234,19 @@ public class SmokeTest extends AbstractJUnitTest {
     public void testPipelineJobWithBuildTemplateStoredInJenkins() throws IOException, GitAPIException {
         WorkflowJob workflowJob = jenkins.jobs.create(WorkflowJob.class);
         workflowJob.addTrigger(WorkflowJobBitbucketWebhookTrigger.class);
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            workflowJob.script.set(IOUtils.toString(in));
-        }
+        workflowJob.script.set(ECHO_ONLY_JENKINS_FILE_CONTENT);
         workflowJob.save();
 
         // Clone (fork) repo and push new file
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
-        File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
-        gitRepo.checkout().setName(branchName).call();
-        FileUtils.write(new File(checkoutDir, "test.txt"), "test file content");
-        gitRepo.add().addFilepattern("test.txt").call();
         RevCommit commit =
-                gitRepo.commit().setMessage("Adding a new file").setAuthor("Admin", "admin@localhost").call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, "test.txt",
+                        "test file content".getBytes(UTF_8));
         String commitId = commit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
 
         // Verify build was triggered
         verifySuccessfulBuild(workflowJob.getLastBuild());
@@ -323,122 +268,54 @@ public class SmokeTest extends AbstractJUnitTest {
         workflowJob.save();
 
         // Clone (fork) repo and push new file
-        CredentialsProvider cr =
-                new UsernamePasswordCredentialsProvider(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
-        File checkoutDir = tempFolder.newFolder("repositoryCheckout");
-        Git gitRepo = cloneGitRepo(cr, checkoutDir, forkRepo);
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         final String branchName = "smoke/test";
         gitRepo.branchCreate().setName(branchName).call();
-        gitRepo.checkout().setName(branchName).call();
-        File jenkinsFile = new File(checkoutDir, "Jenkinsfile");
-        try (InputStream in = getClass().getResourceAsStream("/sampleJenkinsfile")) {
-            FileUtils.copyInputStreamToFile(in, jenkinsFile);
-        }
-        gitRepo.add().addFilepattern("Jenkinsfile").call();
         RevCommit commit =
-                gitRepo.commit().setMessage("Adding Jenkinsfile").setAuthor("Admin", "admin@localhost").call();
-        String commitId = commit.getId().getName();
-        gitRepo.push().setCredentialsProvider(cr).call();
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
+                        ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
 
         // Verify build was triggered
         verifySuccessfulBuild(workflowJob.getLastBuild());
 
         // Verify BB has received build status
-        fetchBuildStatusesFromBitbucket(commitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
+        verifySuccessfulBuildStatusesPostedToBitbucket(commit.getId().getName(), workflowJob.getLastBuild().job.name);
     }
 
-    private List<Map<String, ?>> fetchBuildStatusesFromBitbucket(String commitId) {
-        RestAssured.baseURI = BITBUCKET_BASE_URL;
-        RestAssured.basePath = "/rest/build-status/latest/commits/";
+    private void verifySuccessfulBuildStatusesPostedToBitbucket(String commitId, String key) {
+        verifyBuildStatusesPostedToBitbucket(commitId, key, "SUCCESSFUL");
+    }
 
-        RequestSpecification buildStatusSpec =
-                RestAssured.given()
-                        .log()
-                        .ifValidationFails()
-                        .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                        .contentType(JSON);
-
-        List<Map<String, ?>> buildStatuses = waitFor()
-                .withTimeout(ofMinutes(1L))
-                .withMessage("Timed out while waiting for build status to appear")
+    private void verifyBuildStatusesPostedToBitbucket(String commitId, String key, String status) {
+        waitFor()
+                .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
+                .withMessage(
+                        String.format("Timed out while waiting for build statuses to be posted to Bitbucket: " +
+                                      "commitId=%s, buildKey=%s, buildStatus=%s", commitId, key, status))
                 .until(ignored -> {
-                    Response resp = buildStatusSpec.get(commitId);
-                    if (resp.getStatusCode() != 200) {
-                        return null;
-                    }
-                    JsonPath jsonResp = resp.getBody().jsonPath();
-                    List<Map<String, ?>> statuses = jsonResp.getList("values");
-                    if (statuses == null || statuses.isEmpty()) {
-                        return null;
-                    }
-                    if (statuses.stream().anyMatch(status -> "INPROGRESS".equals(status.get("state")))) {
-                        // if any of the build statuses are in progress, we return 'null', which means 'until()' will
-                        // keep waiting until all builds are finished running
-                        return null;
-                    }
-                    return statuses;
+                    RestAssured
+                            .given()
+                                .log()
+                                .ifValidationFails()
+                                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                                .contentType(JSON)
+                            .when()
+                                .get(BITBUCKET_BASE_URL + "/rest/build-status/latest/commits/" + commitId)
+                            .then()
+                                .statusCode(200)
+                                .body("values.state", everyItem(is(status)))
+                                .body("values.key", everyItem(is(key)));
+                    return true;
                 });
-        return buildStatuses;
     }
 
     private void verifySuccessfulBuild(Build lastBuild) {
         waitFor(lastBuild)
                 .withMessage("Timed out waiting for the build to start")
-                .withTimeout(ofMinutes(1L))
+                .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
                 .until(Build::hasStarted);
         assertThat(lastBuild.getResult(), is(SUCCESS.name()));
-    }
-
-    private static Git cloneGitRepo(CredentialsProvider cr, File checkoutDir,
-                                    BitbucketRepository forkRepo) throws GitAPIException {
-        return Git.cloneRepository()
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkRepo.getHttpCloneUrl())
-                .setCredentialsProvider(cr)
-                .setDirectory(checkoutDir)
-                .setBranch("master")
-                .call();
-    }
-
-    private static BuildStatusMatcher successfulBuildWithKey(String key) {
-        return new BuildStatusMatcher(key, "SUCCESSFUL");
-    }
-
-    private static final class BuildStatusMatcher extends TypeSafeDiagnosingMatcher<Map<String, ?>> {
-
-        private final String expectedKey;
-        private final String expectedState;
-
-        private BuildStatusMatcher(String expectedKey, String expectedState) {
-            this.expectedKey = expectedKey;
-            this.expectedState = expectedState;
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("build status: {key=")
-                    .appendValue(expectedKey)
-                    .appendText(", state=")
-                    .appendValue(expectedState)
-                    .appendText("}");
-        }
-
-        @Override
-        protected boolean matchesSafely(Map<String, ?> buildStatus, Description mismatchDescription) {
-            Object key = buildStatus.get("key");
-            Object state = buildStatus.get("state");
-            boolean matches = Objects.equals(expectedKey, key) &&
-                              Objects.equals(expectedState, state);
-            if (!matches) {
-                mismatchDescription.appendText("is build status: {key=")
-                        .appendValue(key)
-                        .appendText(", state=")
-                        .appendValue(state)
-                        .appendText("}");
-            }
-            return matches;
-        }
     }
 }

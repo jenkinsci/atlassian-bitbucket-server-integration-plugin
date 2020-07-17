@@ -210,8 +210,11 @@
                         </executions>
                         <configuration>
                             <includes>
-                                <include>it/**/*.java, !*SmokeTest*.java</include>
+                                <include>it/**/*.java</include>
                             </includes>
+                            <excludes>
+                                <exclude>it/**/*SmokeTest.java</exclude>
+                            </excludes>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -227,11 +230,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <include>it/**/*SmokeTest.java</include>
-                            </includes>
-                        </configuration>
                         <executions>
                             <execution>
                                 <goals>
@@ -240,6 +238,11 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+                            <includes>
+                                <include>it/**/*SmokeTest.java</include>
+                            </includes>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>com.atlassian.maven.plugins</groupId>
