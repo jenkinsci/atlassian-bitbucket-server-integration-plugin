@@ -7,29 +7,29 @@ import org.jenkinsci.test.acceptance.po.PageAreaImpl;
 import org.openqa.selenium.support.ui.Select;
 
 /**
- * Represents the Bitbucket Server configuration {@link PageAreaImpl page area} in the
- * {@link JenkinsConfig Jenkins System Config page}
+ * Represents the Bitbucket Server configuration {@link PageAreaImpl area} in the Jenkins
+ * {@link JenkinsConfig System Config page}
  */
-public class BitbucketPluginConfiguration extends PageAreaImpl {
+public class BitbucketPluginConfigArea extends PageAreaImpl {
 
     private final Control addButton = control("hetero-list-add[serverList]");
 
-    public BitbucketPluginConfiguration(JenkinsConfig parent) {
+    public BitbucketPluginConfigArea(JenkinsConfig parent) {
         super(parent, "/com-atlassian-bitbucket-jenkins-internal-config-BitbucketPluginConfiguration");
     }
 
-    public void addBitbucketServer(String serverName, String baseUrl, String bbsTokenId, String adminCredsId) {
+    public void addBitbucketServerConfig(String serverName, String baseUrl, String bbsTokenId, String adminCredsId) {
         String path = createPageArea("serverList", () -> addButton.selectDropdownMenu("Instance details"));
-        BitbucketServerConfiguration bbsConfig =
-                new BitbucketServerConfiguration(this, path, serverName, baseUrl, bbsTokenId, adminCredsId);
+        BitbucketServerConfigArea bbsConfig =
+                new BitbucketServerConfigArea(this, path, serverName, baseUrl, bbsTokenId, adminCredsId);
         bbsConfig.create();
     }
 
     /**
-     * Represents the {@link PageAreaImpl page area} in the {@link JenkinsConfig Jenkins System Config page} for adding
-     * a new Bitbucket Server instance to Jenkins (e.g. to be used as the SCM source for CI jobs)
+     * Represents the {@link PageAreaImpl area} in the {@link JenkinsConfig Jenkins System Config page} for adding a
+     * new Bitbucket Server instance to Jenkins (e.g. to be used as the SCM source for CI jobs)
      */
-    public static class BitbucketServerConfiguration extends PageAreaImpl {
+    public static class BitbucketServerConfigArea extends PageAreaImpl {
 
         private final Control instanceName = control("serverName");
         private final Control instanceUrl = control("baseUrl");
@@ -41,8 +41,8 @@ public class BitbucketPluginConfiguration extends PageAreaImpl {
         private final String bbsTokenId;
         private final String bbsCredsId;
 
-        protected BitbucketServerConfiguration(PageArea area, String path, String serverName, String baseUrl,
-                                               String bbsTokenId, String bbsCredsId) {
+        protected BitbucketServerConfigArea(PageArea area, String path, String serverName, String baseUrl,
+                                            String bbsTokenId, String bbsCredsId) {
             super(area, path);
 
             this.serverName = serverName;

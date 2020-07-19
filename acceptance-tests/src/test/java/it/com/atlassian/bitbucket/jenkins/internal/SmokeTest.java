@@ -1,11 +1,15 @@
 package it.com.atlassian.bitbucket.jenkins.internal;
 
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.plugins.credentials.CredentialsPage;
@@ -14,15 +18,15 @@ import org.jenkinsci.test.acceptance.po.Build;
 import org.jenkinsci.test.acceptance.po.FreeStyleJob;
 import org.jenkinsci.test.acceptance.po.JenkinsConfig;
 import org.jenkinsci.test.acceptance.po.WorkflowJob;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import static io.restassured.http.ContentType.JSON;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
@@ -33,7 +37,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofMinutes;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
@@ -50,18 +53,19 @@ public class SmokeTest extends AbstractJUnitTest {
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     private String bbsAdminCredsId;
+    private PersonalToken bbsPersonalToken;
     private BitbucketRepository forkRepo;
     private String serverId;
 
     @Before
     public void setUp() {
         // BB Access Token
-        PersonalToken bbsToken = createPersonalToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
+        bbsPersonalToken = createPersonalToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
         CredentialsPage credentials = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
         credentials.open();
         BitbucketTokenCredentials bbsTokenCreds = credentials.add(BitbucketTokenCredentials.class);
-        bbsTokenCreds.token.set(bbsToken.getSecret());
-        bbsTokenCreds.description.sendKeys(bbsToken.getId());
+        bbsTokenCreds.token.set(bbsPersonalToken.getSecret());
+        bbsTokenCreds.description.sendKeys(bbsPersonalToken.getId());
         credentials.create();
 
         // BB Admin user/password
@@ -77,18 +81,27 @@ public class SmokeTest extends AbstractJUnitTest {
         JenkinsConfig jenkinsConfig = jenkins.getConfigPage();
         jenkinsConfig.configure();
         serverId = "bbs-" + randomUUID();
-        new BitbucketPluginConfiguration(jenkinsConfig)
-                .addBitbucketServer(serverId, BITBUCKET_BASE_URL, bbsToken.getId(), bbsAdminCredsId);
+        new BitbucketPluginConfigArea(jenkinsConfig)
+                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId(), bbsAdminCredsId);
         jenkinsConfig.save();
 
         // Fork repo
         forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, "fork-" + randomUUID());
     }
 
+    @After
+    public void tearDown() {
+        // There's a limit of 100 personal access tokens per user in Bitbucket Server, hence we clean up the access
+        // tokens after each test to ensure repeated test runs against the same Bitbucket instance does not fail.
+        if (bbsPersonalToken != null) {
+            deletePersonalToken(bbsPersonalToken.getId());
+        }
+    }
+
     @Test
-    public void testFreeStyleJob() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithFreeStyleJob() throws IOException, GitAPIException {
         FreeStyleJob freeStyleJob = jenkins.jobs.create();
-        BitbucketScm bitbucketScm = freeStyleJob.useScm(BitbucketScm.class);
+        BitbucketScmConfig bitbucketScm = freeStyleJob.useScm(BitbucketScmConfig.class);
         bitbucketScm
                 .credentialsId(bbsAdminCredsId)
                 .serverId(serverId)
@@ -112,11 +125,12 @@ public class SmokeTest extends AbstractJUnitTest {
         verifySuccessfulBuild(freeStyleJob.getLastBuild());
 
         // Verify BB has received build status
-        verifySuccessfulBuildStatusesPostedToBitbucket(commit.getId().getName(), freeStyleJob.getLastBuild().job.name);
+        fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
+                assertThat(status, successfulBuildWithKey(freeStyleJob.getLastBuild().job.name)));
     }
 
     @Test
-    public void testMultiBranchJobManualReIndexing() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithMultiBranchJobAndManualReIndexing() throws IOException, GitAPIException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
         BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
@@ -160,15 +174,17 @@ public class SmokeTest extends AbstractJUnitTest {
         assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
 
         // Verify BB has received build status
-        verifySuccessfulBuildStatusesPostedToBitbucket(masterCommitId,
-                multiBranchJob.name + "/" + lastMasterBuild.job.name);
+        fetchBuildStatusesFromBitbucket(masterCommitId).forEach(status ->
+                assertThat(status,
+                        successfulBuildWithKey(multiBranchJob.name + "/" + lastMasterBuild.job.name)));
 
-        verifySuccessfulBuildStatusesPostedToBitbucket(featureBranchCommitId,
-                multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name);
+        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
+                assertThat(status,
+                        successfulBuildWithKey(multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name)));
     }
 
     @Test
-    public void testMultiBranchJobBitbucketTriggersReIndex() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithMultiBranchJobAndBitbucketWebhookTrigger() throws IOException, GitAPIException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
         BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
@@ -211,11 +227,12 @@ public class SmokeTest extends AbstractJUnitTest {
         assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
 
         // Verify build statuses were posted to Bitbucket
-        verifySuccessfulBuildStatusesPostedToBitbucket(masterCommitId,
-                multiBranchJob.name + "/" + lastMasterBuild.job.name);
+        fetchBuildStatusesFromBitbucket(masterCommitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(multiBranchJob.name + "/" + lastMasterBuild.job.name)));
 
         String featureBranchBuildName = multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name;
-        verifySuccessfulBuildStatusesPostedToBitbucket(featureBranchCommitId, featureBranchBuildName);
+        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
 
         // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
         RevCommit newFileCommit =
@@ -226,12 +243,13 @@ public class SmokeTest extends AbstractJUnitTest {
         multiBranchJob.waitForBranchIndexingFinished(30);
 
         // Fetch and verify build status is posted for the new commit
-        verifySuccessfulBuildStatusesPostedToBitbucket(newFileCommitId, featureBranchBuildName);
+        fetchBuildStatusesFromBitbucket(newFileCommitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
     }
 
     @Test
     @Ignore("https://issues.jenkins-ci.org/browse/JENKINS-62463")
-    public void testPipelineJobWithBuildTemplateStoredInJenkins() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithPipelineJobAndBuildTemplateStoredInJenkins() throws IOException, GitAPIException {
         WorkflowJob workflowJob = jenkins.jobs.create(WorkflowJob.class);
         workflowJob.addTrigger(WorkflowJobBitbucketWebhookTrigger.class);
         workflowJob.script.set(ECHO_ONLY_JENKINS_FILE_CONTENT);
@@ -256,7 +274,7 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testPipelineJobWithBuildTemplateStoredInRepository() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithPipelineJobAndBuildTemplateStoredInRepository() throws IOException, GitAPIException {
         BitbucketScmWorkflowJob workflowJob = jenkins.jobs.create(BitbucketScmWorkflowJob.class);
         workflowJob.addTrigger(WorkflowJobBitbucketWebhookTrigger.class);
         workflowJob.bitbucketScmJenkinsFileSource()
@@ -281,33 +299,40 @@ public class SmokeTest extends AbstractJUnitTest {
         verifySuccessfulBuild(workflowJob.getLastBuild());
 
         // Verify BB has received build status
-        verifySuccessfulBuildStatusesPostedToBitbucket(commit.getId().getName(), workflowJob.getLastBuild().job.name);
+        fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
+                assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
     }
 
-    private void verifySuccessfulBuildStatusesPostedToBitbucket(String commitId, String key) {
-        verifyBuildStatusesPostedToBitbucket(commitId, key, "SUCCESSFUL");
-    }
-
-    private void verifyBuildStatusesPostedToBitbucket(String commitId, String key, String status) {
-        waitFor()
+    private List<Map<String, ?>> fetchBuildStatusesFromBitbucket(String commitId) {
+        return waitFor()
                 .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
                 .withMessage(
-                        String.format("Timed out while waiting for build statuses to be posted to Bitbucket: " +
-                                      "commitId=%s, buildKey=%s, buildStatus=%s", commitId, key, status))
+                        String.format(
+                                "Timed out while waiting for build statuses to be posted to Bitbucket [commitId=%s]",
+                                commitId))
                 .until(ignored -> {
-                    RestAssured
+                    Response response = RestAssured
                             .given()
                                 .log()
                                 .ifValidationFails()
                                 .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
                                 .contentType(JSON)
                             .when()
-                                .get(BITBUCKET_BASE_URL + "/rest/build-status/latest/commits/" + commitId)
-                            .then()
-                                .statusCode(200)
-                                .body("values.state", everyItem(is(status)))
-                                .body("values.key", everyItem(is(key)));
-                    return true;
+                                .get(BITBUCKET_BASE_URL + "/rest/build-status/latest/commits/" + commitId);
+                    if (response.getStatusCode() != 200) {
+                        return null;
+                    }
+                    JsonPath jsonResp = response.getBody().jsonPath();
+                    List<Map<String, ?>> statuses = jsonResp.getList("values");
+                    if (statuses == null || statuses.isEmpty()) {
+                        return null;
+                    }
+                    if (statuses.stream().anyMatch(status -> "INPROGRESS".equals(status.get("state")))) {
+                        // if any of the build statuses are in progress, we return 'null', which means 'until()' will
+                        // keep waiting until all builds are finished running
+                        return null;
+                    }
+                    return statuses;
                 });
     }
 
@@ -317,5 +342,45 @@ public class SmokeTest extends AbstractJUnitTest {
                 .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
                 .until(Build::hasStarted);
         assertThat(lastBuild.getResult(), is(SUCCESS.name()));
+    }
+
+    private static BuildStatusMatcher successfulBuildWithKey(String key) {
+        return new BuildStatusMatcher(key, "SUCCESSFUL");
+    }
+
+    private static final class BuildStatusMatcher extends TypeSafeDiagnosingMatcher<Map<String, ?>> {
+
+        private final String expectedKey;
+        private final String expectedState;
+
+        private BuildStatusMatcher(String expectedKey, String expectedState) {
+            this.expectedKey = expectedKey;
+            this.expectedState = expectedState;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("build status: {key=")
+                    .appendValue(expectedKey)
+                    .appendText(", state=")
+                    .appendValue(expectedState)
+                    .appendText("}");
+        }
+
+        @Override
+        protected boolean matchesSafely(Map<String, ?> buildStatus, Description mismatchDescription) {
+            Object key = buildStatus.get("key");
+            Object state = buildStatus.get("state");
+            boolean matches = Objects.equals(expectedKey, key) &&
+                              Objects.equals(expectedState, state);
+            if (!matches) {
+                mismatchDescription.appendText("is build status: {key=")
+                        .appendValue(key)
+                        .appendText(", state=")
+                        .appendValue(state)
+                        .appendText("}");
+            }
+            return matches;
+        }
     }
 }

@@ -63,8 +63,9 @@ public class BitbucketUtils {
         createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
         createTokenRequest.put("permissions", permissions);
         ResponseBody<Response> tokenResponse =
-                RestAssured.given()
-                        .log()
+                RestAssured
+                        .given()
+                            .log()
                             .ifValidationFails()
                             .auth()
                             .preemptive()
@@ -77,6 +78,32 @@ public class BitbucketUtils {
                             .put(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin")
                         .getBody();
         return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
+    }
+
+    public static void deletePersonalToken(String tokenId) {
+        RestAssured
+                .given()
+                    .log()
+                    .ifValidationFails()
+                    .auth()
+                    .preemptive()
+                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                .expect()
+                    .statusCode(204)
+                .when()
+                    .delete(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin/" + tokenId);
+    }
+
+    public static void deleteRepoFork(String repoForkSlug) {
+        RestAssured.given()
+                .log()
+                .ifValidationFails()
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .expect()
+                .statusCode(202)
+                .when()
+                .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + repoForkSlug);
     }
 
     public static final class PersonalToken {

@@ -17,10 +17,10 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
         super(injector, url, name);
     }
 
-    public BitbucketScm bitbucketScmJenkinsFileSource() {
+    public BitbucketScmConfig bitbucketScmJenkinsFileSource() {
         select("Pipeline script from SCM");
         select("Bitbucket Server");
-        return new BitbucketScm(this, "/definition/scm");
+        return new BitbucketScmConfig(this, "/definition/scm");
     }
 
     private void select(final String option) {

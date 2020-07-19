@@ -9,7 +9,7 @@ import org.openqa.selenium.support.ui.Select;
  * @see Job#useScm(Class)
  */
 @Describable("Bitbucket Server")
-public class BitbucketScm extends Scm {
+public class BitbucketScmConfig extends Scm {
 
     private final Control credentialsId = control("credentialsId");
     private final Control serverId = control("serverId");
@@ -17,36 +17,36 @@ public class BitbucketScm extends Scm {
     private final Control repositoryName = control("repositoryName");
     private final Control branchName = control("branches/name");
 
-    public BitbucketScm(Job job, String path) {
+    public BitbucketScmConfig(Job job, String path) {
         super(job, path);
     }
 
-    public BitbucketScm credentialsId(String credentialsId) {
+    public BitbucketScmConfig credentialsId(String credentialsId) {
         new Select(this.credentialsId.resolve()).selectByValue(credentialsId);
         return this;
     }
 
-    public BitbucketScm serverId(String serverId) {
+    public BitbucketScmConfig serverId(String serverId) {
         new Select(this.serverId.resolve()).selectByVisibleText(serverId);
         return this;
     }
 
-    public BitbucketScm projectName(String projectName) {
+    public BitbucketScmConfig projectName(String projectName) {
         this.projectName.set(projectName);
         return this;
     }
 
-    public BitbucketScm repositoryName(String repositoryName) {
+    public BitbucketScmConfig repositoryName(String repositoryName) {
         this.repositoryName.set(repositoryName);
         return this;
     }
 
-    public BitbucketScm branchName(String branchName) {
+    public BitbucketScmConfig branchName(String branchName) {
         this.branchName.set(branchName);
         return this;
     }
 
-    public BitbucketScm anyBranch() {
+    public BitbucketScmConfig anyBranch() {
         return branchName("");
     }
 }
