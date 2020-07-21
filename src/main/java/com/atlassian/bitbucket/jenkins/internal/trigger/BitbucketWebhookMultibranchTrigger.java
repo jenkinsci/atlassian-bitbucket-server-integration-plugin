@@ -35,21 +35,6 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
         return (BitbucketWebhookMultibranchTrigger.DescriptorImpl) super.getDescriptor();
     }
 
-    @Override
-    public void start(MultiBranchProject<?, ?> project, boolean newInstance) {
-        super.start(project, newInstance);
-        if (!newInstance) {
-            return;
-        }
-        BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor = getDescriptor();
-        project.getSCMSources().stream().filter(scm -> scm instanceof BitbucketSCMSource)
-                .filter(scm -> ((BitbucketSCMSource) scm).isValid())
-                .forEach(scm -> {
-            boolean isAdded = descriptor.addTrigger(project, (BitbucketSCMSource) scm);
-            ((BitbucketSCMSource) scm).setWebhookRegistered(isAdded);
-        });
-    }
-
     @Symbol("BitbucketWebhookMultibranchTriggerImpl")
     @Extension
     public static class DescriptorImpl extends TriggerDescriptor {
@@ -61,11 +46,11 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
 
         @SuppressWarnings("unused")
         public DescriptorImpl() {
-
         }
 
-        public DescriptorImpl(RetryingWebhookHandler webhookHandler,
-                                                            BitbucketPluginConfiguration bitbucketPluginConfiguration) {
+        @VisibleForTesting
+        DescriptorImpl(RetryingWebhookHandler webhookHandler,
+                       BitbucketPluginConfiguration bitbucketPluginConfiguration) {
             this.retryingWebhookHandler = webhookHandler;
             this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
         }
@@ -80,8 +65,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
             return item instanceof MultiBranchProject;
         }
 
-        @VisibleForTesting
-        boolean addTrigger(Item item, BitbucketSCMSource scm) {
+        public boolean addTrigger(Item item, BitbucketSCMSource scm) {
             try {
                 registerWebhook(item, scm.getBitbucketSCMRepository());
                 return true;

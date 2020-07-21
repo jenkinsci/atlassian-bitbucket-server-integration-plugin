@@ -184,7 +184,6 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    @Ignore("https://issues.jenkins-ci.org/browse/JENKINS-63121")
     public void testFullBuildFlowWithMultiBranchJobAndBitbucketWebhookTrigger() throws IOException, GitAPIException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);

@@ -8,7 +8,10 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.TaskListener;
@@ -40,6 +43,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static hudson.model.Item.CONFIGURE;
@@ -138,6 +142,19 @@ public class BitbucketSCMSource extends SCMSource {
         return gitSCMSource.build(head, revision);
     }
 
+    @Override
+    public void afterSave() {
+        super.afterSave();
+        if (!webhookRegistered && isValid()) {
+            SCMSourceOwner owner = getOwner();
+            if (owner instanceof ComputedFolder) {
+                getTriggers((ComputedFolder<?>) owner)
+                        .forEach(triggerDesc ->
+                                webhookRegistered = triggerDesc.addTrigger(owner, this));
+            }
+        }
+    }
+
     public BitbucketSCMRepository getBitbucketSCMRepository() {
         return repository;
     }
@@ -178,7 +195,8 @@ public class BitbucketSCMSource extends SCMSource {
 
     public boolean isValid() {
         return getMirrorName() != null && isNotBlank(getProjectKey()) && isNotBlank(getProjectName()) &&
-                isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) && isNotBlank(getServerId());
+               isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) &&
+               isNotBlank(getServerId());
     }
 
     @Override
@@ -192,6 +210,14 @@ public class BitbucketSCMSource extends SCMSource {
 
     public void setWebhookRegistered(boolean webhookRegistered) {
         this.webhookRegistered = webhookRegistered;
+    }
+
+    @VisibleForTesting
+    List<BitbucketWebhookMultibranchTrigger.DescriptorImpl> getTriggers(ComputedFolder<?> owner) {
+        return owner.getTriggers().keySet().stream()
+                .filter(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance)
+                .map(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::cast)
+                .collect(Collectors.toList());
     }
 
     @Override
