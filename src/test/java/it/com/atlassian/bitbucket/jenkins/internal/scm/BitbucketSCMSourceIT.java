@@ -2,6 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -13,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
-import hudson.triggers.Trigger;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -21,7 +21,6 @@ import io.restassured.specification.RequestSpecification;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
-import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.apache.commons.io.FileUtils;
@@ -48,18 +47,16 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import static java.util.UUID.randomUUID;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 public class BitbucketSCMSourceIT {
-
-    private static final String PROJECT_KEY = "PROJECT_1";
-    private static final String PROJECT_NAME = "Project 1";
 
     @Rule
     public final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
@@ -68,43 +65,51 @@ public class BitbucketSCMSourceIT {
     @Rule
     public final Timeout testTimeout = new Timeout(0, TimeUnit.MINUTES);
 
+    private static final String PROJECT_KEY = "PROJECT_1";
+    private static final String PROJECT_NAME = "Project 1";
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private UsernamePasswordCredentials bbCredentials;
-    private String cloneUrl;
-    private ObjectMapper objectMapper = new ObjectMapper();
-    private String repoName;
-    private String repoSlug;
+    private String forkCloneUrl;
+    private String forkRepoName;
+    private String forkRepoSlug;
 
     @Before
     public void setUp() throws Exception {
-        repoName = REPO_NAME + "-fork";
+        forkRepoName = REPO_NAME + "-fork-" + randomUUID();
         bbCredentials = bbJenkinsRule.getAdminToken();
-        BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG, repoName);
-        repoSlug = repository.getSlug();
-        cloneUrl =
-                repository.getCloneUrls().stream().filter(repo -> "http".equals(repo.getName())).findFirst().orElse(null).getHref();
+        BitbucketRepository forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, forkRepoName);
+        forkRepoSlug = forkRepo.getSlug();
+        forkCloneUrl =
+                forkRepo.getCloneUrls().stream()
+                        .filter(repo -> "http".equals(repo.getName()))
+                        .findFirst()
+                        .map(BitbucketNamedLink::getHref)
+                        .orElseThrow(() -> new IllegalStateException("Repo is missing a HTTP clone URL"));
     }
 
     @After
     public void tearDown() {
-        deleteRepository(PROJECT_KEY, repoName);
+        deleteRepository(PROJECT_KEY, forkRepoName);
     }
 
     @Test
     public void testCreateSCM() {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = serverConf.getCredentialsId();
-        String id = UUID.randomUUID().toString();
+        String id = randomUUID().toString();
         String serverId = serverConf.getId();
         BitbucketSCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, repoName, serverId, null);
+                new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, forkRepoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
-        assertThat(scmSource.getRemote(), containsStringIgnoringCase(cloneUrl));
+        assertThat(scmSource.getRemote(), containsStringIgnoringCase(forkCloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
         assertThat(scmSource.getId(), equalTo(id));
         assertThat(scmSource.getProjectKey(), equalTo(PROJECT_KEY));
         assertThat(scmSource.getProjectName(), equalTo(PROJECT_NAME));
-        assertThat(scmSource.getRepositoryName(), equalTo(repoName));
-        assertThat(scmSource.getRepositorySlug(), equalTo(repoSlug));
+        assertThat(scmSource.getRepositoryName(), equalTo(forkRepoName));
+        assertThat(scmSource.getRepositorySlug(), equalTo(forkRepoSlug));
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
 
@@ -119,27 +124,27 @@ public class BitbucketSCMSourceIT {
         RemoteConfig remoteConfig = scm.getRepositories().get(0);
         assertThat(remoteConfig.getURIs(), hasSize(1));
         URIish repoCloneUrl = remoteConfig.getURIs().get(0);
-        assertThat(repoCloneUrl.toString(), containsStringIgnoringCase(cloneUrl));
+        assertThat(repoCloneUrl.toString(), containsStringIgnoringCase(forkCloneUrl));
     }
 
     @Test
     public void testFullFlow() throws IOException, InterruptedException, GitAPIException {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = serverConf.getCredentialsId();
-        String id = UUID.randomUUID().toString();
+        String id = randomUUID().toString();
         String serverId = serverConf.getId();
         SCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                        PROJECT_NAME, repoName, serverId, null);
+                        PROJECT_NAME, forkRepoName, serverId, null);
         WorkflowMultiBranchProject project =
                 bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
-        Trigger<MultiBranchProject<?, ?>> trigger = new BitbucketWebhookMultibranchTrigger();
+        project.addTrigger(new BitbucketWebhookMultibranchTrigger());
 
         BranchSource branchSource = new BranchSource(scmSource);
 
         branchSource.setStrategy(new DefaultBranchPropertyStrategy(null));
         project.setSourcesList(Collections.singletonList(branchSource));
-        trigger.start(project, true);
+        scmSource.afterSave();
 
         Future queueFuture = project.scheduleBuild2(0).getFuture();
         while (!queueFuture.isDone()) { //wait for the branch scanning to complete before proceeding
@@ -152,7 +157,7 @@ public class BitbucketSCMSourceIT {
         File checkoutDir = temporaryFolder.newFolder("repositoryCheckout");
         Git gitRepo = Git.cloneRepository()
                 .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(cloneUrl)
+                .setURI(forkCloneUrl)
                 .setCredentialsProvider(cr)
                 .setDirectory(checkoutDir)
                 .setBranch("master")
