@@ -46,7 +46,6 @@ public class BitbucketSCMStep extends SCMStep {
     private final List<BranchSpec> branches;
     private final String cloneUrl;
     private final String credentialsId;
-    private final String sshCredentialsId;
     private final String id;
     private final String projectKey;
     private final String projectName;
@@ -62,7 +61,6 @@ public class BitbucketSCMStep extends SCMStep {
             String id,
             List<BranchSpec> branches,
             String credentialsId,
-            String sshCredentialsId,
             String projectName,
             String repositoryName,
             String serverId,
@@ -70,7 +68,6 @@ public class BitbucketSCMStep extends SCMStep {
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
         this.branches = branches;
         this.credentialsId = credentialsId;
-        this.sshCredentialsId = sshCredentialsId;
         this.projectName = projectName;
         this.repositoryName = repositoryName;
         this.serverId = serverId;
@@ -114,7 +111,6 @@ public class BitbucketSCMStep extends SCMStep {
         }
         BitbucketRepository repository;
         String repoCloneUrl;
-        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
         if (!isBlank(mirrorName)) {
             try {
                 EnrichedBitbucketMirroredRepository mirroredRepository =
@@ -128,7 +124,7 @@ public class BitbucketSCMStep extends SCMStep {
                                                 repositoryName,
                                                 mirrorName));
                 repository = mirroredRepository.getRepository();
-                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls(), cloneProtocol);
+                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
             } catch (MirrorFetchException ex) {
                 projectKey = "";
                 repositorySlug = "";
@@ -139,9 +135,9 @@ public class BitbucketSCMStep extends SCMStep {
             }
         } else {
             repository = scmHelper.getRepository(projectName, repositoryName);
-            repoCloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
+            repoCloneUrl = getCloneUrl(repository.getCloneUrls());
         }
-        cloneUrl = repoCloneUrl;
+        this.cloneUrl = repoCloneUrl;
         projectKey = repository.getProject().getKey();
         repositorySlug = repository.getSlug();
         selfLink = repository.getSelfLink();
@@ -158,10 +154,6 @@ public class BitbucketSCMStep extends SCMStep {
 
     public String getCredentialsId() {
         return credentialsId;
-    }
-
-    public String getSshCredentialsId() {
-        return sshCredentialsId;
     }
 
     public String getId() {
@@ -207,12 +199,12 @@ public class BitbucketSCMStep extends SCMStep {
         BitbucketRepository bitbucketRepository =
                 new BitbucketRepository(repositoryId, repositoryName, bitbucketProject,
                         repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
-        return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, serverId, bitbucketRepository);
+        return new BitbucketSCM(id, branches, credentialsId, null, null, serverId, bitbucketRepository);
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
         return cloneUrls.stream()
-                .filter(link -> cloneProtocol.name.equals(link.getName()))
+                .filter(link -> "http".equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
@@ -236,11 +228,6 @@ public class BitbucketSCMStep extends SCMStep {
         @POST
         public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
             return formValidation.doCheckCredentialsId(credentialsId);
-        }
-
-        @Override
-        public FormValidation doCheckSshCredentialsId(String credentialsId) {
-            return formValidation.doCheckSshCredentialsId(credentialsId);
         }
 
         @Override
@@ -280,13 +267,6 @@ public class BitbucketSCMStep extends SCMStep {
                                                      @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
             return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
-        }
-
-        @Override
-        @POST
-        public ListBoxModel doFillSshCredentialsIdItems(@QueryParameter String baseUrl,
-                                                     @QueryParameter String credentialsId) {
-            return formFill.doFillSshCredentialsIdItems(baseUrl, credentialsId);
         }
 
         @Override

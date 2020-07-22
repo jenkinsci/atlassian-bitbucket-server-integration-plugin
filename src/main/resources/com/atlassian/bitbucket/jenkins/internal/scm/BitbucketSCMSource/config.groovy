@@ -26,10 +26,6 @@ f.section() {
         f.select(checkMethod: "post")
     }
 
-    f.entry(title: _("bitbucket.scm.ssh-credentials"), field: "sshCredentialsId") {
-        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
-    }
-
     f.entry(title: _("Behaviours")) {
         s.traits(field:"traits")
     }

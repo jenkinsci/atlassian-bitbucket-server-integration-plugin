@@ -60,7 +60,7 @@ public class BitbucketSCMTest {
         String projectKey = "~USER";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -75,7 +75,7 @@ public class BitbucketSCMTest {
         String projectKey = "PROJECT_1";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -104,7 +104,6 @@ public class BitbucketSCMTest {
                 "1",
                 Collections.emptyList(),
                 credentialsId,
-                "",
                 Collections.emptyList(),
                 "",
                 project,
@@ -115,16 +114,15 @@ public class BitbucketSCMTest {
             public SCMDescriptor<?> getDescriptor() {
                 BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);
-                doReturn(Optional.of(bitbucketServerConfiguration))
-                        .when(descriptor).getConfiguration(argThat(serverId -> !isBlank(serverId)));
-                doReturn(Optional.empty())
-                        .when(descriptor).getConfiguration(argThat(StringUtils::isBlank));
-                doReturn(mock(BitbucketScmHelper.class))
-                        .when(descriptor).getBitbucketScmHelper(
-                                nullable(String.class),
-                                nullable(GlobalCredentialsProvider.class),
-                                nullable(String.class)
-                        );
+                when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
+                        .thenReturn(Optional.of(bitbucketServerConfiguration));
+                when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
+                        .thenReturn(Optional.empty());
+                when(descriptor.getBitbucketScmHelper(
+                        nullable(String.class),
+                        nullable(GlobalCredentialsProvider.class),
+                        nullable(String.class)))
+                        .thenReturn(mock(BitbucketScmHelper.class));
                 return descriptor;
             }
         };

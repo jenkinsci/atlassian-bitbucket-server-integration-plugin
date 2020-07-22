@@ -42,7 +42,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 
 public class BitbucketSCMSourceIT {
@@ -93,15 +95,8 @@ public class BitbucketSCMSourceIT {
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        BitbucketSCMSource scmSource = new BitbucketSCMSource(
-                id,
-                credentialsId,
-                "",
-                null,
-                PROJECT_NAME,
-                repoName,
-                serverId,
-                null);
+        BitbucketSCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, null, PROJECT_NAME, repoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
         assertThat(scmSource.getRemote(), containsStringIgnoringCase(cloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
@@ -128,43 +123,14 @@ public class BitbucketSCMSourceIT {
     }
 
     @Test
-    public void testFullFlowHttp() throws InterruptedException, GitAPIException, IOException {
+    public void testFullFlow() throws IOException, InterruptedException, GitAPIException {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = serverConf.getCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMSource scmSource = new BitbucketSCMSource(id,
-                credentialsId,
-                "",
-                new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                PROJECT_NAME,
-                repoName,
-                serverId,
-                null);
-
-        executeFullFlow(scmSource);
-    }
-
-    @Test
-    public void testFullFlowSsh() throws InterruptedException, GitAPIException, IOException {
-        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
-        String id = UUID.randomUUID().toString();
-        String serverId = serverConf.getId();
-        SCMSource scmSource = new BitbucketSCMSource(id,
-                credentialsId,
-                bbJenkinsRule.getSshCredentialId(),
-                new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                PROJECT_NAME,
-                repoName,
-                serverId,
-                null);
-
-        executeFullFlow(scmSource);
-    }
-
-    private void executeFullFlow(SCMSource scmSource) throws IOException, InterruptedException, GitAPIException {
-
+        SCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                        PROJECT_NAME, repoName, serverId, null);
         WorkflowMultiBranchProject project =
                 bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
         Trigger<MultiBranchProject<?, ?>> trigger = new BitbucketWebhookMultibranchTrigger();

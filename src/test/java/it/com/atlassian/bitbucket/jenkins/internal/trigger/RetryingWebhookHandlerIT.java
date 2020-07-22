@@ -62,7 +62,7 @@ public class RetryingWebhookHandlerIT {
         adminCredentials = JenkinsToBitbucketCredentialsImpl.getBearerCredentials(adminToken.getSecret());
         nonAdminCredentials = JenkinsToBitbucketCredentialsImpl.getBearerCredentials(nonAdminToken.getSecret());
         bitbucketSCMRepository =
-                new BitbucketSCMRepository(JOB_CREDENTIAL_ID, "", PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, SERVER_ID, "");
+                new BitbucketSCMRepository(JOB_CREDENTIAL_ID, PROJECT_NAME, PROJECT_KEY, REPO_NAME, REPO_SLUG, SERVER_ID, "");
         cleanWebhooks();
     }
 

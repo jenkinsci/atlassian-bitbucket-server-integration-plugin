@@ -68,8 +68,8 @@ public class JenkinsProjectHandler {
         String serverId = serverConf.getId();
 
         SCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, "",
-                        new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(), project, repoSlug, serverId, null);
+                new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                        project, repoSlug, serverId, null);
         WorkflowMultiBranchProject mbp = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, name);
         BranchSource branchSource = new BranchSource(scmSource);
 

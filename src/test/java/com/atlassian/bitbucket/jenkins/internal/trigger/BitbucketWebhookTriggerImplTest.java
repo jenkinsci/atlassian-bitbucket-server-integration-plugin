@@ -344,7 +344,6 @@ public class BitbucketWebhookTriggerImplTest {
         when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
         return new BitbucketSCMRepository(
                 "credentialId",
-                "",
                 PROJECT,
                 PROJECT,
                 REPO,

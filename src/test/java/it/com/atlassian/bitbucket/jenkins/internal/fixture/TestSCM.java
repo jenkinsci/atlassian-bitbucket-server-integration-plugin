@@ -7,7 +7,7 @@ import jenkins.model.Jenkins;
 public class TestSCM extends BitbucketSCM {
 
     public TestSCM(BitbucketSCM bitbucketSCM) {
-        super(bitbucketSCM.getId(), bitbucketSCM.getBranches(), bitbucketSCM.getCredentialsId(), bitbucketSCM.getSshCredentialsId(),
+        super(bitbucketSCM.getId(), bitbucketSCM.getBranches(), bitbucketSCM.getCredentialsId(),
                 bitbucketSCM.getExtensions(), bitbucketSCM.getGitTool(), bitbucketSCM.getProjectName(),
                 bitbucketSCM.getRepositoryName(), bitbucketSCM.getServerId(), bitbucketSCM.getMirrorName());
     }

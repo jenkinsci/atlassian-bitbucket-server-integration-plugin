@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -23,19 +22,18 @@ import java.util.Optional;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class BitbucketSCMSourceTest {
 
-    private static final String httpCloneLink = "http://localhost:7990/fake.git";
-    private static final String sshCloneLink = "@ssh://git@localhost:7990/fake.git";
+    private static final String cloneLink = "http://localhost:7990/fake.git";
 
     @Test
-    public void testBuildHttp() {
+    public void build() {
         BitbucketSCMSource scmSource = createInstance("credentialsId", "serverId", "project", "repo");
         SCMHead scmHead = mock(SCMHead.class);
         when(scmHead.getName()).thenReturn("myBranch");
@@ -44,21 +42,7 @@ public class BitbucketSCMSourceTest {
         GitSCM gitSCM = (GitSCM) scm;
         List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
         assertEquals(1, userRemoteConfigs.size());
-        assertEquals(httpCloneLink, userRemoteConfigs.get(0).getUrl());
-    }
-
-    @Test
-    public void testBuildSsh() {
-        BitbucketSCMSource scmSource =
-                createInstance("credentialsId", "sshCredentialsId", "serverId", "project", "repo");
-        SCMHead scmHead = mock(SCMHead.class);
-        when(scmHead.getName()).thenReturn("myBranch");
-        SCM scm = scmSource.build(scmHead, null);
-        assertTrue(scm instanceof GitSCM);
-        GitSCM gitSCM = (GitSCM) scm;
-        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
-        assertEquals(1, userRemoteConfigs.size());
-        assertEquals(sshCloneLink, userRemoteConfigs.get(0).getUrl());
+        assertEquals(cloneLink, userRemoteConfigs.get(0).getUrl());
     }
 
     @Test
@@ -101,29 +85,20 @@ public class BitbucketSCMSourceTest {
         return createInstance(credentialId, serverId, null);
     }
 
-    private BitbucketSCMSource createInstance(String credentialId, @Nullable String serverId,
-                                              @Nullable String projectName) {
+    private BitbucketSCMSource createInstance(String credentialId, @Nullable String serverId, @Nullable String projectName) {
         return createInstance(credentialId, serverId, projectName, null);
     }
 
     @SuppressWarnings("Duplicates")
-    private BitbucketSCMSource createInstance(String credentialsId, @Nullable String serverId,
-                                              @Nullable String projectName, @Nullable String repo) {
-        return createInstance(credentialsId, "", serverId, projectName, repo);
-    }
-
-    private BitbucketSCMSource createInstance(String credentialsId, String sshCredentialId, @Nullable String serverId,
-                                              @Nullable String projectName, @Nullable String repo) {
+    private BitbucketSCMSource createInstance(String credentialsId, @Nullable String serverId, @Nullable String projectName, @Nullable String repo) {
         return new BitbucketSCMSource(
                 "1",
                 credentialsId,
-                sshCredentialId,
                 Collections.emptyList(),
                 projectName,
                 repo,
                 serverId,
                 null) {
-
             @Override
             public SCMSourceDescriptor getDescriptor() {
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);
@@ -143,7 +118,7 @@ public class BitbucketSCMSourceTest {
                 when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                 when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                 when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
-                when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
+                when(repository.getCloneUrls()).thenReturn(Collections.singletonList(new BitbucketNamedLink("http", cloneLink)));
 
                 return descriptor;
             }

@@ -68,7 +68,6 @@ public class BitbucketSCM extends SCM {
             @CheckForNull String id,
             @CheckForNull List<BranchSpec> branches,
             @CheckForNull String credentialsId,
-            @CheckForNull String sshCredentialsId,
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
             @CheckForNull String projectName,
@@ -81,7 +80,7 @@ public class BitbucketSCM extends SCM {
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
         if (!mayBeServerConf.isPresent()) {
             LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -95,12 +94,12 @@ public class BitbucketSCM extends SCM {
                 descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
         if (isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -116,14 +115,14 @@ public class BitbucketSCM extends SCM {
                                                 projectName,
                                                 repositoryName,
                                                 mirrorName));
-                setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirroredRepository);
+                setRepositoryDetails(credentialsId, serverId, mirroredRepository);
                 return;
             } catch (MirrorFetchException ex) {
-                setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+                setEmptyRepsitory(credentialsId, projectName, repositoryName, serverId, mirrorName);
             }
         } else {
             BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
-            setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirrorName, repository);
+            setRepositoryDetails(credentialsId, serverId, mirrorName, repository);
         }
     }
 
@@ -131,13 +130,12 @@ public class BitbucketSCM extends SCM {
             @CheckForNull String id,
             @CheckForNull List<BranchSpec> branches,
             @CheckForNull String credentialsId,
-            @CheckForNull String sshCredentialsId,
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
             @CheckForNull String serverId,
             BitbucketRepository repository) {
         this(id, branches, extensions, gitTool, serverId, repository.getName());
-        setRepositoryDetails(credentialsId, sshCredentialsId, serverId, "", repository);
+        setRepositoryDetails(credentialsId, serverId, "", repository);
     }
 
     /**
@@ -146,7 +144,7 @@ public class BitbucketSCM extends SCM {
      * @param oldScm old scm to copy values from
      */
     public BitbucketSCM(BitbucketSCM oldScm) {
-        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), oldScm.getSshCredentialsId(), oldScm.getExtensions(),
+        this(oldScm.getId(), oldScm.getBranches(), oldScm.getCredentialsId(), oldScm.getExtensions(),
                 oldScm.getGitTool(), oldScm.getProjectName(), oldScm.getRepositoryName(), oldScm.getServerId(),
                 oldScm.getMirrorName());
     }
@@ -244,11 +242,6 @@ public class BitbucketSCM extends SCM {
         return getBitbucketSCMRepository().getCredentialsId();
     }
 
-    @CheckForNull
-    public String getSshCredentialsId() {
-        return getBitbucketSCMRepository().getSshCredentialsId();
-    }
-
     public List<GitSCMExtension> getExtensions() {
         return gitSCM.getExtensions();
     }
@@ -306,9 +299,9 @@ public class BitbucketSCM extends SCM {
         return repositories.get(0);
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol protocol) {
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
         return cloneUrls.stream()
-                .filter(link -> Objects.equals(protocol.name, link.getName()))
+                .filter(link -> "http".equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
@@ -316,11 +309,8 @@ public class BitbucketSCM extends SCM {
 
     private void initialize(String cloneUrl, String selfLink, BitbucketSCMRepository bitbucketSCMRepository) {
         repositories.add(bitbucketSCMRepository);
-        String credentialsId = isBlank(bitbucketSCMRepository.getSshCredentialsId()) ?
-                bitbucketSCMRepository.getCredentialsId() : bitbucketSCMRepository.getSshCredentialsId();
-
         UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
+                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
         gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
@@ -328,7 +318,6 @@ public class BitbucketSCM extends SCM {
     }
 
     private void setEmptyRepsitory(@CheckForNull String credentialsId,
-                                   @CheckForNull String sshCredentialsId,
                                    @CheckForNull String projectName,
                                    @CheckForNull String repositoryName,
                                    @CheckForNull String serverId,
@@ -339,30 +328,28 @@ public class BitbucketSCM extends SCM {
         BitbucketRepository repository =
                 new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName),
                         repositoryName, AVAILABLE);
-        setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirrorName, repository);
+        setRepositoryDetails(credentialsId, serverId, mirrorName, repository);
     }
 
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @CheckForNull String sshCredentialsId,
-                                      @Nullable String serverId, String mirrorName, BitbucketRepository repository) {
-        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
-        String cloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
+    private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId, String mirrorName,
+                                      BitbucketRepository repository) {
+        String cloneUrl = getCloneUrl(repository.getCloneUrls());
         BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, sshCredentialsId, repository.getProject().getName(),
+                new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
                         serverId, mirrorName);
         initialize(cloneUrl, repository.getSelfLink(), bitbucketSCMRepository);
     }
 
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @CheckForNull String sshCredentialsId, @Nullable String serverId,
+    private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId,
                                       EnrichedBitbucketMirroredRepository repository) {
         if (isBlank(serverId)) {
             return;
         }
-        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
-        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls(), cloneProtocol);
+        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls());
         BitbucketRepository underlyingRepo = repository.getRepository();
         BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, sshCredentialsId, underlyingRepo.getProject().getName(),
+                new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
         initialize(cloneUrl, underlyingRepo.getSelfLink(), bitbucketSCMRepository);
@@ -399,12 +386,6 @@ public class BitbucketSCM extends SCM {
 
         @Override
         @POST
-        public FormValidation doCheckSshCredentialsId(@QueryParameter String credentialsId) {
-            return formValidation.doCheckCredentialsId(credentialsId);
-        }
-
-        @Override
-        @POST
         public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
             return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
@@ -431,13 +412,6 @@ public class BitbucketSCM extends SCM {
                                                      @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
             return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
-        }
-
-        @Override
-        @POST
-        public ListBoxModel doFillSshCredentialsIdItems(@QueryParameter String baseUrl,
-                                                        @QueryParameter String credentialsId) {
-            return formFill.doFillSshCredentialsIdItems(baseUrl, credentialsId);
         }
 
         @Override

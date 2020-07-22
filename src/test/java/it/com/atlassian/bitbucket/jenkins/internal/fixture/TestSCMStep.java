@@ -13,9 +13,9 @@ import java.util.List;
  */
 public class TestSCMStep extends BitbucketSCMStep {
 
-    public TestSCMStep(String id, List<BranchSpec> branches, String credentialsId, String sshCredentialsId,
-                       String projectName, String repositoryName, String serverId, String mirrorName) {
-        super(id, branches, credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+    public TestSCMStep(String id, List<BranchSpec> branches, String credentialsId, String projectName,
+                       String repositoryName, String serverId, String mirrorName) {
+        super(id, branches, credentialsId, projectName, repositoryName, serverId, mirrorName);
     }
 
     @Override

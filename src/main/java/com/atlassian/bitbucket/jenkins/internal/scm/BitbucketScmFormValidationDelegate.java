@@ -48,12 +48,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         return FormValidation.ok();
     }
 
-    // Ssh Credentials are hidden in other fields so this is fine for now
-    @Override
-    public FormValidation doCheckSshCredentialsId(String credentialsId) {
-        return doCheckCredentialsId(credentialsId);
-    }
-
     @Override
     public FormValidation doCheckProjectName(String serverId, String credentialsId, String projectName) {
         if (isBlank(projectName)) {

@@ -30,11 +30,6 @@ public final class ScmUtils {
 
     public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule,
                                          String repoSlug, List<BranchSpec> branchSpecs) {
-        return createScm(bbJenkinsRule, false, repoSlug, branchSpecs);
-    }
-
-    public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule, boolean usesSshCredentials,
-                                         String repoSlug, List<BranchSpec> branchSpecs) {
         BitbucketServerConfiguration serverConfiguration = bbJenkinsRule.getBitbucketServerConfiguration();
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider =
                 new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
@@ -51,7 +46,6 @@ public final class ScmUtils {
                 "",
                 branchSpecs,
                 serverConfiguration.getCredentialsId(),
-                bbJenkinsRule.getSshCredentialId(),
                 emptyList(),
                 "",
                 serverConfiguration.getId(),
