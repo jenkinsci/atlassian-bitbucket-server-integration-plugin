@@ -176,6 +176,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 2.0.1 (22 July 2020)
+- Fix issue JENKINS-60116 - non-admins can now set credentials in jobs
+
 ### 2.0.0 (9 July 2020)
 - Application Links between Jenkins and Bitbucket Server are now supported
 - Build statuses provide test summaries, duration and log links in Bitbucket Server 7.4 and above
