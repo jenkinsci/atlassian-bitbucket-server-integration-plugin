@@ -71,11 +71,11 @@ There are two parts to creating an Application Link. The first is done in Jenkin
 To register a consumer: 
 1. In Jenkins go to **Jenkins** > **Manage Jenkins** > **Manage Bitbucket Server consumers**. 
 2. Select **Register new consumer**. 
-3. Enter these details: 
-   - Consumer key: A unique identifier for your Bitbucket instance. 
-   - Consumer name: A human-readable identifier for your Bitbucket instance.  
-   - Consumer secret: A password Jenkins can use with your key to identify your Bitbucket instance. Once this is entered you won't be able to retrieve it. 
-   - Callback URL (optional): The address Jenkins should redirect to after an OAuth flow. For example, your Bitbucket instance's base URL. 
+3. Complete the form: 
+   - Consumer key: Enter a unique key that Jenkins can use to identify this Bitbucket instance. For example, bitbucket-syd.
+   - Consumer name: Enter a name to help you identify this Bitbucket Server instance. For example, Bitbucket Sydney.
+   - Consumer secret: Enter a password that Jenkins can use with your key to identify this Bitbucket instance. Once this is entered it won't be retrievable. 
+   - Callback URL: Enter the address Jenkins should redirect to after an OAuth flow. For example, your Bitbucket instance's base URL. 
 4. Select **Save**. 
 
 After you save, you’ll be taken to a page called Application Link details. It’s a good idea to keep this page open when moving onto part 2 so you can copy the details across to Bitbucket Server. 
