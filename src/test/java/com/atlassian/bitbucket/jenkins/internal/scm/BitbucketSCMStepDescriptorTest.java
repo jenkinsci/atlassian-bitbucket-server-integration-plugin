@@ -20,36 +20,36 @@ public class BitbucketSCMStepDescriptorTest {
     @Mock
     private BitbucketScmFormValidationDelegate formValidation;
     @Mock
-    private Item item;
+    private Item parent;
 
     @Test
     public void testDoCheckCredentialsId() {
-        descriptor.doCheckCredentialsId("myCredentialsId");
-        verify(formValidation).doCheckCredentialsId("myCredentialsId");
+        descriptor.doCheckCredentialsId(parent, "myCredentialsId");
+        verify(formValidation).doCheckCredentialsId(parent, "myCredentialsId");
     }
 
     @Test
     public void testDoCheckProjectName() {
-        descriptor.doCheckProjectName("myServerId", "myCredentialsId", "myProjectName");
-        verify(formValidation).doCheckProjectName("myServerId", "myCredentialsId", "myProjectName");
+        descriptor.doCheckProjectName(parent, "myServerId", "myCredentialsId", "myProjectName");
+        verify(formValidation).doCheckProjectName(parent, "myServerId", "myCredentialsId", "myProjectName");
     }
 
     @Test
     public void testDoCheckRepositoryName() {
-        descriptor.doCheckRepositoryName("myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
-        verify(formValidation).doCheckRepositoryName("myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
+        descriptor.doCheckRepositoryName(parent, "myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
+        verify(formValidation).doCheckRepositoryName(parent, "myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
     }
 
     @Test
     public void testDoCheckServerId() {
-        descriptor.doCheckServerId("myServerId");
-        verify(formValidation).doCheckServerId("myServerId");
+        descriptor.doCheckServerId(parent, "myServerId");
+        verify(formValidation).doCheckServerId(parent, "myServerId");
     }
 
     @Test
     public void testDoFillCredentialsIdItems() {
-        descriptor.doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
-        verify(formFill).doFillCredentialsIdItems(item, "myBaseUrl", "myCredentialsId");
+        descriptor.doFillCredentialsIdItems(parent, "myBaseUrl", "myCredentialsId");
+        verify(formFill).doFillCredentialsIdItems(parent, "myBaseUrl", "myCredentialsId");
     }
 
     @Test

@@ -46,6 +46,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
+import static hudson.model.Item.*;
 import static hudson.model.Item.CONFIGURE;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -319,34 +320,35 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         @POST
-        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckCredentialsId(credentialsId);
+        public FormValidation doCheckCredentialsId(@AncestorInPath Item context,
+                                                   @QueryParameter String credentialsId) {
+            return formValidation.doCheckCredentialsId(context, credentialsId);
         }
 
         @Override
         @POST
-        public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public FormValidation doCheckProjectName(@AncestorInPath Item context,
+                                                 @QueryParameter String serverId,
+                                                 @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
+            return formValidation.doCheckProjectName(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckRepositoryName(@QueryParameter String serverId,
+        public FormValidation doCheckRepositoryName(@AncestorInPath Item context,
+                                                    @QueryParameter String serverId,
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
+            return formValidation.doCheckRepositoryName(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckServerId(@QueryParameter String serverId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckServerId(serverId);
+        public FormValidation doCheckServerId(@AncestorInPath Item context,
+                                              @QueryParameter String serverId) {
+            return formValidation.doCheckServerId(context, serverId);
         }
 
         @Override
@@ -364,7 +366,6 @@ public class BitbucketSCMSource extends SCMSource {
                                                   @QueryParameter String projectName,
                                                   @QueryParameter String repositoryName,
                                                   @QueryParameter String mirrorName) {
-            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
         }
 
@@ -373,7 +374,6 @@ public class BitbucketSCMSource extends SCMSource {
         public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
                                                    @QueryParameter String credentialsId,
                                                    @QueryParameter String projectName) {
-            Jenkins.get().checkPermission(CONFIGURE);
             return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
         }
 
@@ -396,12 +396,14 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         @POST
-        public FormValidation doTestConnection(@QueryParameter String serverId,
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @Override

@@ -27,8 +27,8 @@ public class BitbucketLinkActionFactory extends TransientActionFactory<Project> 
 
         FormValidation configValid = FormValidation.aggregate(Arrays.asList(
                 maybeConfig.map(BitbucketServerConfiguration::validate).orElse(FormValidation.error("Config not present")),
-                descriptor.doCheckProjectName(serverId, credentialsId, bitbucketSCM.getProjectName()),
-                descriptor.doCheckRepositoryName(serverId, credentialsId, bitbucketSCM.getProjectName(), bitbucketSCM.getRepositoryName())
+                descriptor.doCheckProjectName(target, serverId, credentialsId, bitbucketSCM.getProjectName()),
+                descriptor.doCheckRepositoryName(target, serverId, credentialsId, bitbucketSCM.getProjectName(), bitbucketSCM.getRepositoryName())
         ));
 
         if (configValid.kind == FormValidation.Kind.ERROR) {

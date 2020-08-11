@@ -15,10 +15,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Collection;
 import java.util.Optional;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketLinkActionFactoryTest {
@@ -47,8 +46,8 @@ public class BitbucketLinkActionFactoryTest {
         when(bitbucketSCM.getRepositoryName()).thenReturn(REPOSITORY_NAME);
         when(bitbucketSCM.getDescriptor()).thenReturn((SCMDescriptor) descriptor);
         when(descriptor.getConfiguration(SERVER_ID)).thenReturn(Optional.of(configuration));
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
         when(configuration.getBaseUrl()).thenReturn(BASE_URL);
         when(configuration.validate()).thenReturn(FormValidation.ok());
     }
@@ -74,7 +73,7 @@ public class BitbucketLinkActionFactoryTest {
 
     @Test
     public void testCreateProjectNameInvalid() {
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
                 .thenReturn(FormValidation.error("Bad project name"));
         Collection<? extends Action> actions = actionFactory.createFor(target);
 
@@ -83,7 +82,7 @@ public class BitbucketLinkActionFactoryTest {
 
     @Test
     public void testCreateRepoNameInvalid() {
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
                 .thenReturn(FormValidation.error("Bad repository name"));
         Collection<? extends Action> actions = actionFactory.createFor(target);
 

@@ -380,30 +380,35 @@ public class BitbucketSCM extends SCM {
 
         @Override
         @POST
-        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
-            return formValidation.doCheckCredentialsId(credentialsId);
+        public FormValidation doCheckCredentialsId(@AncestorInPath Item context,
+                                                   @QueryParameter String credentialsId) {
+            return formValidation.doCheckCredentialsId(context, credentialsId);
         }
 
         @Override
         @POST
-        public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public FormValidation doCheckProjectName(@AncestorInPath Item context,
+                                                 @QueryParameter String serverId,
+                                                 @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
-            return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
+            return formValidation.doCheckProjectName(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckRepositoryName(@QueryParameter String serverId,
+        public FormValidation doCheckRepositoryName(@AncestorInPath Item context,
+                                                    @QueryParameter String serverId,
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
-            return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
+            return formValidation.doCheckRepositoryName(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckServerId(@QueryParameter String serverId) {
-            return formValidation.doCheckServerId(serverId);
+        public FormValidation doCheckServerId(@AncestorInPath Item context,
+                                              @QueryParameter String serverId) {
+            return formValidation.doCheckServerId(context, serverId);
         }
 
         @Override
@@ -416,12 +421,14 @@ public class BitbucketSCM extends SCM {
 
         @Override
         @POST
-        public FormValidation doTestConnection(@QueryParameter String serverId,
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @POST
