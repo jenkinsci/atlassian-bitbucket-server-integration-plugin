@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -52,46 +53,48 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    private final JenkinsProvider jenkinsProvider;
 
     @Inject
     public BitbucketScmFormFillDelegate(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
                                         BitbucketPluginConfiguration bitbucketPluginConfiguration,
-                                        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
+                                        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
+                                        JenkinsProvider jenkinsProvider) {
         this.bitbucketClientFactoryProvider =
                 requireNonNull(bitbucketClientFactoryProvider, "bitbucketClientFactoryProvider");
         this.bitbucketPluginConfiguration =
                 requireNonNull(bitbucketPluginConfiguration, "bitbucketPluginConfiguration");
         this.jenkinsToBitbucketCredentials =
                 requireNonNull(jenkinsToBitbucketCredentials, "jenkinsToBitbucketCredentils");
+        this.jenkinsProvider =
+                requireNonNull(jenkinsProvider, "jenkinsProvider");
     }
 
     @Override
     public ListBoxModel doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
-        Jenkins instance = Jenkins.get();
-
-        if (context == null && !instance.hasPermission(Jenkins.ADMINISTER) ||
-                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
-            return new StandardListBoxModel().includeCurrentValue(credentialsId);
-        }
+        checkPermissions(context);
 
         return new StandardListBoxModel()
                 .includeEmptyValue()
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        instance,
+                        jenkinsProvider.get(),
                         StringCredentials.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always())
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        instance,
+                        jenkinsProvider.get(),
                         StandardUsernamePasswordCredentials.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always());
     }
 
     @Override
-    public HttpResponse doFillProjectNameItems(String serverId, String credentialsId, String projectName) {
+    public HttpResponse doFillProjectNameItems(@Nullable Item context, String serverId, String credentialsId,
+                                               String projectName) {
+        checkPermissions(context);
+
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
         }
@@ -124,8 +127,9 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public HttpResponse doFillRepositoryNameItems(String serverId, String credentialsId, String projectName,
-                                                  String repositoryName) {
+    public HttpResponse doFillRepositoryNameItems(@Nullable Item context, String serverId, String credentialsId,
+                                                  String projectName, String repositoryName) {
+        checkPermissions(context);
         if (isBlank(serverId)) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "A Bitbucket Server serverId must be provided");
         }
@@ -161,7 +165,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public ListBoxModel doFillServerIdItems(String serverId) {
+    public ListBoxModel doFillServerIdItems(@Nullable Item context, String serverId) {
+        checkPermissions(context);
         //Filtered to only include valid server configurations
         StandardListBoxModel model =
                 bitbucketPluginConfiguration.getServerList()
@@ -181,8 +186,9 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public ListBoxModel doFillMirrorNameItems(String serverId, String credentialsId, String projectName,
-                                              String repositoryName, String mirrorName) {
+    public ListBoxModel doFillMirrorNameItems(@Nullable Item context, String serverId, String credentialsId,
+                                              String projectName, String repositoryName, String mirrorName) {
+        checkPermissions(context);
         BitbucketMirrorHandler bitbucketMirrorHandler = createMirrorHandlerUsingRepoSearch();
         return bitbucketPluginConfiguration.getServerById(serverId)
                 .map(serverConfiguration ->
@@ -210,6 +216,14 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     @Override
     public boolean getShowGitToolOptions() {
         return false;
+    }
+
+    private void checkPermissions(@Nullable Item context) {
+        if (context != null) {
+            context.checkPermission(Item.EXTENDED_READ);
+        } else {
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
+        }
     }
 
     private BitbucketMirrorHandler createMirrorHandlerUsingRepoSearch() {

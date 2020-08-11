@@ -70,19 +70,19 @@ public class BitbucketSCMDescriptorTest {
 
     @Test
     public void testDoFillProjectNameItems() {
-        descriptor.doFillProjectNameItems("myServerId", "myCredentialsId", "myProjectName");
-        verify(formFill).doFillProjectNameItems("myServerId", "myCredentialsId", "myProjectName");
+        descriptor.doFillProjectNameItems(parent, "myServerId", "myCredentialsId", "myProjectName");
+        verify(formFill).doFillProjectNameItems(parent, "myServerId", "myCredentialsId", "myProjectName");
     }
 
     @Test
     public void testDoFillRepositoryNameItems() {
-        descriptor.doFillRepositoryNameItems("myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
-        verify(formFill).doFillRepositoryNameItems("myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
+        descriptor.doFillRepositoryNameItems(parent, "myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
+        verify(formFill).doFillRepositoryNameItems(parent, "myServerId", "myCredentialsId", "myProjectName", "myRepositoryName");
     }
 
     @Test
     public void testDoFillServerIdItems() {
-        descriptor.doFillServerIdItems("myServerId");
-        verify(formFill).doFillServerIdItems("myServerId");
+        descriptor.doFillServerIdItems(parent, "myServerId");
+        verify(formFill).doFillServerIdItems(parent, "myServerId");
     }
 }

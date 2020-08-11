@@ -24,6 +24,7 @@ import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHel
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
 import static hudson.util.FormValidation.Kind.ERROR;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -40,10 +41,14 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                               BitbucketPluginConfiguration bitbucketPluginConfiguration,
                                               JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
                                               JenkinsProvider jenkinsProvider) {
-        this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
-        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
-        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
-        this.jenkinsProvider = jenkinsProvider;
+        this.bitbucketClientFactoryProvider =
+                requireNonNull(bitbucketClientFactoryProvider, "bitbucketClientFactoryProvider");
+        this.bitbucketPluginConfiguration =
+                requireNonNull(bitbucketPluginConfiguration, "bitbucketPluginConfiguration");
+        this.jenkinsToBitbucketCredentials =
+                requireNonNull(jenkinsToBitbucketCredentials, "jenkinsToBitbucketCredentials");
+        this.jenkinsProvider =
+                requireNonNull(jenkinsProvider, "jenkinsProvider");
     }
 
     @Override

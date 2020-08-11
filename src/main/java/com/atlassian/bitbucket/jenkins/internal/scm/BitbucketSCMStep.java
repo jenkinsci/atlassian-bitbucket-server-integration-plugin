@@ -277,33 +277,38 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         @POST
-        public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
+        public HttpResponse doFillProjectNameItems(@AncestorInPath Item context,
+                                                   @QueryParameter String serverId,
                                                    @QueryParameter String credentialsId,
                                                    @QueryParameter String projectName) {
-            return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
+            return formFill.doFillProjectNameItems(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public HttpResponse doFillRepositoryNameItems(@QueryParameter String serverId,
+        public HttpResponse doFillRepositoryNameItems(@AncestorInPath Item context,
+                                                      @QueryParameter String serverId,
                                                       @QueryParameter String credentialsId,
                                                       @QueryParameter String projectName,
                                                       @QueryParameter String repositoryName) {
-            return formFill.doFillRepositoryNameItems(serverId, credentialsId, projectName, repositoryName);
+            return formFill.doFillRepositoryNameItems(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
-            return formFill.doFillServerIdItems(serverId);
+        public ListBoxModel doFillServerIdItems(@AncestorInPath Item context, @QueryParameter String serverId) {
+            return formFill.doFillServerIdItems(context, serverId);
         }
 
         @Override
-        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public ListBoxModel doFillMirrorNameItems(@AncestorInPath Item context,
+                                                  @QueryParameter String serverId,
+                                                  @QueryParameter String credentialsId,
                                                   @QueryParameter String projectName,
                                                   @QueryParameter String repositoryName,
                                                   @QueryParameter String mirrorName) {
-            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formFill.doFillMirrorNameItems(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @Override
