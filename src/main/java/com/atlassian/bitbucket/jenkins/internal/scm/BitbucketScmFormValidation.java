@@ -1,18 +1,22 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import hudson.model.Item;
 import hudson.util.FormValidation;
+
+import javax.annotation.Nullable;
 
 public interface BitbucketScmFormValidation {
 
-    FormValidation doCheckCredentialsId(String credentialsId);
+    FormValidation doCheckCredentialsId(@Nullable Item context, String credentialsId);
 
-    FormValidation doCheckSshCredentialsId(String sshCredentialsId);
+    FormValidation doCheckSshCredentialsId(@Nullable Item context, String sshCredentialsId);
 
-    FormValidation doCheckProjectName(String serverId, String credentialsId, String projectName);
+    FormValidation doCheckProjectName(@Nullable Item context, String serverId, String credentialsId, String projectName);
 
-    FormValidation doCheckRepositoryName(String serverId, String credentialsId, String projectName, String repositoryName);
+    FormValidation doCheckRepositoryName(@Nullable Item context, String serverId, String credentialsId, String projectName, String repositoryName);
 
-    FormValidation doCheckServerId(String serverId);
+    FormValidation doCheckServerId(@Nullable Item context, String serverId);
 
-    FormValidation doTestConnection(String serverId, String credentialsId, String projectName, String repositoryName, String mirrorName);
+    FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId,
+                                    String projectName, String repositoryName, String mirrorName);
 }
