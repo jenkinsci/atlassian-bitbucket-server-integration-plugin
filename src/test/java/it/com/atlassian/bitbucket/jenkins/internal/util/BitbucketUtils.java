@@ -27,9 +27,10 @@ public class BitbucketUtils {
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
     public static final String REPO_NAME = "rep 1";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     public static String repoForkName = "";
     public static String repoForkSlug = "";
-    private static ObjectMapper objectMapper = new ObjectMapper();
 
     public static void createBranch(String project,
                                     String repo,

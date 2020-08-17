@@ -375,7 +375,7 @@ public class BitbucketServerConfiguration
                                 jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials.orElse(null), config.getGlobalCredentialsProvider(context)));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
-                if (credentials.isPresent() && credentials.get() instanceof StringCredentials) {
+                if (credentials.filter(StringCredentials.class::isInstance).isPresent()) {
                     if (!client.getAuthenticatedUserClient().getAuthenticatedUser().isPresent()) {
                         throw new AuthorizationException("TO WRITE", HTTP_UNAUTHORIZED, null);
                     }

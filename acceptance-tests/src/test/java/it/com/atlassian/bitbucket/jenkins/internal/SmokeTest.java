@@ -108,7 +108,6 @@ public class SmokeTest extends AbstractJUnitTest {
         }
         if (bbsSshCreds != null) {
             deleteSshPublicKey(bbsSshCreds.getId());
-            bbsSshCreds = null;
         }
     }
 

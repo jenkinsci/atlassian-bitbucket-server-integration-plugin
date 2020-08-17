@@ -19,7 +19,6 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.*;
@@ -34,6 +33,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class BitbucketSCMStep extends SCMStep {
 
@@ -79,17 +79,17 @@ public class BitbucketSCMStep extends SCMStep {
 
     @DataBoundSetter
     public void setCredentialsId(@Nullable String credentialsId) {
-        this.credentialsId = StringUtils.stripToNull(credentialsId);
+        this.credentialsId = stripToNull(credentialsId);
     }
 
     @DataBoundSetter
     public void setSshCredentialsId(@Nullable String sshCredentialsId) {
-        this.sshCredentialsId = StringUtils.stripToNull(sshCredentialsId);
+        this.sshCredentialsId = stripToNull(sshCredentialsId);
     }
 
     @DataBoundSetter
     public void setMirrorName(@Nullable String mirrorName) {
-        this.mirrorName = StringUtils.stripToNull(mirrorName);
+        this.mirrorName = stripToNull(mirrorName);
     }
 
     @DataBoundSetter
