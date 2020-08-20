@@ -6,7 +6,7 @@
     <name>Bitbucket Server Integration Plugin Acceptance Tests</name>
     <description>Includes the integration/acceptance tests for the Bitbucket Server Jenkins integration plugin</description>
     <packaging>jar</packaging>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 
     <properties>
         <!-- The Maven build directory of the plugin, where the '.hpi' file is packaged (by default it's '../target').
