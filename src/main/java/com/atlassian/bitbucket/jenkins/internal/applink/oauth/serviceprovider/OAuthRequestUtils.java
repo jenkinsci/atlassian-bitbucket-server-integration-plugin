@@ -99,6 +99,6 @@ public final class OAuthRequestUtils {
      */
     private static Map<String, String> extractParameters(HttpServletRequest request) {
         return HttpRequestMessage.getParameters(request).stream()
-                .collect(Collectors.toMap(OAuth.Parameter::getKey, OAuth.Parameter::getValue));
+                .collect(Collectors.toMap(OAuth.Parameter::getKey, OAuth.Parameter::getValue, (a, b) -> a)); //if there are duplcates use the first one found
     }
 }
