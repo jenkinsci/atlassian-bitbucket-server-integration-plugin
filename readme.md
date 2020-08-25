@@ -56,7 +56,9 @@ To add a Bitbucket Server instance:
 1. In Jenkins go to **Jenkins** > **Manage Jenkins** > **Configure System**.
 2. Under **Bitbucket Server integration** click **Add a Bitbucket Server instance**.
 3. Enter instance details.
-4. Select **Save**.
+4. Add or select a personal access token. 
+5. Add or select credentials. 
+6. Select **Save**.
 
 ### Create an Application Link 
 
@@ -93,7 +95,7 @@ To create the Application Link:
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
 4. Complete all the fields in the form (see Application Link details page for some fields). 
-5. Don't tick **Create incoming link**
+5. Don't tick **Create incoming link**. 
 6. Select **Continue**. 
 
 After a moment, your Jenkins instance will appear in the list of linked applications. 
