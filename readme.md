@@ -95,7 +95,7 @@ To create the Application Link:
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
 4. Complete all the fields in the form (see Application Link details page for some fields). 
-5. Don't select **Create incoming link**. 
+5. Leave **Create incoming link** unchecked. 
 6. Select **Continue**. 
 
 After a moment, your Jenkins instance will appear in the list of linked applications. 
