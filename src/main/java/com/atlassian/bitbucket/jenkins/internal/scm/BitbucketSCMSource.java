@@ -8,17 +8,19 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
 import jenkins.scm.api.trait.SCMSourceTrait;
@@ -27,6 +29,7 @@ import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
@@ -39,9 +42,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
-import static hudson.model.Item.CONFIGURE;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -52,11 +55,13 @@ public class BitbucketSCMSource extends SCMSource {
     private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
     public BitbucketSCMSource(
             @CheckForNull String id,
             @CheckForNull String credentialsId,
+            @CheckForNull String sshCredentialsId,
             @CheckForNull List<SCMSourceTrait> traits,
             @CheckForNull String projectName,
             @CheckForNull String repositoryName,
@@ -72,7 +77,7 @@ public class BitbucketSCMSource extends SCMSource {
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
         if (!mayBeServerConf.isPresent()) {
             LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
-            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -87,12 +92,12 @@ public class BitbucketSCMSource extends SCMSource {
                 descriptor.getBitbucketScmHelper(baseUrl, globalCredentialsProvider, credentialsId);
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
         if (isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -108,16 +113,14 @@ public class BitbucketSCMSource extends SCMSource {
                                                 projectName,
                                                 repositoryName,
                                                 mirrorName));
-                setRepositoryDetails(credentialsId, serverId, mirroredRepository);
+                setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirroredRepository);
             } catch (MirrorFetchException ex) {
-                setEmptyRepository(credentialsId, projectName, repositoryName, serverId, mirrorName);
+                setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             }
         } else {
             BitbucketRepository localRepo = scmHelper.getRepository(projectName, repositoryName);
-            setRepositoryDetails(credentialsId, serverId, "", localRepo);
+            setRepositoryDetails(credentialsId, sshCredentialsId, serverId, "", localRepo);
         }
-        //register webhook to get notified when new branches are pushed etc.
-        ((DescriptorImpl) getDescriptor()).getRetryingWebhookHandler().register(baseUrl, globalCredentialsProvider, repository);
     }
 
     /**
@@ -126,8 +129,8 @@ public class BitbucketSCMSource extends SCMSource {
      * @param oldScm old scm to copy values from
      */
     public BitbucketSCMSource(BitbucketSCMSource oldScm) {
-        this(oldScm.getId(), oldScm.getCredentialsId(), oldScm.getTraits(), oldScm.getProjectName(),
-                oldScm.getRepositoryName(), oldScm.getServerId(), oldScm.getMirrorName());
+        this(oldScm.getId(), oldScm.getCredentialsId(), oldScm.getSshCredentialsId(), oldScm.getTraits(),
+                oldScm.getProjectName(), oldScm.getRepositoryName(), oldScm.getServerId(), oldScm.getMirrorName());
     }
 
     @Override
@@ -136,6 +139,19 @@ public class BitbucketSCMSource extends SCMSource {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
         return gitSCMSource.build(head, revision);
+    }
+
+    @Override
+    public void afterSave() {
+        super.afterSave();
+        if (!webhookRegistered && isValid()) {
+            SCMSourceOwner owner = getOwner();
+            if (owner instanceof ComputedFolder) {
+                getTriggers((ComputedFolder<?>) owner)
+                        .forEach(triggerDesc ->
+                                webhookRegistered = triggerDesc.addTrigger(owner, this));
+            }
+        }
     }
 
     public BitbucketSCMRepository getBitbucketSCMRepository() {
@@ -176,9 +192,36 @@ public class BitbucketSCMSource extends SCMSource {
         return getBitbucketSCMRepository().getServerId();
     }
 
+    @CheckForNull
+    public String getSshCredentialsId() {
+        return getBitbucketSCMRepository().getSshCredentialsId();
+    }
+
+    public boolean isValid() {
+        return getMirrorName() != null && isNotBlank(getProjectKey()) && isNotBlank(getProjectName()) &&
+               isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) &&
+               isNotBlank(getServerId());
+    }
+
     @Override
     public List<SCMSourceTrait> getTraits() {
         return traits;
+    }
+
+    public boolean isWebhookRegistered() {
+        return webhookRegistered;
+    }
+
+    public void setWebhookRegistered(boolean webhookRegistered) {
+        this.webhookRegistered = webhookRegistered;
+    }
+
+    @VisibleForTesting
+    List<BitbucketWebhookMultibranchTrigger.DescriptorImpl> getTriggers(ComputedFolder<?> owner) {
+        return owner.getTriggers().keySet().stream()
+                .filter(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance)
+                .map(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::cast)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -188,25 +231,28 @@ public class BitbucketSCMSource extends SCMSource {
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
+    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
         return cloneUrls.stream()
-                .filter(link -> "http".equals(link.getName()))
+                .filter(link -> Objects.equals(cloneProtocol.name, link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
     }
 
-    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository, @Nullable String serverId) {
+    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
         repository = bitbucketSCMRepository;
+        String credentialsId = isBlank(bitbucketSCMRepository.getSshCredentialsId()) ?
+                bitbucketSCMRepository.getCredentialsId() : bitbucketSCMRepository.getSshCredentialsId();
         UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, bitbucketSCMRepository.getCredentialsId());
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), serverId);
+                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl());
         gitSCMSource.setTraits(traits);
-        gitSCMSource.setCredentialsId(bitbucketSCMRepository.getCredentialsId());
+        gitSCMSource.setCredentialsId(credentialsId);
     }
 
     @SuppressWarnings("Duplicates")
-    private void setEmptyRepository(@CheckForNull String credentialsId,
+    private void setEmptyRepository(@Nullable String credentialsId,
+                                    @Nullable String sshCredentialsId,
                                     @CheckForNull String projectName,
                                     @CheckForNull String repositoryName,
                                     @CheckForNull String serverId,
@@ -217,38 +263,40 @@ public class BitbucketSCMSource extends SCMSource {
         BitbucketRepository repository =
                 new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName),
                         repositoryName, AVAILABLE);
-        setRepositoryDetails(credentialsId, serverId, mirrorName, repository);
+        setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirrorName, repository);
     }
 
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId, String mirrorName,
-                                      BitbucketRepository repository) {
-        String cloneUrl = getCloneUrl(repository.getCloneUrls());
+    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
+                                      @Nullable String serverId, String mirrorName, BitbucketRepository repository) {
+        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
+        String cloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
         if (cloneUrl.isEmpty()) {
             LOGGER.info("No clone url found for repository: " + repository.getName());
         }
         BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, repository.getProject().getName(),
+                new BitbucketSCMRepository(credentialsId, sshCredentialsId, repository.getProject().getName(),
                         repository.getProject().getKey(), repository.getName(), repository.getSlug(),
                         serverId, mirrorName);
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @SuppressWarnings("Duplicates")
-    private void setRepositoryDetails(@CheckForNull String credentialsId, @Nullable String serverId,
-                                      EnrichedBitbucketMirroredRepository repository) {
+    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
+                                      @Nullable String serverId, EnrichedBitbucketMirroredRepository repository) {
         if (isBlank(serverId)) {
             return;
         }
-        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls());
+        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
+        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls(), cloneProtocol);
         if (cloneUrl.isEmpty()) {
             LOGGER.info("No clone url found for repository: " + repository.getRepository().getName());
         }
         BitbucketRepository underlyingRepo = repository.getRepository();
         BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, underlyingRepo.getProject().getName(),
+                new BitbucketSCMRepository(credentialsId, sshCredentialsId, underlyingRepo.getProject().getName(),
                         underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
                         serverId, repository.getMirroringDetails().getMirrorName());
-        initialize(cloneUrl, bitbucketSCMRepository, serverId);
+        initialize(cloneUrl, bitbucketSCMRepository);
     }
 
     @Symbol("BbS")
@@ -279,89 +327,106 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         @POST
-        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckCredentialsId(credentialsId);
+        public FormValidation doCheckCredentialsId(@AncestorInPath Item context,
+                                                   @QueryParameter String credentialsId) {
+            return formValidation.doCheckCredentialsId(context, credentialsId);
+        }
+
+        @Override
+        public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
+                                                      @QueryParameter String sshCredentialsId) {
+            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
         }
 
         @Override
         @POST
-        public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public FormValidation doCheckProjectName(@AncestorInPath Item context,
+                                                 @QueryParameter String serverId,
+                                                 @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
+            return formValidation.doCheckProjectName(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckRepositoryName(@QueryParameter String serverId,
+        public FormValidation doCheckRepositoryName(@AncestorInPath Item context,
+                                                    @QueryParameter String serverId,
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
+            return formValidation.doCheckRepositoryName(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckServerId(@QueryParameter String serverId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formValidation.doCheckServerId(serverId);
+        public FormValidation doCheckServerId(@AncestorInPath Item context,
+                                              @QueryParameter String serverId) {
+            return formValidation.doCheckServerId(context, serverId);
         }
 
         @Override
         @POST
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
+                                                     @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillCredentialsIdItems(baseUrl, credentialsId);
+            return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
+        }
+
+        @Override
+        public ListBoxModel doFillSshCredentialsIdItems(@AncestorInPath Item context,
+                                                        @QueryParameter String baseUrl,
+                                                        @QueryParameter String sshCredentialsId) {
+            return formFill.doFillSshCredentialsIdItems(context, baseUrl, sshCredentialsId);
         }
 
         @Override
         @POST
-        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId,
+        public ListBoxModel doFillMirrorNameItems(@AncestorInPath Item context,
+                                                  @QueryParameter String serverId,
                                                   @QueryParameter String credentialsId,
                                                   @QueryParameter String projectName,
                                                   @QueryParameter String repositoryName,
                                                   @QueryParameter String mirrorName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formFill.doFillMirrorNameItems(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @Override
         @POST
-        public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
+        public HttpResponse doFillProjectNameItems(@AncestorInPath Item context,
+                                                   @QueryParameter String serverId,
                                                    @QueryParameter String credentialsId,
                                                    @QueryParameter String projectName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
+            return formFill.doFillProjectNameItems(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public HttpResponse doFillRepositoryNameItems(@QueryParameter String serverId,
+        public HttpResponse doFillRepositoryNameItems(@AncestorInPath Item context,
+                                                      @QueryParameter String serverId,
                                                       @QueryParameter String credentialsId,
                                                       @QueryParameter String projectName,
                                                       @QueryParameter String repositoryName) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillRepositoryNameItems(serverId, credentialsId, projectName, repositoryName);
+            return formFill.doFillRepositoryNameItems(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
-            Jenkins.get().checkPermission(CONFIGURE);
-            return formFill.doFillServerIdItems(serverId);
+        public ListBoxModel doFillServerIdItems(@AncestorInPath Item context,
+                                                @QueryParameter String serverId) {
+            return formFill.doFillServerIdItems(context, serverId);
         }
 
         @Override
         @POST
-        public FormValidation doTestConnection(@QueryParameter String serverId,
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @Override
@@ -423,31 +488,21 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     /**
-     * This class exists to work around two issues
-     * 1. We do not want to re-implement the retrieve found in the GitSCMSource, however it is protected so we can't
-     * access it from our class. This class inherits from the GitSCMSource and thus can access it and expose a method
-     * wrapper.
-     * 2. We want to inject a custom extension to enable posting build statues. The enforcer will not allow us to access
-     * it directly, so we override the getExtensions method and inject our own extension there.
+     * This class exists to work around the following issue: we do not want to re-implement the retrieve found in the
+     * {@link GitSCMSource}, however it is protected so we can't access it from our class.
+     * <p>
+     * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
      */
     private static class CustomGitSCMSource extends GitSCMSource {
 
-        private final String serverId;
-
-        public CustomGitSCMSource(String remote, @Nullable String serverId) {
+        public CustomGitSCMSource(String remote) {
             super(remote);
-            this.serverId = serverId == null ? "" : serverId;
         }
 
         public void accessibleRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                                        @CheckForNull SCMHeadEvent<?> event,
                                        TaskListener listener) throws IOException, InterruptedException {
             super.retrieve(criteria, observer, event, listener);
-        }
-
-        @Override
-        public List<GitSCMExtension> getExtensions() {
-            return Collections.singletonList(new BitbucketPostBuildStatus(serverId));
         }
     }
 }

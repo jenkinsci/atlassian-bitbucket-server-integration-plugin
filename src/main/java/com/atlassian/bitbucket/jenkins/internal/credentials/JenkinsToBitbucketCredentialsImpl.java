@@ -18,12 +18,12 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
 
     @Override
     public BitbucketCredentials toBitbucketCredentials(String credentialId) {
-        Credentials credentials = CredentialUtils.getCredentials(credentialId);
-        return credentials != null ? toBitbucketCredentials(credentials) : ANONYMOUS_CREDENTIALS;
+        return CredentialUtils.getCredentials(credentialId)
+                .map(this::toBitbucketCredentials).orElse(ANONYMOUS_CREDENTIALS);
     }
 
     @Override
-    public BitbucketCredentials toBitbucketCredentials(Credentials credentials) {
+    public BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials) {
         if (credentials instanceof StringCredentials) {
             String bearerToken = ((StringCredentials) credentials).getSecret().getPlainText();
             return getBearerCredentials(bearerToken);

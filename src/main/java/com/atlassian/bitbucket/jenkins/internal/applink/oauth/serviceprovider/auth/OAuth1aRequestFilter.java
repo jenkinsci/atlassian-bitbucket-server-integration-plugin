@@ -41,6 +41,13 @@ import static net.oauth.OAuthMessage.AUTH_SCHEME;
 import static org.apache.commons.lang3.StringUtils.startsWithIgnoreCase;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
+/**
+ * Identifies every incoming request to check if it is an OAuth request. For an OAuth request,
+ * it follows the OAuth 1.0a specification of checking request signature and verifying the access
+ * token.
+ * After successful validation, it delegates to {@link TrustedUnderlyingSystemAuthorizerFilter} to
+ * establish user context.
+ */
 public class OAuth1aRequestFilter implements Filter {
 
     private static final Logger log = Logger.getLogger(OAuth1aRequestFilter.class.getName());

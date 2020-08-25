@@ -4,22 +4,24 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.41</version>
+        <version>4.6</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>5.5.9</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
-        <disableTestInjection>false</disableTestInjection>
+        <disableTestInjection>true</disableTestInjection>
+        <hamcrest.version>2.2</hamcrest.version>
         <java.level>8</java.level>
-        <jackson.version>2.9.9</jackson.version>
-        <jenkins.version>2.162</jenkins.version>
+        <jackson.version>2.11.2</jackson.version>
+        <jenkins.version>2.190.1</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
+        <surefireTestExclusions>nothing-to-exclude</surefireTestExclusions>
     </properties>
     <name>Bitbucket Server Integration</name>
     <description>This Jenkins plugin streamlines configuring Jenkins jobs to clone/fetch from Bitbucket Server.</description>
@@ -110,7 +112,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.8.1</version>
+            <version>3.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -130,7 +132,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.9.1</version>
+            <version>2.9.10.5</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -160,6 +162,23 @@
         </dependency>
 
         <dependency>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>trilead-putty-extension</artifactId>
+            <version>1.2</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>trilead-ssh2</artifactId>
+            <version>build-217-jenkins-14</version>
+        </dependency>
+        <dependency>
+            <groupId>net.i2p.crypto</groupId>
+            <artifactId>eddsa</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
             <version>2.2</version>
@@ -175,6 +194,18 @@
             <groupId>net.oauth.core</groupId>
             <artifactId>oauth-provider</artifactId>
             <version>${net.oauth.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -259,6 +290,7 @@
                          exclude integration tests here. -->
                     <excludes>
                         <exclude>it/**/*.java</exclude>
+                        <exclude>${surefireTestExclusions}</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -404,6 +436,15 @@
                     </plugin>
                 </plugins>
             </reporting>
+        </profile>
+        <profile>
+            <!-- The Injected Tests are causing issues with Mockito with Java 11 on this version of the plugin, so they
+            are disabled by default. For full test coverage, this should profile should be run as well.-->
+            <id>injectedTests</id>
+            <properties>
+                <disableTestInjection>false</disableTestInjection>
+                <surefireTestExclusions>com/**/*.java</surefireTestExclusions>
+            </properties>
         </profile>
         <profile>
             <id>it</id>

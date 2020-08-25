@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.google.inject.ImplementedBy;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 
@@ -32,10 +33,10 @@ public interface HttpRequestExecutor {
     /**
      * Executes a Get call to a given URL.
      *
-     * @param url         The URL to hit on bitbucket server end.
+     * @param url         The URL to hit on bitbucket server end
      * @param credentials Credentials that will be used in making calls
-     * @param consumer    on successful execution, {@link Response} will be passed to consumer.
-     * @param <T>         result that consumer wish to return.
+     * @param consumer    on successful execution, {@link Response} will be passed to consumer
+     * @param <T>         result that consumer wish to return
      * @return result
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws ConnectionFailureException if the server did not respond
@@ -47,14 +48,15 @@ public interface HttpRequestExecutor {
     <T> T executeGet(HttpUrl url, BitbucketCredentials credentials, ResponseConsumer<T> consumer);
 
     /**
-     * Executes a POST with a given URL and request payload.
+     * Executes a POST with a given URL and request payload, with any custom headers.
      *
-     * @param url               The URL to hit on bitbucket server end.
+     * @param url               The URL to hit on bitbucket server end
      * @param credentials       Credentials that will be used in making calls
      * @param requestBodyAsJson the request payload to send in JSON format
-     * @param consumer          on successful execution, {@link Response} will be passed to consumer.
-     * @param <T>               result that consumer wish to return.
-     * @return result computed by consumer.
+     * @param consumer          on successful execution, {@link Response} will be passed to consumer
+     * @param headers           the headers to send with the request. Use Collections.emptyMap if headers are empty
+     * @param <T>               result that consumer wish to return
+     * @return result computed by consumer
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws ConnectionFailureException if the server did not respond
      * @throws NotFoundException          if the requested url does not exist
@@ -63,15 +65,15 @@ public interface HttpRequestExecutor {
      * @throws BitbucketClientException   for all errors not already captured
      */
     <T> T executePost(HttpUrl url, BitbucketCredentials credentials, String requestBodyAsJson,
-                      ResponseConsumer<T> consumer);
+                      ResponseConsumer<T> consumer, Headers headers);
 
     /**
      * Executes a PUT with a given URL and request payload.
      *
-     * @param url               The URL to hit on bitbucket server end.
+     * @param url               The URL to hit on bitbucket server end
      * @param credentials       Credentials that will be used in making calls
      * @param requestBodyAsJson the request payload to send in JSON format
-     * @param consumer          on successful execution, {@link Response} will be passed to consumer.
+     * @param consumer          on successful execution, {@link Response} will be passed to consumer
      * @param <T>               Type of result
      * @return result computed by consumer
      * @throws AuthorizationException     if the credentials did not allow access to the given url

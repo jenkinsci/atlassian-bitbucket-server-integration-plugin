@@ -25,6 +25,10 @@ f.section() {
         f.select(checkMethod: "post")
     }
 
+    f.entry(title: _("bitbucket.scm.ssh-credentials"), field: "sshCredentialsId") {
+        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
+    }
+
     f.entry(title: _("Branches to build")) {
         f.repeatableProperty(field: "branches", addCaption: _("Add branch"), hasHeader: "true", minimum: "1", noAddButton: "true")
     }

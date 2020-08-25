@@ -95,8 +95,8 @@ public class BitbucketServerConfiguration
 
             @Override
             public Optional<Credentials> getGlobalCredentials() {
-                Credentials adminCredentials = BitbucketServerConfiguration.this.getCredentials();
-                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
+                return BitbucketServerConfiguration.this.getCredentials()
+                        .map(credentials -> CredentialsProvider.track(item, credentials));
             }
         };
     }
@@ -122,7 +122,7 @@ public class BitbucketServerConfiguration
             @Override
             public Optional<Credentials> getGlobalCredentials() {
                 log.fine(format("Using global credentials for [%s]", context));
-                return Optional.ofNullable(BitbucketServerConfiguration.this.getCredentials());
+                return BitbucketServerConfiguration.this.getCredentials();
             }
         };
     }
@@ -262,8 +262,7 @@ public class BitbucketServerConfiguration
                 withId(trimToEmpty(adminCredentialsId)));
     }
 
-    @Nullable
-    private Credentials getCredentials() {
+    private Optional<Credentials> getCredentials() {
         return CredentialUtils.getCredentials(credentialsId);
     }
 
@@ -347,8 +346,8 @@ public class BitbucketServerConfiguration
             BitbucketServerConfiguration config =
                     new BitbucketServerConfiguration(
                             adminCredentialsId, baseUrl, credentialsId, null);
-            Credentials credentials = config.getCredentials();
-            if (credentials == null && isNotBlank(credentialsId)) {
+            Optional<Credentials> credentials = config.getCredentials();
+            if (!credentials.isPresent() && isNotBlank(credentialsId)) {
                 return FormValidation.error("We can't find these credentials. Provide different credentials and try again.");
             }
             if (config.getAdminCredentials() == null) {
@@ -373,10 +372,10 @@ public class BitbucketServerConfiguration
                 BitbucketClientFactory client =
                         clientFactoryProvider.getClient(
                                 config.getBaseUrl(),
-                                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials, config.getGlobalCredentialsProvider(context)));
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials.orElse(null), config.getGlobalCredentialsProvider(context)));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
-                if (credentials instanceof StringCredentials) {
+                if (credentials.filter(StringCredentials.class::isInstance).isPresent()) {
                     if (!client.getAuthenticatedUserClient().getAuthenticatedUser().isPresent()) {
                         throw new AuthorizationException("TO WRITE", HTTP_UNAUTHORIZED, null);
                     }

@@ -1,0 +1,49 @@
+
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
+         xmlns:f="/lib/form">
+    <l:layout title="${%config(it.displayName)}" norefresh="true">
+        <st:include page="sidepanel.jelly"/>
+
+        <l:main-panel>
+            <h2>${%bitbucket.oauth.applinks.title}</h2>
+            <hr/>
+            <p>${%bitbucket.oauth.applinks.info}</p>
+
+            <h3>${%bitbucket.oauth.applinks.configure.title}</h3>
+            <p>${%bitbucket.oauth.applinks.configure.info}</p>
+
+            <j:set var="descriptor" value="${it.consumerDescriptor}"/>
+            <j:scope>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.jenkins.url}
+                    <f:readOnlyTextbox value="${it.jenkinsBaseUrl}"/>
+                </p>
+
+                <h3>${%bitbucket.oauth.applinks.form.title}</h3>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.key.title}
+                    <f:readOnlyTextbox value="${it.consumerKey}"/>
+                </p>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.request.title}
+                    <f:readOnlyTextbox value="${it.requestTokenUrl}"/>
+                </p>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.access.title}
+                    <f:readOnlyTextbox value="${it.accessTokenUrl}"/>
+                </p>
+
+                <p>
+                    ${%bitbucket.oauth.applinks.authorize.title}
+                    <f:readOnlyTextbox value="${it.authorizeUrl}"/>
+                </p>
+            </j:scope>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

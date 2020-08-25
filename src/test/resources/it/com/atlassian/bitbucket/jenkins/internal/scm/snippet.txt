@@ -1,1 +1,0 @@
-bbs_checkout branches: [[name: '*/master']], credentialsId: 'credentialsIdPlaceholder', id: 'myId', projectName: 'Project 1', repositoryName: 'rep_1', serverId: 'serverIdPlaceholder'

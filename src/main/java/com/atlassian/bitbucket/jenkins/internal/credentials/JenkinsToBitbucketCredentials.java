@@ -24,7 +24,7 @@ public interface JenkinsToBitbucketCredentials {
      *
      * @param credentials, credentials
      */
-    BitbucketCredentials toBitbucketCredentials(Credentials credentials);
+    BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials);
 
     /**
      * For every Bitbucket instance configured on Jenkins, we have

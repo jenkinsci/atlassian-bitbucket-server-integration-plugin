@@ -60,7 +60,7 @@ public class BitbucketSCMTest {
         String projectKey = "~USER";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -75,7 +75,7 @@ public class BitbucketSCMTest {
         String projectKey = "PROJECT_1";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -104,6 +104,7 @@ public class BitbucketSCMTest {
                 "1",
                 Collections.emptyList(),
                 credentialsId,
+                "",
                 Collections.emptyList(),
                 "",
                 project,

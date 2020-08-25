@@ -32,7 +32,7 @@ public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthCons
     public HttpResponse doPerformCreate(StaplerRequest req) throws ServletException, URISyntaxException {
         Consumer consumer = getConsumerDescriptor().getConsumerFromSubmittedForm(req);
         store.add(consumer);
-        return HttpResponses.redirectViaContextPath(RELATIVE_PATH);
+        return HttpResponses.redirectViaContextPath(RELATIVE_PATH + "/consumer/" + consumer.getKey() + "/applinkinfo");
     }
 
     @SuppressWarnings("unused") // Stapler
