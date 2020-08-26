@@ -6,6 +6,9 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.ex
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.ByteArrayServletOutputStream;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import hudson.security.SecurityMode;
+import jenkins.model.Jenkins;
 import net.oauth.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,6 +85,11 @@ public class OAuth1aRequestFilterTest {
     private HttpServletResponse response;
     @Mock
     private FilterChain chain;
+    @Mock
+    private JenkinsProvider jenkinsProvider;
+    @Mock
+    private Jenkins jenkins;
+
     private OAuth1aRequestFilter filter;
     private Map<String, String[]> rsaConsumerParameterMap;
     private ByteArrayOutputStream responseOutputStream;
@@ -104,9 +112,11 @@ public class OAuth1aRequestFilterTest {
         when(response.getOutputStream()).thenReturn(new ByteArrayServletOutputStream(responseOutputStream));
         when(clock.millis()).thenReturn(System.currentTimeMillis());
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
+        when(jenkinsProvider.get()).thenReturn(jenkins);
+        when(jenkins.getSecurity()).thenReturn(SecurityMode.SECURED);
 
         filter =
-                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter);
+                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter, jenkinsProvider);
     }
 
     @Test
@@ -248,6 +258,14 @@ public class OAuth1aRequestFilterTest {
                 any(HttpServletRequest.class),
                 any(HttpServletResponse.class),
                 any(FilterChain.class));
+    }
+
+    @Test
+    public void testNotAuthorizingAnonymousUsers() throws IOException, ServletException {
+        when(jenkins.getSecurity()).thenReturn(SecurityMode.UNSECURED);
+
+        filter.doFilter(request, response, chain);
+        verifyNoMoreInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     private void setupRequestWithParameters(Map<String, String[]> params) {
