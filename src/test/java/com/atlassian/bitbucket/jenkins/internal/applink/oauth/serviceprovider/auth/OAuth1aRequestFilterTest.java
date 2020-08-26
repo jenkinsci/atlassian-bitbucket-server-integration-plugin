@@ -262,7 +262,9 @@ public class OAuth1aRequestFilterTest {
 
     @Test
     public void testNotAuthorizingAnonymousUsers() throws IOException, ServletException {
+        setupRequestWithParameters(rsaConsumerParameterMap);
         when(jenkins.getSecurity()).thenReturn(SecurityMode.UNSECURED);
+        when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
 
         filter.doFilter(request, response, chain);
         verifyNoMoreInteractions(trustedUnderlyingSystemAuthorizerFilter);
