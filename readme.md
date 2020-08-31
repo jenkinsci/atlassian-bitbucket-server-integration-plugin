@@ -184,6 +184,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 - Added SSH credentials for cloning
 - Bitbucket SCM Step now supports optional parameters
 - Fix issue JENKINS-63121
+- Fix issue JENKINS-60116 for multibranch pipeline jobs
 
 ### 2.0.1 (22 July 2020)
 - Fix issue JENKINS-60116 - non-admins can now set credentials in jobs
