@@ -183,10 +183,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ### 2.1.0 (31 August 2020)
 - Added SSH credentials for cloning
 - Bitbucket SCM Step now supports optional parameters
+- Fix issue JENKINS-63121
 
 ### 2.0.1 (22 July 2020)
 - Fix issue JENKINS-60116 - non-admins can now set credentials in jobs
-- Fix issue JENKINS-63121
 
 ### 2.0.0 (9 July 2020)
 - Application Links between Jenkins and Bitbucket Server are now supported
