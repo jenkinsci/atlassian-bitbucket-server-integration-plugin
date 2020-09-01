@@ -160,7 +160,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     @CheckForNull
     public String getCredentialsId() {
-        return gitSCMSource.getCredentialsId();
+        return getBitbucketSCMRepository().getCredentialsId();
     }
 
     public String getMirrorName() {
