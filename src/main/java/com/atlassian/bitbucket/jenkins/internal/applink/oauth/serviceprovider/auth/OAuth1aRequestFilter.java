@@ -7,8 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.ex
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
-import hudson.security.SecurityMode;
 import net.oauth.OAuthException;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
@@ -59,7 +57,7 @@ public class OAuth1aRequestFilter implements Filter {
     private final OAuthValidator validator;
     private final Clock clock;
     private final TrustedUnderlyingSystemAuthorizerFilter authorizerFilter;
-    private final JenkinsProvider jenkinsProvider;
+    private final SecurityModeChecker securityChecker;
 
     @Inject
     public OAuth1aRequestFilter(ServiceProviderConsumerStore consumerStore,
@@ -67,13 +65,13 @@ public class OAuth1aRequestFilter implements Filter {
                                 OAuthValidator validator,
                                 Clock clock,
                                 TrustedUnderlyingSystemAuthorizerFilter authorizerFilter,
-                                JenkinsProvider jenkinsProvider) {
+                                SecurityModeChecker securityChecker) {
         this.consumerStore = consumerStore;
         this.tokenStore = tokenStore;
         this.validator = validator;
         this.clock = clock;
         this.authorizerFilter = authorizerFilter;
-        this.jenkinsProvider = jenkinsProvider;
+        this.securityChecker = securityChecker;
     }
 
     @Override
@@ -101,7 +99,7 @@ public class OAuth1aRequestFilter implements Filter {
 
                 try {
                     resp = new OAuthWWWAuthenticateAddingResponse(resp, getBaseUrl(req));
-                    if (jenkinsProvider.get().getSecurity() != SecurityMode.UNSECURED) {
+                    if (securityChecker.isSecurityEnabled()) {
                         authorizerFilter.authorize(user, req, resp, chain);
                     }
                     logOAuthRequest(req, "OAuth authentication successful. Request marked as OAuth.", log);
