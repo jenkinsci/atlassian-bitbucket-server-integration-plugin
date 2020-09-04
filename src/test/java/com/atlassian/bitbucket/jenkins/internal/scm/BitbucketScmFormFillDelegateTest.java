@@ -161,22 +161,24 @@ public class BitbucketScmFormFillDelegateTest {
         when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(badSearchClient);
         when(badSearchClient.findProjects()).thenThrow(new BitbucketClientException("Bitbucket had an exception",
                 400, "Some error from Bitbucket"));
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, null, searchTerm);
-        verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
+        HttpResponse response =
+                delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(), searchTerm);
+        verifyErrorRequest((HttpResponses.HttpResponseException) response, 500,
+                "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
     @Test
-    public void testDoFillProjectNameItemsCredentialsIdBlank() {
+    public void testDoFillProjectNameItemsCredentialsIdBlank() throws Exception {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, "", searchTerm);
-        verifyProjectSearchResponse(searchTerm, response);
+        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
     }
 
     @Test
-    public void testDoFillProjectNameItemsCredentialsIdNull() {
+    public void testDoFillProjectNameItemsCredentialsIdNull() throws Exception {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, null, searchTerm);
-        verifyProjectSearchResponse(searchTerm, response);
+        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
     }
 
     @Test
@@ -201,8 +203,10 @@ public class BitbucketScmFormFillDelegateTest {
 
     @Test
     public void testDoFillProjectNameItemsProjectNameBlank() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, null, "");
-        verifyBadRequest(response, "The project name must be at least 2 characters long");
+        HttpResponse response =
+                delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, bbJenkins.getTokenCredentialsId(), "");
+        verifyBadRequest((HttpResponses.HttpResponseException) response,
+                "The project name must be at least 2 characters long");
     }
 
     @Test
@@ -231,8 +235,9 @@ public class BitbucketScmFormFillDelegateTest {
 
     @Test
     public void testDoFillProjectNameItemsServerNonexistent() throws Exception {
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillProjectNameItems(parent, "non-existent", null, "test");
-        verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
+        HttpResponse response = delegate.doFillProjectNameItems(parent, "non-existent", bbJenkins.getUsernamePasswordCredentialsId(), "test");
+        verifyBadRequest((HttpResponses.HttpResponseException) response,
+                "The provided Bitbucket Server serverId does not exist");
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -248,23 +253,25 @@ public class BitbucketScmFormFillDelegateTest {
         BitbucketSearchClient client = mock(BitbucketSearchClient.class);
         when(client.findRepositories(searchTerm)).thenThrow(new BitbucketClientException("Bitbucket had an exception", 400, "Some error from Bitbucket"));
         when(bitbucketClientFactory.getSearchClient(myProject)).thenReturn(client);
-        HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException) delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, null, myProject, searchTerm);
-        verifyErrorRequest(response, 500, "An error occurred in Bitbucket: Bitbucket had an exception");
+        HttpResponse response =
+                delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(), myProject, searchTerm);
+        verifyErrorRequest((HttpResponses.HttpResponseException) response, 500,
+                "An error occurred in Bitbucket: Bitbucket had an exception");
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsCredentialsIdBlank() {
+    public void testDoFillRepositoryNameItemsCredentialsIdBlank() throws Exception {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", "myProject", searchTerm);
-        verifyRepositorySearchResponse(searchTerm, "myProject", response);
+        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsCredentialsIdNull() {
+    public void testDoFillRepositoryNameItemsCredentialsIdNull() throws Exception {
         String searchTerm = "test";
         String projectName = "myProject";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, null, projectName, searchTerm);
-        verifyRepositorySearchResponse(searchTerm, projectName, response);
+        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
     }
 
     @Test
@@ -334,7 +341,8 @@ public class BitbucketScmFormFillDelegateTest {
     @Test
     public void testDoFillRepositoryNameItemsServerNonexistent() throws Exception {
         HttpResponses.HttpResponseException response = (HttpResponses.HttpResponseException)
-                delegate.doFillRepositoryNameItems(parent, "non-existent", null, "myProject", "test");
+                delegate.doFillRepositoryNameItems(parent, "non-existent", bbJenkins.getUsernamePasswordCredentialsId(),
+                        "myProject", "test");
         verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
     }
 

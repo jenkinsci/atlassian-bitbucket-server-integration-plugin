@@ -1,6 +1,5 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import hudson.model.FreeStyleProject;
 import io.restassured.RestAssured;
@@ -24,9 +23,9 @@ import java.util.List;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.HudsonResponse;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsMirrorListBox;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
 public class BitbucketSCMDescriptorIT {
@@ -76,33 +75,26 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdBlank() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketProject>> response =
+        Response response =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(400)
                         .log()
-                        .ifError()
+                        .ifValidationFails()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl())
-                        .getBody()
-                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
-                        });
-        assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketProject> results = response.getData();
-        List<JenkinsBitbucketProject> values = results;
-        assertThat(values.size(), equalTo(1));
-        JenkinsBitbucketProject project = values.get(0);
-        assertThat(project.getKey(), equalTo("PROJECT_1"));
-        assertThat(project.getName(), equalTo("Project 1"));
+                        .post(getProjectSearchUrl());
+        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
     }
 
     @Test
     public void testFindProjectsCredentialsIdInvalid() throws Exception {
         Response response = RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -114,26 +106,17 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdMissing() throws Exception {
-        BitbucketServerConfiguration bitbucketServerWithoutCredentials = new BitbucketServerConfiguration(
-                bbJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(),
-                bbJenkinsRule.getBitbucketServerConfiguration().getBaseUrl(), null);
-        bbJenkinsRule.addBitbucketServer(bitbucketServerWithoutCredentials);
-        HudsonResponse<List<JenkinsBitbucketProject>> response =
+        Response response =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(400)
                         .log()
-                        .ifError()
+                        .ifValidationFails()
                         .given()
                         .header("Jenkins-Crumb", "test")
-                        .formParam("serverId", bitbucketServerWithoutCredentials.getId())
+                        .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl())
-                        .getBody()
-                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
-                        });
-        assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketProject> results = response.getData();
-        assertThat(results.size(), equalTo(0));
+                        .post(getProjectSearchUrl());
+        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
     }
 
     @Test
@@ -141,7 +124,7 @@ public class BitbucketSCMDescriptorIT {
         Response response = RestAssured.expect()
                 .statusCode(400)
                 .log()
-                .ifError()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -156,7 +139,7 @@ public class BitbucketSCMDescriptorIT {
         Response response = RestAssured.expect()
                 .statusCode(400)
                 .log()
-                .ifError()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -169,6 +152,8 @@ public class BitbucketSCMDescriptorIT {
     public void testFindProjectsServerIdBlank() throws Exception {
         Response response = RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", "")
@@ -182,6 +167,8 @@ public class BitbucketSCMDescriptorIT {
     public void testFindProjectsServerIdMissing() throws Exception {
         Response response = RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("credentialsId", bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId())
@@ -268,45 +255,27 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindReposCredentialsIdBlank() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+        Response response =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(400)
                         .log()
-                        .ifError()
+                        .ifValidationFails()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl())
-                        .getBody()
-                        .as(
-                                new TypeRef<
-                                        HudsonResponse<
-                                                List<JenkinsBitbucketRepository>>>() {
-                                });
-        assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketRepository> results = response.getData();
-        List<JenkinsBitbucketRepository> values = results;
-        assertThat(values.size(), equalTo(1));
-        JenkinsBitbucketRepository repo = values.get(0);
-        assertThat(repo.getSlug(), equalTo("rep_1"));
-        assertThat(repo.getName(), equalTo("rep_1"));
-        assertThat(repo.getCloneUrls().size(), equalTo(2));
-        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
-                .findAny()
-                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
-        assertThat(httpCloneUrl.getHref().replace("admin@", ""), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
-        JenkinsBitbucketProject project = repo.getProject();
-        assertThat(project.getKey(), equalTo("PROJECT_1"));
-        assertThat(project.getName(), equalTo("Project 1"));
+                        .post(getReposUrl());
+        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
     }
 
     @Test
     public void testFindReposCredentialsIdInvalid() throws Exception {
-        RestAssured.expect()
+        Response response = RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -314,48 +283,31 @@ public class BitbucketSCMDescriptorIT {
                 .formParam("projectName", "Project 1")
                 .formParam("repositoryName", "rep")
                 .post(getReposUrl());
+        assertThat(response.getBody().print(), containsString("No credentials exist for the provided credentialsId"));
     }
 
     @Test
     public void testFindReposCredentialsMissing() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+        Response response =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(400)
                         .log()
-                        .ifError()
+                        .ifValidationFails()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl())
-                        .getBody()
-                        .as(
-                                new TypeRef<
-                                        HudsonResponse<
-                                                List<JenkinsBitbucketRepository>>>() {
-                                });
-        assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketRepository> results = response.getData();
-        List<JenkinsBitbucketRepository> values = results;
-        assertThat(values.size(), equalTo(1));
-        JenkinsBitbucketRepository repo = values.get(0);
-        assertThat(repo.getSlug(), equalTo("rep_1"));
-        assertThat(repo.getName(), equalTo("rep_1"));
-        assertThat(repo.getCloneUrls().size(), equalTo(2));
-        BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
-                .findAny()
-                .orElseThrow(() -> new AssertionError("There should be an http clone url"));
-        assertThat(httpCloneUrl.getHref().replace("admin@", ""), equalTo("http://localhost:7990/bitbucket/scm/project_1/rep_1.git"));
-        JenkinsBitbucketProject project = repo.getProject();
-        assertThat(project.getKey(), equalTo("PROJECT_1"));
-        assertThat(project.getName(), equalTo("Project 1"));
+                        .post(getReposUrl());
+        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
     }
 
     @Test
     public void testFindReposProjectKeyMissing() throws Exception {
         RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -369,7 +321,7 @@ public class BitbucketSCMDescriptorIT {
         Response response = RestAssured.expect()
                 .statusCode(400)
                 .log()
-                .ifError()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
@@ -383,6 +335,8 @@ public class BitbucketSCMDescriptorIT {
     public void testFindReposServerIdBlank() throws Exception {
         RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("serverId", "")
@@ -396,6 +350,8 @@ public class BitbucketSCMDescriptorIT {
     public void testFindReposServerIdMissing() throws Exception {
         RestAssured.expect()
                 .statusCode(400)
+                .log()
+                .ifValidationFails()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("credentialsId", bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId())

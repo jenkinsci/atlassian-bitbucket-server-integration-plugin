@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface BitbucketScmFormFill {
 
-    ListBoxModel doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId);
+    HttpResponse doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId);
 
     ListBoxModel doFillSshCredentialsIdItems(@Nullable Item context, String baseUrl, String sshCredentialsId);
 

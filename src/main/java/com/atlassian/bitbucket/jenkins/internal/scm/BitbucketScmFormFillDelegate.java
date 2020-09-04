@@ -73,8 +73,12 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public ListBoxModel doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
+    public HttpResponse doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
         checkPermissions(context);
+
+        if (isBlank(credentialsId)) {
+            return errorWithoutStack(HTTP_BAD_REQUEST, "A credentialsId must be provided");
+        }
 
         return new StandardListBoxModel()
                 .includeEmptyValue()
@@ -118,8 +122,11 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 2 characters long");
         }
 
+        if (isBlank(credentialsId)) {
+            return errorWithoutStack(HTTP_BAD_REQUEST, "A credentialsId must be provided");
+        }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
-        if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
+        if (!providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }
 
@@ -155,8 +162,11 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
         }
 
+        if (isBlank(credentialsId)) {
+            return errorWithoutStack(HTTP_BAD_REQUEST, "A credentialsId must be provided");
+        }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
-        if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
+        if (!providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }
 

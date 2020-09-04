@@ -57,7 +57,7 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testMatchingAdminCredentials() {
         assertEquals(FormValidation.Kind.OK,
-                descriptor.doCheckAdminCredentialsId(bbJenkins.getCredentialsId()).kind);
+                descriptor.doCheckAdminCredentialsId(bbJenkins.getTokenCredentialsId()).kind);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateValidServer() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://localhost:7990/bitbucket",
                 UUID.randomUUID().toString()
         );
@@ -147,7 +147,7 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateIncorrectUrl() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://",
                 UUID.randomUUID().toString()
         );
@@ -158,7 +158,7 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateIncorrectServerName() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://localhost:7990/bitbucket",
                 UUID.randomUUID().toString()
         );
