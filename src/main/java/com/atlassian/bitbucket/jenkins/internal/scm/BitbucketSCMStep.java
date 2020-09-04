@@ -166,7 +166,7 @@ public class BitbucketSCMStep extends SCMStep {
                         repositoryName,
                         mirrorName));
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), credentialsId);
         BitbucketRepository repository;
         if (!isBlank(mirrorName)) {
             try {
@@ -364,12 +364,10 @@ public class BitbucketSCMStep extends SCMStep {
         }
 
         private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                         GlobalCredentialsProvider globalCredentialsProvider,
                                                          @Nullable String credentialsId) {
             injectJenkinsToBitbucketCredentials();
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    globalCredentialsProvider,
                     credentialsId, jenkinsToBitbucketCredentials);
         }
 

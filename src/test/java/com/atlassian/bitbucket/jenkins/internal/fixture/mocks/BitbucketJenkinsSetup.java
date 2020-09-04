@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Item;
 
 import java.util.Optional;
@@ -24,7 +23,6 @@ public class BitbucketJenkinsSetup {
 
     private BitbucketTokenCredentials adminCredentials = mock(BitbucketTokenCredentials.class);
     private BitbucketCredentials bbAdminCredentials = mock(BitbucketCredentials.class);
-    private Credentials globalCredentials = mock(Credentials.class);
     private BitbucketCredentials bbGlobalCredentials = mock(BitbucketCredentials.class);
 
     private GlobalCredentialsProvider globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
@@ -34,10 +32,8 @@ public class BitbucketJenkinsSetup {
     private BitbucketJenkinsSetup(String serverUrl) {
         when(server.getBaseUrl()).thenReturn(serverUrl);
         when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(Optional.of(adminCredentials));
-        when(globalCredentialsProvider.getGlobalCredentials()).thenReturn(Optional.of(globalCredentials));
 
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(globalCredentials, globalCredentialsProvider)).thenReturn(bbGlobalCredentials);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(adminCredentials, globalCredentialsProvider)).thenReturn(bbAdminCredentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(adminCredentials)).thenReturn(bbAdminCredentials);
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(server));
     }
 

@@ -54,11 +54,13 @@ public class BitbucketProjectConfigurationIT {
 
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
         waitTillItemIsRendered(credential::getOptions);
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), credential.getSelectedOptions().get(0).getValueAttribute());
+        assertEquals(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
+                credential.getSelectedOptions().get(0).getValueAttribute());
 
         HtmlSelect serverId = form.getSelectByName("_.serverId");
         waitTillItemIsRendered(serverId::getOptions);
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), serverId.getSelectedOptions().get(0).getValueAttribute());
+        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(),
+                serverId.getSelectedOptions().get(0).getValueAttribute());
 
         assertEquals(PROJECT_NAME, form.getInputByName("_.projectName").getValueAttribute());
         assertEquals(REPO_NAME, form.getInputByName("_.repositoryName").getValueAttribute());
@@ -81,7 +83,8 @@ public class BitbucketProjectConfigurationIT {
         HtmlSelect credential = form.getSelectByName("_.credentialsId");
         waitTillItemIsRendered(credential::getOptions);
         Optional<HtmlOption> configuredCredential = credential.getOptions().stream()
-                .filter(option -> option.getValueAttribute().equals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId()))
+                .filter(option ->
+                        option.getValueAttribute().equals(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId()))
                 .findFirst();
         assertTrue("Credentials should be configured", configuredCredential.isPresent());
         configuredCredential.get().click();
@@ -107,7 +110,7 @@ public class BitbucketProjectConfigurationIT {
         //verify Bitbucket SCM settings are persisted
         assertTrue(project.getScm() instanceof BitbucketSCM);
         BitbucketSCM bitbucketSCM = (BitbucketSCM) project.getScm();
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), bitbucketSCM.getCredentialsId());
+        assertEquals(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(), bitbucketSCM.getCredentialsId());
         assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getId(), bitbucketSCM.getServerId());
         assertEquals(PROJECT_KEY, bitbucketSCM.getProjectKey());
         assertEquals(REPO_SLUG, bitbucketSCM.getRepositorySlug());

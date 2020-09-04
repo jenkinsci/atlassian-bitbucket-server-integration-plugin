@@ -11,7 +11,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
-import com.cloudbees.plugins.credentials.Credentials;
 import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,9 +24,8 @@ import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -69,20 +67,8 @@ public class RetryingWebhookHandlerTest {
         when(jenkinsToBitbucketCredentials.toBitbucketCredentials(JOB_CREDENTIALS)).thenReturn(jobCredentials);
 
         BitbucketTokenCredentials globalAdminJenkinsCredentials = mock(BitbucketTokenCredentials.class);
-        Credentials globalCredentials = mock(Credentials.class);
-        globalCredentialsProvider = new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                return Optional.of(globalAdminJenkinsCredentials);
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                return Optional.of(globalCredentials);
-            }
-        };
+        globalCredentialsProvider = () -> Optional.of(globalAdminJenkinsCredentials);
         when(jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminJenkinsCredentials)).thenReturn(globalAdminCredentials);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(globalCredentials)).thenReturn(this.globalCredentials);
 
         BitbucketClientFactory factory = mock(BitbucketClientFactory.class);
         when(provider.getClient(any(String.class), any(BitbucketCredentials.class))).thenReturn(factory);
@@ -95,17 +81,15 @@ public class RetryingWebhookHandlerTest {
 
         when(bitbucketWebhookClient.registerWebhook(any(BitbucketWebhookRequest.class)))
                 .thenThrow(AuthorizationException.class)
-                .thenThrow(AuthorizationException.class)
                 .thenReturn(t);
 
         BitbucketWebhook r =
                 retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository());
 
-        assertThat(r, is(equalTo(t)));
+        assertThat(r, is(t));
         InOrder inOrder = Mockito.inOrder(provider);
         inOrder.verify(provider).getClient(BITBUCKET_BASE_URL, globalAdminCredentials);
         inOrder.verify(provider).getClient(BITBUCKET_BASE_URL, jobCredentials);
-        inOrder.verify(provider).getClient(BITBUCKET_BASE_URL, globalCredentials);
     }
 
     @Test(expected = WebhookRegistrationFailed.class)

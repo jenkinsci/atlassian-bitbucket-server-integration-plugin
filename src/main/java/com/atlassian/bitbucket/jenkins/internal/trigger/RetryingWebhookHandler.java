@@ -101,6 +101,7 @@ public class RetryingWebhookHandler {
         }
     }
 
+    @Nullable
     private BitbucketWebhook registerWithRetry(
             String bitbucketUrl,
             GlobalCredentialsProvider globalCredentialsProvider,
@@ -109,27 +110,18 @@ public class RetryingWebhookHandler {
         BitbucketWebhook result;
         result = globalCredentialsProvider
                 .getGlobalAdminCredentials()
-                .map(c ->
+                .map(creds ->
                         registerUsingCredentialsQuietly(
                                 bitbucketUrl,
-                                jenkinsToBitbucketCredentials.toBitbucketCredentials(c),
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(creds),
                                 request))
                 .orElse(null);
-        if (result == null) {
-            BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
-            result = registerUsingCredentialsQuietly(bitbucketUrl, credentials, request);
-        }
 
         if (result == null) {
-            result = globalCredentialsProvider
-                    .getGlobalCredentials()
-                    .map(c ->
-                            registerUsingCredentials(
-                                    bitbucketUrl,
-                                    jenkinsToBitbucketCredentials.toBitbucketCredentials(c),
-                                    request))
-                    .orElse(null);
+            BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(jobCredentials);
+            result = registerUsingCredentials(bitbucketUrl, credentials, request);
         }
+
         return result;
     }
 }

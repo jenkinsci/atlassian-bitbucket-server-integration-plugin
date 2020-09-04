@@ -86,8 +86,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                 .getClient(
                                         serverConf.getBaseUrl(),
                                         jenkinsToBitbucketCredentials.toBitbucketCredentials(
-                                                providedCredentials.orElse(null),
-                                                serverConf.getGlobalCredentialsProvider("Check Project Name")));
+                                                providedCredentials.orElse(null)));
                         BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
                         return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
                     } catch (NotFoundException e) {
@@ -123,11 +122,12 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                 .getClient(
                                         serverConf.getBaseUrl(),
                                         jenkinsToBitbucketCredentials.toBitbucketCredentials(
-                                                providedCredentials.orElse(null),
-                                                serverConf.getGlobalCredentialsProvider("Check Repository Name")));
+                                                providedCredentials.orElse(null)));
                         BitbucketRepository repository =
                                 getRepositoryByNameOrSlug(projectName, repositoryName, clientFactory);
-                        return FormValidation.ok("Using '" + repository.getName() + "' at " + (isBlank(repository.getSelfLink()) ? serverConf.getBaseUrl() : repository.getSelfLink()));
+                        return FormValidation.ok("Using '" + repository.getName() + "' at " +
+                                                 (isBlank(repository.getSelfLink()) ? serverConf.getBaseUrl() :
+                                                         repository.getSelfLink()));
                     } catch (NotFoundException e) {
                         return FormValidation.error("The repository '" + repositoryName + "' does not " +
                                                     "exist or you do not have permission to access it.");

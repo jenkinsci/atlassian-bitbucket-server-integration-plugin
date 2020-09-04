@@ -138,7 +138,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 bbJenkins.getCredentialsId(),
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -150,7 +149,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 bbJenkins.getCredentialsId(),
                 "http://",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -162,7 +160,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 bbJenkins.getCredentialsId(),
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName(null);
@@ -174,7 +171,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 "",
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -186,7 +182,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 "",
                 "http://",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName(null);

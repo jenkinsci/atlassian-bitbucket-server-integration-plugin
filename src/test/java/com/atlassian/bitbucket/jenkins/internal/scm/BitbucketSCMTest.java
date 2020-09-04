@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import hudson.scm.SCMDescriptor;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
@@ -121,7 +120,6 @@ public class BitbucketSCMTest {
                         .thenReturn(Optional.empty());
                 when(descriptor.getBitbucketScmHelper(
                         nullable(String.class),
-                        nullable(GlobalCredentialsProvider.class),
                         nullable(String.class)))
                         .thenReturn(mock(BitbucketScmHelper.class));
                 return descriptor;

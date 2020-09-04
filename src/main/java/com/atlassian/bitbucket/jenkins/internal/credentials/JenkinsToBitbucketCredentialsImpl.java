@@ -11,13 +11,12 @@ import javax.inject.Singleton;
 import java.util.Base64;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Singleton
 public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCredentials {
 
     @Override
-    public BitbucketCredentials toBitbucketCredentials(String credentialId) {
+    public BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId) {
         return CredentialUtils.getCredentials(credentialId)
                 .map(this::toBitbucketCredentials).orElse(ANONYMOUS_CREDENTIALS);
     }
@@ -38,24 +37,6 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
         }
     }
 
-    @Override
-    public BitbucketCredentials toBitbucketCredentials(@Nullable String credentials,
-                                                       GlobalCredentialsProvider globalCredentialsProvider) {
-        if (!isBlank(credentials)) {
-            return toBitbucketCredentials(credentials);
-        }
-        return usingGlobalCredentials(globalCredentialsProvider);
-    }
-
-    @Override
-    public BitbucketCredentials toBitbucketCredentials(@Nullable Credentials credentials,
-                                                       GlobalCredentialsProvider globalCredentialsProvider) {
-        if (credentials != null) {
-            return this.toBitbucketCredentials(credentials);
-        }
-        return usingGlobalCredentials(globalCredentialsProvider);
-    }
-
     public static BitbucketCredentials getBearerCredentials(String bearerToken) {
         return () -> "Bearer " + bearerToken;
     }
@@ -63,11 +44,5 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
     private static BitbucketCredentials getBasicCredentials(String username, String password) {
         String authorization = username + ':' + password;
         return () -> "Basic " + Base64.getEncoder().encodeToString(authorization.getBytes(Charsets.UTF_8));
-    }
-
-    private BitbucketCredentials usingGlobalCredentials(GlobalCredentialsProvider globalCredentialsProvider) {
-        return globalCredentialsProvider.getGlobalCredentials()
-                .map(this::toBitbucketCredentials)
-                .orElse(ANONYMOUS_CREDENTIALS);
     }
 }

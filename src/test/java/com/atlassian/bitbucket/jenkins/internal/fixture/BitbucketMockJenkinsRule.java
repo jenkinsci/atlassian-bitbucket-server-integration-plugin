@@ -53,7 +53,7 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         setupCredentials(credentialsId, bitbucketUserToken);
         serverId = UUID.randomUUID().toString();
         BitbucketServerConfiguration server =
-                new BitbucketServerConfiguration(credentialsId, service.baseUrl(), null, serverId);
+                new BitbucketServerConfiguration(credentialsId, service.baseUrl(), serverId);
         List<BitbucketServerConfiguration> servers = new ArrayList<>();
         servers.add(server);
         BitbucketPluginConfiguration configuration = new BitbucketPluginConfiguration();

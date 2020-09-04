@@ -30,12 +30,12 @@ public class BitbucketSCMSnippetGeneratorIT {
 
         json.put("id", "myId");
         json.put("branches", singletonList(singletonMap("name", "*/master")));
-        json.put("credentialsId", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId());
+        json.put("credentialsId", bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId());
         json.put("mirrorName", "Bitbucket Mirror");
         json.put("projectName", "Project 1");
         json.put("repositoryName", "rep_1");
         json.put("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId());
-        json.put("sshCredentialsId", bbJenkinsRule.getSshCredentialId());
+        json.put("sshCredentialsId", bbJenkinsRule.getSshCredentialsId());
 
         String snippet = RestAssured.expect()
                 .statusCode(200)
@@ -52,9 +52,9 @@ public class BitbucketSCMSnippetGeneratorIT {
         String expectedSnippet = "bbs_checkout branches: [[name: '*/master']], credentialsId: '<<CRED-ID>>', " +
                                  "id: 'myId', mirrorName: 'Bitbucket Mirror', projectName: 'Project 1', " +
                                  "repositoryName: 'rep_1', serverId: '<<SERVER-ID>>', sshCredentialsId: '<<SSH-ID>>'";
-        expectedSnippet = expectedSnippet.replace("<<CRED-ID>>", bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId())
+        expectedSnippet = expectedSnippet.replace("<<CRED-ID>>", bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId())
                 .replace("<<SERVER-ID>>", bbJenkinsRule.getBitbucketServerConfiguration().getId())
-                .replace("<<SSH-ID>>", bbJenkinsRule.getSshCredentialId());
+                .replace("<<SSH-ID>>", bbJenkinsRule.getSshCredentialsId());
 
         assertThat(snippet, equalTo(expectedSnippet));
     }

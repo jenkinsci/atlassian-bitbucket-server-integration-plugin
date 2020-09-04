@@ -34,7 +34,7 @@ public class BitbucketSCMStepIT {
     @Test
     public void testCreateSCMHttp() {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
         TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),
@@ -81,8 +81,8 @@ public class BitbucketSCMStepIT {
     @Test
     public void testCreateSCMSsh() {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
-        String sshCredentialsId = bbJenkinsRule.getSshCredentialId();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
+        String sshCredentialsId = bbJenkinsRule.getSshCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
         TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),

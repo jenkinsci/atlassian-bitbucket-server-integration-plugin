@@ -49,7 +49,8 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private HtmlPage currentPage;
     private FileHandler handler;
-    private String sshCredentialId;
+    private String sshCredentialsId;
+    private String bbAdminUsernamePasswordCredentialsId;
     private WebClient webClient;
 
     public BitbucketJenkinsRule() {
@@ -131,24 +132,25 @@ public class BitbucketJenkinsRule extends JenkinsRule {
             READ_PERSONAL_TOKEN.set(createPersonalToken(PROJECT_READ_PERMISSION));
             Runtime.getRuntime().addShutdownHook(new BitbucketTokenCleanUpThread(READ_PERSONAL_TOKEN.get().getId()));
         }
-        String readCredentialsId = UUID.randomUUID().toString();
-        Credentials readCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, readCredentialsId,
-                "", BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
-        addCredentials(readCredentials);
+        bbAdminUsernamePasswordCredentialsId = UUID.randomUUID().toString();
+        Credentials bbAdminUsernamePasswordCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
+                bbAdminUsernamePasswordCredentialsId, "Bitbucket Server admin username/password credentials",
+                BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
+        addCredentials(bbAdminUsernamePasswordCredentials);
 
         if (SSH_KEY_ID.get() == null) {
             SSH_KEY_ID.set(createSshPublicKey());
             Runtime.getRuntime().addShutdownHook(new BitbucketSshKeyCleanupThread(SSH_KEY_ID.get()));
         }
 
-        sshCredentialId = UUID.randomUUID().toString();
+        sshCredentialsId = UUID.randomUUID().toString();
         PrivateKeySource keySource = new DirectEntryPrivateKeySource(TestUtils.readFileToString("/ssh/test-key"));
-        Credentials sshCredentials = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, sshCredentialId,
+        Credentials sshCredentials = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, sshCredentialsId,
                 "git", keySource, null, "");
         addCredentials(sshCredentials);
 
         bitbucketServerConfiguration =
-                new BitbucketServerConfiguration(adminCredentialsId, getBitbucketBaseUrl(), readCredentialsId, null);
+                new BitbucketServerConfiguration(adminCredentialsId, getBitbucketBaseUrl(), null);
         bitbucketServerConfiguration.setServerName(SERVER_NAME);
         addBitbucketServer(bitbucketServerConfiguration);
     }
@@ -165,8 +167,12 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         return bitbucketServerConfiguration;
     }
 
-    public String getSshCredentialId() {
-        return sshCredentialId;
+    public String getSshCredentialsId() {
+        return sshCredentialsId;
+    }
+
+    public String getBbAdminUsernamePasswordCredentialsId() {
+        return bbAdminUsernamePasswordCredentialsId;
     }
 
     public HtmlPage visit(String relativePath) throws IOException, SAXException {

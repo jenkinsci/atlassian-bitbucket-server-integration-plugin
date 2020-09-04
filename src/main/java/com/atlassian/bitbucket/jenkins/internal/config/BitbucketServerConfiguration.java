@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationEx
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.ConnectionFailureException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
-import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
@@ -48,7 +47,6 @@ import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
 import static java.lang.String.format;
-import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
 import static org.apache.commons.lang3.StringUtils.*;
@@ -61,7 +59,6 @@ public class BitbucketServerConfiguration
     private static final Logger log = Logger.getLogger(BitbucketServerConfiguration.class.getName());
 
     private final String adminCredentialsId;
-    private final String credentialsId;
     private final String id;
     private String baseUrl;
     private String serverName;
@@ -70,11 +67,9 @@ public class BitbucketServerConfiguration
     public BitbucketServerConfiguration(
             String adminCredentialsId,
             String baseUrl,
-            @Nullable String credentialsId,
             @Nullable String id) {
         this.adminCredentialsId = requireNonNull(adminCredentialsId);
         this.baseUrl = requireNonNull(baseUrl);
-        this.credentialsId = credentialsId;
         this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
     }
 
@@ -86,18 +81,9 @@ public class BitbucketServerConfiguration
      * @return credential provider
      */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
-        return new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                BitbucketTokenCredentials adminCredentials = BitbucketServerConfiguration.this.getAdminCredentials();
-                return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                return BitbucketServerConfiguration.this.getCredentials()
-                        .map(credentials -> CredentialsProvider.track(item, credentials));
-            }
+        return () -> {
+            BitbucketTokenCredentials adminCredentials = getAdminCredentials();
+            return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
         };
     }
 
@@ -112,18 +98,9 @@ public class BitbucketServerConfiguration
         if (isBlank(context)) {
             throw new IllegalArgumentException("Please provide a valid non blank context");
         }
-        return new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                log.fine(format("Using admin credentials for [%s]", context));
-                return Optional.ofNullable(BitbucketServerConfiguration.this.getAdminCredentials());
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                log.fine(format("Using global credentials for [%s]", context));
-                return BitbucketServerConfiguration.this.getCredentials();
-            }
+        return () -> {
+            log.fine(format("Using admin credentials for [%s]", context));
+            return Optional.ofNullable(getAdminCredentials());
         };
     }
 
@@ -148,11 +125,6 @@ public class BitbucketServerConfiguration
     @DataBoundSetter
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = trimToEmpty(baseUrl);
-    }
-
-    @Nullable
-    public String getCredentialsId() {
-        return credentialsId;
     }
 
     public String getId() {
@@ -262,10 +234,6 @@ public class BitbucketServerConfiguration
                 withId(trimToEmpty(adminCredentialsId)));
     }
 
-    private Optional<Credentials> getCredentials() {
-        return CredentialUtils.getCredentials(credentialsId);
-    }
-
     @Symbol("BbS")
     @Extension
     public static class DescriptorImpl extends Descriptor<BitbucketServerConfiguration> {
@@ -343,13 +311,7 @@ public class BitbucketServerConfiguration
                 @QueryParameter String credentialsId) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
-            BitbucketServerConfiguration config =
-                    new BitbucketServerConfiguration(
-                            adminCredentialsId, baseUrl, credentialsId, null);
-            Optional<Credentials> credentials = config.getCredentials();
-            if (!credentials.isPresent() && isNotBlank(credentialsId)) {
-                return FormValidation.error("We can't find these credentials. Provide different credentials and try again.");
-            }
+            BitbucketServerConfiguration config = new BitbucketServerConfiguration(adminCredentialsId, baseUrl, null);
             if (config.getAdminCredentials() == null) {
                 return FormValidation.error("A personal access token with project admin permissions is required.");
             }
@@ -359,27 +321,20 @@ public class BitbucketServerConfiguration
                 if (jenkinsToBitbucketCredentials == null) {
                     Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
                 }
+                BitbucketClientFactory client = clientFactoryProvider
+                        .getClient(
+                                config.getBaseUrl(),
+                                jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials()));
                 Optional<String> username =
-                        clientFactoryProvider
-                                .getClient(
-                                        config.getBaseUrl(),
-                                        jenkinsToBitbucketCredentials.toBitbucketCredentials(config.getAdminCredentials(), config.getGlobalCredentialsProvider(context)))
+                        client
                                 .getAuthenticatedUserClient()
                                 .getAuthenticatedUser();
                 if (!username.isPresent()) {
-                    return FormValidation.error("We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
+                    return FormValidation.error(
+                            "We can't connect to Bitbucket Server. Choose a different personal access token with project admin permissions");
                 }
-                BitbucketClientFactory client =
-                        clientFactoryProvider.getClient(
-                                config.getBaseUrl(),
-                                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentials.orElse(null), config.getGlobalCredentialsProvider(context)));
 
                 AtlassianServerCapabilities capabilities = client.getCapabilityClient().getServerCapabilities();
-                if (credentials.filter(StringCredentials.class::isInstance).isPresent()) {
-                    if (!client.getAuthenticatedUserClient().getAuthenticatedUser().isPresent()) {
-                        throw new AuthorizationException("TO WRITE", HTTP_UNAUTHORIZED, null);
-                    }
-                }
 
                 if (capabilities.isBitbucketServer()) {
                     return FormValidation.ok("Jenkins can connect with Bitbucket Server.");

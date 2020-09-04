@@ -99,7 +99,6 @@ public class BitbucketPluginConfigurationIT {
         BitbucketServerConfiguration configuration = bitbucketPluginConfiguration.getServerList().get(0);
         assertEquals(serverName, configuration.getServerName());
         assertEquals(serverUrl, configuration.getBaseUrl());
-        assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(), configuration.getCredentialsId());
         assertEquals(bbJenkinsRule.getBitbucketServerConfiguration().getAdminCredentialsId(), configuration.getAdminCredentialsId());
     }
 
@@ -143,7 +142,6 @@ public class BitbucketPluginConfigurationIT {
                 bbJenkinsRule.getBitbucketServerConfiguration().getGlobalCredentialsProvider(item);
 
         assertCredentialsAreTracked(globalCredentialsProvider.getGlobalAdminCredentials().get(), itemName);
-        assertCredentialsAreTracked(globalCredentialsProvider.getGlobalCredentials().get(), itemName);
     }
 
     @Test

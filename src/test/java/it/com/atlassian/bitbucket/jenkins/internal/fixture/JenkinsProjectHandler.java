@@ -63,7 +63,7 @@ public class JenkinsProjectHandler {
     public WorkflowMultiBranchProject createMultibranchJob(String name, String project,
                                                            String repoSlug) throws Exception {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
 

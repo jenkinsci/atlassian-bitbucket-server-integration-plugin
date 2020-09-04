@@ -22,10 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.emptyList;
@@ -81,7 +78,6 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(CREDENTIAL_ID);
         when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
         when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
@@ -90,7 +86,7 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(mock(BitbucketCredentials.class));
         when(jenkinsProvider.get()).thenReturn(jenkins);
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
@@ -152,53 +148,51 @@ public class BitbucketScmFormValidationDelegateTest {
     @Test
     public void testProjectNameEmpty() {
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "").kind);
+                UUID.randomUUID().toString(), "").kind);
     }
 
     @Test
     public void testProjectNameNonEmpty() {
         assertEquals(FormValidation.Kind.OK, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT").kind);
+                UUID.randomUUID().toString(), "PROJECT").kind);
     }
 
     @Test
     public void testProjectNameNull() {
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), null).kind);
+                UUID.randomUUID().toString(), null).kind);
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testProjectNameNoPermissions() {
         doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
         delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT_1");
+                UUID.randomUUID().toString(), "PROJECT_1");
     }
 
     @Test
     public void testRepositoryNameEmpty() {
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT_1", "").kind);
+                null, "PROJECT_1", "").kind);
     }
 
     @Test
     public void testRepositoryNameNonEmpty() {
         assertEquals(FormValidation.Kind.OK, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT_1", "repo").kind);
+                UUID.randomUUID().toString(), "PROJECT_1", "repo").kind);
     }
 
     @Test
     public void testRepositoryNameNull() {
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
         assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT_1", null).kind);
+                null, "PROJECT_1", null).kind);
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testRepositoryNameNoPermissions() {
         doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
         delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
-                serverConfigurationValid.getCredentialsId(), "PROJECT_1", "repo");
+                UUID.randomUUID().toString(), "PROJECT_1", "repo");
     }
 
     @Test

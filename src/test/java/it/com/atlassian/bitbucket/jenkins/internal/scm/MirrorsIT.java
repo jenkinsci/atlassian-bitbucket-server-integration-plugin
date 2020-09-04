@@ -120,7 +120,7 @@ public class MirrorsIT {
         BitbucketRepoFetcher fetcher =
                 (client, project, repository) -> BitbucketSearchHelper.getRepositoryByNameOrSlug(project, repository, client);
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(adminCredentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(adminCredentials);
 
         return new BitbucketMirrorHandler(clientFactoryProvider, jenkinsToBitbucketCredentials, fetcher);
     }

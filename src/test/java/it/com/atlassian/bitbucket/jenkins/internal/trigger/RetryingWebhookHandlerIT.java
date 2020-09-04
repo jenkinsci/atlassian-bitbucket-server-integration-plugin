@@ -25,12 +25,12 @@ import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -133,17 +133,7 @@ public class RetryingWebhookHandlerIT {
 
         BitbucketTokenCredentials jenkinsAdminCredentials = mock(BitbucketTokenCredentials.class);
         Credentials jenkinsGlobalCredentials = mock(Credentials.class);
-        globalCredentialsProvider = new GlobalCredentialsProvider() {
-            @Override
-            public Optional<BitbucketTokenCredentials> getGlobalAdminCredentials() {
-                return Optional.of(jenkinsAdminCredentials);
-            }
-
-            @Override
-            public Optional<Credentials> getGlobalCredentials() {
-                return Optional.of(jenkinsGlobalCredentials);
-            }
-        };
+        globalCredentialsProvider = () -> Optional.of(jenkinsAdminCredentials);
         JenkinsToBitbucketCredentials converter = mock(JenkinsToBitbucketCredentials.class);
         when(converter.toBitbucketCredentials(jenkinsAdminCredentials)).thenReturn(globalAdminCredentials);
         when(converter.toBitbucketCredentials(jenkinsGlobalCredentials)).thenReturn(globalCredentials);

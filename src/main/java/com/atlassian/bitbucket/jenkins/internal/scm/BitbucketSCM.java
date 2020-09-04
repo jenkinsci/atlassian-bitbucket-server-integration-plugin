@@ -92,7 +92,7 @@ public class BitbucketSCM extends SCM {
                         repositoryName,
                         mirrorName));
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), credentialsId);
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
             setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
@@ -533,11 +533,9 @@ public class BitbucketSCM extends SCM {
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                 GlobalCredentialsProvider globalCredentialsProvider,
                                                  @Nullable String credentialsId) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    globalCredentialsProvider,
                     credentialsId, jenkinsToBitbucketCredentials);
         }
 

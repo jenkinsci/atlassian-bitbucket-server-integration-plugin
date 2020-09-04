@@ -128,8 +128,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                     try {
                         BitbucketCredentials credentials =
                                 jenkinsToBitbucketCredentials.toBitbucketCredentials(
-                                        providedCredentials.orElse(null),
-                                        serverConf.getGlobalCredentialsProvider("BitbucketSCM fill project name"));
+                                        providedCredentials.orElse(null));
                         Collection<BitbucketProject> projects = findProjects(projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
                         return okJSON(JSONArray.fromObject(projects));
@@ -165,8 +164,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                 .map(serverConf -> {
                     BitbucketCredentials credentials =
                             jenkinsToBitbucketCredentials.toBitbucketCredentials(
-                                    providedCredentials.orElse(null),
-                                    serverConf.getGlobalCredentialsProvider("BitbucketSCM fill repository"));
+                                    providedCredentials.orElse(null));
                     try {
                         Collection<BitbucketRepository> repositories = findRepositories(repositoryName, projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
