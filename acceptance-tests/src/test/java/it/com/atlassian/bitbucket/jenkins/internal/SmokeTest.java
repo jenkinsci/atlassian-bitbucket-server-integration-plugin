@@ -92,7 +92,7 @@ public class SmokeTest extends AbstractJUnitTest {
         jenkinsConfig.configure();
         serverId = "bbs-" + randomUUID();
         new BitbucketPluginConfigArea(jenkinsConfig)
-                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId(), bbsAdminCredsId);
+                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId());
         jenkinsConfig.save();
 
         // Fork repo
