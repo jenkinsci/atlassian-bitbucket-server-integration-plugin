@@ -73,12 +73,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     }
 
     @Override
-    public HttpResponse doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
+    public ListBoxModel doFillCredentialsIdItems(@Nullable Item context, String baseUrl, String credentialsId) {
         checkPermissions(context);
-
-        if (isBlank(credentialsId)) {
-            return errorWithoutStack(HTTP_BAD_REQUEST, "A credentialsId must be provided");
-        }
 
         return new StandardListBoxModel()
                 .includeEmptyValue()
