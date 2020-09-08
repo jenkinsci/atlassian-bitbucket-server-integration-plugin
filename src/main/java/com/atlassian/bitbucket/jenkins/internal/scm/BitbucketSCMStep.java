@@ -279,7 +279,7 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         @POST
-        public HttpResponse doFillCredentialsIdItems(@AncestorInPath Item context,
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
             return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
