@@ -97,7 +97,8 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                 .getClient(
                                         serverConf.getBaseUrl(),
                                         jenkinsToBitbucketCredentials.toBitbucketCredentials(
-                                                providedCredentials.orElse(null)));
+                                                // already checked providedCredentials is present above
+                                                providedCredentials.get()));
                         BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
                         return FormValidation.ok("Using '" + project.getName() + "' at " + project.getSelfLink());
                     } catch (NotFoundException e) {
