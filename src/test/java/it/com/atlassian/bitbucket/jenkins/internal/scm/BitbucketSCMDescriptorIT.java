@@ -65,8 +65,7 @@ public class BitbucketSCMDescriptorIT {
                         .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
                         });
         assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketProject> results = response.getData();
-        List<JenkinsBitbucketProject> values = results;
+        List<JenkinsBitbucketProject> values = response.getData();
         assertThat(values.size(), equalTo(1));
         JenkinsBitbucketProject project = values.get(0);
         assertThat(project.getKey(), equalTo("PROJECT_1"));
@@ -75,18 +74,25 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdBlank() throws Exception {
-        Response response =
+        HudsonResponse<List<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
-                        .statusCode(400)
+                        .statusCode(200)
                         .log()
-                        .ifValidationFails()
+                        .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
+                        .post(getProjectSearchUrl())
+                        .getBody()
+                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
+                        });
+        assertThat(response.getStatus(), equalTo("ok"));
+        List<JenkinsBitbucketProject> values = response.getData();
+        // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
+        // public, even though a 200 response status is returned. This is to cater for public repositories.
+        assertThat(values.size(), equalTo(0));
     }
 
     @Test
@@ -106,17 +112,24 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdMissing() throws Exception {
-        Response response =
+        HudsonResponse<List<JenkinsBitbucketProject>> response =
                 RestAssured.expect()
-                        .statusCode(400)
+                        .statusCode(200)
                         .log()
-                        .ifValidationFails()
+                        .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl());
-        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
+                        .post(getProjectSearchUrl())
+                        .getBody()
+                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
+                        });
+        assertThat(response.getStatus(), equalTo("ok"));
+        List<JenkinsBitbucketProject> values = response.getData();
+        // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
+        // public, even though a 200 response status is returned. This is to cater for public repositories.
+        assertThat(values.size(), equalTo(0));
     }
 
     @Test
@@ -193,8 +206,7 @@ public class BitbucketSCMDescriptorIT {
                 .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketRepository> results = response.getData();
-        List<JenkinsBitbucketRepository> values = results;
+        List<JenkinsBitbucketRepository> values = response.getData();
         assertThat(values.size(), equalTo(1));
         JenkinsBitbucketRepository repo = values.get(0);
         assertThat(repo.getSlug(), equalTo("rep_1"));
@@ -226,8 +238,7 @@ public class BitbucketSCMDescriptorIT {
                 .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketRepository> results = response.getData();
-        List<JenkinsBitbucketRepository> values = results;
+        List<JenkinsBitbucketRepository> values = response.getData();
         assertThat(values.size(), equalTo(0));
     }
 
@@ -248,26 +259,35 @@ public class BitbucketSCMDescriptorIT {
                 .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketRepository>>>() {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
-        List<JenkinsBitbucketRepository> results = response.getData();
-        List<JenkinsBitbucketRepository> values = results;
+        List<JenkinsBitbucketRepository> values = response.getData();
         assertThat(values.size(), equalTo(0));
     }
 
     @Test
     public void testFindReposCredentialsIdBlank() throws Exception {
-        Response response =
+        HudsonResponse<List<JenkinsBitbucketRepository>> response =
                 RestAssured.expect()
-                        .statusCode(400)
+                        .statusCode(200)
                         .log()
-                        .ifValidationFails()
+                        .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl());
-        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
+                        .post(getReposUrl())
+                        .getBody()
+                        .as(
+                                new TypeRef<
+                                        HudsonResponse<
+                                                List<JenkinsBitbucketRepository>>>() {
+                                });
+        assertThat(response.getStatus(), equalTo("ok"));
+        List<JenkinsBitbucketRepository> values = response.getData();
+        // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
+        // public, even though a 200 response status is returned. This is to cater for public repositories.
+        assertThat(values.size(), equalTo(0));
     }
 
     @Test
@@ -288,18 +308,28 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindReposCredentialsMissing() throws Exception {
-        Response response =
+        HudsonResponse<List<JenkinsBitbucketRepository>> response =
                 RestAssured.expect()
-                        .statusCode(400)
+                        .statusCode(200)
                         .log()
-                        .ifValidationFails()
+                        .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl());
-        assertThat(response.getBody().print(), containsString("A credentialsId must be provided"));
+                        .post(getReposUrl())
+                        .getBody()
+                        .as(
+                                new TypeRef<
+                                        HudsonResponse<
+                                                List<JenkinsBitbucketRepository>>>() {
+                                });
+        assertThat(response.getStatus(), equalTo("ok"));
+        List<JenkinsBitbucketRepository> values = response.getData();
+        // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
+        // public, even though a 200 response status is returned. This is to cater for public repositories.
+        assertThat(values.size(), equalTo(0));
     }
 
     @Test

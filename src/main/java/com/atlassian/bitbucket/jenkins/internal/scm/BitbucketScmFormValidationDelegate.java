@@ -57,7 +57,8 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     public FormValidation doCheckCredentialsId(@Nullable Item context, String credentialsId) {
         checkPermission(context);
         if (isBlank(credentialsId)) {
-            return FormValidation.error("credentialsId is required");
+            return FormValidation.warning(
+                    "Without credentials, Jenkins can’t check out source code from non-public repositories. ");
         }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!providedCredentials.isPresent()) {

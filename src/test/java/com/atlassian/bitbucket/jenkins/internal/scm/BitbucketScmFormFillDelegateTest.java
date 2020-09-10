@@ -168,17 +168,17 @@ public class BitbucketScmFormFillDelegateTest {
     }
 
     @Test
-    public void testDoFillProjectNameItemsCredentialsIdBlank() throws Exception {
+    public void testDoFillProjectNameItemsCredentialsIdBlank() {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, "", searchTerm);
-        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
+        verifyProjectSearchResponse(searchTerm, response);
     }
 
     @Test
-    public void testDoFillProjectNameItemsCredentialsIdNull() throws Exception {
+    public void testDoFillProjectNameItemsCredentialsIdNull() {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, null, searchTerm);
-        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
+        verifyProjectSearchResponse(searchTerm, response);
     }
 
     @Test
@@ -260,10 +260,10 @@ public class BitbucketScmFormFillDelegateTest {
     }
 
     @Test
-    public void testDoFillRepositoryNameItemsCredentialsIdBlank() throws Exception {
+    public void testDoFillRepositoryNameItemsCredentialsIdBlank() {
         String searchTerm = "test";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", "myProject", searchTerm);
-        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
+        verifyRepositorySearchResponse(searchTerm, "myProject", response);
     }
 
     @Test
@@ -271,7 +271,7 @@ public class BitbucketScmFormFillDelegateTest {
         String searchTerm = "test";
         String projectName = "myProject";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, null, projectName, searchTerm);
-        verifyBadRequest((HttpResponses.HttpResponseException) response, "A credentialsId must be provided");
+        verifyRepositorySearchResponse(searchTerm, projectName, response);
     }
 
     @Test
