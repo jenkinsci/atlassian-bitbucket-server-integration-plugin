@@ -72,7 +72,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     public FormValidation doCheckProjectName(@Nullable Item context, String serverId, String credentialsId, String projectName) {
         checkPermission(context);
         if (isBlank(projectName)) {
-            return FormValidation.error("Project name is required");
+            return FormValidation.error("Enter a project name");
         }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
         if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
@@ -144,7 +144,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         checkPermission(context);
         // Users can only demur in providing a server name if none are available to select
         if (bitbucketPluginConfiguration.getValidServerList().stream().noneMatch(server -> server.getId().equals(serverId))) {
-            return FormValidation.error("Bitbucket instance is required");
+            return FormValidation.error("Select a Bitbucket Server instance");
         }
         if (bitbucketPluginConfiguration.hasAnyInvalidConfiguration()) {
             return FormValidation.warning("Some servers have been incorrectly configured, and are not displayed.");
