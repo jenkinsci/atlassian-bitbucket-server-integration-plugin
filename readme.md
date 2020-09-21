@@ -45,8 +45,6 @@ Bitbucket Server instances are added and configured at the system level. Once th
 
 When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens). Doing this allows users to automatically set up build triggers when creating a Jenkins job. For this to work the tokens you add must have project admin permissions.
 
-In addition, you can add Bitbucket Server credentials (in the form of username and password) to make it easier for users to set up Jenkins jobs. Users will be able to choose from these credentials to allow Jenkins to authenticate with Bitbucket Server and retrieve their projects.
-
 Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
 
 <img src="images/addinstance.png" width="600"> <br/>
@@ -59,7 +57,6 @@ To add a Bitbucket Server instance:
    - Instance name - Enter a name to help users identify this instance. 
    - Instance URL - Enter the Bitbucket Server base URL. 
    - Personal access token - Select a token from the list. Or to first add a token, select **Add**, select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) for **Kind**, and then enter a Token (with project admin permissions) and a Description. 
-   - Credentials (for build auth) - Select credentials from the list. Or to first add credentials, select **Add**, select **Jenkins**, select Username with password for **Kind**, and then complete the form. 
 4. Select **Test connection** to check your instance details. 
 5. Select **Save**.
 
