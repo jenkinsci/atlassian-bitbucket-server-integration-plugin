@@ -17,7 +17,6 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.inject.Guice;
-import com.thoughtworks.xstream.annotations.XStreamAlias;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -51,7 +50,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
 import static org.apache.commons.lang3.StringUtils.*;
 
-@XStreamAlias("atl-bbs-configuration")
 @SuppressWarnings("unused") // Stapler and UI stack calls method on this class via reflection
 public class BitbucketServerConfiguration
         extends AbstractDescribableImpl<BitbucketServerConfiguration> {

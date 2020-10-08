@@ -40,6 +40,7 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
     private List<BitbucketServerConfiguration> serverList = new ArrayList<>();
 
     public BitbucketPluginConfiguration() {
+        getConfigFile().getXStream().alias("atl-bbs-configuration", BitbucketPluginConfiguration.class);
         load();
     }
 
