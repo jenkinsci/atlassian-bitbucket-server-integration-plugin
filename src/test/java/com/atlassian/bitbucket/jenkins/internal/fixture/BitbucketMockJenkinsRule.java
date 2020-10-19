@@ -5,8 +5,10 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.Options;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -20,12 +22,15 @@ import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.BITBUCKET_ADMIN_PASSWORD;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.BITBUCKET_ADMIN_USERNAME;
 import static java.lang.String.format;
 
 public class BitbucketMockJenkinsRule extends JenkinsRule {
 
     private final String bitbucketUserToken;
-    private String credentialsId;
+    private String tokenCredentialsId;
+    private String usernamePasswordCredentialsId;
     private String serverId;
     private WireMockRule service;
     // Stubs, applied after wiremock has started
@@ -49,11 +54,13 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
                     "'bitbucket.user.token' should be set to execute integration tests");
         }
 
-        credentialsId = UUID.randomUUID().toString();
-        setupCredentials(credentialsId, bitbucketUserToken);
+        tokenCredentialsId = UUID.randomUUID().toString();
+        setupTokenCredentials(tokenCredentialsId, bitbucketUserToken);
+        usernamePasswordCredentialsId = UUID.randomUUID().toString();
+        setupUsernamePasswordCredentials(usernamePasswordCredentialsId);
         serverId = UUID.randomUUID().toString();
         BitbucketServerConfiguration server =
-                new BitbucketServerConfiguration(credentialsId, service.baseUrl(), null, serverId);
+                new BitbucketServerConfiguration(tokenCredentialsId, service.baseUrl(), serverId);
         List<BitbucketServerConfiguration> servers = new ArrayList<>();
         servers.add(server);
         BitbucketPluginConfiguration configuration = new BitbucketPluginConfiguration();
@@ -61,8 +68,12 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         configuration.save();
     }
 
-    public String getCredentialsId() {
-        return credentialsId;
+    public String getTokenCredentialsId() {
+        return tokenCredentialsId;
+    }
+
+    public String getUsernamePasswordCredentialsId() {
+        return usernamePasswordCredentialsId;
     }
 
     public String getServerId() {
@@ -102,11 +113,19 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         return this;
     }
 
-    private void setupCredentials(String credentialId, String secret) throws Exception {
+    private void setupCredentials(Credentials credentials) throws Exception {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
-        Credentials credentials =
-                new BitbucketTokenCredentialsImpl(credentialId, "", SecretFactory.getSecret(secret));
         store.addCredentials(domain, credentials);
+    }
+
+    private void setupTokenCredentials(String credentialsId, String secret) throws Exception {
+        setupCredentials(new BitbucketTokenCredentialsImpl(credentialsId, "", SecretFactory.getSecret(secret)));
+    }
+
+    private void setupUsernamePasswordCredentials(String credentialsId) throws Exception {
+        setupCredentials(new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
+                credentialsId, "Bitbucket Server admin username/password credentials",
+                BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD));
     }
 }

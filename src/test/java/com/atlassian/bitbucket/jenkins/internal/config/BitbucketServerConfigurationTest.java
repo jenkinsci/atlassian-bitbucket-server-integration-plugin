@@ -57,7 +57,7 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testMatchingAdminCredentials() {
         assertEquals(FormValidation.Kind.OK,
-                descriptor.doCheckAdminCredentialsId(bbJenkins.getCredentialsId()).kind);
+                descriptor.doCheckAdminCredentialsId(bbJenkins.getTokenCredentialsId()).kind);
     }
 
     @Test
@@ -136,9 +136,8 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateValidServer() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -148,9 +147,8 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateIncorrectUrl() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -160,9 +158,8 @@ public class BitbucketServerConfigurationTest {
     @Test
     public void testValidateIncorrectServerName() {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
-                bbJenkins.getCredentialsId(),
+                bbJenkins.getTokenCredentialsId(),
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName(null);
@@ -174,7 +171,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 "",
                 "http://localhost:7990/bitbucket",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName("Server Name");
@@ -186,7 +182,6 @@ public class BitbucketServerConfigurationTest {
         BitbucketServerConfiguration serverConfiguration = new BitbucketServerConfiguration(
                 "",
                 "http://",
-                bbJenkins.getCredentialsId(),
                 UUID.randomUUID().toString()
         );
         serverConfiguration.setServerName(null);

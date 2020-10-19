@@ -18,6 +18,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken.Authorization;
+import static hudson.security.SecurityMode.UNSECURED;
 import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import static jenkins.model.Jenkins.ANONYMOUS;
 import static net.oauth.OAuth.*;
@@ -71,27 +73,48 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
             return HttpResponses.error(SC_UNAUTHORIZED, "User not logged in.");
         }
 
+        return generateVerifierCode(request, data, params, userPrincipal);
+    }
+
+    private HttpResponse generateVerifierCode(StaplerRequest request, JSONObject data, Map<String, String[]> params,
+                                              Principal userPrincipal) throws IOException {
+        boolean allow;
+        if (params.containsKey(ALLOW_KEY)) {
+            allow = true;
+        } else if (params.containsKey(DENY_KEY)) {
+            allow = false;
+        } else {
+            return HttpResponses.error(HttpServletResponse.SC_BAD_REQUEST, "Bad Request");
+        }
+        return generateAndRedirectToCallback(request,
+                data.getString(OAUTH_TOKEN_PARAM),
+                data.getString(OAUTH_CALLBACK_PARAM),
+                userPrincipal,
+                allow);
+    }
+
+    private HttpResponse generateAndRedirectToCallback(StaplerRequest request,
+                                                       String tokenStr,
+                                                       String callback,
+                                                       Principal userPrincipal,
+                                                       boolean allow) throws IOException {
         ServiceProviderToken token;
         try {
-            token = getTokenForAuthorization(data.getString(OAUTH_TOKEN_PARAM));
+            token = getTokenForAuthorization(tokenStr);
         } catch (OAuthProblemException e) {
             OAuthProblemUtils.logOAuthProblem(OAuthServlet.getMessage(request, null), e, LOGGER);
             return HttpResponses.error(e);
         }
-
         ServiceProviderToken newToken;
-        if (params.containsKey(DENY_KEY)) {
-            newToken = token.deny(userPrincipal.getName());
-        } else if (params.containsKey(ALLOW_KEY)) {
+        if (allow) {
             String verifier = getDescriptor().randomizer.randomAlphanumericString(VERIFIER_LENGTH);
             newToken = token.authorize(userPrincipal.getName(), verifier);
         } else {
-            return HttpResponses.error(HttpServletResponse.SC_BAD_REQUEST, "Bad Request");
+            newToken = token.deny(userPrincipal.getName());
         }
         getDescriptor().tokenStore.put(newToken);
-
         String callBackUrl =
-                addParameters((String) data.get(OAUTH_CALLBACK_PARAM),
+                addParameters(callback,
                         OAUTH_TOKEN, newToken.getToken(),
                         OAUTH_VERIFIER,
                         newToken.getAuthorization() == Authorization.AUTHORIZED ? newToken.getVerifier() :
@@ -150,6 +173,20 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
     @Override
     public String getUrlName() {
         return "authorize";
+    }
+
+    public boolean isNoSecurity() {
+        return descriptor.jenkinsAuthWrapper.getSecurityMode() == UNSECURED;
+    }
+
+    public void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        if (descriptor.jenkinsAuthWrapper.getSecurityMode() == UNSECURED) {
+            HttpResponse httpResponse =
+                    generateAndRedirectToCallback(req, req.getParameter(OAUTH_TOKEN_PARAM), req.getParameter(OAUTH_CALLBACK_PARAM), ANONYMOUS, true);
+            httpResponse.generateResponse(req, rsp, this);
+        } else {
+            req.getView(this, "index.jelly").forward(req, rsp);
+        }
     }
 
     private ServiceProviderToken getTokenForAuthorization(String rawToken) throws OAuthProblemException {

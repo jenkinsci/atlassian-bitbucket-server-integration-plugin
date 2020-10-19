@@ -31,7 +31,7 @@ public class BuildStatusPosterTest {
     private static final String REVISION_SHA1 = "67d71c2133aab0e070fb8100e3e71220332c5af1";
     private static final String SERVER_URL = "http://www.example.com";
     private static final BitbucketSCMRepository scmRepository =
-            new BitbucketSCMRepository(null, PROJECT_NAME, PROJECT_NAME, REPO_SLUG, REPO_SLUG, SERVER_ID, "");
+            new BitbucketSCMRepository(null, null, PROJECT_NAME, PROJECT_NAME, REPO_SLUG, REPO_SLUG, SERVER_ID, "");
     private static final BitbucketRevisionAction action =
             new BitbucketRevisionAction(scmRepository, "master", REVISION_SHA1);
 

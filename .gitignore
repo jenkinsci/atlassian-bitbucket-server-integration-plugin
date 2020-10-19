@@ -21,6 +21,7 @@ target
 *.swp
 *.DS_Store
 *.log
+.factorypath
 
 # Duplicated config files that are copied across during the build
 src/main/resources/com/atlassian/bitbucket/jenkins/internal/scm/BitbucketSCMStep

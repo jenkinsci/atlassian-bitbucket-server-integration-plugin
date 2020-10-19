@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import hudson.scm.SCMDescriptor;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
@@ -60,7 +59,7 @@ public class BitbucketSCMTest {
         String projectKey = "~USER";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -75,7 +74,7 @@ public class BitbucketSCMTest {
         String projectKey = "PROJECT_1";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -104,6 +103,7 @@ public class BitbucketSCMTest {
                 "1",
                 Collections.emptyList(),
                 credentialsId,
+                "",
                 Collections.emptyList(),
                 "",
                 project,
@@ -120,7 +120,6 @@ public class BitbucketSCMTest {
                         .thenReturn(Optional.empty());
                 when(descriptor.getBitbucketScmHelper(
                         nullable(String.class),
-                        nullable(GlobalCredentialsProvider.class),
                         nullable(String.class)))
                         .thenReturn(mock(BitbucketScmHelper.class));
                 return descriptor;

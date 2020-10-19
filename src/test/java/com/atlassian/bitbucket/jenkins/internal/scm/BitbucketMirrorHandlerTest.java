@@ -137,7 +137,7 @@ public class BitbucketMirrorHandlerTest {
 
     private JenkinsToBitbucketCredentials mockCredentialConversion(BitbucketCredentials credentials) {
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(credentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(credentials);
         return jenkinsToBitbucketCredentials;
     }
 

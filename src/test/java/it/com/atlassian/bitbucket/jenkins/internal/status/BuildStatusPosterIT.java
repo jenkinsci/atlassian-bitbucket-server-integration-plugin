@@ -99,7 +99,7 @@ public class BuildStatusPosterIT {
     public void testAgainstPipelineWithBBCheckOutInScript() throws Exception {
         String bbSnippet =
                 format("bbs_checkout branches: [[name: '*/master']], credentialsId: '%s', projectName: '%s', repositoryName: '%s', serverId: '%s'",
-                        bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
+                        bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                         PROJECT_KEY,
                         repoSlug,
                         bbJenkinsRule.getBitbucketServerConfiguration().getId());
@@ -201,7 +201,7 @@ public class BuildStatusPosterIT {
     public void testCorrectGitCommitIdUsed() throws Exception {
         String bbSnippet =
                 format("bbs_checkout branches: [[name: '*/master']], credentialsId: '%s', projectName: '%s', repositoryName: '%s', serverId: '%s'",
-                        bbJenkinsRule.getBitbucketServerConfiguration().getCredentialsId(),
+                        bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                         PROJECT_KEY,
                         repoSlug,
                         bbJenkinsRule.getBitbucketServerConfiguration().getId());

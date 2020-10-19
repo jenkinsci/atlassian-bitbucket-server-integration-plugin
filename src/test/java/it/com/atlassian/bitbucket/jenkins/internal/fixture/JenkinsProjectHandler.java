@@ -63,13 +63,13 @@ public class JenkinsProjectHandler {
     public WorkflowMultiBranchProject createMultibranchJob(String name, String project,
                                                            String repoSlug) throws Exception {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
-        String credentialsId = serverConf.getCredentialsId();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
 
         SCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
-                        project, repoSlug, serverId, null);
+                new BitbucketSCMSource(id, credentialsId, "",
+                        new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(), project, repoSlug, serverId, null);
         WorkflowMultiBranchProject mbp = bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, name);
         BranchSource branchSource = new BranchSource(scmSource);
 

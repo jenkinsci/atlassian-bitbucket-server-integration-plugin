@@ -54,9 +54,11 @@ Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or s
 To add a Bitbucket Server instance:
 
 1. In Jenkins go to **Jenkins** > **Manage Jenkins** > **Configure System**.
-2. Under **Bitbucket Server plugin** click **Add a Bitbucket instance**.
+2. Under **Bitbucket Server integration** click **Add a Bitbucket Server instance**.
 3. Enter instance details.
-4. Select **Save**.
+4. Add or select a personal access token. 
+5. Add or select credentials. 
+6. Select **Save**.
 
 ### Create an Application Link 
 
@@ -92,8 +94,9 @@ To create the Application Link:
 1. In Bitbucket Server go to **Administration** > **Application Links**. 
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
-4. Complete the form (see Application Link details page for some fields). 
-5. Select **Continue**. 
+4. Complete all the fields in the form (see Application Link details page for some fields). 
+5. Leave **Create incoming link** unchecked. 
+6. Select **Continue**. 
 
 After a moment, your Jenkins instance will appear in the list of linked applications. 
 
@@ -179,6 +182,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+
+### 2.1.0 (31 August 2020)
+- Added SSH credentials for cloning
+- Bitbucket SCM Step now supports optional parameters
+- Fix issue JENKINS-63121
+- Fix issue JENKINS-60116 for multibranch pipeline jobs
 
 ### 2.0.1 (22 July 2020)
 - Fix issue JENKINS-60116 - non-admins can now set credentials in jobs

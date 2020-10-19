@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
@@ -104,9 +103,8 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     private BitbucketClientFactory getBbsClient(BitbucketServerConfiguration server,
                                                 GlobalCredentialsProvider globalCredentialsProvider) {
         Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
-        BitbucketCredentials credentials =
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials, globalCredentialsProvider);
-        return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
+        return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(),
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials));
     }
 
     @VisibleForTesting

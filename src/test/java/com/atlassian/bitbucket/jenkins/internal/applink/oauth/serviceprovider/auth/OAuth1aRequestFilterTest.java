@@ -32,7 +32,12 @@ import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import static net.oauth.OAuth.*;
 import static net.oauth.OAuthMessage.AUTH_SCHEME;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -82,6 +87,9 @@ public class OAuth1aRequestFilterTest {
     private HttpServletResponse response;
     @Mock
     private FilterChain chain;
+    @Mock
+    private SecurityModeChecker securityChecker;
+
     private OAuth1aRequestFilter filter;
     private Map<String, String[]> rsaConsumerParameterMap;
     private ByteArrayOutputStream responseOutputStream;
@@ -104,9 +112,10 @@ public class OAuth1aRequestFilterTest {
         when(response.getOutputStream()).thenReturn(new ByteArrayServletOutputStream(responseOutputStream));
         when(clock.millis()).thenReturn(System.currentTimeMillis());
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
+        when(securityChecker.isSecurityEnabled()).thenReturn(true);
 
         filter =
-                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter);
+                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter, securityChecker);
     }
 
     @Test
@@ -248,6 +257,16 @@ public class OAuth1aRequestFilterTest {
                 any(HttpServletRequest.class),
                 any(HttpServletResponse.class),
                 any(FilterChain.class));
+    }
+
+    @Test
+    public void testNotAuthorizingAnonymousUsers() throws IOException, ServletException {
+        setupRequestWithParameters(rsaConsumerParameterMap);
+        when(securityChecker.isSecurityEnabled()).thenReturn(false);
+        when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
+
+        filter.doFilter(request, response, chain);
+        verifyNoMoreInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     private void setupRequestWithParameters(Map<String, String[]> params) {

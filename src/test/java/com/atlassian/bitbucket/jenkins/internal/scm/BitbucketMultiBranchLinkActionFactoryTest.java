@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import hudson.model.Action;
+import hudson.model.Project;
 import hudson.util.FormValidation;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -17,8 +18,7 @@ import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketMultiBranchLinkActionFactoryTest {
@@ -38,6 +38,8 @@ public class BitbucketMultiBranchLinkActionFactoryTest {
     private BitbucketSCMSource.DescriptorImpl descriptor;
     @Mock
     private WorkflowMultiBranchProject multiBranchProject;
+    @Mock
+    private Project target;
 
     @Before
     public void init() {
@@ -49,8 +51,8 @@ public class BitbucketMultiBranchLinkActionFactoryTest {
         when(bitbucketSCMSource.getRepositoryName()).thenReturn(REPOSITORY_NAME);
         when(bitbucketSCMSource.getDescriptor()).thenReturn(descriptor);
         when(descriptor.getConfiguration(SERVER_ID)).thenReturn(Optional.of(configuration));
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
         when(configuration.getBaseUrl()).thenReturn(BASE_URL);
         when(configuration.validate()).thenReturn(FormValidation.ok());
     }
@@ -76,7 +78,7 @@ public class BitbucketMultiBranchLinkActionFactoryTest {
 
     @Test
     public void testCreateProjectNameInvalid() {
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
                 .thenReturn(FormValidation.error("Bad project name"));
         Collection<? extends Action> actions = actionFactory.createFor(multiBranchProject);
 
@@ -85,7 +87,7 @@ public class BitbucketMultiBranchLinkActionFactoryTest {
 
     @Test
     public void testCreateRepoNameInvalid() {
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
                 .thenReturn(FormValidation.error("Bad repository name"));
         Collection<? extends Action> actions = actionFactory.createFor(multiBranchProject);
 

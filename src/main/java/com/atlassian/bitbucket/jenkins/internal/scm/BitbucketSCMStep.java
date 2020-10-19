@@ -21,127 +21,80 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.logging.Logger;
+import java.util.*;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class BitbucketSCMStep extends SCMStep {
 
-    private static final Logger LOGGER = Logger.getLogger(BitbucketSCMStep.class.getName());
-
-    private final List<BranchSpec> branches;
-    private final String cloneUrl;
-    private final String credentialsId;
-    private final String id;
-    private final String projectKey;
+    private List<BranchSpec> branches;
+    private String cloneUrl;
+    private String credentialsId;
+    private String sshCredentialsId;
+    private String id;
+    private String projectKey;
     private final String projectName;
     private final String repositoryName;
-    private final String repositorySlug;
-    private final int repositoryId;
-    private final String selfLink;
+    private String repositorySlug;
+    private int repositoryId;
+    private String selfLink;
     private final String serverId;
-    private final String mirrorName;
+    private String mirrorName;
 
     @DataBoundConstructor
-    public BitbucketSCMStep(
-            String id,
-            List<BranchSpec> branches,
-            String credentialsId,
-            String projectName,
-            String repositoryName,
-            String serverId,
-            String mirrorName) {
-        this.id = isBlank(id) ? UUID.randomUUID().toString() : id;
-        this.branches = branches;
-        this.credentialsId = credentialsId;
-        this.projectName = projectName;
-        this.repositoryName = repositoryName;
+    public BitbucketSCMStep(String projectName, String repositoryName, String serverId) {
+        this.id = UUID.randomUUID().toString();
+        this.branches = Collections.singletonList(new BranchSpec("**"));
+
+        if (isBlank(serverId)) {
+            throw new BitbucketSCMException("Error creating Bitbucket SCM: No server configuration provided");
+        }
         this.serverId = serverId;
-        this.mirrorName = mirrorName;
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
-        if (!mayBeServerConf.isPresent()) {
-            LOGGER.info("Error creating the Bitbucket SCM: No Bitbucket Server configuration for serverId " + serverId);
-            projectKey = "";
-            repositorySlug = "";
-            selfLink = "";
-            cloneUrl = "";
-            repositoryId = -1;
-            return;
-        }
-        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
-                format("Bitbucket SCM Step: Query Bitbucket for project [%s] repo [%s] mirror [%s]",
-                        projectName,
-                        repositoryName,
-                        mirrorName));
-        BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), globalCredentialsProvider, credentialsId);
+
         if (isBlank(projectName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            projectKey = "";
-            repositorySlug = "";
-            selfLink = "";
-            cloneUrl = "";
-            repositoryId = -1;
-            return;
+            throw new BitbucketSCMException("Error creating the Bitbucket SCM: The project name is blank");
         }
+        this.projectName = projectName;
+
         if (isBlank(repositoryName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            projectKey = "";
-            repositorySlug = "";
-            selfLink = "";
-            cloneUrl = "";
-            repositoryId = -1;
-            return;
+            throw new BitbucketSCMException("Error creating the Bitbucket SCM: The repository name is blank");
         }
-        BitbucketRepository repository;
-        String repoCloneUrl;
-        if (!isBlank(mirrorName)) {
-            try {
-                EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler(scmHelper)
-                                .fetchRepository(
-                                        new MirrorFetchRequest(
-                                                serverConfiguration.getBaseUrl(),
-                                                credentialsId,
-                                                globalCredentialsProvider,
-                                                projectName,
-                                                repositoryName,
-                                                mirrorName));
-                repository = mirroredRepository.getRepository();
-                repoCloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
-            } catch (MirrorFetchException ex) {
-                projectKey = "";
-                repositorySlug = "";
-                selfLink = "";
-                cloneUrl = "";
-                repositoryId = -1;
-                return;
-            }
-        } else {
-            repository = scmHelper.getRepository(projectName, repositoryName);
-            repoCloneUrl = getCloneUrl(repository.getCloneUrls());
-        }
-        this.cloneUrl = repoCloneUrl;
-        projectKey = repository.getProject().getKey();
-        repositorySlug = repository.getSlug();
-        selfLink = repository.getSelfLink();
-        repositoryId = repository.getId();
+        this.repositoryName = repositoryName;
+    }
+
+    @DataBoundSetter
+    public void setId(String id) {
+        this.id = requireNonNull(id, "id");
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(@Nullable String credentialsId) {
+        this.credentialsId = stripToNull(credentialsId);
+    }
+
+    @DataBoundSetter
+    public void setSshCredentialsId(@Nullable String sshCredentialsId) {
+        this.sshCredentialsId = stripToNull(sshCredentialsId);
+    }
+
+    @DataBoundSetter
+    public void setMirrorName(@Nullable String mirrorName) {
+        this.mirrorName = stripToNull(mirrorName);
+    }
+
+    @DataBoundSetter
+    public void setBranches(List<BranchSpec> branches) {
+        this.branches = requireNonNull(branches, "branches");
     }
 
     public List<BranchSpec> getBranches() {
@@ -152,14 +105,21 @@ public class BitbucketSCMStep extends SCMStep {
         return cloneUrl;
     }
 
+    @Nullable
     public String getCredentialsId() {
         return credentialsId;
+    }
+
+    @Nullable
+    public String getSshCredentialsId() {
+        return sshCredentialsId;
     }
 
     public String getId() {
         return id;
     }
 
+    @Nullable
     public String getMirrorName() {
         return mirrorName;
     }
@@ -194,20 +154,64 @@ public class BitbucketSCMStep extends SCMStep {
 
     @Override
     protected SCM createSCM() {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
+        if (!mayBeServerConf.isPresent()) {
+            throw new BitbucketSCMException("Error creating the Bitbucket SCM: No Bitbucket Server configuration for serverId " + serverId);
+        }
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
+                format("Bitbucket SCM Step: Query Bitbucket for project [%s] repo [%s] mirror [%s]",
+                        projectName,
+                        repositoryName,
+                        mirrorName));
+        BitbucketScmHelper scmHelper =
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), credentialsId);
+        BitbucketRepository repository;
+        if (!isBlank(mirrorName)) {
+            try {
+                EnrichedBitbucketMirroredRepository mirroredRepository =
+                        descriptor.createMirrorHandler(scmHelper)
+                                .fetchRepository(
+                                        new MirrorFetchRequest(
+                                                serverConfiguration.getBaseUrl(),
+                                                credentialsId,
+                                                globalCredentialsProvider,
+                                                projectName,
+                                                repositoryName,
+                                                mirrorName));
+                repository = mirroredRepository.getRepository();
+                cloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
+            } catch (MirrorFetchException ex) {
+                throw new BitbucketSCMException("Error creating the Bitbucket SCM: " + ex.getMessage());
+            }
+        } else {
+            repository = scmHelper.getRepository(projectName, repositoryName);
+            cloneUrl = getCloneUrl(repository.getCloneUrls());
+        }
+        projectKey = repository.getProject().getKey();
+        repositorySlug = repository.getSlug();
+        selfLink = repository.getSelfLink();
+        repositoryId = repository.getId();
+
         BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
-        List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink("http", cloneUrl));
+        List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink(getCloneProtocol().name, cloneUrl));
         BitbucketRepository bitbucketRepository =
                 new BitbucketRepository(repositoryId, repositoryName, bitbucketProject,
                         repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
-        return new BitbucketSCM(id, branches, credentialsId, null, null, serverId, bitbucketRepository);
+        return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, serverId, bitbucketRepository);
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
         return cloneUrls.stream()
-                .filter(link -> "http".equals(link.getName()))
+                .filter(link -> getCloneProtocol().name.equals(link.getName()))
                 .findFirst()
                 .map(BitbucketNamedLink::getHref)
                 .orElse("");
+    }
+
+    private CloneProtocol getCloneProtocol() {
+        return isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
     }
 
     @Symbol("BitbucketSCMStep")
@@ -226,39 +230,51 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         @POST
-        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {
-            return formValidation.doCheckCredentialsId(credentialsId);
+        public FormValidation doCheckCredentialsId(@AncestorInPath Item context,
+                                                   @QueryParameter String credentialsId) {
+            return formValidation.doCheckCredentialsId(context, credentialsId);
+        }
+
+        @Override
+        public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
+                                                      @QueryParameter String sshCredentialsId) {
+            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
         }
 
         @Override
         @POST
-        public FormValidation doCheckProjectName(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public FormValidation doCheckProjectName(@AncestorInPath Item context,
+                                                 @QueryParameter String serverId,
+                                                 @QueryParameter String credentialsId,
                                                  @QueryParameter String projectName) {
-            return formValidation.doCheckProjectName(serverId, credentialsId, projectName);
+            return formValidation.doCheckProjectName(context, serverId, credentialsId, projectName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckRepositoryName(@QueryParameter String serverId,
+        public FormValidation doCheckRepositoryName(@AncestorInPath Item context,
+                                                    @QueryParameter String serverId,
                                                     @QueryParameter String credentialsId,
                                                     @QueryParameter String projectName,
                                                     @QueryParameter String repositoryName) {
-            return formValidation.doCheckRepositoryName(serverId, credentialsId, projectName, repositoryName);
+            return formValidation.doCheckRepositoryName(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public FormValidation doCheckServerId(@QueryParameter String serverId) {
-            return formValidation.doCheckServerId(serverId);
+        public FormValidation doCheckServerId(@AncestorInPath Item context,
+                                              @QueryParameter String serverId) {
+            return formValidation.doCheckServerId(context, serverId);
         }
 
         @Override
-        public FormValidation doTestConnection(@QueryParameter String serverId,
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName, mirrorName);
         }
 
         @Override
@@ -271,33 +287,46 @@ public class BitbucketSCMStep extends SCMStep {
 
         @Override
         @POST
-        public HttpResponse doFillProjectNameItems(@QueryParameter String serverId,
-                                                   @QueryParameter String credentialsId,
-                                                   @QueryParameter String projectName) {
-            return formFill.doFillProjectNameItems(serverId, credentialsId, projectName);
+        public ListBoxModel doFillSshCredentialsIdItems(@AncestorInPath Item context,
+                                                        @QueryParameter String baseUrl,
+                                                        @QueryParameter String sshCredentialsId) {
+            return formFill.doFillSshCredentialsIdItems(context, baseUrl, sshCredentialsId);
         }
 
         @Override
         @POST
-        public HttpResponse doFillRepositoryNameItems(@QueryParameter String serverId,
+        public HttpResponse doFillProjectNameItems(@AncestorInPath Item context,
+                                                   @QueryParameter String serverId,
+                                                   @QueryParameter String credentialsId,
+                                                   @QueryParameter String projectName) {
+            return formFill.doFillProjectNameItems(context, serverId, credentialsId, projectName);
+        }
+
+        @Override
+        @POST
+        public HttpResponse doFillRepositoryNameItems(@AncestorInPath Item context,
+                                                      @QueryParameter String serverId,
                                                       @QueryParameter String credentialsId,
                                                       @QueryParameter String projectName,
                                                       @QueryParameter String repositoryName) {
-            return formFill.doFillRepositoryNameItems(serverId, credentialsId, projectName, repositoryName);
+            return formFill.doFillRepositoryNameItems(context, serverId, credentialsId, projectName, repositoryName);
         }
 
         @Override
         @POST
-        public ListBoxModel doFillServerIdItems(@QueryParameter String serverId) {
-            return formFill.doFillServerIdItems(serverId);
+        public ListBoxModel doFillServerIdItems(@AncestorInPath Item context, @QueryParameter String serverId) {
+            return formFill.doFillServerIdItems(context, serverId);
         }
 
         @Override
-        public ListBoxModel doFillMirrorNameItems(@QueryParameter String serverId, @QueryParameter String credentialsId,
+        public ListBoxModel doFillMirrorNameItems(@AncestorInPath Item context,
+                                                  @QueryParameter String serverId,
+                                                  @QueryParameter String credentialsId,
                                                   @QueryParameter String projectName,
                                                   @QueryParameter String repositoryName,
                                                   @QueryParameter String mirrorName) {
-            return formFill.doFillMirrorNameItems(serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formFill.doFillMirrorNameItems(context, serverId, credentialsId, projectName, repositoryName,
+                    mirrorName);
         }
 
         @Override
@@ -335,12 +364,10 @@ public class BitbucketSCMStep extends SCMStep {
         }
 
         private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                         GlobalCredentialsProvider globalCredentialsProvider,
                                                          @Nullable String credentialsId) {
             injectJenkinsToBitbucketCredentials();
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    globalCredentialsProvider,
                     credentialsId, jenkinsToBitbucketCredentials);
         }
 

@@ -11,6 +11,7 @@ import org.openqa.selenium.support.ui.Select;
 @Describable("Bitbucket Server")
 public class BitbucketScmConfig extends Scm {
 
+    private final Control sshCredentialsId = control("sshCredentialsId");
     private final Control credentialsId = control("credentialsId");
     private final Control serverId = control("serverId");
     private final Control projectName = control("projectName");
@@ -23,6 +24,11 @@ public class BitbucketScmConfig extends Scm {
 
     public BitbucketScmConfig credentialsId(String credentialsId) {
         new Select(this.credentialsId.resolve()).selectByValue(credentialsId);
+        return this;
+    }
+
+    public BitbucketScmConfig sshCredentialsId(String sshCredentialsId) {
+        new Select(this.sshCredentialsId.resolve()).selectByValue(sshCredentialsId);
         return this;
     }
 

@@ -5,8 +5,12 @@ import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
+import org.jenkinsci.test.acceptance.SshKeyPair;
+import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -80,6 +84,29 @@ public class BitbucketUtils {
         return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
     }
 
+    public static BitbucketSshKeyPair createSshKeyPair() throws IOException {
+        SshKeyPair keyPair = new SshKeyPairGenerator().get();
+        Map<String, Object> createSshKeyRequest = new HashMap<>();
+        createSshKeyRequest.put("text", keyPair.readPublicKey());
+
+        ResponseBody<Response> response = RestAssured.given()
+                    .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                    .log()
+                    .ifValidationFails()
+                    .auth()
+                    .preemptive()
+                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                    .body(createSshKeyRequest)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .post(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys")
+                .getBody();
+
+        return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
+    }
+
     public static void deletePersonalToken(String tokenId) {
         RestAssured
                 .given()
@@ -106,6 +133,21 @@ public class BitbucketUtils {
                 .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + repoForkSlug);
     }
 
+    public static void deleteSshPublicKey(String id) {
+        RestAssured.given()
+                    .queryParam("user", BITBUCKET_ADMIN_USERNAME)
+                    .log()
+                    .ifValidationFails()
+                    .auth()
+                    .preemptive()
+                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                .expect()
+                    .statusCode(204)
+                .when()
+                    .delete(BITBUCKET_BASE_URL +"/rest/ssh/1.0/keys/" + id);
+    }
+
     public static final class PersonalToken {
 
         private final String id;
@@ -122,6 +164,31 @@ public class BitbucketUtils {
 
         public String getSecret() {
             return secret;
+        }
+    }
+
+    public static final class BitbucketSshKeyPair {
+
+        private final String id;
+        private final String publicKey;
+        private final String privateKey;
+
+        private BitbucketSshKeyPair(Integer id, String publicKey, String privateKey) {
+            this.id = String.valueOf(id);
+            this.publicKey = publicKey;
+            this.privateKey = privateKey;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getPublicKey() {
+            return publicKey;
+        }
+
+        public String getPrivateKey() {
+            return privateKey;
         }
     }
 

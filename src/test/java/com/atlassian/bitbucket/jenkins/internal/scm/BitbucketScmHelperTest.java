@@ -7,14 +7,12 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
-import com.cloudbees.plugins.credentials.Credentials;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -22,12 +20,10 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Optional;
-
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,8 +37,6 @@ public class BitbucketScmHelperTest {
     private BitbucketScmHelper bitbucketScmHelper;
     @Mock
     private BitbucketClientFactory clientFactory;
-    @Mock
-    private Credentials credentials;
     @Mock
     private BitbucketSearchClient searchClient;
     @Mock
@@ -59,13 +53,11 @@ public class BitbucketScmHelperTest {
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider = mock(BitbucketClientFactoryProvider.class);
         when(bitbucketClientFactoryProvider.getClient(eq("myBaseUrl"), any(BitbucketCredentials.class)))
                 .thenReturn(clientFactory);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), any(GlobalCredentialsProvider.class))).thenReturn(mock(BitbucketCredentials.class));
-        GlobalCredentialsProvider gcp = mock(GlobalCredentialsProvider.class);
-        when(gcp.getGlobalCredentials()).thenReturn(Optional.of(credentials));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class)))
+                .thenReturn(mock(BitbucketCredentials.class));
         bitbucketScmHelper =
                 new BitbucketScmHelper("myBaseUrl",
                         bitbucketClientFactoryProvider,
-                        gcp,
                         "",
                         jenkinsToBitbucketCredentials);
     }

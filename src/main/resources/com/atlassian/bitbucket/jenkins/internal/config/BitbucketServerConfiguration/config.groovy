@@ -22,16 +22,12 @@ f.section() {
         c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
     }
 
-    f.entry(title: _("bitbucket.credentials"), field: "credentialsId") {
-        c.select(context: app, includeUser: false, expressionAllowed: false, checkMethod: "post")
-    }
-
     f.block() {
         f.validateButton(
                 title: _("bitbucket.test.connection"),
                 progress: _("bitbucket.test.connection"),
                 method: "testConnection",
-                with: "adminCredentialsId,baseUrl,credentialsId"
+                with: "adminCredentialsId,baseUrl"
         )
     }
 }

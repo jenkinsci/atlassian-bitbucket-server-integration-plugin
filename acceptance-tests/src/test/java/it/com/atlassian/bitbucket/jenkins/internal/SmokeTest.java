@@ -14,6 +14,7 @@ import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.plugins.credentials.CredentialsPage;
 import org.jenkinsci.test.acceptance.plugins.credentials.UserPwdCredential;
+import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshPrivateKeyCredential;
 import org.jenkinsci.test.acceptance.po.Build;
 import org.jenkinsci.test.acceptance.po.FreeStyleJob;
 import org.jenkinsci.test.acceptance.po.JenkinsConfig;
@@ -53,12 +54,13 @@ public class SmokeTest extends AbstractJUnitTest {
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     private String bbsAdminCredsId;
+    private BitbucketSshKeyPair bbsSshCreds;
     private PersonalToken bbsPersonalToken;
     private BitbucketRepository forkRepo;
     private String serverId;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         // BB Access Token
         bbsPersonalToken = createPersonalToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
         CredentialsPage credentials = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
@@ -77,12 +79,20 @@ public class SmokeTest extends AbstractJUnitTest {
         bbAdminCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
         credentials.create();
 
+        // BB SSh private key
+        bbsSshCreds = createSshKeyPair();
+        credentials.open();
+        SshPrivateKeyCredential sshPrivateKeyCreds = credentials.add(SshPrivateKeyCredential.class);
+        sshPrivateKeyCreds.setId(bbsSshCreds.getId());
+        sshPrivateKeyCreds.enterDirectly(bbsSshCreds.getPrivateKey());
+        credentials.create();
+
         // Create BB Server entry
         JenkinsConfig jenkinsConfig = jenkins.getConfigPage();
         jenkinsConfig.configure();
         serverId = "bbs-" + randomUUID();
         new BitbucketPluginConfigArea(jenkinsConfig)
-                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId(), bbsAdminCredsId);
+                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId());
         jenkinsConfig.save();
 
         // Fork repo
@@ -95,6 +105,9 @@ public class SmokeTest extends AbstractJUnitTest {
         // tokens after each test to ensure repeated test runs against the same Bitbucket instance does not fail.
         if (bbsPersonalToken != null) {
             deletePersonalToken(bbsPersonalToken.getId());
+        }
+        if (bbsSshCreds != null) {
+            deleteSshPublicKey(bbsSshCreds.getId());
         }
     }
 
@@ -274,7 +287,7 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testFullBuildFlowWithPipelineJobAndBuildTemplateStoredInRepository() throws IOException, GitAPIException {
+    public void testHttpFullBuildFlowWithPipelineJobAndBuildTemplateStoredInRepository() throws IOException, GitAPIException {
         BitbucketScmWorkflowJob workflowJob = jenkins.jobs.create(BitbucketScmWorkflowJob.class);
         workflowJob.addTrigger(WorkflowJobBitbucketWebhookTrigger.class);
         workflowJob.bitbucketScmJenkinsFileSource()
@@ -285,6 +298,26 @@ public class SmokeTest extends AbstractJUnitTest {
                 .branchName("smoke/test");
         workflowJob.save();
 
+        runFullBuildFlow(workflowJob);
+    }
+
+    @Test
+    public void testSshFullBuildFlowWithPipelineJobAndBuildTemplateStoredInRepository() throws IOException, GitAPIException {
+        BitbucketScmWorkflowJob workflowJob = jenkins.jobs.create(BitbucketScmWorkflowJob.class);
+        workflowJob.addTrigger(WorkflowJobBitbucketWebhookTrigger.class);
+        workflowJob.bitbucketScmJenkinsFileSource()
+                .credentialsId(bbsAdminCredsId)
+                .sshCredentialsId(bbsSshCreds.getId())
+                .serverId(serverId)
+                .projectName(forkRepo.getProject().getKey())
+                .repositoryName(forkRepo.getSlug())
+                .branchName("smoke/test");
+        workflowJob.save();
+
+        runFullBuildFlow(workflowJob);
+    }
+
+    private void runFullBuildFlow(BitbucketScmWorkflowJob workflowJob) throws IOException, GitAPIException {
         // Clone (fork) repo and push new file
         File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
         Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);

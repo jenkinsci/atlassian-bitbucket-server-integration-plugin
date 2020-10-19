@@ -8,7 +8,11 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import hudson.model.Item;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
+import org.acegisecurity.AccessDeniedException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -18,10 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.emptyList;
@@ -33,8 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketScmFormValidationDelegateTest {
@@ -64,7 +64,13 @@ public class BitbucketScmFormValidationDelegateTest {
     @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     @Mock
+    private JenkinsProvider jenkinsProvider;
+    @Mock
+    private Jenkins jenkins;
+    @Mock
     private GlobalCredentialsProvider globalCredentialsProvider;
+    @Mock
+    private Item parent;
 
     @Before
     public void setup() {
@@ -72,7 +78,6 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationValid.getServerName()).thenReturn(SERVER_NAME_VALID);
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(CREDENTIAL_ID);
         when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
         when(pluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfigurationValid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(false);
@@ -81,7 +86,8 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, globalCredentialsProvider)).thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsProvider.get()).thenReturn(jenkins);
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
             String partialProjectName = getSearchClientInvocation.getArgument(0);
@@ -141,67 +147,103 @@ public class BitbucketScmFormValidationDelegateTest {
 
     @Test
     public void testProjectNameEmpty() {
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "").kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "").kind);
     }
 
     @Test
     public void testProjectNameNonEmpty() {
-        assertEquals(FormValidation.Kind.OK, delegate.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT").kind);
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT").kind);
     }
 
     @Test
     public void testProjectNameNull() {
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), null).kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), null).kind);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testProjectNameNoPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doCheckProjectName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1");
     }
 
     @Test
     public void testRepositoryNameEmpty() {
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", "").kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", "").kind);
     }
 
     @Test
     public void testRepositoryNameNonEmpty() {
-        assertEquals(FormValidation.Kind.OK, delegate.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", "repo").kind);
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", "repo").kind);
     }
 
     @Test
     public void testRepositoryNameNull() {
-        when(serverConfigurationValid.getCredentialsId()).thenReturn(null);
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(serverConfigurationValid.getId(), serverConfigurationValid.getCredentialsId(), "PROJECT_1", null).kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", null).kind);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testRepositoryNameNoPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doCheckRepositoryName(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", "repo");
     }
 
     @Test
     public void testServerIDNonMatching() {
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(SERVER_ID_INVALID).kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(parent, SERVER_ID_INVALID).kind);
     }
 
     @Test
     public void testServerIdEmpty() {
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId("").kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(parent, "").kind);
     }
 
     @Test
     public void testServerIdInvalidInList() {
         when(pluginConfiguration.getValidServerList()).thenReturn(Arrays.asList(serverConfigurationValid, serverConfigurationInvalid));
         when(pluginConfiguration.hasAnyInvalidConfiguration()).thenReturn(true);
-        assertEquals(FormValidation.Kind.WARNING, delegate.doCheckServerId(SERVER_ID_VALID).kind);
+        assertEquals(FormValidation.Kind.WARNING, delegate.doCheckServerId(parent, SERVER_ID_VALID).kind);
     }
 
     @Test
     public void testServerIdNoList() {
         when(pluginConfiguration.getValidServerList()).thenReturn(emptyList());
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(SERVER_ID_VALID).kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(parent, SERVER_ID_VALID).kind);
     }
 
     @Test
     public void testServerIdNull() {
-        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(null).kind);
+        assertEquals(FormValidation.Kind.ERROR, delegate.doCheckServerId(parent, null).kind);
     }
 
     @Test
     public void testServerIdValid() {
-        assertEquals(FormValidation.Kind.OK, delegate.doCheckServerId(SERVER_ID_VALID).kind);
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckServerId(parent, SERVER_ID_VALID).kind);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testServerIdNoPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doCheckServerId(parent, SERVER_ID_VALID);
+    }
+
+    @Test
+    public void testServerIdJenkinsAdmin() {
+        //Jenkins.ADMINISTRATOR check does not throw
+        delegate.doCheckServerId(null, SERVER_ID_VALID);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testServerIdNoJenkinsAdmin() {
+        doThrow(AccessDeniedException.class).when(jenkins).checkPermission(Jenkins.ADMINISTER);
+        delegate.doCheckServerId(null, SERVER_ID_VALID);
     }
 
     @Test
@@ -209,7 +251,14 @@ public class BitbucketScmFormValidationDelegateTest {
         BitbucketMirrorClient mirrorClient = mock(BitbucketMirrorClient.class);
         when(bitbucketClientFactory.getMirroredRepositoriesClient(0)).thenReturn(mirrorClient);
         when(mirrorClient.getMirroredRepositoryDescriptors()).thenReturn(new BitbucketPage<>());
-        assertEquals(FormValidation.Kind.OK, delegate.doTestConnection(serverConfigurationValid.getId(), "", "PROJECT_1", "repo", "").kind);
+        assertEquals(FormValidation.Kind.OK, delegate.doTestConnection(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", "repo", "").kind);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testTestConnectionNoPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doTestConnection(parent, serverConfigurationValid.getId(), "", "PROEJECT_1", "repo", "");
     }
 
     private static Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {

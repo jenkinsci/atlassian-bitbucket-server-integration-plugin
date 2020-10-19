@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -24,11 +23,10 @@ public class BitbucketScmHelper {
 
     public BitbucketScmHelper(String bitbucketBaseUrl,
                               BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                              GlobalCredentialsProvider globalCredentialsProvider,
                               @Nullable String credentialsId,
                               JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
         clientFactory = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl,
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId, globalCredentialsProvider));
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(credentialsId));
     }
 
     public BitbucketRepository getRepository(String projectName, String repositoryName) {

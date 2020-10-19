@@ -18,10 +18,10 @@ public class BitbucketPluginConfigArea extends PageAreaImpl {
         super(parent, "/com-atlassian-bitbucket-jenkins-internal-config-BitbucketPluginConfiguration");
     }
 
-    public void addBitbucketServerConfig(String serverName, String baseUrl, String bbsTokenId, String adminCredsId) {
+    public void addBitbucketServerConfig(String serverName, String baseUrl, String bbsTokenId) {
         String path = createPageArea("serverList", () -> addButton.selectDropdownMenu("Instance details"));
         BitbucketServerConfigArea bbsConfig =
-                new BitbucketServerConfigArea(this, path, serverName, baseUrl, bbsTokenId, adminCredsId);
+                new BitbucketServerConfigArea(this, path, serverName, baseUrl, bbsTokenId);
         bbsConfig.create();
     }
 
@@ -34,28 +34,24 @@ public class BitbucketPluginConfigArea extends PageAreaImpl {
         private final Control instanceName = control("serverName");
         private final Control instanceUrl = control("baseUrl");
         private final Control adminCredentials = control("adminCredentialsId");
-        private final Control buildAuthCredentials = control("credentialsId");
 
         private final String serverName;
         private final String baseUrl;
         private final String bbsTokenId;
-        private final String bbsCredsId;
 
         protected BitbucketServerConfigArea(PageArea area, String path, String serverName, String baseUrl,
-                                            String bbsTokenId, String bbsCredsId) {
+                                            String bbsTokenId) {
             super(area, path);
 
             this.serverName = serverName;
             this.baseUrl = baseUrl;
             this.bbsTokenId = bbsTokenId;
-            this.bbsCredsId = bbsCredsId;
         }
 
         public void create() {
             instanceName.set(serverName);
             instanceUrl.set(baseUrl);
             new Select(adminCredentials.resolve()).selectByVisibleText(bbsTokenId + " - Bitbucket admin token");
-            new Select(buildAuthCredentials.resolve()).selectByValue(bbsCredsId);
         }
     }
 }

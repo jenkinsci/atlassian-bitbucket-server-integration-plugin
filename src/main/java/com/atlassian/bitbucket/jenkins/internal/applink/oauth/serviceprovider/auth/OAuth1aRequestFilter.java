@@ -57,18 +57,21 @@ public class OAuth1aRequestFilter implements Filter {
     private final OAuthValidator validator;
     private final Clock clock;
     private final TrustedUnderlyingSystemAuthorizerFilter authorizerFilter;
+    private final SecurityModeChecker securityChecker;
 
     @Inject
     public OAuth1aRequestFilter(ServiceProviderConsumerStore consumerStore,
                                 ServiceProviderTokenStore tokenStore,
                                 OAuthValidator validator,
                                 Clock clock,
-                                TrustedUnderlyingSystemAuthorizerFilter authorizerFilter) {
+                                TrustedUnderlyingSystemAuthorizerFilter authorizerFilter,
+                                SecurityModeChecker securityChecker) {
         this.consumerStore = consumerStore;
         this.tokenStore = tokenStore;
         this.validator = validator;
         this.clock = clock;
         this.authorizerFilter = authorizerFilter;
+        this.securityChecker = securityChecker;
     }
 
     @Override
@@ -96,7 +99,9 @@ public class OAuth1aRequestFilter implements Filter {
 
                 try {
                     resp = new OAuthWWWAuthenticateAddingResponse(resp, getBaseUrl(req));
-                    authorizerFilter.authorize(user, req, resp, chain);
+                    if (securityChecker.isSecurityEnabled()) {
+                        authorizerFilter.authorize(user, req, resp, chain);
+                    }
                     logOAuthRequest(req, "OAuth authentication successful. Request marked as OAuth.", log);
                     return;
                 } catch (NoSuchUserException exception) {
