@@ -112,7 +112,7 @@ After a moment, your Jenkins instance will appear in the list of linked applicat
 
 ## Use the plugin 
 
-### Select a Bitbucket Server instance when creating a freestyle job
+### Select a Bitbucket Server instance when creating a Freestyle Job
 
 Once you’ve added a Bitbucket Server instance to Jenkins users will be able to select it when creating a job. This will make it easier for them to select the repo to be cloned. They’ll also be able to select the Bitbucket Server build trigger to automatically create a webhook.
 
