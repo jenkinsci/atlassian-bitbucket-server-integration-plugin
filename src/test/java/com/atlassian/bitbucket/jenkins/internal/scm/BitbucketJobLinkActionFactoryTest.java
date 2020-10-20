@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
+import hudson.model.Project;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
@@ -45,6 +46,8 @@ public class BitbucketJobLinkActionFactoryTest {
     @Mock
     private FreeStyleProject freeStyleProject;
     private WorkflowJob workflowJob;
+    @Mock
+    private Project target;
 
     @Before
     public void init() throws IOException {
@@ -58,8 +61,8 @@ public class BitbucketJobLinkActionFactoryTest {
         when(bitbucketSCM.getRepositoryName()).thenReturn(REPOSITORY_NAME);
         when(bitbucketSCM.getDescriptor()).thenReturn((SCMDescriptor) descriptor);
         when(descriptor.getConfiguration(SERVER_ID)).thenReturn(Optional.of(configuration));
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME)).thenReturn(FormValidation.ok());
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME)).thenReturn(FormValidation.ok());
         when(configuration.getBaseUrl()).thenReturn(BASE_URL);
         when(configuration.validate()).thenReturn(FormValidation.ok());
     }
@@ -104,7 +107,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
     @Test
     public void testCreateProjectNameInvalid() {
-        when(descriptor.doCheckProjectName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
+        when(descriptor.doCheckProjectName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME))
                 .thenReturn(FormValidation.error("Bad project name"));
         Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
 
@@ -113,7 +116,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
     @Test
     public void testCreateRepoNameInvalid() {
-        when(descriptor.doCheckRepositoryName(SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
+        when(descriptor.doCheckRepositoryName(target, SERVER_ID, CREDENTIALS_ID, PROJECT_NAME, REPOSITORY_NAME))
                 .thenReturn(FormValidation.error("Bad repository name"));
         Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
 
