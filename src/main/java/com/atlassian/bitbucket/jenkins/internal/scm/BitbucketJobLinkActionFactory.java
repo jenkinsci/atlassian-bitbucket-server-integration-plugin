@@ -2,10 +2,13 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
+import hudson.model.ItemGroup;
 import hudson.model.Job;
+import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import jenkins.model.TransientActionFactory;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -23,6 +26,15 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     @Inject
     private BitbucketScmFormValidationDelegate formValidation;
+
+    public BitbucketJobLinkActionFactory() { }
+
+    @Inject
+    public BitbucketJobLinkActionFactory(BitbucketPluginConfiguration bitbucketPluginConfiguration,
+                                         BitbucketScmFormValidationDelegate formValidation) {
+        this.bitbucketPluginConfiguration = bitbucketPluginConfiguration;
+        this.formValidation = formValidation;
+    }
 
     @Nonnull
     @Override
@@ -59,6 +71,16 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
         return Job.class;
     }
 
+    @VisibleForTesting
+    ItemGroup getWorkflowParent(WorkflowJob job) {
+        return job.getParent();
+    }
+
+    @VisibleForTesting
+    Collection<? extends SCM> getWorkflowSCMs(WorkflowJob job) {
+        return job.getSCMs();
+    }
+
     private Optional<BitbucketSCMRepository> getBitbucketSCMRepository(Job job) {
         // Freestyle Job
         if (job instanceof FreeStyleProject) {
@@ -76,16 +98,16 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                 }
             }
             // Multibranch Pipeline Job built with an SCMStep
-            if (workflowJob.getSCMs().stream().anyMatch(scm -> scm instanceof BitbucketSCM)) {
-                return workflowJob.getSCMs()
+            if (getWorkflowSCMs(workflowJob).stream().anyMatch(scm -> scm instanceof BitbucketSCM)) {
+                return getWorkflowSCMs(workflowJob)
                         .stream()
                         .filter(scm -> scm instanceof BitbucketSCM)
                         .map(scm -> ((BitbucketSCM) scm).getBitbucketSCMRepository())
                         .findFirst();
             }
-            // Mutlibranch Pipeline Job built with the SCM Source
-            if (workflowJob.getParent() instanceof WorkflowMultiBranchProject) {
-                return ((WorkflowMultiBranchProject) workflowJob.getParent()).getSCMSources().stream()
+            // Multibranch Pipeline Job built with the SCM Source
+            if (getWorkflowParent(workflowJob) instanceof WorkflowMultiBranchProject) {
+                return ((WorkflowMultiBranchProject) getWorkflowParent(workflowJob)).getSCMSources().stream()
                         .filter(scmSource -> scmSource instanceof BitbucketSCMSource)
                         .map(scmSource -> ((BitbucketSCMSource) scmSource).getBitbucketSCMRepository())
                         .findFirst();
