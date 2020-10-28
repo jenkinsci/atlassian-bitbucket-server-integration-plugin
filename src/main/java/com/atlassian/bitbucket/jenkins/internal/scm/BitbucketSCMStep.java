@@ -129,7 +129,7 @@ public class BitbucketSCMStep extends SCMStep {
     }
 
     public String getProjectName() {
-        return projectName;
+        return projectKey.startsWith("~") ? projectKey : projectName;
     }
 
     public String getRepositoryName() {
