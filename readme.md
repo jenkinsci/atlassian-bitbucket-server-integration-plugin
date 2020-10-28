@@ -95,9 +95,9 @@ To create the Application Link:
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
 4. Complete the form: 
-   - Application Name - Enter a name for your Jenkins instance. 
+   - Application Name - Enter a name to help you identify this Jenkins instance. 
    - Application Type - Leave as Generic Application.
-   - Service Provider Name - Enter ??? Or same as description??? 
+   - Service Provider Name - Enter the same name you used for Application Name. 
    - Consumer Key - See Application Link details page. 
    - Shared secret - Enter the secret you created when registering Bitbucket Server as a consumer. 
    - Request Token URL - See Application Link details page. 
