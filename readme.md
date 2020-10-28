@@ -29,7 +29,7 @@ The plugin streamlines the entire configuration process and removes the need for
 - Jenkins 2.190.1+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 5.6 to 7.3 are supported, but they aren't recommended as creating an Application Link with one of these versions doesn't provide any additional functionality.
+Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+ as when you also set up an Application Link you will have access to all plugin features. 
 
 ---
 
