@@ -264,7 +264,7 @@ public class BitbucketSCM extends SCM {
 
     public String getProjectName() {
         BitbucketSCMRepository repository = getBitbucketSCMRepository();
-        return repository.isPrivate() ? repository.getProjectKey() : repository.getProjectName();
+        return repository.isPersonal() ? repository.getProjectKey() : repository.getProjectName();
     }
 
     public List<BitbucketSCMRepository> getRepositories() {

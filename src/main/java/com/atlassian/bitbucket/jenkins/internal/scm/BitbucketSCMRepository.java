@@ -66,7 +66,7 @@ public class BitbucketSCMRepository {
         return !isEmpty(mirrorName);
     }
 
-    public boolean isPrivate() {
+    public boolean isPersonal() {
         return projectKey.startsWith("~");
     }
 }
