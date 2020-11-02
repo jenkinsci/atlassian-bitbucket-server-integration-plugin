@@ -2,11 +2,14 @@ package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth;
 
 import com.github.scribejava.core.model.*;
 import com.google.common.collect.ImmutableMap;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsApplinksClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsOAuthClient;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.OAuthAuthorizeTokenPage;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
+import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -15,6 +18,7 @@ import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.po.Job;
 import org.jenkinsci.test.acceptance.po.User;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,6 +31,7 @@ import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.collection.IsIn.isOneOf;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.junit.Assert.assertNotNull;
 
@@ -164,6 +169,35 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
             return response.getCode() == statusCode &&
                    StringUtils.equalsIgnoreCase(message, response.getMessage());
         }
+    }
+
+    public static void createApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {
+        // PUT http://localhost:7990/bitbucket/rest/applinks/3.0/applicationlink
+        JSONObject json = new JSONObject();
+
+        json.put("name", name);
+        json.put("rpcUrl", rpcUrl);
+        json.put("displayUrl", displayUrl);
+        json.put("typeId", type);
+
+        String bodyResponse = RestAssured
+                .given()
+                .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                .body(json.toString())
+                .contentType(ContentType.JSON)
+                .header("Accept", ContentType.JSON)
+                .expect()
+                .statusCode(201)
+                .when()
+                .post(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/applinks/3.0/applicationlink")
+                .body().toString();
+        //.jsonPath().getString("applicationLink.id");
+
+        // PUTi consumer
+
+        // PUT provider
+        System.out.println(bodyResponse);
+
     }
 
     private static final class SuccessfulBuildResponseMatcher extends BuildResponseMatcher {

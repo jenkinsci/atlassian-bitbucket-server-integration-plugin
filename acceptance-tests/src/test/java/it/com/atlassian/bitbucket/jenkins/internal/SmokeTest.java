@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static io.restassured.http.ContentType.JSON;
+import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.createApplicationLink;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.ECHO_ONLY_JENKINS_FILE_CONTENT;
@@ -109,6 +110,11 @@ public class SmokeTest extends AbstractJUnitTest {
         if (bbsSshCreds != null) {
             deleteSshPublicKey(bbsSshCreds.getId());
         }
+    }
+
+    @Test
+    public void testRunBuildActionWtihFreeStlyeJob() throws Exception {
+        createApplicationLink("generic", "testApplink", "https://localhost:7990/bitbucket/displayURl", "https://localhost:7990/bitbucket/rpcURL");
     }
 
     @Test
