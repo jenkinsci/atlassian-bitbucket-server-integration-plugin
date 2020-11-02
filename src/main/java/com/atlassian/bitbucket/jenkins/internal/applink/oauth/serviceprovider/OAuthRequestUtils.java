@@ -12,12 +12,14 @@ import java.util.stream.Stream;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.rest.AccessTokenRestEndpoint.ACCESS_TOKEN_PATH_END;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.rest.RequestTokenRestEndpoint.REQUEST_TOKEN_PATH_END;
 import static net.oauth.OAuth.*;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
  * Utility class for extracting information from OAuth requests.
  */
 public final class OAuthRequestUtils {
 
+    public static final String EXCLUSION_PATH = "/bitbucket/oauth/";
     private static final Set<String> OAUTH_DATA_REQUEST_PARAMS = Stream.of(OAUTH_CONSUMER_KEY,
             OAUTH_TOKEN,
             OAUTH_SIGNATURE_METHOD,
@@ -36,7 +38,18 @@ public final class OAuthRequestUtils {
      * @return true if the request is an OAuth request.
      */
     public static boolean isOAuthAccessAttempt(HttpServletRequest request) {
-        return is3LOAuthAccessAttempt(request) || is2LOAuthAccessAttempt(request);
+        return is3LOAuthAccessAttempt(request) || is2LOAuthAccessAttempt(request) || isOauthTokenRequest(request) || isOauthTokenRequest(request);
+    }
+
+    /**
+     * The request path is accessing one of the token endpoints
+     *
+     * @param request the request object
+     * @return true if the request is for an OAuth token.
+     */
+    private static boolean isOauthTokenRequest(HttpServletRequest request) {
+        String pathInfo = request.getPathInfo();
+        return !isEmpty(pathInfo) && pathInfo.startsWith(OAuthRequestUtils.EXCLUSION_PATH);
     }
 
     /**
