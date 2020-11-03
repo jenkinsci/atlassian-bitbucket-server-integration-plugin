@@ -38,7 +38,7 @@ public final class OAuthRequestUtils {
      * @return true if the request is an OAuth request.
      */
     public static boolean isOAuthAccessAttempt(HttpServletRequest request) {
-        return is3LOAuthAccessAttempt(request) || is2LOAuthAccessAttempt(request) || isOauthTokenRequest(request) || isOauthTokenRequest(request);
+        return is3LOAuthAccessAttempt(request) || is2LOAuthAccessAttempt(request);
     }
 
     /**
@@ -47,7 +47,7 @@ public final class OAuthRequestUtils {
      * @param request the request object
      * @return true if the request is for an OAuth token.
      */
-    private static boolean isOauthTokenRequest(HttpServletRequest request) {
+    public static boolean isOauthTokenRequest(HttpServletRequest request) {
         String pathInfo = request.getPathInfo();
         return !isEmpty(pathInfo) && pathInfo.startsWith(OAuthRequestUtils.EXCLUSION_PATH);
     }
