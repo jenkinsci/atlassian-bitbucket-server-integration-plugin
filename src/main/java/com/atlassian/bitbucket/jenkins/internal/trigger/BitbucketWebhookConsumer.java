@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefChangeType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -199,6 +200,15 @@ public class BitbucketWebhookConsumer {
         @Override
         public String getSourceName() {
             return getPayload().getRepository().getName();
+        }
+
+        @Override
+        public boolean isMatch(SCMSource source) {
+            if (source instanceof BitbucketSCMSource) {
+                BitbucketSCMSource bitbucketSCMSource = (BitbucketSCMSource) source;
+                return matchingRepo(getPayload().getRepository(), bitbucketSCMSource.getBitbucketSCMRepository());
+            }
+            return super.isMatch(source);
         }
 
         @Override
