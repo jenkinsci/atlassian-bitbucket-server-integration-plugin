@@ -54,6 +54,7 @@ public class SmokeTest extends AbstractJUnitTest {
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
+    private String applinkUrl;
     private String bbsAdminCredsId;
     private BitbucketSshKeyPair bbsSshCreds;
     private PersonalToken bbsPersonalToken;
@@ -110,11 +111,15 @@ public class SmokeTest extends AbstractJUnitTest {
         if (bbsSshCreds != null) {
             deleteSshPublicKey(bbsSshCreds.getId());
         }
+        if (applinkUrl != null) {
+            deleteApplink(applinkUrl);
+            applinkUrl = null;
+        }
     }
 
     @Test
     public void testRunBuildActionWtihFreeStlyeJob() throws Exception {
-        createApplicationLink("generic", "testApplink", "https://localhost:7990/bitbucket/displayURl", "https://localhost:7990/bitbucket/rpcURL");
+        applinkUrl = createApplicationLink("generic", "testApplink", "https://localhost:7990/bitbucket/displayURl", "https://localhost:7990/bitbucket/rpcURL");
     }
 
     @Test

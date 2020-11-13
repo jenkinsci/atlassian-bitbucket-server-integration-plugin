@@ -107,6 +107,21 @@ public class BitbucketUtils {
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
     }
 
+    public static void deleteApplink(String applinkUrl) {
+        RestAssured
+                .given()
+                    .log()
+                    .ifValidationFails()
+                    .auth()
+                    .preemptive()
+                    .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                .expect()
+                    .statusCode(200)
+                .when()
+                    .delete(applinkUrl);
+    }
+
     public static void deletePersonalToken(String tokenId) {
         RestAssured
                 .given()
