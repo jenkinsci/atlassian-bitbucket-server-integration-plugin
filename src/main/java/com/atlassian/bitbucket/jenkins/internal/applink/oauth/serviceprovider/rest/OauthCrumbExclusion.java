@@ -19,10 +19,11 @@ public class OauthCrumbExclusion extends CrumbExclusion {
     @Override
     public boolean process(HttpServletRequest req, HttpServletResponse resp, FilterChain chain)
             throws IOException, ServletException {
-        if (!OAuthRequestUtils.isOAuthAccessAttempt(req) || !OAuthRequestUtils.isOauthTokenRequest(req)) {
-            return false;
+
+        if (OAuthRequestUtils.isOAuthAccessAttempt(req) || OAuthRequestUtils.isOauthTokenRequest(req)) {
+            chain.doFilter(req, resp);
+            return true;
         }
-        chain.doFilter(req, resp);
-        return true;
+        return false;
     }
 }

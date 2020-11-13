@@ -35,7 +35,7 @@ public class OauthCrumbExclusionTest {
     }
 
     @Test
-    public void testShouldBlockOtherEndpoints() throws IOException, ServletException {
+    public void testShouldContinueFilterOtherEndpoints() throws IOException, ServletException {
         when(request.getPathInfo()).thenReturn("/jenkins-endpoint");
 
         assertFalse(crumbExclusion.process(request, response, chain));
