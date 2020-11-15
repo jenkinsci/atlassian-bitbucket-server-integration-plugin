@@ -21,13 +21,13 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class OauthCrumbExclusionTest {
 
-    @Spy
-    private FilterChain chain;
-    private OauthCrumbExclusion crumbExclusion;
     @Mock
     private HttpServletRequest request;
     @Spy
+    private FilterChain chain;
+    @Spy
     private HttpServletResponse response;
+    private OauthCrumbExclusion crumbExclusion;
 
     @Before
     public void setup() {
