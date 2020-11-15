@@ -172,7 +172,8 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public String getProjectName() {
-        return getBitbucketSCMRepository().getProjectName();
+        BitbucketSCMRepository repository = getBitbucketSCMRepository();
+        return repository.isPersonal() ? repository.getProjectKey() : repository.getProjectName();
     }
 
     public String getRemote() {

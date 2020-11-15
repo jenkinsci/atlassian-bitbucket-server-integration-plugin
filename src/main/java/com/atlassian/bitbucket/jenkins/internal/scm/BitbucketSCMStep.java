@@ -19,6 +19,7 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.*;
@@ -124,18 +125,21 @@ public class BitbucketSCMStep extends SCMStep {
         return mirrorName;
     }
 
+    @Nullable
     public String getProjectKey() {
         return projectKey;
     }
 
     public String getProjectName() {
-        return projectName;
+        return !StringUtils.isBlank(projectKey) && projectKey.startsWith("~") ?
+                projectKey : projectName;
     }
 
     public String getRepositoryName() {
         return repositoryName;
     }
 
+    @Nullable
     public String getRepositorySlug() {
         return repositorySlug;
     }
