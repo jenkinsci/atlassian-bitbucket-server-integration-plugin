@@ -140,24 +140,6 @@ public class BitbucketJobLinkActionFactoryTest {
     }
 
     @Test
-    public void testCreateProjectNameInvalid() {
-        when(formValidationDelegate.doCheckProjectName(any(), eq(SERVER_ID), eq(CREDENTIALS_ID), eq(PROJECT_NAME)))
-                .thenReturn(FormValidation.error("Bad project name"));
-        Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
-
-        assertThat(actions.size(), equalTo(0));
-    }
-
-    @Test
-    public void testCreateRepoNameInvalid() {
-        when(formValidationDelegate.doCheckRepositoryName(any(), eq(SERVER_ID), eq(CREDENTIALS_ID), eq(PROJECT_NAME), eq(REPOSITORY_NAME)))
-                .thenReturn(FormValidation.error("Bad repository name"));
-        Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
-
-        assertThat(actions.size(), equalTo(0));
-    }
-
-    @Test
     public void testCreateServerConfigurationInvalid() {
         when(configuration.validate()).thenReturn(FormValidation.error("config invalid"));
         Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
