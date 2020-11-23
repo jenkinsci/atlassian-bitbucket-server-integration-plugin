@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.AuthorizeConfirmationConfigDescriptor;
-import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.token.OAuthTokenConfiguration;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Describable;
@@ -30,8 +29,6 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     @Inject
     private ServiceProviderTokenStore serviceProviderTokenStore;
     @Inject
-    private OAuthTokenConfiguration tokenConfiguration;
-    @Inject
     private AuthorizeConfirmationConfigDescriptor authorizeConfirmationConfigDescriptor;
 
     public Collection<OAuthConsumerEntry> getConsumers() {
@@ -57,10 +54,6 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     @SuppressWarnings("unused") // Stapler
     public OAuthConsumerUpdateAction getConsumer(String key) {
         return new OAuthConsumerUpdateAction(key, consumerStore, serviceProviderTokenStore);
-    }
-
-    public Action getTokens() {
-        return tokenConfiguration;
     }
 
     @SuppressWarnings("unused") // Stapler

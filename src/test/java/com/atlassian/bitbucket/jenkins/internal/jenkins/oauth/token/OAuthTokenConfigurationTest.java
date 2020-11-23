@@ -2,9 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.token;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsAuthWrapper;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import hudson.model.User;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +37,7 @@ public class OAuthTokenConfigurationTest {
     private static final String TEST_USER = "test";
 
     @Mock
-    private JenkinsAuthWrapper jenkinsAuthWrapper;
+    private User user;
     @Mock
     private Clock clock;
     @Mock
@@ -48,14 +46,13 @@ public class OAuthTokenConfigurationTest {
     private StaplerRequest request;
     @Mock
     private StaplerResponse response;
-    private Authentication authentication = new UsernamePasswordAuthenticationToken(TEST_USER, "test");
 
     private OAuthTokenConfiguration instance;
 
     @Before
     public void setup() {
-        instance = new OAuthTokenConfiguration(jenkinsAuthWrapper, clock, store);
-        when(jenkinsAuthWrapper.getAuthentication()).thenReturn(authentication);
+        instance = new OAuthTokenConfiguration(clock, store, user);
+        when(user.getId()).thenReturn(TEST_USER);
     }
 
     @Test
