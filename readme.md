@@ -190,6 +190,14 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 2.1.1 (24 November 2020)
+- Revoke access tokens now a user action
+- JENKINS-63070 - links supports Pipeline and Multibranch Pipeline
+- JENKINS-60274 - Personal repos supports Pipeline and Multibranch Pipeline
+- Fix for JENKINS-63815 (performance fix- our webhook now filters non-bitbucket SCMs)
+- Fix for JENKINS-64258 (403 when authorising actions with CSRF protection enabled
+- A few other small performance improvements related to loading jobs
+
 ### 2.1.0 (31 August 2020)
 - Added SSH credentials for cloning
 - Bitbucket SCM Step now supports optional parameters
