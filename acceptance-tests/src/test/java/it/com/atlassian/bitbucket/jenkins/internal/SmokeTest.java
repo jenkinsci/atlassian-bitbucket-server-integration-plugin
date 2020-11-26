@@ -1,36 +1,54 @@
 package it.com.atlassian.bitbucket.jenkins.internal;
 
+import com.atlassian.pageobjects.TestedProductFactory;
+import com.atlassian.webdriver.bitbucket.BitbucketTestedProduct;
+import com.atlassian.webdriver.bitbucket.element.builds.BuildResultRow;
+import com.atlassian.webdriver.bitbucket.page.BitbucketLoginPage;
+import com.atlassian.webdriver.bitbucket.page.DashboardPage;
+import com.atlassian.webdriver.bitbucket.page.builds.RepositoryBuildsPage;
+import com.github.scribejava.core.model.OAuth1AccessToken;
+import com.github.scribejava.core.model.OAuth1RequestToken;
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Verb;
+import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
+import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsApplinksClient;
+import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsOAuthClient;
+import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
+import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.jenkinsci.test.acceptance.controller.JenkinsController;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.plugins.credentials.CredentialsPage;
 import org.jenkinsci.test.acceptance.plugins.credentials.UserPwdCredential;
 import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshPrivateKeyCredential;
-import org.jenkinsci.test.acceptance.po.Build;
-import org.jenkinsci.test.acceptance.po.FreeStyleJob;
-import org.jenkinsci.test.acceptance.po.JenkinsConfig;
-import org.jenkinsci.test.acceptance.po.WorkflowJob;
+import org.jenkinsci.test.acceptance.po.*;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static io.restassured.http.ContentType.JSON;
-import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.createApplicationLink;
+import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.createStashApplicationLink;
+import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.setupApplinkProviderAndConsumer;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.ECHO_ONLY_JENKINS_FILE_CONTENT;
@@ -38,28 +56,42 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.JENKINS_
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofMinutes;
 import static java.util.UUID.randomUUID;
+import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
+import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
+import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
+import static org.junit.Assert.assertNotNull;
 
-@WithPlugins({"mailer", "atlassian-bitbucket-server-integration"})
+@WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
 public class SmokeTest extends AbstractJUnitTest {
 
+    private static final BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
     private static final long BUILD_START_TIMEOUT_MINUTES = 1L;
     private static final long FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES = 1L;
     private static final String MASTER_BRANCH_NAME = "master";
     private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
 
+
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    private String applinkUrl;
+    private URL applinkUrl;
     private String bbsAdminCredsId;
     private BitbucketSshKeyPair bbsSshCreds;
     private PersonalToken bbsPersonalToken;
+    @Inject
+    private JenkinsController controller;
     private BitbucketRepository forkRepo;
+    private JenkinsOAuthClient oAuthClient;
+    @Inject
+    private ProjectBasedMatrixSecurityHelper security;
     private String serverId;
+
+    private Job job;
+
+    private User user1;
 
     @Before
     public void setUp() throws IOException {
@@ -99,6 +131,9 @@ public class SmokeTest extends AbstractJUnitTest {
 
         // Fork repo
         forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, "fork-" + randomUUID());
+
+        //Log into Bitbucket
+        BITBUCKET.visit(BitbucketLoginPage.class).login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD, DashboardPage.class);
     }
 
     @After
@@ -119,7 +154,49 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Test
     public void testRunBuildActionWtihFreeStlyeJob() throws Exception {
-        applinkUrl = createApplicationLink("generic", "testApplink", "https://localhost:7990/bitbucket/displayURl", "https://localhost:7990/bitbucket/rpcURL");
+        JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
+        OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
+        oAuthClient = new JenkinsOAuthClient(getBaseUrl(), oAuthConsumer.getKey(), oAuthConsumer.getSecret());
+
+        user1 = security.newUser();
+
+        security.addGlobalPermissions(ImmutableMap.of(
+                user1, perms -> perms.on(OVERALL_READ)
+        ));
+
+        job = jenkins.jobs.create();
+        BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
+        bitbucketScm
+                .credentialsId(bbsAdminCredsId)
+                .sshCredentialsId(bbsSshCreds.getId())
+                .serverId(serverId)
+                .projectName(forkRepo.getProject().getKey())
+                .repositoryName(forkRepo.getSlug())
+                .anyBranch();
+        job.save();
+
+        security.addProjectPermissions(job, ImmutableMap.of(
+                user1, perms -> perms.on(ITEM_BUILD, ITEM_READ)
+        ));
+
+        jenkins.logout();
+
+        // Configure the applink in stash over REST
+        applinkUrl = createStashApplicationLink("generic", "Jenkins Applink", jenkins.url.toString(), jenkins.url.toString());
+        setupApplinkProviderAndConsumer(applinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
+                "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
+
+
+        // Create a build to store in stash
+        OAuth1AccessToken user1AccessToken = getAccessToken(user1);
+
+        String jobBuildPostUrl = String.format("%s/job/%s/build", removeEnd(getBaseUrl(), "/"), job.name);
+        OAuthRequest buildOAuthRequest = new OAuthRequest(Verb.POST, jobBuildPostUrl);
+        buildOAuthRequest.addHeader("Accept", "application/json");
+        oAuthClient.execute(buildOAuthRequest, user1AccessToken);
+
+        RepositoryBuildsPage repositoryBuildsPage = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        List<BuildResultRow> buildRows = repositoryBuildsPage.getRows();
     }
 
     @Test
@@ -390,6 +467,34 @@ public class SmokeTest extends AbstractJUnitTest {
 
     private static BuildStatusMatcher successfulBuildWithKey(String key) {
         return new BuildStatusMatcher(key, "SUCCESSFUL");
+    }
+
+    private OAuth1AccessToken getAccessToken(User user) {
+        security.login(user);
+
+        OAuth1RequestToken requestToken = oAuthClient.getRequestToken();
+        assertNotNull(requestToken);
+        assertThat(requestToken.getToken(), not(isEmptyOrNullString()));
+
+        String authzUrl = oAuthClient.getAuthorizationUrl(requestToken);
+        String oAuthVerifier;
+        try {
+            oAuthVerifier = new OAuthAuthorizeTokenPage(jenkins, URI.create(authzUrl).toURL(), requestToken.getToken())
+                    .authorize();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+
+        jenkins.logout();
+
+        OAuth1AccessToken accessToken = oAuthClient.getAccessToken(requestToken, oAuthVerifier);
+        assertNotNull(accessToken);
+        assertThat(accessToken.getToken(), not(isEmptyOrNullString()));
+        return accessToken;
+    }
+
+    private String getBaseUrl() {
+        return controller.getUrl().toString();
     }
 
     private static final class BuildStatusMatcher extends TypeSafeDiagnosingMatcher<Map<String, ?>> {

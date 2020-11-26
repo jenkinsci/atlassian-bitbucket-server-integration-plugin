@@ -9,6 +9,7 @@ import org.jenkinsci.test.acceptance.SshKeyPair;
 import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -107,7 +108,7 @@ public class BitbucketUtils {
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
     }
 
-    public static void deleteApplink(String applinkUrl) {
+    public static void deleteApplink(URL applinkUrl) {
         RestAssured
                 .given()
                     .log()

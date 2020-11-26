@@ -11,6 +11,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthCons
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.OAuthAuthorizeTokenPage;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
+import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -19,6 +20,7 @@ import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.po.Job;
 import org.jenkinsci.test.acceptance.po.User;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,12 +29,12 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.collection.IsIn.isOneOf;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.junit.Assert.assertNotNull;
 
@@ -129,6 +131,96 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
         return new FailedBuildResponseMatcher(401, "Unauthorized");
     }
 
+    public static URL createStashApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {
+        // PUT http://localhost:7990/bitbucket/rest/applinks/3.0/applicationlink
+        JSONObject json = new JSONObject();
+
+        json.put("name", name);
+        json.put("rpcUrl", rpcUrl);
+        json.put("displayUrl", displayUrl);
+        json.put("typeId", type);
+
+        String baseApplinkUrl = BitbucketUtils.BITBUCKET_BASE_URL + "/rest/applinks/3.0/applicationlink";
+
+        ResponseBody applinkCallBody = RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .body(json.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .put(baseApplinkUrl)
+                .getBody();
+
+        JSONObject responseBody = new JSONObject(applinkCallBody.prettyPrint());
+
+        return new URL(responseBody.getJSONArray("resources-created").getJSONObject(0).getString("href"));
+    }
+
+    public static void setupApplinkProviderAndConsumer(URL applinkUrl, String consumerKey, String serviceProviderName, String sharedSecret,
+                                                       String accessTokenUrl, String authorizeUrl, String requestTokenUrl) throws JSONException {
+        JSONObject providerBody = new JSONObject();
+        JSONObject applinkConfig = new JSONObject();
+        applinkConfig.put("consumerKey.outbound", consumerKey);
+        applinkConfig.put("serviceProvider.accessTokenUrl", accessTokenUrl);
+        applinkConfig.put("serviceProvider.authorizeUrl", authorizeUrl);
+        applinkConfig.put("serviceProvider.requestTokenUrl", requestTokenUrl);
+        providerBody.put("config", applinkConfig);
+        providerBody.put("provider", "com.atlassian.applinks.api.auth.types.OAuthAuthenticationProvider");
+
+        JSONObject consumerBody = new JSONObject();
+        consumerBody.put("key", consumerKey);
+        consumerBody.put("name", serviceProviderName);
+        consumerBody.put("sharedSecret", sharedSecret);
+        consumerBody.put("outgoing", true);
+        consumerBody.put("twoLOAllowed", true);
+
+        String applicationLinkId = getApplicationLinkId(applinkUrl);
+
+        // PUT provider /rest/applinks/3.0/applicationlink/{application-link-id}/authentication/provider
+        RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .body(providerBody.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .put(applinkUrl + "/authentication/provider");
+
+        // PUT consumer rest/applinks-oauth/1.0/applicationlink/{application-link-id}/authentication/consumer
+        HttpUrl consumerUrl = new HttpUrl.Builder().scheme("http").host(applinkUrl.getHost()).port(applinkUrl.getPort()).addPathSegment("bitbucket").addPathSegment("rest")
+                .addPathSegment("applinks-oauth").addPathSegment("1.0").addPathSegment("applicationlink")
+                .addPathSegment(applicationLinkId).addPathSegment("authentication").addPathSegment("consumer")
+                .build();
+        RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .body(consumerBody.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .put(consumerUrl.toString());
+    }
+
+    private static String getApplicationLinkId(URL applicationLinkUrl) {
+        return RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(200)
+                .when()
+                    .get(applicationLinkUrl)
+                .getBody().jsonPath().getString("id");
+    }
+
     private static abstract class BuildResponseMatcher extends TypeSafeDiagnosingMatcher<Response> {
 
         @Override
@@ -170,65 +262,6 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
             return response.getCode() == statusCode &&
                    StringUtils.equalsIgnoreCase(message, response.getMessage());
         }
-    }
-
-    public static String createApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {
-        // PUT http://localhost:7990/bitbucket/rest/applinks/3.0/applicationlink
-        JSONObject json = new JSONObject();
-
-        json.put("name", name);
-        json.put("rpcUrl", rpcUrl);
-        json.put("displayUrl", displayUrl);
-        json.put("typeId", type);
-
-        String baseApplinkUrl = BitbucketUtils.BITBUCKET_BASE_URL + "/rest/applinks/3.0/applicationlink";
-
-        ResponseBody applinkCallBody = RestAssured
-                .given()
-                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
-                    .body(json.toString())
-                    .contentType(ContentType.JSON)
-                    .header("Accept", ContentType.JSON)
-                .expect()
-                    .statusCode(201)
-                .when()
-                    .put(baseApplinkUrl)
-                .getBody();
-
-        JSONObject responseBody = new JSONObject(applinkCallBody.prettyPrint());
-
-        String applinkUrl = responseBody.getJSONArray("resources-created").getJSONObject(0).getString("href");
-
-        JSONObject providerBody = new JSONObject();
-        JSONObject applinkConfig = new JSONObject();
-        appLink
-        providerBody.put("provider", "com.atlassian.applinks.api.auth.types.OAuthAuthenticationProvider");
-
-        {
-            "config": {
-                        "consumerKey.outbound": "cat",
-                        "serviceProvider.accessTokenUrl": "sat",
-                        "serviceProvider.authorizeUrl": "hat",
-                        "serviceProvider.requestTokenUrl": "mat"
-        },
-            "provider": "com.atlassian.applinks.api.auth.types.OAuthAuthenticationProvider"
-        }
-
-        // PUT provider /bitbucket/rest/applinks/3.0/applicationlink/e4571985-2db7-371c-b355-5ec15aa6e36a/authentication/provider
-        RestAssured
-                .given()
-                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
-                    .body(json.toString())
-                    .contentType(ContentType.JSON)
-                    .header("Accept", ContentType.JSON)
-                .expect()
-                    .statusCode(201)
-                .when()
-                    .put(applinkUrl + "/authentication/provider");
-
-
-        // PUT consumer
-        return applinkUrl;
     }
 
     private static final class SuccessfulBuildResponseMatcher extends BuildResponseMatcher {
