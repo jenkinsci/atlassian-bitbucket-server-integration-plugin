@@ -14,9 +14,9 @@ public class JenkinsOAuthClient {
 
     private final OAuth10aService service;
 
-    public JenkinsOAuthClient(String baseUrl, String consumerKey, String consumerSecret) {
+    public JenkinsOAuthClient(String baseUrl, String consumerKey, String sharedSecret) {
         service = new ServiceBuilder(consumerKey)
-                .apiSecret(consumerSecret)
+                .apiSecret(sharedSecret)
                 .build(new JenkinsOAuthApi(baseUrl));
     }
 

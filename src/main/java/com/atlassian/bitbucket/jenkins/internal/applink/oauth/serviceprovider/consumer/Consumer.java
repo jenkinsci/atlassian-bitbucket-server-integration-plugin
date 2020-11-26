@@ -29,7 +29,7 @@ public final class Consumer {
     private final SignatureMethod signatureMethod;
     private final PublicKey publicKey;
     private final URI callback;
-    private final String consumerSecret;
+    private final String sharedSecret;
 
     private Consumer(Builder builder) {
         key = builder.key;
@@ -38,7 +38,7 @@ public final class Consumer {
         publicKey = builder.publicKey;
         description = builder.description;
         callback = builder.callback;
-        consumerSecret = builder.consumerSecret;
+        sharedSecret = builder.sharedSecret;
     }
 
     /**
@@ -117,8 +117,8 @@ public final class Consumer {
      *
      * @return the secret
      */
-    public Optional<String> getConsumerSecret() {
-        return ofNullable(consumerSecret);
+    public Optional<String> getSharedSecret() {
+        return ofNullable(sharedSecret);
     }
 
     @Override
@@ -157,7 +157,7 @@ public final class Consumer {
         private PublicKey publicKey;
         private String description = "";
         private URI callback;
-        private String consumerSecret;
+        private String sharedSecret;
 
         public Builder(String key) {
             this.key = requireNonNull(key, "key");
@@ -226,13 +226,13 @@ public final class Consumer {
         }
 
         /**
-         * Sets the consumer secret which is used in HMAC_SHA1 signature method and possibly other symmetric crypto methods.
+         * Sets the shared secret which is used in HMAC_SHA1 signature method and possibly other symmetric crypto methods.
          *
          * @param secret the secret
          * @return {@code this} builder
          */
-        public Builder consumerSecret(String secret) {
-            this.consumerSecret = secret;
+        public Builder sharedSecret(String secret) {
+            this.sharedSecret = secret;
             return this;
         }
 

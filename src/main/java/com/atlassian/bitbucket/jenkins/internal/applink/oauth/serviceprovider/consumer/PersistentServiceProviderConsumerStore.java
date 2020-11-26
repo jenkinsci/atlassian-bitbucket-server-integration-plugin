@@ -130,7 +130,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
         private static final String CONSUMER_NAME = "name";
         private static final String CONSUMER_DESCRIPTION = "description";
         private static final String CALLBACK_URL = "callback-url";
-        private static final String CONSUMER_SECRET = "secret";
+        private static final String SHARED_SECRET = "secret";
         private static final String PUBLIC_KEY = "public-key";
         private static final String PUBLIC_KEY_ENCODED = "key";
         private static final String PUBLIC_KEY_ALGORITHM = "algorithm";
@@ -243,7 +243,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
             consumer.getDescription().ifPresent(description -> addNode(writer, CONSUMER_DESCRIPTION, description));
             consumer.getCallback().ifPresent(callback -> addNode(writer, CALLBACK_URL, callback));
             addNode(writer, SIGNATURE_METHOD, consumer.getSignatureMethod());
-            consumer.getConsumerSecret().ifPresent(secret -> addNode(writer, CONSUMER_SECRET, secret));
+            consumer.getSharedSecret().ifPresent(secret -> addNode(writer, SHARED_SECRET, secret));
             consumer.getPublicKey().ifPresent(pubKey -> addPublicKeyNode(writer, pubKey));
         }
 
@@ -253,7 +253,7 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
             String consumerName = null;
             String consumerDescription = null;
             String callbackUrl = null;
-            String consumerSecret = null;
+            String sharedSecret = null;
             String signatureMethod = null;
             PublicKey publicKey = null;
             while (reader.hasMoreChildren()) {
@@ -273,8 +273,8 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
                     case CALLBACK_URL:
                         callbackUrl = nodeValue;
                         break;
-                    case CONSUMER_SECRET:
-                        consumerSecret = nodeValue;
+                    case SHARED_SECRET:
+                        sharedSecret = nodeValue;
                         break;
                     case SIGNATURE_METHOD:
                         signatureMethod = nodeValue;
@@ -294,8 +294,8 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
             if (isNotBlank(callbackUrl)) {
                 builder.callback(URI.create(callbackUrl));
             }
-            if (isNotBlank(consumerSecret)) {
-                builder.consumerSecret(consumerSecret);
+            if (isNotBlank(sharedSecret)) {
+                builder.sharedSecret(sharedSecret);
             }
             if (isNotBlank(signatureMethod)) {
                 builder.signatureMethod(SignatureMethod.valueOf(signatureMethod));

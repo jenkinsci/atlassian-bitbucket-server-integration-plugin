@@ -133,7 +133,7 @@ public class PersistentServiceProviderConsumerStoreTest {
                 name = is(expected.getName());
                 desc = is(expected.getDescription());
                 callback = is(expected.getCallback());
-                secret = is(expected.getConsumerSecret());
+                secret = is(expected.getSharedSecret());
                 signatureMethod = is(expected.getSignatureMethod());
                 publicKey = is(expected.getPublicKey());
             }
@@ -175,10 +175,10 @@ public class PersistentServiceProviderConsumerStoreTest {
                 mismatchMatchers.add(callback);
                 mismatchValues.add(actual.getCallback());
             }
-            if (!secret.matches(actual.getConsumerSecret())) {
-                mismatchFields.add("consumerSecret");
+            if (!secret.matches(actual.getSharedSecret())) {
+                mismatchFields.add("sharedSecret");
                 mismatchMatchers.add(secret);
-                mismatchValues.add(actual.getConsumerSecret());
+                mismatchValues.add(actual.getSharedSecret());
             }
             if (!signatureMethod.matches(actual.getSignatureMethod())) {
                 mismatchFields.add("signatureMethod");

@@ -14,7 +14,7 @@ public class OAuthConsumer {
     @JsonCreator
     public OAuthConsumer(@JsonProperty("consumerKey") String key,
                          @JsonProperty("consumerName") String name,
-                         @JsonProperty("consumerSecret") String secret,
+                         @JsonProperty("sharedSecret") String secret,
                          @JsonProperty("callbackUrl") String callback) {
         this.key = key;
         this.name = name;
@@ -32,7 +32,7 @@ public class OAuthConsumer {
         return name;
     }
 
-    @JsonGetter("consumerSecret")
+    @JsonGetter("sharedSecret")
     public String getSecret() {
         return secret;
     }

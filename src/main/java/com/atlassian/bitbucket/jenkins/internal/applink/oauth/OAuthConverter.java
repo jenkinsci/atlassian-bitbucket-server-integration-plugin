@@ -44,7 +44,7 @@ public class OAuthConverter {
         String callback = consumer.getCallback().map(URI::toString).orElse(null);
         OAuthConsumer oauthConsumer = new OAuthConsumer(callback,
                 consumer.getKey(),
-                consumer.getConsumerSecret().orElse(null),
+                consumer.getSharedSecret().orElse(null),
                 null);
         oauthConsumer.setProperty(ConsumerProperty.NAME, consumer.getName());
         oauthConsumer.setProperty(ConsumerProperty.DESCRIPTION, consumer.getDescription());

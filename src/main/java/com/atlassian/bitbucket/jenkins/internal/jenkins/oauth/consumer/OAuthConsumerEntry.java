@@ -31,7 +31,7 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
      */
     private static String CONSUMER_KEY_FIELD = "consumerKey";
     private static String CONSUMER_NAME_FIELD = "consumerName";
-    private static String CONSUMER_SECRET_FIELD = "consumerSecret";
+    private static String SHARED_SECRET_FIELD = "sharedSecret";
     private static String CONSUMER_CALLBACKURL_FIELD = "callbackUrl";
 
     private static final OAuthConsumerEntry BLANK_ENTRY =
@@ -74,8 +74,8 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
     }
 
     @SuppressWarnings("unused")
-    public String getConsumerSecret() {
-        return consumer.getConsumerSecret().orElse("");
+    public String getSharedSecret() {
+        return consumer.getSharedSecret().orElse("");
     }
 
     public boolean isUpdate() {
@@ -126,12 +126,12 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
             JSONObject data = request.getSubmittedForm();
             String consumerKey = data.getString(CONSUMER_KEY_FIELD);
             String consumerName = data.getString(CONSUMER_NAME_FIELD);
-            String consumerSecret = data.getString(CONSUMER_SECRET_FIELD);
+            String sharedSecret = data.getString(SHARED_SECRET_FIELD);
             String callbackUrl = data.getString(CONSUMER_CALLBACKURL_FIELD);
 
             Builder builder = Consumer.key(consumerKey)
                     .name(consumerName)
-                    .consumerSecret(consumerSecret)
+                    .sharedSecret(sharedSecret)
                     .signatureMethod(HMAC_SHA1);
             if (!isBlank(callbackUrl)) {
                 builder.callback(new URI(callbackUrl));

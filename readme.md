@@ -76,7 +76,7 @@ To register a consumer:
 3. Enter these details:
    - Consumer name: Enter a name to help you identify this Bitbucket Server instance. For example, Bitbucket Sydney.
    - Consumer key: Enter a unique key that Jenkins can use to identify this Bitbucket instance. For example, bitbucket-syd.
-   - Consumer secret: Enter a password that Jenkins can use with your key to identify this Bitbucket instance. Once this is entered it won't be retrievable. 
+   - Shared secret: Enter a password that Jenkins can use with your key to identify this Bitbucket instance. Once this is entered it won't be retrievable. 
    - Callback URL: Enter the address Jenkins should redirect to after an OAuth flow. For example, your Bitbucket instance's base URL. 
 4. Select **Save**. 
 
