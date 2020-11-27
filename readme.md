@@ -32,7 +32,7 @@ The plugin streamlines the entire configuration process and removes the need for
 Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+ so that you have access to all plugin features and you can set up an Application Link.
 
 ---
-## Install the plugin
+## 1. Install the plugin
 
 To install:
 1. In Jenkins homepage, go to **Manage Jenkins** > **Manage Plugins**.
@@ -42,7 +42,7 @@ To install:
 The plugin has finished installing when the status next to Bitbucket Server Integration shows Success.
 
 
-## Configure the plugin
+## 2. Configure the plugin
 
 To configure the plugin: 
 1. [Add Bitbucket Server instance details to Jenkins](#add-bitbucket-server-instance-details-to-jenkins).
@@ -74,7 +74,7 @@ To add a Bitbucket Server instance:
 4. Select **Test connection** to check your instance details. 
 5. Select **Save**.
 
-### Create an Application Link 
+### 3. Create an Application Link 
 
 Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
 
