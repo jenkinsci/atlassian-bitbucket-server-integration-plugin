@@ -9,7 +9,7 @@ We're collecting feedback at [issues.jenkins-ci.org](https://issues.jenkins-ci.o
 The Bitbucket Server integration plugin is the easiest way to connect [Jenkins](http://jenkins.io/) to [Bitbucket Server](https://www.atlassian.com/software/bitbucket/enterprise/data-center). With a few simple steps you can configure it to:
 - Automatically create webhooks in Bitbucket to trigger builds.
 - Allow Jenkins to clone/fetch from Bitbucket to run the builds.
-- Display detailed builds information in Bitbucket, such as test summaries and durations.
+- Display detailed build information in Bitbucket, such as test summaries and durations.
 - Link directly from Bitbucket to the logs for each build.
 
 The plugin streamlines the entire configuration process and removes the need for multiple plugins to achieve the same workflow.
@@ -18,7 +18,7 @@ The plugin streamlines the entire configuration process and removes the need for
 
 - Support for Jenkins Pipeline, Multibranch Pipeline, and Freestyle projects.
 - Secure credential management in Jenkins for cloning from Bitbucket Server.
-- Adds a Bitbucket Server Source Code Manager (SCM) to Jenkins, making it easy to create a connection to a Bitbucket repository when setting up a job.
+- Adds a Bitbucket Server Source Code Manager (SCM) to Jenkins, making it easier to create a connection to a Bitbucket repository when setting up a job.
 - Automatic webhook creation in a Bitbucket Server repo when a Jenkins job is saved.
 - Quick selection of Bitbucket Server projects and repos for a Jenkins job through a dropdown.
 - The ability to automatically send build statuses to Bitbucket Server.
@@ -29,21 +29,30 @@ The plugin streamlines the entire configuration process and removes the need for
 - Jenkins 2.190.1+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+ as when you also set up an Application Link you will have access to all plugin features. 
+Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+ so that you have access to all plugin features and you can set up an Application Link.
 
 ---
+## Install the plugin
+
+To install:
+1. In Jenkins homepage, go to **Manage Jenkins** > **Manage Plugins**.
+2. Under the **Available** tab, search for BitBucket Server Integration. 
+3. Tick the checkbox and select **Install without Restart**. 
+
+The plugin has finished installing when the status next to Bitbucket Server Integration shows Success.
+
 
 ## Configure the plugin
 
 To configure the plugin: 
-1. [Add Bitbucket Server instance details](#add-bitbucket-server-instance-details).
+1. [Add Bitbucket Server instance details to Jenkins](#add-bitbucket-server-instance-details-to-jenkins).
 2. [Create an Application Link](#create-an-application-link). 
 
-### Add Bitbucket Server instance details
+### Add Bitbucket Server instance details to Jenkins
 
 Bitbucket Server instances are added and configured at the system level. Once they’re added users can select them from the SCM when creating a Jenkins job. You must add at least one Bitbucket Server instance to Jenkins.
 
-When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens). Doing this allows users to automatically set up build triggers when creating a Jenkins job. For this to work the tokens you add must have project admin permissions.
+When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) and all tokens added must have project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
 
 Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
 
@@ -51,12 +60,17 @@ Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or s
 
 To add a Bitbucket Server instance:
 
-1. In Jenkins, go to **Jenkins** > **Manage Jenkins** > **Configure System**.
+1. In Jenkins homepage, go to **Manage Jenkins** > **Configure System**.
 2. Under **Bitbucket Server integration**, select **Add a Bitbucket Server instance** > **Instance details**.
 3. Enter these instance details:
    - Instance name - Enter a name to help users identify this instance. 
-   - Instance URL - Enter the Bitbucket Server base URL. 
-   - Personal access token - Select a token from the list. Or to first add a token, select **Add**, select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) for **Kind**, and then enter a Token (with project admin permissions) and a Description. 
+   - Instance URL - Enter the Bitbucket Server base URL (e.g. http://localhost:7990/bitbucket).
+   - Personal access token - Select a token from the list. Or to first add a token:
+      - select **Add** > **Jenkins**.
+      - On the form, leave **Domain** as Global credentials (unrestricted).
+      - Select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) for **Kind**.
+      - Enter a Token (with **project admin permissions**) and a Description. 
+      - Click **Add** and you should now be able to select the token from the list.
 4. Select **Test connection** to check your instance details. 
 5. Select **Save**.
 
@@ -64,14 +78,14 @@ To add a Bitbucket Server instance:
 
 Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
 
-#### Part 1 - Register Bitbucket Server as a consumer
+#### Part 1 - Register Bitbucket Server as a consumer in Jenkins
 
 There are two parts to creating an Application Link. The first is done in Jenkins and involves registering Bitbucket Server as a consumer.
 
 <img src="images/createnewconsumer.png" width="600"> <br/>
 
 To register a consumer: 
-1. In Jenkins, go to **Manage Jenkins** > **Manage Bitbucket Server consumers**. 
+1. In Jenkins homepage, go to **Manage Jenkins** > **Manage Bitbucket Server consumers**. 
 2. Select **Register new consumer**. 
 3. Enter these details:
    - Consumer name: Enter a name to help you identify this Bitbucket Server instance. For example, Bitbucket Sydney.
@@ -84,14 +98,14 @@ After you save, you’ll be taken to a page called Application Link details. It�
 
 You can also access the Application Link details page by going to **Jenkins** > **Manage Jenkins** > **Manage Bitbucket Server consumers**, and selecting the Application Link details for the consumer. 
 
-#### Part 2 - Create an Application Link to Jenkins
+#### Part 2 - Create an Application Link to Jenkins in Bitbucket Server
 
-The second part is done in Bitbucket Server and involves creating an Application Link to Jenkins. Many of the details you need to do this are on the Application Link details page mentioned in step 1. 
+The second part is done in Bitbucket Server and involves creating an Application Link to Jenkins. Many of the details you need to do this are on the Application Link details page mentioned in Part 1. 
 
 <img src="images/linkapplications.png" width="600"> <br/>
 
 To create the Application Link: 
-1. In Bitbucket Server, go to **Administration** > **Application Links**. 
+1. In Bitbucket Server, go to **Administration** (click the cog wheel on the top navigation bar) > **Application Links**. 
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
 4. Complete the form: 
@@ -114,13 +128,19 @@ After a moment, your Jenkins instance will appear in the list of linked applicat
 
 ### Select a Bitbucket Server instance when creating a Freestyle Job
 
-Once you’ve added a Bitbucket Server instance to Jenkins users will be able to select it when creating a job. This will make it easier for them to select the repo to be cloned. They’ll also be able to select the Bitbucket Server build trigger to automatically create a webhook.
+Once you’ve added a Bitbucket Server instance to Jenkins, users will be able to select it when creating a job. This will make it easier for them to select the repo to be cloned. They’ll also be able to select the Bitbucket Server build trigger to automatically create a webhook.
 
 <img src="images/createjob.png" width="600"> <br/>
 
-To select a Bitbucket Server instance when creating a freesetly job: 
+To select a Bitbucket Server instance when creating a Freestyle job: 
 1. In Jenkins, select **New item** and then follow the instructions to create a job.  
 2. Under **Source Code Management**, select **Bitbucket Server** and enter the details of the job.
+   - Credentials (for build auth): To add a credential:
+      - Click **Add** > **Jenkins**.
+      - Leave **Domain** as Global credentials (unrestricted).
+      - Make sure **Kind** is set to Username with password. 
+      - Enter the username and password for your Bitbucket Server Instance and add a Description.
+      - Click **Add** and you should now be able to select the credential in the list.
 3. Under **Build Trigger**, select **Bitbucket Server Trigger build after push**.
 4. Under **Build**, add build steps. 
 5. Select **Save**.
