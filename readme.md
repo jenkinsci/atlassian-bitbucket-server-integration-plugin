@@ -74,7 +74,7 @@ To add a Bitbucket Server instance:
 4. Select **Test connection** to check your instance details. 
 5. Select **Save**.
 
-### 3. Create an Application Link 
+### Create an Application Link 
 
 Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
 
@@ -124,7 +124,7 @@ After a moment, your Jenkins instance will appear in the list of linked applicat
 
 ---
 
-## Use the plugin 
+## 3. Use the plugin 
 
 ### Select a Bitbucket Server instance when creating a Freestyle Job
 
