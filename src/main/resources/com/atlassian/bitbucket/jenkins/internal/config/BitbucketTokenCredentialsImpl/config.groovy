@@ -7,7 +7,7 @@ f.entry(title: _("bitbucket.admin.token"), field: "secret") {
 }
 
 f.entry(title: _("bitbucket.admin.token.id"), field: "id") {
-    f.textbox(value: instance?.id,placeholder: "Enter a unique ID for this token")
+    f.textbox(value: instance?.id, placeholder: "Enter a unique ID for this token or leave blank to auto-generate")
 }
 
 f.entry(title: _("bitbucket.admin.token.description"), field: "description") {
