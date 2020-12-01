@@ -131,7 +131,7 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.setValueAttribute("");
         form.click();
         bbJenkinsRule.waitForBackgroundJavaScript();
-        assertNotNull(getDivByText(form, "Project name is required"));
+        assertNotNull(getDivByText(form, "Enter a project name"));
     }
 
     @Test

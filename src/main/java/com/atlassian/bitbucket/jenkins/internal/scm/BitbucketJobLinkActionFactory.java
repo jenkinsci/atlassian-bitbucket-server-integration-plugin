@@ -45,14 +45,10 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
         }
         BitbucketSCMRepository bitbucketRepository = maybeRepository.get();
         String serverId = Objects.toString(bitbucketRepository.getServerId(), "");
-        String credentialsId = Objects.toString(bitbucketRepository.getCredentialsId(), "");
 
         Optional<BitbucketServerConfiguration> maybeConfig = bitbucketPluginConfiguration.getServerById(serverId);
-        FormValidation configValid = FormValidation.aggregate(Arrays.asList(
-                maybeConfig.map(BitbucketServerConfiguration::validate).orElse(FormValidation.error("Config not present")),
-                formValidation.doCheckProjectName(target, serverId, credentialsId, bitbucketRepository.getProjectName()),
-                formValidation.doCheckRepositoryName(target, serverId, credentialsId, bitbucketRepository.getProjectName(), bitbucketRepository.getRepositoryName())
-        ));
+        FormValidation configValid = maybeConfig.map(BitbucketServerConfiguration::validate)
+                .orElse(FormValidation.error("Valid config is not present"));
 
         if (configValid.kind == FormValidation.Kind.ERROR) {
             return Collections.emptySet();

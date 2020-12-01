@@ -49,10 +49,6 @@ public class BitbucketExternalLink implements Action, IconSpec {
     @CheckForNull
     @Override
     public String getIconFileName() {
-        if (!owner.hasPermission(Item.CONFIGURE)) {
-            return null;
-        }
-
         JellyContext ctx = new JellyContext();
         ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
         return IconSet.icons.getIconByClassSpec(iconName + " icon-md").getQualifiedUrl(ctx);

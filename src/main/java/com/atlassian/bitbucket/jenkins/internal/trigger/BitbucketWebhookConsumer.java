@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefChangeType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -31,6 +32,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -203,6 +205,13 @@ public class BitbucketWebhookConsumer {
 
         @Override
         public Map<SCMHead, SCMRevision> heads(SCMSource source) {
+            if (!(source instanceof BitbucketSCMSource)) {
+                return emptyMap();
+            }
+            BitbucketSCMSource src = (BitbucketSCMSource) source;
+            if (!matchingRepo(getPayload().getRepository(), src.getBitbucketSCMRepository())) {
+                return emptyMap();
+            }
             return getPayload().getChanges().stream().collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()), change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
         }
 
