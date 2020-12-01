@@ -2,6 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal;
 
 import com.atlassian.pageobjects.TestedProductFactory;
 import com.atlassian.webdriver.bitbucket.BitbucketTestedProduct;
+import com.atlassian.webdriver.bitbucket.element.builds.AuthorizeBuildServerModal;
 import com.atlassian.webdriver.bitbucket.element.builds.BuildResultRow;
 import com.atlassian.webdriver.bitbucket.page.BitbucketLoginPage;
 import com.atlassian.webdriver.bitbucket.page.DashboardPage;
@@ -63,6 +64,7 @@ import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentia
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
@@ -74,24 +76,21 @@ public class SmokeTest extends AbstractJUnitTest {
     private static final String MASTER_BRANCH_NAME = "master";
     private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
 
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
     private URL applinkUrl;
     private String bbsAdminCredsId;
-    private BitbucketSshKeyPair bbsSshCreds;
     private PersonalToken bbsPersonalToken;
+    private BitbucketSshKeyPair bbsSshCreds;
     @Inject
     private JenkinsController controller;
     private BitbucketRepository forkRepo;
+    private Job job;
     private JenkinsOAuthClient oAuthClient;
     @Inject
     private ProjectBasedMatrixSecurityHelper security;
     private String serverId;
-
-    private Job job;
-
-    private User user1;
+    @Rule
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
+    private User user;
 
     @Before
     public void setUp() throws IOException {
@@ -132,7 +131,7 @@ public class SmokeTest extends AbstractJUnitTest {
         // Fork repo
         forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, "fork-" + randomUUID());
 
-        //Log into Bitbucket
+        // Log into Bitbucket
         BITBUCKET.visit(BitbucketLoginPage.class).login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD, DashboardPage.class);
     }
 
@@ -150,6 +149,10 @@ public class SmokeTest extends AbstractJUnitTest {
             deleteApplink(applinkUrl);
             applinkUrl = null;
         }
+        if (forkRepo != null) {
+            deleteRepoFork(forkRepo.getSlug());
+            forkRepo = null;
+        }
     }
 
     @Test
@@ -158,12 +161,13 @@ public class SmokeTest extends AbstractJUnitTest {
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
         oAuthClient = new JenkinsOAuthClient(getBaseUrl(), oAuthConsumer.getKey(), oAuthConsumer.getSecret());
 
-        user1 = security.newUser();
+        user = security.newUser();
 
         security.addGlobalPermissions(ImmutableMap.of(
-                user1, perms -> perms.on(OVERALL_READ)
+                user, perms -> perms.on(OVERALL_READ)
         ));
 
+        // Configure job and give user permissions to run a build
         job = jenkins.jobs.create();
         BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
         bitbucketScm
@@ -176,27 +180,34 @@ public class SmokeTest extends AbstractJUnitTest {
         job.save();
 
         security.addProjectPermissions(job, ImmutableMap.of(
-                user1, perms -> perms.on(ITEM_BUILD, ITEM_READ)
+                user, perms -> perms.on(ITEM_BUILD, ITEM_READ)
         ));
 
-        jenkins.logout();
-
-        // Configure the applink in stash over REST
-        applinkUrl = createStashApplicationLink("generic", "Jenkins Applink", jenkins.url.toString(), jenkins.url.toString());
+        // Applink Bitbucket Server and Jenkins over REST
+        applinkUrl = createStashApplicationLink("generic", "Jenkins testing", jenkins.url.toString(), jenkins.url.toString());
         setupApplinkProviderAndConsumer(applinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
                 "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
 
-
-        // Create a build to store in stash
-        OAuth1AccessToken user1AccessToken = getAccessToken(user1);
+        // Create a build and POST it to Bitbucket Server
+        OAuth1AccessToken userAccessToken = getAccessToken(user);
 
         String jobBuildPostUrl = String.format("%s/job/%s/build", removeEnd(getBaseUrl(), "/"), job.name);
-        OAuthRequest buildOAuthRequest = new OAuthRequest(Verb.POST, jobBuildPostUrl);
-        buildOAuthRequest.addHeader("Accept", "application/json");
-        oAuthClient.execute(buildOAuthRequest, user1AccessToken);
+        OAuthRequest postBuildStatusOAuthRequest = new OAuthRequest(Verb.POST, jobBuildPostUrl);
+        postBuildStatusOAuthRequest.addHeader("Accept", "application/json");
+        oAuthClient.execute(postBuildStatusOAuthRequest, userAccessToken);
 
+        // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
         RepositoryBuildsPage repositoryBuildsPage = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
-        List<BuildResultRow> buildRows = repositoryBuildsPage.getRows();
+        List<BuildResultRow> buildRows = getBuildRowsFromBuildsPage(repositoryBuildsPage);
+        assertEquals(1, buildRows.size());
+        AuthorizeBuildServerModal authorizeBuildServerModal = buildRows.get(0).openBuildActions().clickAuthorize();
+        authorizeBuildServerModal.getAuthorizeLink().click();
+
+        LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
+        oAuthLoginPage.load().login(user);
+
+        //new OAuthAuthorizeTokenPage(jenkins, new URL("test"), );
+        //getBuildRowsFromBuildsPage(BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null)).get(0).openBuildActions()
     }
 
     @Test
@@ -424,6 +435,19 @@ public class SmokeTest extends AbstractJUnitTest {
                 assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
     }
 
+    private List<BuildResultRow>  getBuildRowsFromBuildsPage(RepositoryBuildsPage repositoryBuildsPage) {
+        return waitFor()
+                .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
+                .withMessage("Timed out while waiting for build statuses to show in Bitbucket builds page")
+                .until(ignored -> {
+                    List<BuildResultRow> rows = repositoryBuildsPage.getRows();
+                    if (rows.size() == 0) {
+                        return null;
+                    }
+                    return rows;
+                });
+    }
+
     private List<Map<String, ?>> fetchBuildStatusesFromBitbucket(String commitId) {
         return waitFor()
                 .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
@@ -484,8 +508,6 @@ public class SmokeTest extends AbstractJUnitTest {
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
-
-        jenkins.logout();
 
         OAuth1AccessToken accessToken = oAuthClient.getAccessToken(requestToken, oAuthVerifier);
         assertNotNull(accessToken);

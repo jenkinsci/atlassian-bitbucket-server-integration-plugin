@@ -24,7 +24,6 @@
         <commons-lang3.version>3.10</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
         <rest-assured.version>3.0.7</rest-assured.version>
-        <slf4j.version>1.7.25</slf4j.version>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,6 +44,12 @@
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
             <version>${jenkins.acceptance-test-harness.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

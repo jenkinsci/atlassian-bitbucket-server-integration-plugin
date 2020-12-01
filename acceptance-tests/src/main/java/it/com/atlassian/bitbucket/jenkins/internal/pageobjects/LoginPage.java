@@ -40,6 +40,10 @@ public class LoginPage extends PageObject {
         super(jenkins.injector, jenkins.url("login"));
     }
 
+    public LoginPage(Jenkins jenkins, String url) {
+        super(jenkins.injector, jenkins.url(url));
+    }
+
     public LoginForm load() {
         open();
         return new LoginForm();
