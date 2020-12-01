@@ -70,7 +70,7 @@ To add a Bitbucket Server instance:
 2. Under **Bitbucket Server integration**, select **Add a Bitbucket Server instance** > **Instance details**.
 3. Enter these instance details:
    - Instance name - Enter a name to help users identify this instance. 
-   - Instance URL - Enter the Bitbucket Server base URL. For example, http://localhost:7990/bitbucket . 
+   - Instance URL - Enter the Bitbucket Server base URL. For example, http://localhost:7990/bitbucket. 
    - Personal access token - Select a token from the list. Or to first add a token:
       - Select **Add** > **Jenkins**.
       - For **Kind**, select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens).
