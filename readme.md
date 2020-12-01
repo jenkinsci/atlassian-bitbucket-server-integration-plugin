@@ -29,19 +29,26 @@ The plugin streamlines the entire configuration process and removes the need for
 - Jenkins 2.190.1+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+ so that you have access to all plugin features and you can set up an Application Link.
+Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.4+ you can set up an Application Link to have access to all plugin features.
 
+## In this document
+1. [Install the plugin](#install-the-plugin)
+2. [Configure the plugin](#configure-the-plugin)
+3. [Use the plugin](#use-the-plugin)
+4. [Contribute to the plugin](#contribute-to-the-plugin)
 ---
-## 1. Install the plugin
+## Install the plugin
 
-To install:
+To install the plugin:
 1. In Jenkins, go to **Jenkins** > **Manage Jenkins** > **Manage Plugins**.
-2. Under the **Available** tab, search for BitBucket Server Integration. 
-3. Tick the checkbox and select **Install without Restart**. 
+2. Select the **Available** tab.
+3. Search for BitBucket Server Integration. 
+4. Tick the checkbox.
+5. Select **Install without Restart**. 
 
-The plugin has finished installing when the status next to Bitbucket Server Integration shows Success.
+The status will change to **Success** when the plugin is installed. 
 
-## 2. Configure the plugin
+## Configure the plugin
 
 To configure the plugin: 
 1. [Add Bitbucket Server instance details](#add-bitbucket-server-instance-details).
@@ -51,7 +58,7 @@ To configure the plugin:
 
 Bitbucket Server instances are added and configured at the system level. Once they’re added users can select them from the SCM when creating a Jenkins job. You must add at least one Bitbucket Server instance to Jenkins.
 
-When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) and all tokens added must have project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
+When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) that is configured with project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
 
 Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
 
@@ -63,12 +70,12 @@ To add a Bitbucket Server instance:
 2. Under **Bitbucket Server integration**, select **Add a Bitbucket Server instance** > **Instance details**.
 3. Enter these instance details:
    - Instance name - Enter a name to help users identify this instance. 
-   - Instance URL - Enter the Bitbucket Server base URL (e.g. http://localhost:7990/bitbucket). 
+   - Instance URL - Enter the Bitbucket Server base URL. For example, http://localhost:7990/bitbucket . 
    - Personal access token - Select a token from the list. Or to first add a token:
-      - select **Add** > **Jenkins**.
-      - Select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) for **Kind**.
-      - Enter a Token (with **project admin permissions**), a unique token ID and a Description. 
-      - Click **Add** and you should now be able to select the token from the list.
+      - Select **Add** > **Jenkins**.
+      - For **Kind**, select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens).
+      - Enter a Token (with at least **project admin permissions**), a unique token ID and a Description. 
+      - Select **Add**. You should now be able to select the token from the list.
 4. Select **Test connection** to check your instance details. 
 5. Select **Save**.
 
@@ -76,7 +83,7 @@ To add a Bitbucket Server instance:
 
 Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
 
-#### Part 1 - Register Bitbucket Server as a consumer
+#### 1. Register Bitbucket Server as a consumer
 
 There are two parts to creating an Application Link. The first is done in Jenkins and involves registering Bitbucket Server as a consumer.
 
@@ -96,14 +103,14 @@ After you save, you’ll be taken to a page called Application Link details. It�
 
 You can also access the Application Link details page by going to **Jenkins** > **Manage Jenkins** > **Manage Bitbucket Server consumers**, and selecting the Application Link details for the consumer. 
 
-#### Part 2 - Create an Application Link to Jenkins
+#### 2. Create an Application Link to Jenkins
 
-The second part is done in Bitbucket Server and involves creating an Application Link to Jenkins. Many of the details you need to do this are on the Application Link details page mentioned in Part 1. 
+The second part is done in Bitbucket Server and involves creating an Application Link to Jenkins. Many of the details you need to do this are on the Application Link details page mentioned in step 1. 
 
 <img src="images/linkapplications.png" width="600"> <br/>
 
 To create the Application Link: 
-1. In Bitbucket Server, go to **Administration** (click the cog wheel on the top navigation bar)  > **Application Links**. 
+1. In Bitbucket Server, go to **Administration** (select the cog in the top navigation bar)  > **Application Links**. 
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. Select **Continue** on the warning message. This is not a problem. 
 4. Complete the form: 
@@ -122,7 +129,7 @@ After a moment, your Jenkins instance will appear in the list of linked applicat
 
 ---
 
-## 3. Use the plugin 
+## Use the plugin 
 
 ### Select a Bitbucket Server instance when creating a Freestyle Job
 
@@ -147,7 +154,7 @@ Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or r
 
 ---
 
-## Contributing to the plugin
+## Contribute to the plugin
 
 ### Plugin development
 
