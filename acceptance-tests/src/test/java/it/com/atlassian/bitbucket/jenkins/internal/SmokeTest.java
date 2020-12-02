@@ -78,7 +78,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
     private URL applinkUrl;
     private String bbsAdminCredsId;
-    private PersonalToken bbsPersonalToken;
+    private PersonalAccessToken bbsPersonalAccessToken;
     private BitbucketSshKeyPair bbsSshCreds;
     @Inject
     private JenkinsController controller;
@@ -94,13 +94,13 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Before
     public void setUp() throws IOException {
-        // BB Access Token
-        bbsPersonalToken = createPersonalToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
+        // BBS Personal Access Token
+        bbsPersonalAccessToken = createPersonalAccessToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
         CredentialsPage credentials = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
         credentials.open();
         BitbucketTokenCredentials bbsTokenCreds = credentials.add(BitbucketTokenCredentials.class);
-        bbsTokenCreds.token.set(bbsPersonalToken.getSecret());
-        bbsTokenCreds.description.sendKeys(bbsPersonalToken.getId());
+        bbsTokenCreds.token.set(bbsPersonalAccessToken.getSecret());
+        bbsTokenCreds.description.sendKeys(bbsPersonalAccessToken.getId());
         credentials.create();
 
         // BB Admin user/password
@@ -125,7 +125,7 @@ public class SmokeTest extends AbstractJUnitTest {
         jenkinsConfig.configure();
         serverId = "bbs-" + randomUUID();
         new BitbucketPluginConfigArea(jenkinsConfig)
-                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalToken.getId());
+                .addBitbucketServerConfig(serverId, BITBUCKET_BASE_URL, bbsPersonalAccessToken.getId());
         jenkinsConfig.save();
 
         // Fork repo
@@ -139,8 +139,8 @@ public class SmokeTest extends AbstractJUnitTest {
     public void tearDown() {
         // There's a limit of 100 personal access tokens per user in Bitbucket Server, hence we clean up the access
         // tokens after each test to ensure repeated test runs against the same Bitbucket instance does not fail.
-        if (bbsPersonalToken != null) {
-            deletePersonalToken(bbsPersonalToken.getId());
+        if (bbsPersonalAccessToken != null) {
+            deletePersonalAccessToken(bbsPersonalAccessToken.getId());
         }
         if (bbsSshCreds != null) {
             deleteSshPublicKey(bbsSshCreds.getId());
@@ -206,7 +206,7 @@ public class SmokeTest extends AbstractJUnitTest {
         LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
         oAuthLoginPage.load().login(user);
 
-        //new OAuthAuthorizeTokenPage(jenkins, new URL("test"), );
+        //new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), );
         //getBuildRowsFromBuildsPage(BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null)).get(0).openBuildActions()
     }
 

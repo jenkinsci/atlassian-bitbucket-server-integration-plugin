@@ -63,7 +63,7 @@ public class BitbucketUtils {
         return new BitbucketRepository(forkId, forkName, project, forkSlug, forkHttpCloneUrl, forkSshCloneUrl);
     }
 
-    public static PersonalToken createPersonalToken(String... permissions) {
+    public static PersonalAccessToken createPersonalAccessToken(String... permissions) {
         HashMap<String, Object> createTokenRequest = new HashMap<>();
         createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
         createTokenRequest.put("permissions", permissions);
@@ -82,7 +82,7 @@ public class BitbucketUtils {
                         .when()
                             .put(BITBUCKET_BASE_URL + "/rest/access-tokens/latest/users/admin")
                         .getBody();
-        return new PersonalToken(tokenResponse.path("id"), tokenResponse.path("token"));
+        return new PersonalAccessToken(tokenResponse.path("id"), tokenResponse.path("token"));
     }
 
     public static BitbucketSshKeyPair createSshKeyPair() throws IOException {
@@ -123,7 +123,7 @@ public class BitbucketUtils {
                     .delete(applinkUrl);
     }
 
-    public static void deletePersonalToken(String tokenId) {
+    public static void deletePersonalAccessToken(String tokenId) {
         RestAssured
                 .given()
                     .log()
@@ -164,12 +164,12 @@ public class BitbucketUtils {
                     .delete(BITBUCKET_BASE_URL +"/rest/ssh/1.0/keys/" + id);
     }
 
-    public static final class PersonalToken {
+    public static final class PersonalAccessToken {
 
         private final String id;
         private final String secret;
 
-        private PersonalToken(String id, String secret) {
+        private PersonalAccessToken(String id, String secret) {
             this.id = id;
             this.secret = secret;
         }
