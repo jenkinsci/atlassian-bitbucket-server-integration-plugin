@@ -1,12 +1,19 @@
 package it.com.atlassian.bitbucket.jenkins.internal;
 
+import com.atlassian.bitbucket.async.AsyncTestUtils;
+import com.atlassian.bitbucket.async.WaitCondition;
+import com.atlassian.bitbucket.build.BuildState;
 import com.atlassian.pageobjects.TestedProductFactory;
+import com.atlassian.pageobjects.browser.Browser;
+import com.atlassian.pageobjects.elements.query.Poller;
 import com.atlassian.webdriver.bitbucket.BitbucketTestedProduct;
+import com.atlassian.webdriver.bitbucket.element.builds.ActionItem;
 import com.atlassian.webdriver.bitbucket.element.builds.AuthorizeBuildServerModal;
 import com.atlassian.webdriver.bitbucket.element.builds.BuildResultRow;
 import com.atlassian.webdriver.bitbucket.page.BitbucketLoginPage;
 import com.atlassian.webdriver.bitbucket.page.DashboardPage;
 import com.atlassian.webdriver.bitbucket.page.builds.RepositoryBuildsPage;
+import com.atlassian.webdriver.pageobjects.WebDriverTester;
 import com.github.scribejava.core.model.OAuth1AccessToken;
 import com.github.scribejava.core.model.OAuth1RequestToken;
 import com.github.scribejava.core.model.OAuthRequest;
@@ -35,6 +42,7 @@ import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshPrivateKeyCreden
 import org.jenkinsci.test.acceptance.po.*;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
+import org.openqa.selenium.WebDriver;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -64,17 +72,16 @@ import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentia
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
 public class SmokeTest extends AbstractJUnitTest {
 
-    private static final BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
     private static final long BUILD_START_TIMEOUT_MINUTES = 1L;
     private static final long FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES = 1L;
     private static final String MASTER_BRANCH_NAME = "master";
     private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
+    private BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
 
     private URL applinkUrl;
     private String bbsAdminCredsId;
@@ -94,6 +101,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Before
     public void setUp() throws IOException {
+
         // BBS Personal Access Token
         bbsPersonalAccessToken = createPersonalAccessToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
         CredentialsPage credentials = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
@@ -156,7 +164,7 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testRunBuildActionWtihFreeStlyeJob() throws Exception {
+    public void testRunBuildActionWtihFreestlyeJob() throws Exception {
         JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
         oAuthClient = new JenkinsOAuthClient(getBaseUrl(), oAuthConsumer.getKey(), oAuthConsumer.getSecret());
@@ -206,9 +214,32 @@ public class SmokeTest extends AbstractJUnitTest {
         LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
         oAuthLoginPage.load().login(user);
 
-        //new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), );
-        //getBuildRowsFromBuildsPage(BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null)).get(0).openBuildActions()
-    }
+        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL()).authorize();
+
+        BITBUCKET.getTester().gotoUrl(driver.getCurrentUrl());
+
+        // TODO comment explaining this...
+
+        RepositoryBuildsPage buildsPageAfterAuthorization = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+
+        job.visit("");
+        int buildCount = job.getLastBuild().getNumber();
+
+        ActionItem buildAction = getBuildRowsFromBuildsPage(buildsPageAfterAuthorization)
+                .get(0)
+                .openBuildActions()
+                .getActions()
+                .stream()
+                .filter(action -> "Build now".equals(action.getName()))
+                .findFirst().orElseThrow(() -> new AssertionError("No Build now action present"));
+        buildAction
+                .click();
+
+        Poller.waitUntilTrue(buildsPageAfterAuthorization.getActionSuccessfulFlag(job.getJson().get("fullName").textValue(), "ScheduleBuildAction").timed().isVisible());
+        waitFor()
+                .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
+                .until(ignored -> { return (buildCount + 1) == job.getLastBuild().getNumber(); });
+        }
 
     @Test
     public void testFullBuildFlowWithFreeStyleJob() throws IOException, GitAPIException {

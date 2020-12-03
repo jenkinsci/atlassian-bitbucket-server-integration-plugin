@@ -27,6 +27,10 @@ public class OAuthAuthorizeTokenPage extends PageObject {
 
     private final String requestToken;
 
+    public OAuthAuthorizeTokenPage(Jenkins context, URL pageUrl) {
+        this(context, pageUrl, null);
+    }
+
     public OAuthAuthorizeTokenPage(Jenkins context, URL pageUrl, String requestTokenValue) {
         super(context, pageUrl);
         this.requestToken = requestTokenValue;
@@ -60,6 +64,9 @@ public class OAuthAuthorizeTokenPage extends PageObject {
 
     private void openAndVerify() {
         open();
+        if (this.requestToken == null) {
+            return;
+        }
         String requestTokenValue = waitWithTimeout()
                 .withMessage("Authorize page must contain a hidden input holding the request token value")
                 .until(() -> {
