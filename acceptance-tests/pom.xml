@@ -20,7 +20,7 @@
         <jenkins.version>2.190.1</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.10.3</jackson.version>
-        <groovy.version>2.4.12</groovy.version>
+        <groovy.version>3.0.7</groovy.version>
         <commons-lang3.version>3.10</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
         <rest-assured.version>3.0.7</rest-assured.version>
