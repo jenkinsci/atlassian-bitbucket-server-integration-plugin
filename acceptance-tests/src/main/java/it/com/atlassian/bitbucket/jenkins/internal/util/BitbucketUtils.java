@@ -5,8 +5,12 @@ import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
+import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
+import okhttp3.HttpUrl;
 import org.jenkinsci.test.acceptance.SshKeyPair;
 import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URL;
@@ -90,7 +94,8 @@ public class BitbucketUtils {
         Map<String, Object> createSshKeyRequest = new HashMap<>();
         createSshKeyRequest.put("text", keyPair.readPublicKey());
 
-        ResponseBody<Response> response = RestAssured.given()
+        ResponseBody<Response> response = RestAssured
+                .given()
                     .queryParam("user", BITBUCKET_ADMIN_USERNAME)
                     .log()
                     .ifValidationFails()
@@ -108,7 +113,108 @@ public class BitbucketUtils {
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
     }
 
-    public static void deleteApplink(URL applinkUrl) {
+    /*
+     * Creates an application link between Bitbucket Server and Jenkins.
+     */
+    public static URL createBitbucketApplicationLink(String jenkinsUrl,  OAuthConsumer oAuthConsumer) throws Exception {
+        URL applicationLinkUrl = registerApplicationLink("generic", "Jenkins Testing", jenkinsUrl, jenkinsUrl);
+        setupApplicationLinkProviderAndConsumer(applicationLinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
+                "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
+
+        return applicationLinkUrl;
+    }
+
+    public static URL registerApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {
+        // PUT {Bitbucket base URL}/rest/applinks/3.0/applicationlink
+        JSONObject json = new JSONObject();
+
+        json.put("name", name);
+        json.put("rpcUrl", rpcUrl);
+        json.put("displayUrl", displayUrl);
+        json.put("typeId", type);
+
+        String baseApplicationLinkUrl = BITBUCKET_BASE_URL + "/rest/applinks/3.0/applicationlink";
+
+        ResponseBody registerApplinkResponseBody = RestAssured
+                .given()
+                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                    .body(json.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                .when()
+                    .put(baseApplicationLinkUrl)
+                .getBody();
+
+        JSONObject responseBody = new JSONObject(registerApplinkResponseBody.asString());
+
+        return new URL(responseBody.getJSONArray("resources-created").getJSONObject(0).getString("href"));
+    }
+
+    public static void setupApplicationLinkProviderAndConsumer(URL applicationLinkUrl, String consumerKey, String serviceProviderName, String sharedSecret,
+                                                               String accessTokenUrl, String authorizeUrl, String requestTokenUrl) throws JSONException {
+        JSONObject providerBody = new JSONObject();
+        JSONObject applicationLinkConfig = new JSONObject();
+        applicationLinkConfig.put("consumerKey.outbound", consumerKey);
+        applicationLinkConfig.put("serviceProvider.accessTokenUrl", accessTokenUrl);
+        applicationLinkConfig.put("serviceProvider.authorizeUrl", authorizeUrl);
+        applicationLinkConfig.put("serviceProvider.requestTokenUrl", requestTokenUrl);
+        providerBody.put("config", applicationLinkConfig);
+        providerBody.put("provider", "com.atlassian.applinks.api.auth.types.OAuthAuthenticationProvider");
+
+        JSONObject consumerBody = new JSONObject();
+        consumerBody.put("key", consumerKey);
+        consumerBody.put("name", serviceProviderName);
+        consumerBody.put("sharedSecret", sharedSecret);
+        consumerBody.put("outgoing", true);
+        consumerBody.put("twoLOAllowed", true);
+
+        String applicationLinkId = getApplicationLinkId(applicationLinkUrl);
+
+        // PUT provider  {Bitbucket base URL}/rest/applinks/3.0/applicationlink/{application-link-id}/authentication/provider
+        RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .body(providerBody.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                .when()
+                .put(applicationLinkUrl + "/authentication/provider");
+
+        // PUT consumer rest/applinks-oauth/1.0/applicationlink/{application-link-id}/authentication/consumer
+        HttpUrl consumerUrl = new HttpUrl.Builder().scheme("http").host(applicationLinkUrl.getHost()).port(applicationLinkUrl.getPort()).addPathSegment("bitbucket").addPathSegment("rest")
+                .addPathSegment("applinks-oauth").addPathSegment("1.0").addPathSegment("applicationlink")
+                .addPathSegment(applicationLinkId).addPathSegment("authentication").addPathSegment("consumer")
+                .build();
+        RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .body(consumerBody.toString())
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(201)
+                    .when()
+                .put(consumerUrl.toString());
+    }
+
+    private static String getApplicationLinkId(URL applicationLinkUrl) {
+        return RestAssured
+                .given()
+                    .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
+                    .contentType(ContentType.JSON)
+                    .header("Accept", ContentType.JSON)
+                .expect()
+                    .statusCode(200)
+                    .when()
+                .get(applicationLinkUrl)
+                .getBody().jsonPath().getString("id");
+    }
+
+    public static void deleteApplicationLink(URL applicationLinkUrl) {
         RestAssured
                 .given()
                     .log()
@@ -120,7 +226,7 @@ public class BitbucketUtils {
                 .expect()
                     .statusCode(200)
                 .when()
-                    .delete(applinkUrl);
+                    .delete(applicationLinkUrl);
     }
 
     public static void deletePersonalAccessToken(String tokenId) {
@@ -139,18 +245,20 @@ public class BitbucketUtils {
     }
 
     public static void deleteRepoFork(String repoForkSlug) {
-        RestAssured.given()
-                .log()
-                .ifValidationFails()
-                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+        RestAssured
+                .given()
+                    .log()
+                    .ifValidationFails()
+                    .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
                 .expect()
-                .statusCode(202)
+                    .statusCode(202)
                 .when()
-                .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + repoForkSlug);
+                    .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + PROJECT_KEY + "/repos/" + repoForkSlug);
     }
 
     public static void deleteSshPublicKey(String id) {
-        RestAssured.given()
+        RestAssured
+                .given()
                     .queryParam("user", BITBUCKET_ADMIN_USERNAME)
                     .log()
                     .ifValidationFails()

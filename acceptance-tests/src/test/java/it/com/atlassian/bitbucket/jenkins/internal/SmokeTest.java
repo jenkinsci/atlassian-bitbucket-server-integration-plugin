@@ -48,8 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import static io.restassured.http.ContentType.JSON;
-import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.createStashApplicationLink;
-import static it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.ThreeLeggedOAuthAcceptanceTest.setupApplinkProviderAndConsumer;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.*;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.ECHO_ONLY_JENKINS_FILE_CONTENT;
@@ -146,7 +144,7 @@ public class SmokeTest extends AbstractJUnitTest {
             deleteSshPublicKey(bbsSshCreds.getId());
         }
         if (applinkUrl != null) {
-            deleteApplink(applinkUrl);
+            deleteApplicationLink(applinkUrl);
             applinkUrl = null;
         }
         if (forkRepo != null) {
@@ -184,17 +182,10 @@ public class SmokeTest extends AbstractJUnitTest {
         ));
 
         // Applink Bitbucket Server and Jenkins over REST
-        applinkUrl = createStashApplicationLink("generic", "Jenkins testing", jenkins.url.toString(), jenkins.url.toString());
-        setupApplinkProviderAndConsumer(applinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
-                "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
+        applinkUrl = createBitbucketApplicationLink(jenkins.url.toString(), oAuthConsumer);
 
         // Create a build and POST it to Bitbucket Server
-        OAuth1AccessToken userAccessToken = getAccessToken(user);
-
-        String jobBuildPostUrl = String.format("%s/job/%s/build", removeEnd(getBaseUrl(), "/"), job.name);
-        OAuthRequest postBuildStatusOAuthRequest = new OAuthRequest(Verb.POST, jobBuildPostUrl);
-        postBuildStatusOAuthRequest.addHeader("Accept", "application/json");
-        oAuthClient.execute(postBuildStatusOAuthRequest, userAccessToken);
+        job.scheduleBuild();
 
         // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
         RepositoryBuildsPage repositoryBuildsPage =
@@ -525,28 +516,6 @@ public class SmokeTest extends AbstractJUnitTest {
 
     private static BuildStatusMatcher successfulBuildWithKey(String key) {
         return new BuildStatusMatcher(key, "SUCCESSFUL");
-    }
-
-    private OAuth1AccessToken getAccessToken(User user) {
-        security.login(user);
-
-        OAuth1RequestToken requestToken = oAuthClient.getRequestToken();
-        assertNotNull(requestToken);
-        assertThat(requestToken.getToken(), not(isEmptyOrNullString()));
-
-        String authzUrl = oAuthClient.getAuthorizationUrl(requestToken);
-        String oAuthVerifier;
-        try {
-            oAuthVerifier = new OAuthAuthorizeTokenPage(jenkins, URI.create(authzUrl).toURL(), requestToken.getToken())
-                    .authorize();
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-
-        OAuth1AccessToken accessToken = oAuthClient.getAccessToken(requestToken, oAuthVerifier);
-        assertNotNull(accessToken);
-        assertThat(accessToken.getToken(), not(isEmptyOrNullString()));
-        return accessToken;
     }
 
     private String getBaseUrl() {
