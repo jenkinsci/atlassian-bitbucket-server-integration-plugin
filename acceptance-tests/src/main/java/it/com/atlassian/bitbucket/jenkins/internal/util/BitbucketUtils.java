@@ -1,14 +1,18 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
+import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.BitbucketScmConfig;
 import okhttp3.HttpUrl;
 import org.jenkinsci.test.acceptance.SshKeyPair;
 import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
+import org.jenkinsci.test.acceptance.po.Jenkins;
+import org.jenkinsci.test.acceptance.po.Job;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -17,6 +21,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_BUILD;
+import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 
 /**
  * Copied from {@code it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils} in the main module (under
@@ -111,6 +118,22 @@ public class BitbucketUtils {
                 .getBody();
 
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
+    }
+
+    public static Job createJobWithBitbucketScm(Jenkins jenkins, String bbsAdminCredsId, BitbucketSshKeyPair bbsSshCreds,
+                                                String serverId, BitbucketRepository repository) {
+        Job job = jenkins.jobs.create();
+        BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
+        bitbucketScm
+                .credentialsId(bbsAdminCredsId)
+                .sshCredentialsId(bbsSshCreds.getId())
+                .serverId(serverId)
+                .projectName(repository.getProject().getKey())
+                .repositoryName(repository.getSlug())
+                .anyBranch();
+        job.save();
+
+        return job;
     }
 
     /*

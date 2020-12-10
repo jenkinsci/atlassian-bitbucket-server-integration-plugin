@@ -38,7 +38,10 @@ import org.junit.rules.TemporaryFolder;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.net.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,14 +54,12 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.JENKINS_
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofMinutes;
 import static java.util.UUID.randomUUID;
-import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
 public class SmokeTest extends AbstractJUnitTest {
@@ -67,7 +68,7 @@ public class SmokeTest extends AbstractJUnitTest {
     private static final long FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES = 1L;
     private static final String MASTER_BRANCH_NAME = "master";
     private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
-    private BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
+    private final BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
 
     private URL applinkUrl;
     private String bbsAdminCredsId;
@@ -155,23 +156,12 @@ public class SmokeTest extends AbstractJUnitTest {
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
 
         user = security.newUser();
-
         security.addGlobalPermissions(ImmutableMap.of(
                 user, perms -> perms.on(OVERALL_READ)
         ));
 
         // Configure job and give user permissions to run a build
-        job = jenkins.jobs.create();
-        BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
-        bitbucketScm
-                .credentialsId(bbsAdminCredsId)
-                .sshCredentialsId(bbsSshCreds.getId())
-                .serverId(serverId)
-                .projectName(forkRepo.getProject().getKey())
-                .repositoryName(forkRepo.getSlug())
-                .anyBranch();
-        job.save();
-
+        job = createJobWithBitbucketScm(jenkins, bbsAdminCredsId, bbsSshCreds, serverId, forkRepo);
         security.addProjectPermissions(job, ImmutableMap.of(
                 user, perms -> perms.on(ITEM_BUILD, ITEM_READ)
         ));
@@ -183,7 +173,8 @@ public class SmokeTest extends AbstractJUnitTest {
         job.scheduleBuild();
 
         // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
-        RepositoryBuildsPage repositoryBuildsPage = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage repositoryBuildsPage =
+                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
         List<BuildResultRow> buildRows = getBuildRowsFromBuildsPage(repositoryBuildsPage);
         assertEquals(1, buildRows.size());
         AuthorizeBuildServerModal authorizeBuildServerModal = buildRows.get(0).openBuildActions().clickAuthorize();
@@ -202,7 +193,8 @@ public class SmokeTest extends AbstractJUnitTest {
 
         BITBUCKET.getTester().gotoUrl(driver.getCurrentUrl());
 
-        RepositoryBuildsPage buildsPageAfterAuthorization = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage buildsPageAfterAuthorization =
+                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
 
         job.visit("");
         int buildCount = job.getLastBuild().getNumber();
@@ -220,15 +212,7 @@ public class SmokeTest extends AbstractJUnitTest {
         Poller.waitUntilTrue(buildsPageAfterAuthorization.getActionSuccessfulFlag(job.getJson().get("fullName").textValue(), "ScheduleBuildAction").timed().isVisible());
         waitFor()
                 .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
-                .until(ignored -> { return (buildCount + 1) == job.getLastBuild().getNumber(); });
-    }
-
-    private String getRequestTokenFromEncodedUrl(String url) throws URISyntaxException {
-        return new URIBuilder(url)
-                .getQueryParams()
-                .stream()
-                .filter(queryParam -> queryParam.getName().equals("oauth_token"))
-                .findFirst().get().getValue();
+                .until(ignored -> { return buildCount + 1 == job.getLastBuild().getNumber(); });
     }
 
     @Test
@@ -435,6 +419,14 @@ public class SmokeTest extends AbstractJUnitTest {
         workflowJob.save();
 
         runFullBuildFlow(workflowJob);
+    }
+
+    private String getRequestTokenFromEncodedUrl(String url) throws URISyntaxException {
+        return new URIBuilder(url)
+                .getQueryParams()
+                .stream()
+                .filter(queryParam -> queryParam.getName().equals("oauth_token"))
+                .findFirst().get().getValue();
     }
 
     private void runFullBuildFlow(BitbucketScmWorkflowJob workflowJob) throws IOException, GitAPIException {
