@@ -1,10 +1,6 @@
 package it.com.atlassian.bitbucket.jenkins.internal;
 
-import com.atlassian.bitbucket.async.AsyncTestUtils;
-import com.atlassian.bitbucket.async.WaitCondition;
-import com.atlassian.bitbucket.build.BuildState;
 import com.atlassian.pageobjects.TestedProductFactory;
-import com.atlassian.pageobjects.browser.Browser;
 import com.atlassian.pageobjects.elements.query.Poller;
 import com.atlassian.webdriver.bitbucket.BitbucketTestedProduct;
 import com.atlassian.webdriver.bitbucket.element.builds.ActionItem;
@@ -13,7 +9,6 @@ import com.atlassian.webdriver.bitbucket.element.builds.BuildResultRow;
 import com.atlassian.webdriver.bitbucket.page.BitbucketLoginPage;
 import com.atlassian.webdriver.bitbucket.page.DashboardPage;
 import com.atlassian.webdriver.bitbucket.page.builds.RepositoryBuildsPage;
-import com.atlassian.webdriver.pageobjects.WebDriverTester;
 import com.github.scribejava.core.model.OAuth1AccessToken;
 import com.github.scribejava.core.model.OAuth1RequestToken;
 import com.github.scribejava.core.model.OAuthRequest;
@@ -28,6 +23,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthCons
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -42,15 +38,11 @@ import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshPrivateKeyCreden
 import org.jenkinsci.test.acceptance.po.*;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-import org.openqa.selenium.WebDriver;
 
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.net.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,9 +62,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
-import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
 public class SmokeTest extends AbstractJUnitTest {
@@ -205,7 +197,8 @@ public class SmokeTest extends AbstractJUnitTest {
         oAuthClient.execute(postBuildStatusOAuthRequest, userAccessToken);
 
         // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
-        RepositoryBuildsPage repositoryBuildsPage = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage repositoryBuildsPage =
+                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
         List<BuildResultRow> buildRows = getBuildRowsFromBuildsPage(repositoryBuildsPage);
         assertEquals(1, buildRows.size());
         AuthorizeBuildServerModal authorizeBuildServerModal = buildRows.get(0).openBuildActions().clickAuthorize();
@@ -214,13 +207,15 @@ public class SmokeTest extends AbstractJUnitTest {
         LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
         oAuthLoginPage.load().login(user);
 
-        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL()).authorize();
+        String requestTokenForAuthorizePage = getRequestTokenFromEncodedUrl(driver.getCurrentUrl());
+        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), requestTokenForAuthorizePage).authorize();
 
         BITBUCKET.getTester().gotoUrl(driver.getCurrentUrl());
 
         // TODO comment explaining this...
 
-        RepositoryBuildsPage buildsPageAfterAuthorization = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage buildsPageAfterAuthorization =
+                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
 
         job.visit("");
         int buildCount = job.getLastBuild().getNumber();
@@ -239,7 +234,15 @@ public class SmokeTest extends AbstractJUnitTest {
         waitFor()
                 .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
                 .until(ignored -> { return (buildCount + 1) == job.getLastBuild().getNumber(); });
-        }
+    }
+
+    private String getRequestTokenFromEncodedUrl(String url) throws URISyntaxException {
+        return new URIBuilder(url)
+                .getQueryParams()
+                .stream()
+                .filter(queryParam -> queryParam.getName().equals("oauth_token"))
+                .findFirst().get().getValue();
+    }
 
     @Test
     public void testFullBuildFlowWithFreeStyleJob() throws IOException, GitAPIException {
@@ -466,7 +469,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
     }
 
-    private List<BuildResultRow>  getBuildRowsFromBuildsPage(RepositoryBuildsPage repositoryBuildsPage) {
+    private List<BuildResultRow> getBuildRowsFromBuildsPage(RepositoryBuildsPage repositoryBuildsPage) {
         return waitFor()
                 .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
                 .withMessage("Timed out while waiting for build statuses to show in Bitbucket builds page")
@@ -489,12 +492,12 @@ public class SmokeTest extends AbstractJUnitTest {
                 .until(ignored -> {
                     Response response = RestAssured
                             .given()
-                                .log()
-                                .ifValidationFails()
-                                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                                .contentType(JSON)
+                            .log()
+                            .ifValidationFails()
+                            .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                            .contentType(JSON)
                             .when()
-                                .get(BITBUCKET_BASE_URL + "/rest/build-status/latest/commits/" + commitId);
+                            .get(BITBUCKET_BASE_URL + "/rest/build-status/latest/commits/" + commitId);
                     if (response.getStatusCode() != 200) {
                         return null;
                     }
