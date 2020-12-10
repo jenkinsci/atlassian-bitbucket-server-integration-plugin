@@ -9,10 +9,6 @@ import com.atlassian.webdriver.bitbucket.element.builds.BuildResultRow;
 import com.atlassian.webdriver.bitbucket.page.BitbucketLoginPage;
 import com.atlassian.webdriver.bitbucket.page.DashboardPage;
 import com.atlassian.webdriver.bitbucket.page.builds.RepositoryBuildsPage;
-import com.github.scribejava.core.model.OAuth1AccessToken;
-import com.github.scribejava.core.model.OAuth1RequestToken;
-import com.github.scribejava.core.model.OAuthRequest;
-import com.github.scribejava.core.model.Verb;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
@@ -157,7 +153,6 @@ public class SmokeTest extends AbstractJUnitTest {
     public void testRunBuildActionWtihFreestlyeJob() throws Exception {
         JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
-        oAuthClient = new JenkinsOAuthClient(getBaseUrl(), oAuthConsumer.getKey(), oAuthConsumer.getSecret());
 
         user = security.newUser();
 
@@ -188,25 +183,26 @@ public class SmokeTest extends AbstractJUnitTest {
         job.scheduleBuild();
 
         // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
-        RepositoryBuildsPage repositoryBuildsPage =
-                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage repositoryBuildsPage = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
         List<BuildResultRow> buildRows = getBuildRowsFromBuildsPage(repositoryBuildsPage);
         assertEquals(1, buildRows.size());
         AuthorizeBuildServerModal authorizeBuildServerModal = buildRows.get(0).openBuildActions().clickAuthorize();
         authorizeBuildServerModal.getAuthorizeLink().click();
 
+        // This weird behaviour where a Jenkins LoginPage is created using the Bitbucket webdriver URL is a result of two
+        // independent web drivers being used for this test. The Bitbucket browser is not logged into Jenkins and vice versa.
+        // So the creation of page objects for one browser requires state from the other. This is not ideal and we intend to
+        // have just one web driver in future.
         LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
         oAuthLoginPage.load().login(user);
 
         String requestTokenForAuthorizePage = getRequestTokenFromEncodedUrl(driver.getCurrentUrl());
-        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), requestTokenForAuthorizePage).authorize();
+        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), requestTokenForAuthorizePage)
+                .authorize();
 
         BITBUCKET.getTester().gotoUrl(driver.getCurrentUrl());
 
-        // TODO comment explaining this...
-
-        RepositoryBuildsPage buildsPageAfterAuthorization =
-                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
+        RepositoryBuildsPage buildsPageAfterAuthorization = BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
 
         job.visit("");
         int buildCount = job.getLastBuild().getNumber();
