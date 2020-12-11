@@ -23,6 +23,7 @@
         <groovy.version>2.4.12</groovy.version>
         <commons-lang3.version>3.10</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
+        <log4j.version>1.7.25</log4j.version>
         <rest-assured.version>3.0.7</rest-assured.version>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -44,12 +45,21 @@
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
             <version>${jenkins.acceptance-test-harness.version}</version>
+            <!-- This exlcusion is to prevent a log4j delegation loop (http://www.slf4j.org/codes.html#log4jDelegationLoop)
+            The acceptance test harness pulls in sl4j-log4j as a dependency which redirects calls made to an SLF4J logger to log4j.
+            com.atlassian.bitbucket.server:bitbucket-page-objects pulls in log4j-over-slf4j which does the opposite. This delegation
+            loop immediately results in a stackoverflow error if left untreated.-->
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
