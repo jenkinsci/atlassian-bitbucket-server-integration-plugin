@@ -14,7 +14,7 @@
           </j:otherwise>
         </j:choose>
     </f:entry>
-    <f:entry field="sharedSecret" title="${%bitbucket.oauth.shared.secret}">
+    <f:entry field="consumerSecret" title="${%bitbucket.oauth.shared.secret}">
         <f:password value="${it.consumerSecret}"/>
     </f:entry>
     <f:entry field="callbackUrl" title="${%bitbucket.oauth.consumer.callback}">
