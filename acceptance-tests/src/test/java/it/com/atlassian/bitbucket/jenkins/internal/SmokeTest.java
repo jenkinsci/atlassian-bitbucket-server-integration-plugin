@@ -68,7 +68,6 @@ public class SmokeTest extends AbstractJUnitTest {
     private static final long FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES = 1L;
     private static final String MASTER_BRANCH_NAME = "master";
     private static final String REPOSITORY_CHECKOUT_DIR_NAME = "repositoryCheckout";
-    private final BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
 
     private URL applinkUrl;
     private String bbsAdminCredsId;
@@ -125,9 +124,6 @@ public class SmokeTest extends AbstractJUnitTest {
 
         // Fork repo
         forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, "fork-" + randomUUID());
-
-        // Log into Bitbucket
-        BITBUCKET.visit(BitbucketLoginPage.class).login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD, DashboardPage.class);
     }
 
     @After
@@ -152,6 +148,10 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Test
     public void testRunBuildActionWtihFreestlyeJob() throws Exception {
+        // Log into Bitbucket
+        BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
+        BITBUCKET.visit(BitbucketLoginPage.class).login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD, DashboardPage.class);
+
         JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
 
