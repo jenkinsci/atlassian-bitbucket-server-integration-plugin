@@ -186,12 +186,14 @@ public class SmokeTest extends AbstractJUnitTest {
         BitbucketAuthenticatedOAuthAuthorizeTokenPage authorizePage = new BitbucketAuthenticatedOAuthAuthorizeTokenPage(jenkins, bitbucketAuthorizeUrl);
         authorizePage.authorize(BITBUCKET_BASE_URL + redirectUrl);
 
+        job.visit("");
+        int previousBuildCount = job.getLastBuild().getNumber();
+
         // Run build through Bitbucket
-        Build previousBuild = job.getLastBuild();
         performAction(commitId);
         waitFor()
             .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
-            .until(ignored -> previousBuild.getNumber() + 1 == job.getLastBuild().getNumber());
+            .until(ignored -> previousBuildCount + 1 == job.getLastBuild().getNumber());
     }
 
     @Test
