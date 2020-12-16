@@ -252,6 +252,11 @@ public class BitbucketUtils {
                     .delete(applicationLinkUrl);
     }
 
+    public static String getInternalCommitUrl(BitbucketRepository repository, String commitId) {
+        return BITBUCKET_BASE_URL + "/rest/ui/latest/projects/" + repository.getProject().getKey() + "/repos/" +
+               repository.getSlug() + "/commits/" + commitId;
+    }
+
     public static void deletePersonalAccessToken(String tokenId) {
         RestAssured
                 .given()

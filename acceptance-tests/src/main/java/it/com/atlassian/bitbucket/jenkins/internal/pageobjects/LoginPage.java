@@ -24,7 +24,7 @@ public class LoginPage extends PageObject {
 
     private static final By usernameBy = By.name("j_username");
     private static final By passwordBy = By.name("j_password");
-    private static final By submitBy = By.name("Submit");
+    private static final By submitBy = By.cssSelector("[type=submit]");
 
     /**
      * Time to wait for the login form (elements) to load
