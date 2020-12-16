@@ -10,6 +10,8 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthCons
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -51,6 +53,7 @@ import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.util.StringUtils.trimTrailingCharacter;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
 public class SmokeTest extends AbstractJUnitTest {
@@ -139,8 +142,8 @@ public class SmokeTest extends AbstractJUnitTest {
     @Test
     public void testRunBuildActionWtihFreestlyeJob() throws Exception {
         // Log into Bitbucket
-//        BitbucketTestedProduct BITBUCKET = TestedProductFactory.create(BitbucketTestedProduct.class);
-//        BITBUCKET.visit(BitbucketLoginPage.class).login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD, DashboardPage.class);
+        LoginPage loginPage = new LoginPage(jenkins, BITBUCKET_BASE_URL);
+        loginPage.load().login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
 
         JenkinsApplinksClient applinksClient = new JenkinsApplinksClient(getBaseUrl());
         OAuthConsumer oAuthConsumer = applinksClient.createOAuthConsumer();
@@ -163,60 +166,32 @@ public class SmokeTest extends AbstractJUnitTest {
         job.scheduleBuild();
 
         // Visit the builds page in Bitbucket Server and authorize against Jenkins as user
-//        RepositoryBuildsPage repositoryBuildsPage =
-//                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
-        Response getBuildOperationsResponse = getBuildOperations(job);
+        String commitId = "0a943a29376f2336b78312d99e65da17048951db";
+        fetchBuildStatusesFromBitbucket(commitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(getBuildKey(job))));
 
-        boolean isAuthorizationRequired = getBuildOperationsResponse.jsonPath().getBoolean("isAuthorizationRequired");
-        List<Object> actions = getBuildOperationsResponse.jsonPath().getList("actions");
-        assertTrue(isAuthorizationRequired);
-        assertEquals(0, actions.size());
+        // Assert that we need to authorize
+        Response getBuildOperationsResponse = getBuildOperations(commitId);
+        assertTrue(getBuildOperationsResponse.jsonPath().getBoolean("isAuthorizationRequired"));
+        assertEquals(0, getBuildOperationsResponse.jsonPath().getList("actions").size());
 
-        LoginPage loginPage = new LoginPage(jenkins, BITBUCKET_BASE_URL);
-        loginPage.load().login(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD);
+        // perform oauth dance
+        String buildServerId = trimTrailingCharacter(jenkins.url("").toString(), '/');
+        String redirectUrl = "/dashboard";
+        URL bitbucketAuthorizeUrl = new URIBuilder(BITBUCKET_BASE_URL + "/rest/ui/latest/build-server/authorize")
+                .addParameter("callbackUrl", redirectUrl)
+                .addParameter("buildServerId", buildServerId)
+                .build()
+                .toURL();
+        BitbucketAuthenticatedOAuthAuthorizeTokenPage authorizePage = new BitbucketAuthenticatedOAuthAuthorizeTokenPage(jenkins, bitbucketAuthorizeUrl);
+        authorizePage.authorize(BITBUCKET_BASE_URL + redirectUrl);
 
-//        List<BuildResultRow> buildRows = getBuildRowsFromBuildsPage(repositoryBuildsPage);
-//        assertEquals(1, buildRows.size());
-//        AuthorizeBuildServerModal authorizeBuildServerModal = buildRows.get(0).openBuildActions().clickAuthorize();
-//        authorizeBuildServerModal.getAuthorizeLink().click();
-//
-//        // This weird behaviour where a Jenkins LoginPage is created using the Bitbucket webdriver URL is a result of two
-//        // independent web drivers being used for this test. The Bitbucket browser is not logged into Jenkins and vice versa.
-//        // So the creation of page objects for one browser requires state from the other. This is not ideal and we intend to
-//        // have just one web driver in future.
-//        LoginPage oAuthLoginPage = new LoginPage(jenkins, BITBUCKET.getTester().getDriver().getCurrentUrl());
-//        oAuthLoginPage.load().login(user);
-//
-//        String requestTokenForAuthorizePage = getRequestTokenFromEncodedUrl(driver.getCurrentUrl());
-//        new OAuthAuthorizeTokenPage(jenkins, URI.create(driver.getCurrentUrl()).toURL(), requestTokenForAuthorizePage)
-//                .authorize();
-//
-//        BITBUCKET.getTester().gotoUrl(driver.getCurrentUrl());
-//
-//        RepositoryBuildsPage buildsPageAfterAuthorization =
-//                BITBUCKET.visit(RepositoryBuildsPage.class, forkRepo.getProject().getKey(), forkRepo.getSlug(), null);
-//
-//        job.visit();
-//        int buildCount = job.getLastBuild().getNumber();
-//
-//        ActionItem buildAction = getBuildRowsFromBuildsPage(buildsPageAfterAuthorization)
-//                .get(0)
-//                .openBuildActions()
-//                .getActions()
-//                .stream()
-//                .filter(action -> "Build now".equals(action.getName()))
-//                .findFirst().orElseThrow(() -> new AssertionError("No Build now action present"));
-//        buildAction
-//                .click();
-//
-//        Poller.waitUntilTrue(buildsPageAfterAuthorization.getActionSuccessfulFlag(getBuildKey(job), "ScheduleBuildAction").timed().isVisible());
-//        waitFor()
-//                .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
-//                .until(ignored -> { return buildCount + 1 == job.getLastBuild().getNumber(); });
-    }
-
-    private String getBuildKey(Job job) {
-        return job.getJson().get("fullName").textValue();
+        // Run build through Bitbucket
+        Build previousBuild = job.getLastBuild();
+        performAction(commitId);
+        waitFor()
+            .withTimeout(ofMinutes(BUILD_START_TIMEOUT_MINUTES))
+            .until(ignored -> previousBuild.getNumber() + 1 == job.getLastBuild().getNumber());
     }
 
     @Test
@@ -247,7 +222,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
         // Verify BB has received build status
         fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
-                assertThat(status, successfulBuildWithKey(freeStyleJob.getLastBuild().job.name)));
+                assertThat(status, successfulBuildWithKey(getBuildKey(freeStyleJob))));
     }
 
     @Test
@@ -425,6 +400,19 @@ public class SmokeTest extends AbstractJUnitTest {
         runFullBuildFlow(workflowJob);
     }
 
+    private static String getBuildKey(Job job) {
+        return job.getLastBuild().job.name;
+    }
+
+    private static String getInternalCommitUrl(BitbucketRepository repository, String commitId) {
+        return getInternalRepositoryUrl(repository) + "/commits/" + commitId;
+    }
+
+    private static String getInternalRepositoryUrl(BitbucketRepository repository) {
+        return BITBUCKET_BASE_URL + "/rest/ui/latest/projects/" + repository.getProject().getKey() + "/repos/" +
+               repository.getSlug();
+    }
+
     private String getRequestTokenFromEncodedUrl(String url) throws URISyntaxException {
         return new URIBuilder(url)
                 .getQueryParams()
@@ -449,29 +437,36 @@ public class SmokeTest extends AbstractJUnitTest {
 
         // Verify BB has received build status
         fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
-                assertThat(status, successfulBuildWithKey(workflowJob.getLastBuild().job.name)));
+                assertThat(status, successfulBuildWithKey(getBuildKey(workflowJob))));
     }
 
-    private Response getBuildOperations(Job repositoryBuildsPage) {
-        return waitFor()
-                .withTimeout(ofMinutes(FETCH_BITBUCKET_BUILD_STATUS_TIMEOUT_MINUTES))
-                .withMessage("Timed out while waiting for build statuses to show in Bitbucket builds page")
-                .until(ignored -> {
-                    try {
-                        return RestAssured
-                                .given()
-                                .log().ifValidationFails(LogDetail.ALL)
-                                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                                .header("Accept", JSON.getAcceptHeader())
-                                .expect()
-                                .statusCode(200)
-                                .when()
-                                .get(getInternalCommitUrl(forkRepo, "0a943a29376f2336b78312d99e65da17048951db") +
-                                     "/build-operations?key=" + getBuildKey(job));
-                    } catch (AssertionError e) {
-                        return null;
-                    }
-                });
+    private Response getBuildOperations(String commitId) {
+        return RestAssured
+                .given()
+                .log().ifValidationFails(LogDetail.ALL)
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .header("Accept", JSON.getAcceptHeader())
+                .expect()
+                .statusCode(200)
+                .when()
+                .get(getInternalCommitUrl(forkRepo, commitId) + "/build-operations?key=" + getBuildKey(job));
+    }
+
+    private Response performAction(String commitId) {
+        JSONObject body = new JSONObject();
+        body.put("id", "ScheduleBuildAction");
+        body.put("key", getBuildKey(job));
+        return RestAssured
+                .given()
+                .log().ifValidationFails(LogDetail.ALL)
+                .auth().preemptive().basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .header("Accept", JSON.getAcceptHeader())
+                .contentType("application/json")
+                .body(body)
+                .expect()
+                .statusCode(200)
+                .when()
+                .post(getInternalCommitUrl(forkRepo, commitId) + "/build-operations");
     }
 
     private List<Map<String, ?>> fetchBuildStatusesFromBitbucket(String commitId) {

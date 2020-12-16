@@ -1,6 +1,5 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
-import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -21,9 +20,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_BUILD;
-import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.ITEM_READ;
 
 /**
  * Copied from {@code it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils} in the main module (under
@@ -250,11 +246,6 @@ public class BitbucketUtils {
                     .statusCode(200)
                 .when()
                     .delete(applicationLinkUrl);
-    }
-
-    public static String getInternalCommitUrl(BitbucketRepository repository, String commitId) {
-        return BITBUCKET_BASE_URL + "/rest/ui/latest/projects/" + repository.getProject().getKey() + "/repos/" +
-               repository.getSlug() + "/commits/" + commitId;
     }
 
     public static void deletePersonalAccessToken(String tokenId) {
