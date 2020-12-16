@@ -43,6 +43,8 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
                 return processRefChangedEvent(request);
             case MIRROR_SYNCHRONIZED_EVENT:
                 return processMirrorSynchronizedEvent(request);
+            case PULL_REQUEST_EVENT:
+                return processPullRequestEvent(request);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("Event is not supported: " + eventKey);
@@ -96,6 +98,12 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
 
     private HttpResponse processRefChangedEvent(StaplerRequest request) {
         RefsChangedWebhookEvent event = parse(request, RefsChangedWebhookEvent.class);
+        webhookConsumer.process(event);
+        return org.kohsuke.stapler.HttpResponses.ok();
+    }
+
+    private HttpResponse processPullRequestEvent(StaplerRequest request) {
+        PullRequestWebhookEvent event = parse(request, PullRequestWebhookEvent.class);
         webhookConsumer.process(event);
         return org.kohsuke.stapler.HttpResponses.ok();
     }

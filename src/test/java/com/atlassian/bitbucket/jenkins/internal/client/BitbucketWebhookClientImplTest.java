@@ -12,6 +12,7 @@ import okio.Buffer;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -93,7 +94,7 @@ public class BitbucketWebhookClientImplTest {
         fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, requestBody, response);
 
         BitbucketWebhookRequest request = Builder
-                .aRequestFor(repoRefEvent, mirrorSyncEvent)
+                .aRequestFor(Arrays.asList(repoRefEvent, mirrorSyncEvent))
                 .withCallbackTo(url)
                 .name("WebhookName")
                 .withIsActive(true)

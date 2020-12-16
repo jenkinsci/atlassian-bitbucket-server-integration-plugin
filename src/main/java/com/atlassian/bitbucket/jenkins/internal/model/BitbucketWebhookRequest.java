@@ -1,9 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
@@ -58,10 +55,8 @@ public class BitbucketWebhookRequest {
             this.events = events;
         }
 
-        public static Builder aRequestFor(String event, String... events) {
-            Set<String> eventSet = new LinkedHashSet<>();
-            eventSet.add(event);
-            eventSet.addAll(asList(events));
+        public static Builder aRequestFor(Collection<String> events) {
+            Set<String> eventSet = new HashSet<>(events);
             return aRequestFor(eventSet);
         }
 

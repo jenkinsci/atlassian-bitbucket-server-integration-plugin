@@ -5,6 +5,7 @@ public enum BitbucketWebhookEvent {
     REPO_REF_CHANGE("repo:refs_changed"),
     MIRROR_SYNCHRONIZED_EVENT("mirror:repo_synchronized"),
     DIAGNOSTICS_PING_EVENT("diagnostics:ping"),
+    PULL_REQUEST_EVENT("pr:opened"),
     UNSUPPORTED("");
 
     private final String eventId;
