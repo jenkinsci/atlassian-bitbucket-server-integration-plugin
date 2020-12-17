@@ -1,7 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.provider.PullRequestStore;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -41,6 +43,9 @@ public class BitbucketWebhookConsumer {
 
     @Inject
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+
+    @Inject
+    private PullRequestStore pullRequestStore;
 
     void process(RefsChangedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
@@ -194,6 +199,16 @@ public class BitbucketWebhookConsumer {
             event.getActor().ifPresent(requestBuilder::actor);
 
             getJobs(refChangedDetails, requestBuilder);
+            Optional<BitbucketServerConfiguration> server = bitbucketPluginConfiguration.getValidServerList()
+                                                                                        .stream()
+                                                                                        .filter(serverConfig -> refChangedDetails.getRepository()
+                                                                                                                                 .getSelfLink()
+                                                                                                                                 .contains(serverConfig.getBaseUrl()))
+                                                                                        .findFirst();
+            if (server.isPresent()){
+                //need to do this for all config
+                pullRequestStore.addPullRequest(server.get().getId(), refChangedDetails.getRepository().getSlug(), event.getPullRequest().getFromRef().getRepository().getProject().getKey(), event.getPullRequest());
+            }
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }

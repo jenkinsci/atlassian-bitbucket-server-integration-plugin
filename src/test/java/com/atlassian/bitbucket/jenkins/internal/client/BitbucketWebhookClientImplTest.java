@@ -94,7 +94,7 @@ public class BitbucketWebhookClientImplTest {
         fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, requestBody, response);
 
         BitbucketWebhookRequest request = Builder
-                .aRequestFor(Arrays.asList(repoRefEvent, mirrorSyncEvent))
+                .aRequestFor(Arrays.asList(mirrorSyncEvent,repoRefEvent))
                 .withCallbackTo(url)
                 .name("WebhookName")
                 .withIsActive(true)

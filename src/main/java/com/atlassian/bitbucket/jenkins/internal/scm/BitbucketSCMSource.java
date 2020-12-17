@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.provider.PullRequestStore;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
@@ -502,6 +503,28 @@ public class BitbucketSCMSource extends SCMSource {
                                        @CheckForNull SCMHeadEvent<?> event,
                                        TaskListener listener) throws IOException, InterruptedException {
             super.retrieve(criteria, observer, event, listener);
+        }
+    }
+
+    //branchSource [so builds aren't grey, only show up after pr and commit]
+    private static class CompositeSCMCriteria implements SCMSourceCriteria {
+
+        private final SCMSourceCriteria delegate;
+        private final PullRequestStore pullRequestStore;
+
+        private CompositeSCMCriteria(SCMSourceCriteria delegate,
+                                     PullRequestStore pullRequestStore) {
+            this.delegate = delegate;
+            this.pullRequestStore = pullRequestStore;
+        }
+
+        @Override
+        public boolean isHead( SCMSourceCriteria.Probe probe,
+                               TaskListener taskListener) throws IOException {
+            if (delegate.isHead(probe, taskListener)){
+
+            }
+            return false;
         }
     }
 }
