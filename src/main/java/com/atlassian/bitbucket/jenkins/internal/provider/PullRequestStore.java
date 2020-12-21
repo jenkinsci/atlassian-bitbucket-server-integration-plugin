@@ -7,7 +7,7 @@ import com.google.inject.ImplementedBy;
 @ImplementedBy(PullRequestStoreImpl.class)
 public interface PullRequestStore {
 
-    boolean hasOpenPullRequests (String branchName, BitbucketSCMRepository repository);
+    void addPullRequest(String serverId, String repository, String project, BitbucketPullRequest pullRequest);
 
-    void addPullRequest (String serverId, String repository, String project, BitbucketPullRequest pullRequest);
+    boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository);
 }

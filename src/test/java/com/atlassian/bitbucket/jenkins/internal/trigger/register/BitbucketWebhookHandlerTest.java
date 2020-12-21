@@ -66,7 +66,7 @@ public class BitbucketWebhookHandlerTest {
     public void testCorrectEventSubscription() {
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).build());
 
-        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
         verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
         verify(webhookClient, never()).deleteWebhook(anyInt());
@@ -212,7 +212,7 @@ public class BitbucketWebhookHandlerTest {
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
 
-        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
         verify(webhookClient).registerWebhook(any(BitbucketWebhookRequest.class));
         verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));

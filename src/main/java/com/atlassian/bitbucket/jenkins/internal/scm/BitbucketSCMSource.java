@@ -230,7 +230,8 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
+        gitSCMSource.accessibleRetrieve( criteria, observer, event, listener);
+
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
@@ -247,7 +248,7 @@ public class BitbucketSCMSource extends SCMSource {
                 bitbucketSCMRepository.getCredentialsId() : bitbucketSCMRepository.getSshCredentialsId();
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl());
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
         gitSCMSource.setTraits(traits);
         gitSCMSource.setCredentialsId(credentialsId);
     }
@@ -493,10 +494,13 @@ public class BitbucketSCMSource extends SCMSource {
      * <p>
      * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
      */
-    private static class CustomGitSCMSource extends GitSCMSource {
+    static class CustomGitSCMSource extends GitSCMSource {
+        private BitbucketSCMRepository repository;
 
-        public CustomGitSCMSource(String remote) {
+
+        public CustomGitSCMSource(String remote, BitbucketSCMRepository repository) {
             super(remote);
+            this.repository = repository;
         }
 
         public void accessibleRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
@@ -504,27 +508,10 @@ public class BitbucketSCMSource extends SCMSource {
                                        TaskListener listener) throws IOException, InterruptedException {
             super.retrieve(criteria, observer, event, listener);
         }
-    }
 
-    //branchSource [so builds aren't grey, only show up after pr and commit]
-    private static class CompositeSCMCriteria implements SCMSourceCriteria {
-
-        private final SCMSourceCriteria delegate;
-        private final PullRequestStore pullRequestStore;
-
-        private CompositeSCMCriteria(SCMSourceCriteria delegate,
-                                     PullRequestStore pullRequestStore) {
-            this.delegate = delegate;
-            this.pullRequestStore = pullRequestStore;
-        }
-
-        @Override
-        public boolean isHead( SCMSourceCriteria.Probe probe,
-                               TaskListener taskListener) throws IOException {
-            if (delegate.isHead(probe, taskListener)){
-
-            }
-            return false;
+        public BitbucketSCMRepository getRepository() {
+            return repository;
         }
     }
+
 }

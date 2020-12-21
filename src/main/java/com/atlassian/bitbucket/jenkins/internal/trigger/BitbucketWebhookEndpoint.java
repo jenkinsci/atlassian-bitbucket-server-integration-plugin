@@ -43,7 +43,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
                 return processRefChangedEvent(request);
             case MIRROR_SYNCHRONIZED_EVENT:
                 return processMirrorSynchronizedEvent(request);
-            case PULL_REQUEST_EVENT:
+            case PULL_REQUEST_OPENED_EVENT:
                 return processPullRequestEvent(request);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
