@@ -230,7 +230,7 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        gitSCMSource.accessibleRetrieve( criteria, observer, event, listener);
+        gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
 
     }
 
@@ -495,8 +495,8 @@ public class BitbucketSCMSource extends SCMSource {
      * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
      */
     static class CustomGitSCMSource extends GitSCMSource {
-        private BitbucketSCMRepository repository;
 
+        private BitbucketSCMRepository repository;
 
         public CustomGitSCMSource(String remote, BitbucketSCMRepository repository) {
             super(remote);
