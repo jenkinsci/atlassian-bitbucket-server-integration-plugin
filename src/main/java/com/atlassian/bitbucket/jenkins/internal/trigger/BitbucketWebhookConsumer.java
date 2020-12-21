@@ -67,7 +67,7 @@ public class BitbucketWebhookConsumer {
         triggerJob(event, refChangedDetails);
     }
 
-    void process(PullRequestWebhookEvent event){
+    void process(PullRequestWebhookEvent event) {
         LOGGER.fine(format("Received pull request event"));
         // TODO: Can we do eligible refs? For now building everything
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
@@ -182,7 +182,7 @@ public class BitbucketWebhookConsumer {
         return true;
     }
 
-    private void getJobs(RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder){
+    private void getJobs(RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
         Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                 .stream()
                 .map(BitbucketWebhookConsumer::toTriggerDetails)
@@ -205,7 +205,7 @@ public class BitbucketWebhookConsumer {
                                                                                                                                  .getSelfLink()
                                                                                                                                  .contains(serverConfig.getBaseUrl()))
                                                                                         .findFirst();
-            if (server.isPresent()){
+            if (server.isPresent()) {
                 //need to do this for all config
                 pullRequestStore.addPullRequest(server.get().getId(), refChangedDetails.getRepository().getSlug(),
                         event.getPullRequest().getFromRef().getRepository().getProject().getKey(), event.getPullRequest());

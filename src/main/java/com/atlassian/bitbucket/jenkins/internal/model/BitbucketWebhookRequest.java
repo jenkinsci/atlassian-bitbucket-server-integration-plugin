@@ -1,12 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.*;
 
-import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 public class BitbucketWebhookRequest {
@@ -31,8 +29,12 @@ public class BitbucketWebhookRequest {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         BitbucketWebhookRequest that = (BitbucketWebhookRequest) o;
         return isActive == that.isActive &&
                Objects.equals(configuration, that.configuration) &&
