@@ -93,7 +93,7 @@ public class RetryingWebhookHandlerIT {
                 webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
@@ -105,7 +105,7 @@ public class RetryingWebhookHandlerIT {
                 webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
