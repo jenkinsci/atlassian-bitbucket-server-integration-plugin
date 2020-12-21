@@ -86,6 +86,8 @@ public class BitbucketWebhookClientImplTest {
         String response = readFileToString("/webhook/webhook_created_response.json");
         String url = "www.example.com";
         String requestBody = readFileToString("/webhook/webhook_creation_request.json");
+        BitbucketWebhookRequest bitbucketWebhookRequest =
+                OBJECT_MAPPER.readValue(requestBody, BitbucketWebhookRequest.class);
         String registerUrl =
                 format(WEBHOOK_URL,
                         BITBUCKET_BASE_URL,
@@ -106,7 +108,9 @@ public class BitbucketWebhookClientImplTest {
         Request recordedRequest = fakeRemoteHttpServer.getRequest(registerUrl);
         Buffer b = new Buffer();
         recordedRequest.body().writeTo(b);
-        assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
+        BitbucketWebhookRequest recordedWebhookRequest =
+                OBJECT_MAPPER.readValue(requestBody, BitbucketWebhookRequest.class);
+        assertEquals("Request body not same as expected.", bitbucketWebhookRequest, recordedWebhookRequest);
     }
 
     @Test

@@ -1,5 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -13,12 +17,33 @@ public class BitbucketWebhookRequest {
     private final String url;
     private final boolean isActive;
 
-    protected BitbucketWebhookRequest(String name, Set<String> events, String url, boolean isActive) {
+    @JsonCreator
+    protected BitbucketWebhookRequest(@JsonProperty("name") String name,
+                                      @JsonProperty("events") Set<String> events,
+                                      @JsonProperty("url") String url,
+                                      @JsonProperty("active") boolean isActive) {
         this.name = name;
         this.events = events;
         this.url = url;
         this.isActive = isActive;
         configuration = Collections.singletonMap("createdBy", "jenkins");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+        BitbucketWebhookRequest that = (BitbucketWebhookRequest) o;
+        return isActive == that.isActive &&
+               Objects.equals(configuration, that.configuration) &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(events, that.events) &&
+               Objects.equals(url, that.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(configuration, name, events, url, isActive);
     }
 
     public Map<String, String> getConfiguration() {
