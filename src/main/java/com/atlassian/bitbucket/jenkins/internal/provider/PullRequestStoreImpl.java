@@ -19,8 +19,10 @@ public class PullRequestStoreImpl implements PullRequestStore {
     }
 
     @Override
-    public void addPullRequest(String serverId, String repository, String project, BitbucketPullRequest pullRequest) {
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(project, repository, serverId);
+    public void addPullRequest(String serverId, BitbucketPullRequest pullRequest) {
+        PullRequestStoreImpl.CacheKey cacheKey =
+                new PullRequestStoreImpl.CacheKey(pullRequest.getToRef().getRepository().getProject().getKey(),
+                pullRequest.getToRef().getRepository().getSlug(), serverId);
         pullRequests.computeIfAbsent(cacheKey, key -> {
             return new ConcurrentLinkedQueue<BitbucketPullRequest>();
             }).add(pullRequest);

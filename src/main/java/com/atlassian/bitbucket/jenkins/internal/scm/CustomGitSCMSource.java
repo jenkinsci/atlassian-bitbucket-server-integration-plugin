@@ -10,8 +10,11 @@ import javax.annotation.CheckForNull;
 import java.io.IOException;
 
 /**
- * This class exists to work around the following issue: we do not want to re-implement the retrieve found in the
- * {@link GitSCMSource}, however it is protected so we can't access it from our class.
+ * This class exists to work around the following issue:
+ * 1. we do not want to re-implement the retrieve found in the {@link GitSCMSource},
+ * however it is protected so we can't access it from our class.
+ * 2. in SelectBranchTrait, we require access to the repository and SelectBranchTrait can't use BitbucketSCMSource's selectTrait
+ * since it is not implemented
  * <p>
  * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
  * ---- also need repo in select branch trait

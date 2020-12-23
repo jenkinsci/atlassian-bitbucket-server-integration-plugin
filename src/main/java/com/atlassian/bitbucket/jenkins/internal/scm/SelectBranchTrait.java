@@ -46,7 +46,7 @@ public class SelectBranchTrait extends SCMSourceTrait {
 
         @Override
         public String getDisplayName() {
-            return "Only build on pull requests";
+            return "Only build branches with open pull requests";
         }
     }
 }

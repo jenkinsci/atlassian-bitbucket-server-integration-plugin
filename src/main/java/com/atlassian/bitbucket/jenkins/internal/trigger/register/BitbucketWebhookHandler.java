@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * The following assumptions is made while handling webhooks,
- * 1. Separate webhooks will be added for repo ref and mirror sync events
+ * 1. Separate webhooks will be added for repo ref, pull request opened events and mirror sync events
  * 2. Input name is unique across all jenkins instance and will not shared by any system. Wrong URL with the given name
  * will be corrected.
  * 3. The callback URL is unique to this instance. Wrong name for given callback will be corrected.
@@ -97,13 +97,13 @@ public class BitbucketWebhookHandler implements WebhookHandler {
 
     /**
      * Returns the correct webhook event to subscribe to.
-     *
+     * If webhook capability contains pull request opened event, subscribe to pr opened (regardless of mirror or ref change)
      * For Mirror sync event, the input request should point to mirror.
      * For Repo ref event,
      * 1. Input request does not point to mirrors
      * 2. If webhook capability does not contains mirror sync, we still subscribe to repo ref.
      *
-     * If the webhook capability is not there, we still subscribe to repo ref event.
+     * If the webhook capability is not there, we still subscribe to repo ref event and pull request opened event.
      *
      * @param request the input request
      * @return the correct webhook event

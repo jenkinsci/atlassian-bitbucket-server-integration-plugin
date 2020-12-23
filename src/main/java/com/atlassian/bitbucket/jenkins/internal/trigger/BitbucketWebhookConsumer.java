@@ -207,10 +207,9 @@ public class BitbucketWebhookConsumer {
                                                                                         .findFirst();
             if (server.isPresent()) {
                 //need to do this for all config
-                pullRequestStore.addPullRequest(server.get().getId(), refChangedDetails.getRepository().getSlug(),
-                        event.getPullRequest().getFromRef().getRepository().getProject().getKey(), event.getPullRequest());
+                pullRequestStore.addPullRequest(server.get().getId(), event.getPullRequest());
             }
-            BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
+            BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getToRef().getRepository().getSlug()));
         }
     }
 
@@ -234,7 +233,7 @@ public class BitbucketWebhookConsumer {
 
         @Override
         public String getSourceName() {
-            return getPayload().getPullRequest().getFromRef().getRepository().getName();
+            return getPayload().getPullRequest().getToRef().getRepository().getName();
         }
 
         @Override
@@ -243,7 +242,7 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
             BitbucketSCMSource src = (BitbucketSCMSource) source;
-            if (!matchingRepo(getPayload().getPullRequest().getFromRef().getRepository(), src.getBitbucketSCMRepository())) {
+            if (!matchingRepo(getPayload().getPullRequest().getToRef().getRepository(), src.getBitbucketSCMRepository())) {
                 return emptyMap();
             }
             ArrayList<BitbucketPullRef> refStream = new ArrayList<BitbucketPullRef>();
