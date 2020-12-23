@@ -85,7 +85,6 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .filter(hook -> hook.getName().equals(request.getName()))
                 .filter(hook -> hook.getUrl().equals(callback))
                 .filter(BitbucketWebhookRequest::isActive)
-                .filter(hook -> hook.getEvents().size() == 1)
                 .filter(hook -> {
                     Set<String> toSubscribeEventIds = toSubscribe.stream()
                             .map(BitbucketWebhookEvent::getEventId)
@@ -172,7 +171,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 handleExistingWebhook(request, webhookWithRepoRefChange, Collections.singleton(REPO_REF_CHANGE));
 
         BitbucketWebhook openPullResult =
-                handleExistingWebhook(request, webhookWithRepoRefChange, Collections.singleton(PULL_REQUEST_OPENED_EVENT));
+                handleExistingWebhook(request, webhookWithOpenPullRequest, Collections.singleton(PULL_REQUEST_OPENED_EVENT));
 
         if (mirrorSyncResult != null &&
             mirrorSyncResult.getEvents().containsAll(events.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet()))) {
@@ -187,7 +186,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                                                    List<BitbucketWebhook> existingWebhooks,
                                                    Collection<BitbucketWebhookEvent> toSubscribe) {
         BitbucketWebhook result = null;
-        if (existingWebhooks.size() > 0) {
+        if (!existingWebhooks.isEmpty()) {
             result = update(existingWebhooks, request, toSubscribe);
             existingWebhooks.remove(result);
             deleteWebhooks(existingWebhooks);
