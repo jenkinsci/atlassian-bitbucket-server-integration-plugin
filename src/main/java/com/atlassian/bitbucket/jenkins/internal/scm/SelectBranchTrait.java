@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.provider.PullRequestStore;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource.CustomGitSCMSource;
 import hudson.Extension;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;

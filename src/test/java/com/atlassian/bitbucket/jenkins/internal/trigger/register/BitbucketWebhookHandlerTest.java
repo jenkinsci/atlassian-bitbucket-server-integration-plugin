@@ -13,11 +13,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.*;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.PROJECT;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.REPO;
 import static java.util.Arrays.asList;
@@ -94,7 +95,7 @@ public class BitbucketWebhookHandlerTest {
                 new BitbucketWebhook(3, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, true);
         BitbucketWebhook event4 =
                 new BitbucketWebhook(4, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), JENKINS_URL, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())).thenReturn(asList(event1, event2, event3, event4).stream());
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())).thenReturn(asList(event1, event2, event3, event4).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).build());
 
@@ -116,7 +117,7 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhook event4 =
                 new BitbucketWebhook(4,
                         WEBHOOK_NAME + "123", singleton(MIRROR_SYNCHRONIZED_EVENT.getEventId()), EXPECTED_URL, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())).thenReturn(asList(event1, event2, event3, event4).stream());
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())).thenReturn(asList(event1, event2, event3, event4).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
 
@@ -129,8 +130,8 @@ public class BitbucketWebhookHandlerTest {
     @Test
     public void testSkipRegistrationIfPresentForRepoRef() {
         BitbucketWebhook event =
-                new BitbucketWebhook(1, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId()))
+                new BitbucketWebhook(1, WEBHOOK_NAME, new HashSet<>(asList(REPO_REF_CHANGE.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())), EXPECTED_URL, true);
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId()))
                 .thenReturn(asList(event).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).build());
@@ -146,7 +147,7 @@ public class BitbucketWebhookHandlerTest {
     public void testSkipRegistrationIfPresentForMirrors() {
         BitbucketWebhook event =
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(MIRROR_SYNCHRONIZED_EVENT.getEventId()), EXPECTED_URL, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId()))
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId()))
                 .thenReturn(asList(event).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
@@ -162,7 +163,7 @@ public class BitbucketWebhookHandlerTest {
     public void testSeperateWebhooksEvents() {
         BitbucketWebhook event =
                 new BitbucketWebhook(-1234, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())).thenReturn(asList(event).stream());
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())).thenReturn(asList(event).stream());
 
         BitbucketWebhook result = handler.register(getRequestBuilder().isMirror(true).build());
 
@@ -180,7 +181,7 @@ public class BitbucketWebhookHandlerTest {
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), wrongCallback, true);
         BitbucketWebhook event2 =
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(MIRROR_SYNCHRONIZED_EVENT.getEventId()), wrongCallback, true);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())).thenReturn(asList(event1, event2).stream());
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())).thenReturn(asList(event1, event2).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).build());
 
@@ -196,7 +197,7 @@ public class BitbucketWebhookHandlerTest {
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, false);
         BitbucketWebhook event2 =
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(MIRROR_SYNCHRONIZED_EVENT.getEventId()), EXPECTED_URL, false);
-        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())).thenReturn(asList(event1, event2).stream());
+        when(webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())).thenReturn(asList(event1, event2).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).build());
 
