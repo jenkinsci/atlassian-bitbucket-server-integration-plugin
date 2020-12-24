@@ -84,7 +84,7 @@ public class RetryingWebhookHandlerTest {
                 .thenReturn(t);
 
         BitbucketWebhook r =
-                retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository());
+                retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository(), true, false);
 
         assertThat(r, is(t));
         InOrder inOrder = Mockito.inOrder(provider);
@@ -95,7 +95,7 @@ public class RetryingWebhookHandlerTest {
     @Test(expected = WebhookRegistrationFailed.class)
     public void testFailures() {
         when(bitbucketWebhookClient.registerWebhook(any(BitbucketWebhookRequest.class))).thenThrow(AuthorizationException.class);
-        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository());
+        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository(), true, false);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class RetryingWebhookHandlerTest {
         BitbucketSCMRepository bitbucketSCMRepository = createSCMRepository();
         when(bitbucketWebhookClient.registerWebhook(any(BitbucketWebhookRequest.class))).thenReturn(t);
 
-        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         verify(bitbucketWebhookClient).registerWebhook(argThat((BitbucketWebhookRequest request) -> request.getName().equals(WEBHOOK_NAME)));
     }

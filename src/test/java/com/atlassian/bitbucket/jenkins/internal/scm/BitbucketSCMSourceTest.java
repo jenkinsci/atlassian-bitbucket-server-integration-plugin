@@ -128,21 +128,22 @@ public class BitbucketSCMSourceTest {
         verifyZeroInteractions(triggerDesc);
     }
 
-    @Test
-    public void testAfterSaveRegistersWebhookIfNotAlreadyRegistered() {
-        String credentialsId = "valid-credentials";
-        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
-        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
-        bitbucketSCMsource.setOwner(owner);
-        doReturn(true).when(bitbucketSCMsource).isValid();
-        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
-                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
-        doReturn(singletonList(triggerDesc)).when(bitbucketSCMsource).getTriggers(any());
-
-        bitbucketSCMsource.afterSave();
-
-        verify(triggerDesc).addTrigger(any(), same(bitbucketSCMsource));
-    }
+    // TODO: Replace with trigger test
+//    @Test
+//    public void testAfterSaveRegistersWebhookIfNotAlreadyRegistered() {
+//        String credentialsId = "valid-credentials";
+//        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+//        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+//        bitbucketSCMsource.setOwner(owner);
+//        doReturn(true).when(bitbucketSCMsource).isValid();
+//        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
+//                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
+//        doReturn(singletonList(triggerDesc)).when(bitbucketSCMsource).getTriggers(any());
+//
+//        bitbucketSCMsource.afterSave();
+//
+//        verify(triggerDesc).addTrigger(any(), same(bitbucketSCMsource));
+//    }
 
     private BitbucketSCMSource createInstance(String credentialId) {
         return createInstance(credentialId, null);

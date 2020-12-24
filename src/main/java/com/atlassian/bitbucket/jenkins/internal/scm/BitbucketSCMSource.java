@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
@@ -8,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchPRTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
@@ -147,9 +149,30 @@ public class BitbucketSCMSource extends SCMSource {
         if (!webhookRegistered && isValid()) {
             SCMSourceOwner owner = getOwner();
             if (owner instanceof ComputedFolder) {
-                getTriggers((ComputedFolder<?>) owner)
-                        .forEach(triggerDesc ->
-                                webhookRegistered = triggerDesc.addTrigger(owner, this));
+                // TODO: Can this be offloaded to a new class?
+                ComputedFolder computedFolder = (ComputedFolder) owner;
+                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+                try {
+                    BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.bitbucketPluginConfiguration
+                            .getServerById(getServerId())
+                            .orElseThrow(() -> new BitbucketClientException(
+                                    "Server config not found for input server id " + getServerId()));
+                    boolean containsPushTrigger = computedFolder.getTriggers()
+                            .keySet()
+                            .stream()
+                            .anyMatch(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance);
+                    boolean containsPRTrigger = computedFolder.getTriggers()
+                            .keySet()
+                            .stream()
+                            .anyMatch(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class::isInstance);
+                    descriptor.retryingWebhookHandler.register(
+                            bitbucketServerConfiguration.getBaseUrl(),
+                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
+                            repository, containsPushTrigger, containsPRTrigger);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
+                    throw ex;
+                }
             }
         }
     }

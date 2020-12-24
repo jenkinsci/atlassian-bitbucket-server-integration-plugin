@@ -109,6 +109,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * @return the correct webhook event
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
+        // TODO: use request.isTriggerOnPush and request.isTriggerOnPr to get the right events
         if (request.isMirror()) {
             try {
                 Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();

@@ -12,14 +12,17 @@ public class WebhookRegisterRequest {
     private final String name;
     private final String projectKey;
     private final String repoSlug;
+    private final boolean triggerOnPR;
+    private final boolean triggerOnPush;
 
-    private WebhookRegisterRequest(String projectKey, String repoSlug, String name, String jenkinsUrl,
-                                   boolean isMirror) {
-        this.projectKey = requireNonNull(projectKey);
-        this.repoSlug = requireNonNull(repoSlug);
-        this.name = requireNonNull(name);
-        this.jenkinsUrl = requireNonNull(jenkinsUrl);
-        this.isMirror = isMirror;
+    public WebhookRegisterRequest(Builder builder) {
+        this.projectKey = requireNonNull(builder.projectKey);
+        this.repoSlug = requireNonNull(builder.repoSlug);
+        this.name = requireNonNull(builder.serverId);
+        this.jenkinsUrl = requireNonNull(builder.jenkinsUrl);
+        this.isMirror = builder.isMirror;
+        this.triggerOnPush = builder.triggerOnPush;
+        this.triggerOnPR = builder.triggerOnPR;
     }
 
     public String getName() {
@@ -42,6 +45,14 @@ public class WebhookRegisterRequest {
         return isMirror;
     }
 
+    public boolean isTriggerOnPR() {
+        return triggerOnPR;
+    }
+
+    public boolean isTriggerOnPush() {
+        return triggerOnPush;
+    }
+
     public static class Builder {
 
         private final String projectKey;
@@ -49,6 +60,8 @@ public class WebhookRegisterRequest {
         private boolean isMirror;
         private String jenkinsUrl;
         private String serverId;
+        private boolean triggerOnPR;
+        private boolean triggerOnPush;
 
         private Builder(String projectKey, String repoSlug) {
             this.projectKey = projectKey;
@@ -60,11 +73,21 @@ public class WebhookRegisterRequest {
         }
 
         public WebhookRegisterRequest build() {
-            return new WebhookRegisterRequest(projectKey, repoSlug, serverId, jenkinsUrl, isMirror);
+            return new WebhookRegisterRequest(this);
         }
 
         public Builder isMirror(boolean isMirror) {
             this.isMirror = isMirror;
+            return this;
+        }
+
+        public Builder shouldTriggerOnPR(boolean triggerOnPR) {
+            this.triggerOnPR = triggerOnPR;
+            return this;
+        }
+
+        public Builder shouldTriggerOnPush(boolean triggerOnPush) {
+            this.triggerOnPush = triggerOnPush;
             return this;
         }
 

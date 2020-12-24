@@ -52,7 +52,8 @@ public class RetryingWebhookHandler {
 
     public BitbucketWebhook register(String bitbucketBaseUrl,
                                      GlobalCredentialsProvider globalCredentialsProvider,
-                                     BitbucketSCMRepository repository) {
+                                     BitbucketSCMRepository repository,
+                                     boolean triggerOnPush, boolean triggerOnPR) {
         if (isBlank(bitbucketBaseUrl)) {
             throw new IllegalArgumentException("Invalid Bitbucket base URL. Input - " + bitbucketBaseUrl);
         }
@@ -65,6 +66,8 @@ public class RetryingWebhookHandler {
                 .aRequest(repository.getProjectKey(), repository.getRepositorySlug())
                 .withJenkinsBaseUrl(jenkinsUrl)
                 .isMirror(repository.isMirrorConfigured())
+                .shouldTriggerOnPush(triggerOnPush)
+                .shouldTriggerOnPR(triggerOnPR)
                 .withName(instanceBasedNameGenerator.getUniqueName())
                 .build();
         String jobCredentials = repository.getCredentialsId();
@@ -101,7 +104,6 @@ public class RetryingWebhookHandler {
         }
     }
 
-    @Nullable
     private BitbucketWebhook registerWithRetry(
             String bitbucketUrl,
             GlobalCredentialsProvider globalCredentialsProvider,

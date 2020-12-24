@@ -78,9 +78,9 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
         BitbucketWebhook result1 =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
         BitbucketWebhook result2 =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         assertThat(result1.getId(), is(equalTo(result2.getId())));
     }
@@ -90,7 +90,7 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(nonAdminCredentials, nonAdminCredentials, adminCredentials);
 
         BitbucketWebhook result =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(2));
@@ -102,7 +102,7 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
         BitbucketWebhook result =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(2));

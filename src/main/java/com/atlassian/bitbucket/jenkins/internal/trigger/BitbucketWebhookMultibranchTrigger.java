@@ -1,11 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Item;
@@ -16,10 +11,7 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.Objects.requireNonNull;
 
 public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProject<?, ?>> {
 
@@ -65,32 +57,5 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
             return item instanceof MultiBranchProject;
         }
 
-        public boolean addTrigger(Item item, BitbucketSCMSource scm) {
-            try {
-                registerWebhook(item, scm.getBitbucketSCMRepository());
-                return true;
-            } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
-                throw ex;
-            }
-        }
-
-        private BitbucketServerConfiguration getServer(String serverId) {
-            return bitbucketPluginConfiguration
-                    .getServerById(serverId)
-                    .orElseThrow(() -> new BitbucketClientException(
-                            "Server config not found for input server id " + serverId));
-        }
-
-        private void registerWebhook(Item item, BitbucketSCMRepository repository) {
-            requireNonNull(repository.getServerId());
-            BitbucketServerConfiguration bitbucketServerConfiguration = getServer(repository.getServerId());
-
-            BitbucketWebhook webhook = retryingWebhookHandler.register(
-                    bitbucketServerConfiguration.getBaseUrl(),
-                    bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
-                    repository);
-            LOGGER.info("Webhook returned - " + webhook);
-        }
     }
 }
