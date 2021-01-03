@@ -15,9 +15,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.*;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
@@ -109,30 +107,30 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * @return the correct webhook event
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
-        // TODO: use request.isTriggerOnPush and request.isTriggerOnPr to get the right events
-        if (request.isMirror()) {
+        // TODO: logging for when some events are not supported
+        Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
+        if (request.isMirror() && request.isTriggerOnPush()) {
             try {
-                Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
                 BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
                 Set<String> hooks = events.getApplicationWebHooks();
-                if (hooks.contains(PULL_REQUEST_OPENED_EVENT.getEventId())) {
-                    supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
-                }
                 if (hooks.contains(MIRROR_SYNCHRONIZED_EVENT.getEventId())) {
                     supportedEvents.add(MIRROR_SYNCHRONIZED_EVENT);
                 } else if (hooks.contains(REPO_REF_CHANGE.getEventId())) {
                     supportedEvents.add(REPO_REF_CHANGE);
                 }
-
-                if (supportedEvents.isEmpty()) {
-                    throw new WebhookNotSupportedException("Remote server does not support the required events.");
-                }
-                return supportedEvents;
-            } catch (BitbucketMissingCapabilityException exception) {
-                //missing supported webhook capability follows through to return both REF_CHANGE and PR_OPENED
+            } catch (BitbucketMissingCapabilityException exception) { //version doesn't support webhooks but support ref change & pr
+                    supportedEvents.add(REPO_REF_CHANGE);
             }
+        } else if (request.isTriggerOnPush()) {
+            supportedEvents.add(REPO_REF_CHANGE);
         }
-        return Arrays.asList(REPO_REF_CHANGE, PULL_REQUEST_OPENED_EVENT);
+        if (request.isTriggerOnPR()) {
+            supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
+        }
+        if (supportedEvents.isEmpty()) {
+            throw new WebhookNotSupportedException("Remote server does not support the required events.");
+        }
+        return supportedEvents;
     }
 
     private BitbucketWebhook process(WebhookRegisterRequest request,

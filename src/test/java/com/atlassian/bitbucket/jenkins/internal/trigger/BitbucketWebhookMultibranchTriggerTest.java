@@ -36,28 +36,6 @@ public class BitbucketWebhookMultibranchTriggerTest {
         descriptor = new BitbucketWebhookMultibranchTrigger.DescriptorImpl(webhookHandler, pluginConfig);
     }
 
-    // TODO: Move test to BitbucketSCMSource test
-//    @Test
-//    public void testAddWebhook() {
-//        String serverId = "myServerId";
-//        MultiBranchProject project = new WorkflowMultiBranchProject(jenkins.jenkins, "name");
-//        String baseUrl = "http://example.com";
-//        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
-//        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
-//        BitbucketSCMRepository bbsRepo = mock(BitbucketSCMRepository.class);
-//
-//        when(scmSource.getBitbucketSCMRepository()).thenReturn(bbsRepo);
-//        when(pluginConfig.getServerById(serverId)).thenReturn(of(bbsConfig));
-//        when(bbsRepo.getServerId()).thenReturn(serverId);
-//        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
-//        when(bbsConfig.getGlobalCredentialsProvider(project)).thenReturn(credentialsProvider);
-//
-//        boolean result = descriptor.addTrigger(project, scmSource);
-//
-//        assertThat(result, is(true));
-//        verify(webhookHandler).register(baseUrl, credentialsProvider, bbsRepo, containsPushTrigger, containsPRTrigger);
-//    }
-
     @Test
     public void testIsApplicableForMultibranch() {
         BitbucketWebhookMultibranchTrigger.DescriptorImpl descriptor =

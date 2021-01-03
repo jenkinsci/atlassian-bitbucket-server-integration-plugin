@@ -132,7 +132,8 @@ public class BitbucketSCMSourceTest {
 //    @Test
 //    public void testAfterSaveRegistersWebhookIfNotAlreadyRegistered() {
 //        String credentialsId = "valid-credentials";
-//        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+//        String serverId = "server-id";
+//        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId, serverId));
 //        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
 //        bitbucketSCMsource.setOwner(owner);
 //        doReturn(true).when(bitbucketSCMsource).isValid();
@@ -142,7 +143,39 @@ public class BitbucketSCMSourceTest {
 //
 //        bitbucketSCMsource.afterSave();
 //
-//        verify(triggerDesc).addTrigger(any(), same(bitbucketSCMsource));
+////        verify(triggerDesc).addTrigger(any(), same(bitbucketSCMsource));
+//    }
+//
+//    @Test void testAfterSavePushTrigger() {
+//
+//    }
+//
+//    @Test void testAfterSavePRTrigger() {
+//
+//    }
+//
+//    @Test void testAfterSaveNoTrigger() {
+//
+//    }
+    // TODO: Move test to BitbucketSCMSource test
+//    public void testAddWebhook() {
+//        String serverId = "myServerId";
+//        MultiBranchProject project = new WorkflowMultiBranchProject(jenkins.jenkins, "name");
+//        String baseUrl = "http://example.com";
+//        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
+//        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
+//        BitbucketSCMRepository bbsRepo = mock(BitbucketSCMRepository.class);
+//
+//        when(scmSource.getBitbucketSCMRepository()).thenReturn(bbsRepo);
+//        when(pluginConfig.getServerById(serverId)).thenReturn(of(bbsConfig));
+//        when(bbsRepo.getServerId()).thenReturn(serverId);
+//        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
+//        when(bbsConfig.getGlobalCredentialsProvider(project)).thenReturn(credentialsProvider);
+//
+//        boolean result = scmSource.afterSave();
+//
+//        assertThat(result, is(true));
+//        verify(webhookHandler).register(baseUrl, credentialsProvider, bbsRepo, containsPushTrigger, containsPRTrigger);
 //    }
 
     private BitbucketSCMSource createInstance(String credentialId) {

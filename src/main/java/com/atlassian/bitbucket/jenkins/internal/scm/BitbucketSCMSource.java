@@ -153,8 +153,7 @@ public class BitbucketSCMSource extends SCMSource {
                 ComputedFolder computedFolder = (ComputedFolder) owner;
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
                 try {
-                    BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.bitbucketPluginConfiguration
-                            .getServerById(getServerId())
+                    BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                             .orElseThrow(() -> new BitbucketClientException(
                                     "Server config not found for input server id " + getServerId()));
                     boolean containsPushTrigger = computedFolder.getTriggers()
