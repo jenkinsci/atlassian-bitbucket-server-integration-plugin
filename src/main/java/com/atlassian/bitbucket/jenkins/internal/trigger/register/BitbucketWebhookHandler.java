@@ -169,14 +169,15 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         BitbucketWebhook repoRefResult =
                 handleExistingWebhook(request, webhookWithRepoRefChange, Collections.singleton(REPO_REF_CHANGE));
 
-        BitbucketWebhook openPullResult =
-                handleExistingWebhook(request, webhookWithOpenPullRequest, Collections.singleton(PULL_REQUEST_OPENED_EVENT));
+        //BitbucketWebhook openPullResult =
+        //        handleExistingWebhook(request, webhookWithOpenPullRequest, Collections.singleton(PULL_REQUEST_OPENED_EVENT));
 
         if (mirrorSyncResult != null &&
             mirrorSyncResult.getEvents().containsAll(events.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet()))) {
             return mirrorSyncResult;
         } else {
             return repoRefResult;
+            //TODO: change this to collection
         }
     }
 
