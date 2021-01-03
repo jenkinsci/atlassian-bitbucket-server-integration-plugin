@@ -137,7 +137,7 @@ public class BitbucketWebhookHandlerTest {
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).shouldTriggerOnPR(true).shouldTriggerOnPush(true).build());
 
-        assertThat(result.getId(), is(equalTo(1))); //change return type to collection of successful events
+        assertThat(result.getId(), is(equalTo(1))); //TODO: change return type to collection of successful events
         verify(webhookClient).deleteWebhook(2);
         verify(webhookClient).deleteWebhook(4);
         verify(webhookClient).deleteWebhook(6);
