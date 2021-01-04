@@ -164,7 +164,7 @@ public class BitbucketSCMSource extends SCMSource {
                             .keySet()
                             .stream()
                             .anyMatch(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class::isInstance);
-                    descriptor.retryingWebhookHandler.register(
+                    descriptor.getRetryingWebhookHandler().register(
                             bitbucketServerConfiguration.getBaseUrl(),
                             bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
                             repository, containsPushTrigger, containsPRTrigger);
