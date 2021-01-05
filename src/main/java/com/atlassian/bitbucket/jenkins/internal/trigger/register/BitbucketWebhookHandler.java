@@ -160,6 +160,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             BitbucketWebhookRequest webhook = createRequest(request, events);
             BitbucketWebhook result = webhookClient.registerWebhook(webhook);
             LOGGER.info("New Webhook registered - " + result);
+            return result;
         }
 
         BitbucketWebhook mirrorSyncResult =
