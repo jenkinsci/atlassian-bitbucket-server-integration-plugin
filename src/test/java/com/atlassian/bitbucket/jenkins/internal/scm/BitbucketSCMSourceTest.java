@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchPRTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import hudson.plugins.git.GitSCM;
@@ -129,66 +130,77 @@ public class BitbucketSCMSourceTest {
         verifyZeroInteractions(triggerDesc);
     }
 
-    // TODO: Replace with trigger test
     @Test
-    public void testAfterSaveRegistersWebhookIfNotAlreadyRegistered() {
+    public void testAfterSaveRegistersWebhookIfNotAlreadyRegisteredWithNoTrigger() {
         String credentialsId = "valid-credentials";
         String serverId = "server-id";
         String baseUrl = "http://example.com";
-        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
-        BitbucketServerConfiguration bbsConfig = mock(BitbucketServerConfiguration.class);
         BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
-        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
-        RetryingWebhookHandler retryingWebhookHandler = mock(RetryingWebhookHandler.class);
         bitbucketSCMSource.setOwner(owner);
         doReturn(Collections.emptyMap()).when(owner).getTriggers();
-        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
-        when(descriptor.getRetryingWebhookHandler()).thenReturn(retryingWebhookHandler);
-        when(bbsConfig.getGlobalCredentialsProvider(owner)).thenReturn(credentialsProvider);
-        when(descriptor.getConfiguration(serverId)).thenReturn(Optional.of(bbsConfig));
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
-        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
-                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
-        doReturn(singletonList(triggerDesc)).when(bitbucketSCMSource).getTriggers(any());
 
         bitbucketSCMSource.afterSave();
 
         verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(false));
-
     }
 
-//    @Test void testAfterSavePushTrigger() {
-//
-//    }
-//
-//    @Test void testAfterSavePRTrigger() {
-//
-//    }
-//
-//    @Test void testAfterSaveNoTrigger() {
-//
-//    }
-    // TODO: Move test to BitbucketSCMSource test
-//    public void testAddWebhook() {
-//        String serverId = "myServerId";
-//        MultiBranchProject project = new WorkflowMultiBranchProject(jenkins.jenkins, "name");
-//        String baseUrl = "http://example.com";
-//        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
-//        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
-//        BitbucketSCMRepository bbsRepo = mock(BitbucketSCMRepository.class);
-//
-//        when(scmSource.getBitbucketSCMRepository()).thenReturn(bbsRepo);
-//        when(pluginConfig.getServerById(serverId)).thenReturn(of(bbsConfig));
-//        when(bbsRepo.getServerId()).thenReturn(serverId);
-//        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
-//        when(bbsConfig.getGlobalCredentialsProvider(project)).thenReturn(credentialsProvider);
-//
-//        boolean result = scmSource.afterSave();
-//
-//        assertThat(result, is(true));
-//        verify(webhookHandler).register(baseUrl, credentialsProvider, bbsRepo, containsPushTrigger, containsPRTrigger);
-//    }
+    @Test
+    public void testAfterSaveWithPushTrigger() {
+        String credentialsId = "valid-credentials";
+        String serverId = "server-id";
+        String baseUrl = "http://example.com";
+        BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
+        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
+                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
+        BitbucketWebhookMultibranchTrigger trigger =
+                mock(BitbucketWebhookMultibranchTrigger.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMSource.setOwner(owner);
+        doReturn(Collections.singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
+        doReturn(true).when(bitbucketSCMSource).isValid();
+
+        bitbucketSCMSource.afterSave();
+
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(true), eq(false));
+    }
+
+    @Test
+    public void testAfterSaveWithPRTrigger() {
+        String credentialsId = "valid-credentials";
+        String serverId = "server-id";
+        String baseUrl = "http://example.com";
+        BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
+        BitbucketWebhookMultibranchPRTrigger.DescriptorImpl triggerDesc =
+                mock(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class);
+        BitbucketWebhookMultibranchPRTrigger trigger =
+                mock(BitbucketWebhookMultibranchPRTrigger.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMSource.setOwner(owner);
+        doReturn(Collections.singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
+        doReturn(true).when(bitbucketSCMSource).isValid();
+
+        bitbucketSCMSource.afterSave();
+
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
+    }
+
+    private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
+                                                              String serverId, String baseUrl, MultiBranchProject<?, ?> owner) {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
+        BitbucketServerConfiguration bbsConfig = mock(BitbucketServerConfiguration.class);
+        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
+
+        when(descriptor.getConfiguration(serverId)).thenReturn(Optional.of(bbsConfig));
+        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
+        when(bbsConfig.getGlobalCredentialsProvider(owner)).thenReturn(credentialsProvider);
+
+        return descriptor;
+    }
 
     private BitbucketSCMSource createInstance(String credentialId) {
         return createInstance(credentialId, null);
@@ -211,6 +223,7 @@ public class BitbucketSCMSourceTest {
 
     private BitbucketSCMSource createInstance(String credentialsId, String sshCredentialId, @Nullable String serverId,
                                               @Nullable String projectName, @Nullable String repo) {
+
         return new BitbucketSCMSource(
                 "1",
                 credentialsId,
@@ -220,26 +233,32 @@ public class BitbucketSCMSourceTest {
                 repo,
                 serverId,
                 null) {
+
+            BitbucketSCMSource.DescriptorImpl descriptor = null;
+
             @Override
             public SCMSourceDescriptor getDescriptor() {
-                DescriptorImpl descriptor = mock(DescriptorImpl.class);
-                BitbucketScmHelper scmHelper = mock(BitbucketScmHelper.class);
-                BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
-                BitbucketRepository repository = mock(BitbucketRepository.class);
+                //if descriptor doesn't exist, create a new one, otherwise return existing descriptor
+                if (descriptor == null) {
+                    descriptor = mock(DescriptorImpl.class);
+                    BitbucketScmHelper scmHelper = mock(BitbucketScmHelper.class);
+                    BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
+                    BitbucketRepository repository = mock(BitbucketRepository.class);
+                    String baseUrl = "http://example.com";
 
-                when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
-                        .thenReturn(Optional.of(bitbucketServerConfiguration));
-                when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
-                        .thenReturn(Optional.empty());
-                when(descriptor.getBitbucketScmHelper(
-                        nullable(String.class),
-                        nullable(String.class)))
-                        .thenReturn(scmHelper);
-                when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
-                when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
-                when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
-                when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
-
+                    when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
+                            .thenReturn(Optional.of(bitbucketServerConfiguration));
+                    when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
+                            .thenReturn(Optional.empty());
+                    when(descriptor.getBitbucketScmHelper(
+                            nullable(String.class),
+                            nullable(String.class)))
+                            .thenReturn(scmHelper);
+                    when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
+                    when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
+                    when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
+                    when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
+                }
                 return descriptor;
             }
         };

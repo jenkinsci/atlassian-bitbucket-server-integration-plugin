@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.provider;
+package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -40,13 +40,18 @@ public class PullRequestStoreImpl implements PullRequestStore {
                 .isPresent();
     }
 
-    private static class CacheKey {
+    @Override
+    public ConcurrentMap<PullRequestStoreImpl.CacheKey, ConcurrentLinkedQueue<BitbucketPullRequest>> getPullRequests() {
+        return pullRequests;
+    }
+
+    static class CacheKey {
 
         private final String projectKey;
         private final String repositorySlug;
         private final String serverId;
 
-        private CacheKey(String projectKey, String repositorySlug, String serverId) {
+        CacheKey(String projectKey, String repositorySlug, String serverId) {
             this.projectKey = projectKey;
             this.repositorySlug = repositorySlug;
             this.serverId = serverId;
@@ -64,6 +69,18 @@ public class PullRequestStoreImpl implements PullRequestStore {
             return projectKey.equals(cacheKey.projectKey) &&
                    repositorySlug.equals(cacheKey.repositorySlug) &&
                    serverId.equals(cacheKey.serverId);
+        }
+
+        public String getProjectKey() {
+            return projectKey;
+        }
+
+        public String getRepositorySlug() {
+            return repositorySlug;
+        }
+
+        public String getServerId() {
+            return serverId;
         }
 
         @Override

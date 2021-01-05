@@ -28,8 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.*;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
