@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.GitSCM;
 import org.apache.groovy.util.Maps;
@@ -54,6 +55,7 @@ public class BitbucketWebhookConsumerTest {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private FreeStyleProject freeStyleProject;
     private BitbucketRepository bitbucketRepository;
+
     @Mock
     private BitbucketSCM bitbucketSCM;
     @Mock
@@ -69,6 +71,7 @@ public class BitbucketWebhookConsumerTest {
     private BitbucketWebhookTriggerImpl nullBitbucketTrigger;
     private FreeStyleProject nullProject;
     private RefsChangedWebhookEvent refsChangedEvent;
+    private PullRequestWebhookEvent pullRequestEvent;
     private WorkflowJob workflowJob;
     @Mock
     private BitbucketSCM workflowSCM;
@@ -101,6 +104,15 @@ public class BitbucketWebhookConsumerTest {
                 JENKINS_REPO_SLUG);
         refsChangedEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
+
+        BitbucketPullRequest pullRequest = mock(BitbucketPullRequest.class);
+        BitbucketPullRequestRef pullRef = mock(BitbucketPullRequestRef.class);
+        when(pullRequest.getFromRef()).thenReturn(pullRef);
+        when(pullRequest.getToRef()).thenReturn(pullRef);
+        when(pullRef.getRepository()).thenReturn(bitbucketRepository);
+
+        pullRequestEvent = new PullRequestWebhookEvent(
+                BITBUCKET_USER, PULL_REQUEST_OPENED_EVENT.getEventId(), new Date(), pullRequest);
 
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", "", JENKINS_PROJECT_NAME,
                 JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, "");
@@ -217,8 +229,35 @@ public class BitbucketWebhookConsumerTest {
     }
 
     @Test
+    public void testPullRequestTriggerBitbucketSCMBuild() {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        PullRequestStore pullRequestStore = mock(PullRequestStore.class);
+        consumer.process(pullRequestEvent);
+
+        verify(bitbucketTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        verify(workflowTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+    }
+
+    @Test
     public void testRefsChangedTriggerBuild() {
         consumer.process(refsChangedEvent);
+
+        verify(gitTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+        verify(nullBitbucketTrigger, never()).trigger(any());
+    }
+
+    @Test
+    public void testPullRequestChangedTriggerBuild() {
+        consumer.process(pullRequestEvent);
 
         verify(gitTrigger)
                 .trigger(

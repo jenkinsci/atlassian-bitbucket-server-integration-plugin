@@ -1,7 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRef;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestRef;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -25,14 +25,14 @@ public class PullRequestStoreImplTest {
 
     private BitbucketPullRequest setupPR(String newKey) {
         BitbucketPullRequest bitbucketPullRequest = mock(BitbucketPullRequest.class);
-        BitbucketPullRef bitbucketPullRef = mock(BitbucketPullRef.class);
+        BitbucketPullRequestRef bitbucketPullRequestRef = mock(BitbucketPullRequestRef.class);
         BitbucketRepository bitbucketRepository = mock(BitbucketRepository.class);
         BitbucketProject bitbucketProject = mock(BitbucketProject.class);
 
-        doReturn(bitbucketPullRef).when(bitbucketPullRequest).getToRef();
-        doReturn(bitbucketPullRef).when(bitbucketPullRequest).getFromRef();
-        doReturn(branchName).when(bitbucketPullRef).getDisplayId();
-        doReturn(bitbucketRepository).when(bitbucketPullRef).getRepository();
+        doReturn(bitbucketPullRequestRef).when(bitbucketPullRequest).getToRef();
+        doReturn(bitbucketPullRequestRef).when(bitbucketPullRequest).getFromRef();
+        doReturn(branchName).when(bitbucketPullRequestRef).getDisplayId();
+        doReturn(bitbucketRepository).when(bitbucketPullRequestRef).getRepository();
         doReturn(bitbucketProject).when(bitbucketRepository).getProject();
         doReturn(slug).when(bitbucketRepository).getSlug();
         doReturn(newKey).when(bitbucketProject).getKey();

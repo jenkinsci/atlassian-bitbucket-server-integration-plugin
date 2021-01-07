@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT;
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -93,8 +94,9 @@ public class RetryingWebhookHandlerIT {
                 webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getEvents(), iterableWithSize(1)); //result issue
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
     }
 
     @Test
@@ -105,7 +107,7 @@ public class RetryingWebhookHandlerIT {
                 webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, true, false);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
-        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 

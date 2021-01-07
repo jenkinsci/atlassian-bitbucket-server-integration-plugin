@@ -149,18 +149,17 @@ public class BitbucketSCMSource extends SCMSource {
         if (!webhookRegistered && isValid()) {
             SCMSourceOwner owner = getOwner();
             if (owner instanceof ComputedFolder) {
-                // TODO: Can this be offloaded to a new class?
-                ComputedFolder computedFolder = (ComputedFolder) owner;
+                ComputedFolder project = (ComputedFolder) owner;
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
                 try {
                     BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                             .orElseThrow(() -> new BitbucketClientException(
                                     "Server config not found for input server id " + getServerId()));
-                    boolean containsPushTrigger = computedFolder.getTriggers()
+                    boolean containsPushTrigger = project.getTriggers()
                             .keySet()
                             .stream()
                             .anyMatch(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance);
-                    boolean containsPRTrigger = computedFolder.getTriggers()
+                    boolean containsPRTrigger = project.getTriggers()
                             .keySet()
                             .stream()
                             .anyMatch(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class::isInstance);
@@ -252,7 +251,6 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
-
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {

@@ -11,15 +11,15 @@ public class BitbucketPullRequest {
 
     private final int id;
     private final BitbucketPullState state;
-    private final BitbucketPullRef fromRef;
-    private final BitbucketPullRef toRef;
+    private final BitbucketPullRequestRef fromRef;
+    private final BitbucketPullRequestRef toRef;
 
     @JsonCreator
     public BitbucketPullRequest(
             @JsonProperty("id") int id,
             @JsonProperty("state") BitbucketPullState state,
-            @JsonProperty("fromRef") BitbucketPullRef fromRef,
-            @JsonProperty("toRef") BitbucketPullRef toRef) {
+            @JsonProperty("fromRef") BitbucketPullRequestRef fromRef,
+            @JsonProperty("toRef") BitbucketPullRequestRef toRef) {
         this.id = requireNonNull(id, "id");
         this.state = requireNonNull(state, "state");
         this.fromRef = requireNonNull(fromRef, "fromRef");
@@ -34,11 +34,11 @@ public class BitbucketPullRequest {
         return state;
     }
 
-    public BitbucketPullRef getFromRef() {
+    public BitbucketPullRequestRef getFromRef() {
         return fromRef;
     }
 
-    public BitbucketPullRef getToRef() {
+    public BitbucketPullRequestRef getToRef() {
         return toRef;
     }
 }

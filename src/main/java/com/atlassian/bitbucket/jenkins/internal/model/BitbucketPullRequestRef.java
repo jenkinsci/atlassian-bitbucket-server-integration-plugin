@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class BitbucketPullRef {
+public class BitbucketPullRequestRef {
 
     private final String displayId;
     private final String id;
@@ -15,7 +15,7 @@ public class BitbucketPullRef {
     private final String latestCommit;
 
     @JsonCreator
-    public BitbucketPullRef(
+    public BitbucketPullRequestRef(
             @JsonProperty("id") String id,
             @JsonProperty("displayId") String displayId,
             @JsonProperty("repository") BitbucketRepository repository,

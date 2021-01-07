@@ -108,8 +108,9 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
         // TODO: logging for when some events are not supported
+        //if it's not a mirror, we subscribe both PR and Ref-Change events regardless
         Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
-        if (request.isMirror() && request.isTriggerOnPush()) {
+        if (request.isMirror()) {
             try {
                 BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
                 Set<String> hooks = events.getApplicationWebHooks();
@@ -121,10 +122,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             } catch (BitbucketMissingCapabilityException exception) { //version doesn't support webhooks but support ref change & pr
                     supportedEvents.add(REPO_REF_CHANGE);
             }
-        } else if (request.isTriggerOnPush()) {
+        } else {
+            //trigger on pr : add ref change and pr
+            //trigger on push: add ref change
             supportedEvents.add(REPO_REF_CHANGE);
-        }
-        if (request.isTriggerOnPR()) {
             supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
         }
         if (supportedEvents.isEmpty()) {
@@ -144,19 +145,14 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         List<BitbucketWebhook> webhookWithMirrorSync = ownedHooks.stream()
                 .filter(hook -> hook.getEvents().contains(MIRROR_SYNCHRONIZED_EVENT.getEventId()))
                 .collect(toList());
-        List<BitbucketWebhook> webhookWithRepoRefChange = ownedHooks
+        List<BitbucketWebhook> webhookWithRepoRefChangeAndPR = ownedHooks
                 .stream()
-                .filter(hook -> hook.getEvents().contains(REPO_REF_CHANGE.getEventId()))
-                .collect(toList());
-        List<BitbucketWebhook> webhookWithOpenPullRequest = ownedHooks
-                .stream()
-                .filter(hook -> hook.getEvents().contains(PULL_REQUEST_OPENED_EVENT.getEventId()))
+                .filter(hook -> hook.getEvents().containsAll(Arrays.asList(REPO_REF_CHANGE.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId())))
                 .collect(toList());
 
         if (ownedHooks.isEmpty() ||
             webhookWithMirrorSync.isEmpty() && events.contains(MIRROR_SYNCHRONIZED_EVENT) ||
-            webhookWithRepoRefChange.isEmpty() && events.contains(REPO_REF_CHANGE) ||
-            webhookWithOpenPullRequest.isEmpty() && events.contains(PULL_REQUEST_OPENED_EVENT)) {
+            (webhookWithRepoRefChangeAndPR.size() == 0 && events.contains(REPO_REF_CHANGE)) && events.contains(PULL_REQUEST_OPENED_EVENT)) {
             BitbucketWebhookRequest webhook = createRequest(request, events);
             BitbucketWebhook result = webhookClient.registerWebhook(webhook);
             LOGGER.info("New Webhook registered - " + result);
@@ -166,16 +162,14 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         BitbucketWebhook mirrorSyncResult =
                 handleExistingWebhook(request, webhookWithMirrorSync, Collections.singleton(MIRROR_SYNCHRONIZED_EVENT));
 
-        BitbucketWebhook repoRefResult =
-                handleExistingWebhook(request, webhookWithRepoRefChange, Collections.singleton(REPO_REF_CHANGE));
-
-        handleExistingWebhook(request, webhookWithOpenPullRequest, Collections.singleton(PULL_REQUEST_OPENED_EVENT));
+        BitbucketWebhook repoRefAndPRResult =
+                handleExistingWebhook(request, webhookWithRepoRefChangeAndPR, Arrays.asList(REPO_REF_CHANGE, PULL_REQUEST_OPENED_EVENT));
 
         if (mirrorSyncResult != null &&
             mirrorSyncResult.getEvents().containsAll(events.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet()))) {
             return mirrorSyncResult;
         } else {
-            return repoRefResult;
+            return repoRefAndPRResult;
             //TODO: change this to collection
         }
     }

@@ -245,7 +245,7 @@ public class BitbucketWebhookConsumer {
             if (!matchingRepo(getPayload().getPullRequest().getToRef().getRepository(), src.getBitbucketSCMRepository())) {
                 return emptyMap();
             }
-            ArrayList<BitbucketPullRef> refStream = new ArrayList<BitbucketPullRef>();
+            ArrayList<BitbucketPullRequestRef> refStream = new ArrayList<BitbucketPullRequestRef>();
             refStream.add(getPayload().getPullRequest().getFromRef());
             return refStream.stream()
                             .collect(Collectors.toMap(ref -> new GitBranchSCMHead(ref.getDisplayId()),
