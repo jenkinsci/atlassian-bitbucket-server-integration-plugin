@@ -109,6 +109,8 @@ public class RetryingWebhookHandlerIT {
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(2));
         assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
+
     }
 
     private void cleanWebhooks() {
