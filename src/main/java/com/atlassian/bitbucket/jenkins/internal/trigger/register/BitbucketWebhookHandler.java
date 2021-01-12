@@ -122,7 +122,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 supportedEvents.add(REPO_REF_CHANGE);
             }
             if (request.isTriggerOnPR()) {
-                supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
+                Collection<BitbucketWebhookEvent> allPREvents = Arrays.asList(PULL_REQUEST_OPENED_EVENT,
+                        PULL_REQUEST_DECLINED_EVENT, PULL_REQUEST_DELETED_EVENT, PULL_REQUEST_MERGED_EVENT);
+                supportedEvents.addAll(allPREvents);
+
             }
         }
         if (supportedEvents.isEmpty()) {
@@ -136,7 +139,8 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         String callback = constructCallbackUrl(request);
         List<BitbucketWebhook> ownedHooks =
                 webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(),
-                        PULL_REQUEST_OPENED_EVENT.getEventId())
+                        PULL_REQUEST_OPENED_EVENT.getEventId(), PULL_REQUEST_MERGED_EVENT.getEventId(),
+                        PULL_REQUEST_DELETED_EVENT.getEventId(), PULL_REQUEST_DECLINED_EVENT.getEventId())
                         .filter(hook -> hook.getName().equals(request.getName()) || hook.getUrl().equals(callback))
                         .collect(toList());
         List<BitbucketWebhook> webhookWithMirrorSync = ownedHooks.stream()
@@ -146,16 +150,21 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .stream()
                 .filter(hook -> hook.getEvents().equals(Collections.singleton(REPO_REF_CHANGE.getEventId())))
                 .collect(toList());
+
+        Collection<String> AllPREventIds = new HashSet<>(Arrays.asList(PULL_REQUEST_OPENED_EVENT.getEventId(),
+                PULL_REQUEST_MERGED_EVENT.getEventId(), PULL_REQUEST_DELETED_EVENT.getEventId(),
+                PULL_REQUEST_DECLINED_EVENT.getEventId()));
+
         List<BitbucketWebhook> webhookWithPROnly = ownedHooks
                 .stream()
-                .filter(hook -> hook.getEvents().equals(Collections.singleton(PULL_REQUEST_OPENED_EVENT.getEventId())))
+                .filter(hook -> hook.getEvents().equals(AllPREventIds))
                 .collect(toList());
 
-        Set<String> refAndPullEvent = new HashSet<>(Arrays.asList(REPO_REF_CHANGE.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId()));
+        Set<String> refAndPREvent = new HashSet<>(Arrays.asList(REPO_REF_CHANGE.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId()));
 
         List<BitbucketWebhook> webhookWithRepoRefChangeOrPR = ownedHooks
                 .stream()
-                .filter(hook -> hook.getEvents().stream().anyMatch(refAndPullEvent::contains))
+                .filter(hook -> hook.getEvents().stream().anyMatch(refAndPREvent::contains))
                 .collect(toList());
 
         if (ownedHooks.isEmpty() ||
@@ -180,8 +189,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         } else if (!webhookWithPROnly.isEmpty() && events.contains(PULL_REQUEST_OPENED_EVENT)) {
             repoResult = handleExistingWebhook(request, webhookWithPROnly, events);
         } else {
+            Collection<BitbucketWebhookEvent> allPREvents = Arrays.asList(PULL_REQUEST_OPENED_EVENT,
+                    PULL_REQUEST_DECLINED_EVENT, PULL_REQUEST_DELETED_EVENT, PULL_REQUEST_MERGED_EVENT);
             supportedEvents.add(REPO_REF_CHANGE);
-            supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
+            supportedEvents.addAll(allPREvents);
             repoResult = handleExistingWebhook(request, webhookWithRepoRefChangeOrPR, supportedEvents);
 
         }
@@ -219,7 +230,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                                                  Collection<BitbucketWebhookEvent> toSubscribe) {
         BitbucketWebhookRequest r = createRequest(request, toSubscribe);
         BitbucketWebhook updated = webhookClient.updateWebhook(existing.getId(), r);
-        LOGGER.info(format("Exising webhook updtated - %s with new webhook %s", existing, r));
+        LOGGER.info(format("Existing webhook updated - %s with new webhook %s", existing, r));
         return updated;
     }
 }

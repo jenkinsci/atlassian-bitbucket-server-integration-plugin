@@ -63,7 +63,7 @@ public class BitbucketWebhookEndpointTest {
     }
 
     @Test
-    public void testPullRequestWebhook() throws URISyntaxException, IOException {
+    public void testPullRequestOpenedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
                 .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventId())
                 .log()
@@ -71,7 +71,61 @@ public class BitbucketWebhookEndpointTest {
                 .body(
                         IOUtils.toString(
                                 getClass()
-                                        .getResource("/webhook/pull_request_body.json")
+                                        .getResource("/webhook/pull_request_opened_body.json")
+                                        .toURI(),
+                                StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testPullRequestMergedWebhook() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventId())
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                        .getResource("/webhook/pull_request_merged_body.json")
+                                        .toURI(),
+                                StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testPullRequestDeletedWebhook() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventId())
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                        .getResource("/webhook/pull_request_deleted_body.json")
+                                        .toURI(),
+                                StandardCharsets.UTF_8))
+                .when()
+                .post(BB_WEBHOOK_URL)
+                .then()
+                .statusCode(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testPullRequestDeclinedWebhook() throws URISyntaxException, IOException {
+        given().contentType(ContentType.JSON)
+                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventId())
+                .log()
+                .ifValidationFails()
+                .body(
+                        IOUtils.toString(
+                                getClass()
+                                        .getResource("/webhook/pull_request_declined_body.json")
                                         .toURI(),
                                 StandardCharsets.UTF_8))
                 .when()

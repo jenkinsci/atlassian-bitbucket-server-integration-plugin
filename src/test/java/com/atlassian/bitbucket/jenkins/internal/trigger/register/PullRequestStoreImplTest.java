@@ -13,6 +13,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullRequestStoreImplTest {
@@ -88,7 +89,7 @@ public class PullRequestStoreImplTest {
     }
 
     //no need to test adding to the store when cacheKey AND PR exists in store already because Bitbucket doesn't allow opening
-    //a new PR when there is already an opened PR.
+    //a new PR when there is already an opened PR. therefore never the case of duplicate pull requests + key
 
     @Test
     public void testHasOpenPRWithNonExistingKey() {
@@ -127,5 +128,65 @@ public class PullRequestStoreImplTest {
         doReturn(serverId).when(repository).getServerId();
 
         assertTrue(pullRequestStore.hasOpenPullRequests(branchName, repository));
+    }
+
+    @Test
+    public void testRemovePRWithNonExistingKey() {
+        testAddPRWithNewKey(); //there is an entry in pullRequestStore with different cacheKey
+        String newKey = "different-key";
+
+        ConcurrentMap<?, ?> oldPullRequests = pullRequestStore.getPullRequests();
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey);
+        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(newKey, slug, serverId);
+
+        pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
+
+        assertEquals("Store has changed;", pullRequestStore.getPullRequests(), oldPullRequests);
+        assertFalse(pullRequestStore.getPullRequests().containsKey(cacheKey));
+    }
+
+    @Test
+    public void testRemovePRWithExistingKeyButNonExistingPR() {
+        testAddPRWithNewKey(); //there is an entry in pullRequestStore with same cacheKey
+
+        ConcurrentMap<?, ?> oldPullRequests = pullRequestStore.getPullRequests();
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key);
+        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+
+        pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
+
+        assertEquals("Store has changed;", pullRequestStore.getPullRequests(), oldPullRequests);
+        assertTrue(pullRequestStore.getPullRequests().containsKey(cacheKey));
+    }
+
+    @Test
+    public void testRemovePRWithExistingKeyAndExistingPR() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key);
+        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.removePullRequest(serverId, bitbucketPullRequest);
+
+        assertTrue(pullRequestStore.getPullRequests().containsKey(cacheKey));
+        ConcurrentLinkedQueue queue = (ConcurrentLinkedQueue) pullRequestStore.getPullRequests().get(cacheKey);
+        assertEquals("Size mismatch for queue;", queue.size(), 0);
+    }
+
+    @Test
+    public void testRemovePRWithMultiplePRs() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key);
+        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key);
+        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+
+        pullRequestStore.removePullRequest(serverId, bitbucketPullRequest);
+
+        assertTrue(pullRequestStore.getPullRequests().containsKey(cacheKey));
+        ConcurrentLinkedQueue queue = (ConcurrentLinkedQueue) pullRequestStore.getPullRequests().get(cacheKey);
+        assertEquals("Size mismatch for queue;", queue.size(), 1);
+        assertTrue(queue.contains(anotherBitbucketPullRequest));
     }
 }

@@ -69,9 +69,22 @@ public class BitbucketWebhookConsumer {
 
     void process(PullRequestWebhookEvent event) {
         LOGGER.fine(format("Received pull request event"));
-        // TODO: Can we do eligible refs? For now building everything
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
-        triggerJob(event, refChangedDetails);
+        if (event.getEventKey().equals(BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT.getEventId())) {
+            triggerJob(event, refChangedDetails);
+        } else {
+            Optional<BitbucketServerConfiguration> server = bitbucketPluginConfiguration.getValidServerList()
+                    .stream()
+                    .filter(serverConfig -> refChangedDetails.getRepository()
+                            .getSelfLink()
+                            .contains(serverConfig.getBaseUrl()))
+                    .findFirst();
+            if (server.isPresent()) {
+                //need to do this for all config
+                pullRequestStore.removePullRequest(server.get().getId(), event.getPullRequest());
+            }
+            BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.REMOVED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
+        }
     }
 
     private static Set<String> eligibleRefs(RefsChangedWebhookEvent event) {

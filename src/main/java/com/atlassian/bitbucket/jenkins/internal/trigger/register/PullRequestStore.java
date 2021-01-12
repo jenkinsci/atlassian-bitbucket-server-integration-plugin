@@ -11,6 +11,8 @@ public interface PullRequestStore {
 
     void addPullRequest(String serverId, BitbucketPullRequest pullRequest);
 
+    void removePullRequest(String serverId, BitbucketPullRequest pullRequest);
+
     boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository);
 
     ConcurrentMap<?, ?> getPullRequests();

@@ -29,6 +29,19 @@ public class PullRequestStoreImpl implements PullRequestStore {
     }
 
     @Override
+    public void removePullRequest(String serverId, BitbucketPullRequest pullRequest) {
+        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(
+                pullRequest.getToRef().getRepository().getProject().getKey(),
+                pullRequest.getToRef().getRepository().getSlug(), serverId);
+        if (pullRequests.containsKey(cacheKey)) {
+            if (pullRequests.get(cacheKey).contains(pullRequest)) {
+                //if any of the pull requests in the queue had the same stuff as pull request (but not necessarily same object or same state)
+                pullRequests.get(cacheKey).remove(pullRequest);
+            }
+        }
+    }
+
+    @Override
     public boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository) {
 
         PullRequestStoreImpl.CacheKey key =

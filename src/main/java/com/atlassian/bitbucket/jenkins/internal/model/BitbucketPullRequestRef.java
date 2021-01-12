@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -24,6 +26,26 @@ public class BitbucketPullRequestRef {
         this.displayId = requireNonNull(displayId, "displayId");
         this.repository = requireNonNull(repository, "repository");
         this.latestCommit = requireNonNull(latestCommit, "latestCommit");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BitbucketPullRequestRef that = (BitbucketPullRequestRef) o;
+        return displayId.equals(that.displayId) &&
+               id.equals(that.id) &&
+               repository.equals(that.repository) &&
+               latestCommit.equals(that.latestCommit);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(displayId, id, repository, latestCommit);
     }
 
     public String getDisplayId() {
