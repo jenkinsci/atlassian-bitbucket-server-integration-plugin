@@ -193,7 +193,6 @@ public class PullRequestStoreImplTest {
                 BitbucketPullState.OPEN, bitbucketPullRequestRef, bitbucketPullRequestRef);
         BitbucketPullRequest deletepullRequest = new BitbucketPullRequest(1,
                 BitbucketPullState.OPEN, bitbucketPullRequestRef, bitbucketPullRequestRef);
-        doReturn(branchName).when(bitbucketPullRequestRef).getDisplayId();
         doReturn(bitbucketRepository).when(bitbucketPullRequestRef).getRepository();
         doReturn(bitbucketProject).when(bitbucketRepository).getProject();
         doReturn(slug).when(bitbucketRepository).getSlug();
