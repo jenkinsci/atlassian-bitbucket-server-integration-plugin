@@ -116,10 +116,6 @@ public class BitbucketWebhookConsumerTest {
         when(pullRequest.getToRef()).thenReturn(pullRef);
         when(pullRef.getRepository()).thenReturn(bitbucketRepository);
 
-        //pullRequestStore = mock(PullRequestStore.class);
-        //ConcurrentMap<?,?> pullRequests = new ConcurrentHashMap<>();
-        //when(pullRequestStore.getPullRequests()).thenReturn(pullRequests);
-        //pullRequestStore = new PullRequestStoreImpl();
         pullRequestOpenedEvent = new PullRequestWebhookEvent(
                 BITBUCKET_USER, PULL_REQUEST_OPENED_EVENT.getEventId(), new Date(), pullRequest);
         pullRequestClosedEvent = new PullRequestWebhookEvent(

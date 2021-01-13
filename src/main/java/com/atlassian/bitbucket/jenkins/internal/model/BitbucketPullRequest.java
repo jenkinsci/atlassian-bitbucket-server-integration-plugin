@@ -28,6 +28,7 @@ public class BitbucketPullRequest {
         this.toRef = requireNonNull(toRef, "toRef");
     }
 
+    //Requests don't have to have the same state to be equal
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -38,7 +39,6 @@ public class BitbucketPullRequest {
         }
         BitbucketPullRequest that = (BitbucketPullRequest) o;
         return id == that.id &&
-               state == that.state &&
                fromRef.equals(that.fromRef) &&
                toRef.equals(that.toRef);
     }

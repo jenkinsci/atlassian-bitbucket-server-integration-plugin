@@ -5,10 +5,14 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 
 import javax.inject.Singleton;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * There can be multiple pull requests (with different from or to refs) for the same project/repo/server
+ */
 @Singleton
 public class PullRequestStoreImpl implements PullRequestStore {
 
@@ -30,17 +34,24 @@ public class PullRequestStoreImpl implements PullRequestStore {
 
     @Override
     public void removePullRequest(String serverId, BitbucketPullRequest pullRequest) {
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(
+        CacheKey cacheKey = new CacheKey(
                 pullRequest.getToRef().getRepository().getProject().getKey(),
                 pullRequest.getToRef().getRepository().getSlug(), serverId);
-        if (pullRequests.containsKey(cacheKey)) {
-            if (pullRequests.get(cacheKey).contains(pullRequest)) {
-                //if any of the pull requests in the queue had the same stuff as pull request (but not necessarily same object or same state)
-                pullRequests.get(cacheKey).remove(pullRequest);
+
+        Optional.ofNullable(pullRequests.get(cacheKey)).ifPresent(value -> {
+            if (value.contains(pullRequest)) {
+                value.remove(pullRequest);
             }
         }
+        );
     }
 
+    /**
+     * figures out if this store contains a given branch (if it does, this means the branch has open pull requests)
+     * @param branchName
+     * @param repository
+     * @return boolean on if provided branch has open pull requests or not
+     */
     @Override
     public boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository) {
 
@@ -53,11 +64,29 @@ public class PullRequestStoreImpl implements PullRequestStore {
                 .isPresent();
     }
 
+    /**
+     * retrieves a pull request given ids and keys
+     * @param key
+     * @param slug
+     * @param serverId
+     * @param requestId
+     * @return desired pull request else null
+     */
     @Override
-    public ConcurrentMap<PullRequestStoreImpl.CacheKey, ConcurrentLinkedQueue<BitbucketPullRequest>> getPullRequests() {
-        return pullRequests;
+    public BitbucketPullRequest getPullRequest(String key, String slug, String serverId, int requestId) {
+        PullRequestStoreImpl.CacheKey cacheKey =
+                new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+        for (BitbucketPullRequest b: pullRequests.get(cacheKey)) {
+            if (b.getId() == requestId) {
+                return b;
+            }
+        }
+        return null;
     }
 
+    /**
+     * key for the store that distinguishes between pull requests within different repos/projects/servers
+     */
     static class CacheKey {
 
         private final String projectKey;
