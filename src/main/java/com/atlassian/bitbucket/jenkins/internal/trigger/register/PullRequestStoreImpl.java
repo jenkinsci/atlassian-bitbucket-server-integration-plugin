@@ -69,19 +69,19 @@ public class PullRequestStoreImpl implements PullRequestStore {
      * @param key
      * @param slug
      * @param serverId
-     * @param requestId
+     * @param pullRequestId
      * @return desired pull request else null
      */
     @Override
-    public BitbucketPullRequest getPullRequest(String key, String slug, String serverId, int requestId) {
+    public Optional<BitbucketPullRequest> getPullRequest(String key, String slug, String serverId, int pullRequestId) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(key, slug, serverId);
         for (BitbucketPullRequest b: pullRequests.get(cacheKey)) {
-            if (b.getId() == requestId) {
-                return b;
+            if (b.getId() == pullRequestId) {
+                return Optional.of(b);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
