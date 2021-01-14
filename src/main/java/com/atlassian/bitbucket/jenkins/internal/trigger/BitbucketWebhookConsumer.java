@@ -181,7 +181,7 @@ public class BitbucketWebhookConsumer {
         return true;
     }
 
-    private void getJobs(RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
+    private void processJobs(RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
         Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                 .stream()
                 .map(BitbucketWebhookConsumer::toTriggerDetails)
@@ -197,7 +197,7 @@ public class BitbucketWebhookConsumer {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
-            getJobs(refChangedDetails, requestBuilder);
+            processJobs(refChangedDetails, requestBuilder);
             Optional<BitbucketServerConfiguration> server = bitbucketPluginConfiguration.getValidServerList()
                                                                                         .stream()
                                                                                         .filter(serverConfig -> refChangedDetails.getRepository()
@@ -218,7 +218,7 @@ public class BitbucketWebhookConsumer {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
-            getJobs(refChangedDetails, requestBuilder);
+            processJobs(refChangedDetails, requestBuilder);
             //fire the head event to indicate to the SCMSources that changes have happened.
             BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.UPDATED, event, event.getRepository().getSlug()));
         }
