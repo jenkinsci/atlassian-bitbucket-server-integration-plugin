@@ -69,7 +69,6 @@ public class BitbucketWebhookConsumer {
 
     void process(PullRequestWebhookEvent event) {
         LOGGER.fine(format("Received pull request event"));
-        // TODO: Can we do eligible refs? For now building everything
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
         triggerJob(event, refChangedDetails);
     }

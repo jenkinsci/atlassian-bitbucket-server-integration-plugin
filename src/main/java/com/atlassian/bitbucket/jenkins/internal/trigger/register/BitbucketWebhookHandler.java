@@ -103,7 +103,6 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * @return the correct webhook event
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
-        // TODO: logging for when some events are not supported
         Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
         if (request.isMirror()) {
             try {
@@ -115,7 +114,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                     supportedEvents.add(REPO_REF_CHANGE);
                 }
             } catch (BitbucketMissingCapabilityException exception) { //version doesn't support webhooks but support ref change & pr
-                    supportedEvents.add(REPO_REF_CHANGE);
+                supportedEvents.add(REPO_REF_CHANGE);
             }
         } else {
             if (request.isTriggerOnPush()) {
@@ -187,7 +186,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         }
 
         if (mirrorSyncResult != null &&
-            mirrorSyncResult.getEvents().containsAll(events.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet()))) {
+            events.stream().anyMatch(event -> mirrorSyncResult.getEvents().contains(event.getEventId()))) {
             return mirrorSyncResult;
         } else {
             return repoResult;

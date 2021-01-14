@@ -19,7 +19,7 @@ import java.io.IOException;
  * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
  * ---- also need repo in select branch trait
  */
-public class CustomGitSCMSource extends GitSCMSource {
+class CustomGitSCMSource extends GitSCMSource {
 
     private BitbucketSCMRepository repository;
 

@@ -11,8 +11,11 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
+import java.util.logging.Logger;
 
 public class SelectBranchTrait extends SCMSourceTrait {
+
+    private static final Logger LOGGER = Logger.getLogger(SelectBranchTrait.class.getName());
 
     @DataBoundConstructor
     public SelectBranchTrait() {
@@ -30,8 +33,11 @@ public class SelectBranchTrait extends SCMSourceTrait {
                             ((CustomGitSCMSource) scmSource).getRepository();
                     PullRequestStore pullRequestStore =
                             ((DescriptorImpl) getDescriptor()).pullRequestStore;
-                    //TODO: add logging
-                    return !pullRequestStore.hasOpenPullRequests(scmHead.getName(), bbsRepository);
+                    boolean result = !pullRequestStore.hasOpenPullRequests(scmHead.getName(), bbsRepository);
+                    if (result) {
+                        LOGGER.fine("Filtered " + scmHead.getName() + " because branch does not have open pull requests");
+                    }
+                    return result;
                 }
                 return true;
             }
