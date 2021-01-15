@@ -76,11 +76,11 @@ public class BitbucketWebhookConsumer {
                         .getSelfLink()
                         .contains(serverConfig.getBaseUrl()))
                 .findFirst();
-        if (event.getEventKey().equals(BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT.getEventId())) {
+        if (BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT.getEventIds().contains(event.getEventKey())) {
             triggerJob(event, refChangedDetails, server);
-        } else {
-            server.ifPresent(bitbucketServerConfiguration ->
-                    pullRequestStore.removePullRequest(bitbucketServerConfiguration.getId(), event.getPullRequest()));
+        } else if (BitbucketWebhookEvent.PULL_REQUEST_CLOSED_EVENT.getEventIds().contains(event.getEventKey())) {
+            server.ifPresent(configuration ->
+                    pullRequestStore.removePullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.REMOVED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }
@@ -205,14 +205,14 @@ public class BitbucketWebhookConsumer {
     }
 
     private void triggerJob(PullRequestWebhookEvent event, RefChangedDetails refChangedDetails,
-                            Optional<BitbucketServerConfiguration> server) {
+                            Optional<BitbucketServerConfiguration> serverConfig) {
         try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
             getJobs(refChangedDetails, requestBuilder);
-            server.ifPresent(bitbucketServerConfiguration ->
-                    pullRequestStore.addPullRequest(bitbucketServerConfiguration.getId(), event.getPullRequest()));
+            serverConfig.ifPresent(configuration ->
+                    pullRequestStore.addPullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getToRef().getRepository().getSlug()));
         }
     }

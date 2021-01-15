@@ -44,9 +44,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
             case MIRROR_SYNCHRONIZED_EVENT:
                 return processMirrorSynchronizedEvent(request);
             case PULL_REQUEST_OPENED_EVENT:
-            case PULL_REQUEST_MERGED_EVENT:
-            case PULL_REQUEST_DECLINED_EVENT:
-            case PULL_REQUEST_DELETED_EVENT: {
+            case PULL_REQUEST_CLOSED_EVENT: {
                 return processPullRequestEvent(request);
             }
             default:

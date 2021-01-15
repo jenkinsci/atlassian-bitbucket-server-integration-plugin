@@ -94,7 +94,7 @@ public class RetryingWebhookHandlerIT {
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
-        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventIds().get(0)));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class RetryingWebhookHandlerIT {
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
-        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventIds().get(0)));
 
     }
 

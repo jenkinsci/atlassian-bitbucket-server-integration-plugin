@@ -35,12 +35,9 @@ public class BitbucketWebhookHandler implements WebhookHandler {
 
     private static final String CALLBACK_URL_SUFFIX = BIBUCKET_WEBHOOK_URL + "/trigger";
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookHandler.class.getName());
-    private static final Collection<String> AllPREventIds = new HashSet<>(Arrays.asList(PULL_REQUEST_OPENED_EVENT.getEventId(),
-            PULL_REQUEST_MERGED_EVENT.getEventId(), PULL_REQUEST_DELETED_EVENT.getEventId(),
-            PULL_REQUEST_DECLINED_EVENT.getEventId()));
-    private static final Collection<BitbucketWebhookEvent> allPREvents = Arrays.asList(PULL_REQUEST_OPENED_EVENT,
-            PULL_REQUEST_DECLINED_EVENT, PULL_REQUEST_DELETED_EVENT, PULL_REQUEST_MERGED_EVENT);
-    private static final Set<String> refAndPREventIds = new HashSet<>(Arrays.asList(REPO_REF_CHANGE.getEventId(), PULL_REQUEST_OPENED_EVENT.getEventId()));
+    private static final Collection<String> AllPREventIds = new HashSet<>();
+    private static final Collection<BitbucketWebhookEvent> allPREvents = Arrays.asList(PULL_REQUEST_OPENED_EVENT, PULL_REQUEST_CLOSED_EVENT);
+    private static final Set<String> refAndPREventIds = new HashSet<>();
     private final BitbucketCapabilitiesClient serverCapabilities;
     private final BitbucketWebhookClient webhookClient;
 
@@ -49,6 +46,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             BitbucketWebhookClient webhookClient) {
         this.serverCapabilities = serverCapabilities;
         this.webhookClient = webhookClient;
+        AllPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
+        AllPREventIds.addAll(PULL_REQUEST_CLOSED_EVENT.getEventIds());
+        refAndPREventIds.addAll(REPO_REF_CHANGE.getEventIds());
+        refAndPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
     }
 
     @Override
@@ -66,7 +67,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
 
     private BitbucketWebhookRequest createRequest(WebhookRegisterRequest request,
                                                   Collection<BitbucketWebhookEvent> events) {
-        return BitbucketWebhookRequest.Builder.aRequestFor(events.stream().map(BitbucketWebhookEvent::getEventId)
+        return BitbucketWebhookRequest.Builder.aRequestFor(events.stream().flatMap(bitbucketWebhookEvent -> bitbucketWebhookEvent.getEventIds().stream())
                 .collect(Collectors.toSet()))
                 .withCallbackTo(constructCallbackUrl(request))
                 .name(request.getName())
@@ -80,6 +81,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .forEach(webhookClient::deleteWebhook);
     }
 
+    //TODO: find same needs to change
     private Optional<BitbucketWebhook> findSame(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
                                                 Collection<BitbucketWebhookEvent> toSubscribe) {
         String callback = constructCallbackUrl(request);
@@ -89,7 +91,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .filter(hook -> hook.getUrl().equals(callback))
                 .filter(BitbucketWebhookRequest::isActive)
                 .filter(hook -> hook.getEvents().containsAll(toSubscribe.stream()
-                        .map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet())))
+                        .flatMap(bitbucketWebhookEvent -> bitbucketWebhookEvent.getEventIds().stream()).collect(Collectors.toSet())))
                 .peek(hook -> LOGGER.info("Found an existing webhook - " + hook))
                 .findFirst();
     }
@@ -108,15 +110,14 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * @return the correct webhook event
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
-        // TODO: logging for when some events are not supported
         Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
         if (request.isMirror()) {
             try {
                 BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
-                Set<String> hooks = events.getApplicationWebHooks();
-                if (hooks.contains(MIRROR_SYNCHRONIZED_EVENT.getEventId())) {
+                Set<String> hooks = events.getApplicationWebHooks(); //set intersection, cast list to set set.unison
+                if (!hooks.stream().filter(MIRROR_SYNCHRONIZED_EVENT.getEventIds()::contains).collect(Collectors.toSet()).isEmpty()) {
                     supportedEvents.add(MIRROR_SYNCHRONIZED_EVENT);
-                } else if (hooks.contains(REPO_REF_CHANGE.getEventId())) {
+                } else if (!hooks.stream().filter(REPO_REF_CHANGE.getEventIds()::contains).collect(Collectors.toSet()).isEmpty()) {
                     supportedEvents.add(REPO_REF_CHANGE);
                 }
             } catch (BitbucketMissingCapabilityException exception) { //version doesn't support webhooks but support ref change & pr
@@ -127,10 +128,8 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 supportedEvents.add(REPO_REF_CHANGE);
             }
             if (request.isTriggerOnPR()) {
-                supportedEvents.add(PULL_REQUEST_DECLINED_EVENT);
+                supportedEvents.add(PULL_REQUEST_CLOSED_EVENT);
                 supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
-                supportedEvents.add(PULL_REQUEST_DELETED_EVENT);
-                supportedEvents.add(PULL_REQUEST_MERGED_EVENT);
             }
         }
         if (supportedEvents.isEmpty()) {
@@ -161,17 +160,16 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                                      Collection<BitbucketWebhookEvent> events) {
         String callback = constructCallbackUrl(request);
         List<BitbucketWebhook> ownedHooks =
-                webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId(),
-                        PULL_REQUEST_OPENED_EVENT.getEventId(), PULL_REQUEST_MERGED_EVENT.getEventId(),
-                        PULL_REQUEST_DELETED_EVENT.getEventId(), PULL_REQUEST_DECLINED_EVENT.getEventId())
+                webhookClient.getWebhooks(getEventIdAsStrings(REPO_REF_CHANGE, MIRROR_SYNCHRONIZED_EVENT,
+                        PULL_REQUEST_OPENED_EVENT, PULL_REQUEST_CLOSED_EVENT))
                         .filter(hook -> hook.getName().equals(request.getName()) || hook.getUrl().equals(callback))
                         .collect(toList());
         List<BitbucketWebhook> webhookWithMirrorSync = ownedHooks.stream()
-                .filter(hook -> hook.getEvents().contains(MIRROR_SYNCHRONIZED_EVENT.getEventId()))
+                .filter(hook -> !hook.getEvents().stream().filter(MIRROR_SYNCHRONIZED_EVENT.getEventIds()::contains).collect(Collectors.toSet()).isEmpty())
                 .collect(toList());
         List<BitbucketWebhook> webhookWithRepoRefChangeOnly = ownedHooks
                 .stream()
-                .filter(hook -> hook.getEvents().equals(Collections.singleton(REPO_REF_CHANGE.getEventId())))
+                .filter(hook -> hook.getEvents().equals(new HashSet<>(REPO_REF_CHANGE.getEventIds())))
                 .collect(toList());
 
         List<BitbucketWebhook> webhookWithPROnly = ownedHooks
@@ -214,11 +212,19 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         }
 
         if (mirrorSyncResult != null &&
-            mirrorSyncResult.getEvents().containsAll(events.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet()))) {
+            mirrorSyncResult.getEvents().containsAll(events.stream().flatMap(bitbucketWebhookEvent -> bitbucketWebhookEvent.getEventIds().stream()).collect(Collectors.toSet()))) {
             return mirrorSyncResult;
         } else {
             return repoResult;
         }
+    }
+
+    private String[] getEventIdAsStrings(BitbucketWebhookEvent... event) {
+        List<String> list = new ArrayList<>();
+        for (BitbucketWebhookEvent e : event) {
+            list.addAll(e.getEventIds());
+        }
+        return list.toArray(new String[0]);
     }
 
     @Nullable

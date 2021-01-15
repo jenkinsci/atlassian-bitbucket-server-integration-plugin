@@ -19,7 +19,7 @@ public enum BitbucketWebhookEvent {
         this.eventId = Collections.unmodifiableList(Arrays.asList(eventId));
     }
 
-    public List<String> getEventId() {
+    public List<String> getEventIds() {
         return eventId;
     }
 

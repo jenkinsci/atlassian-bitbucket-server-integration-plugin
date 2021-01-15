@@ -19,7 +19,21 @@ public interface PullRequestStore {
 
     void removePullRequest(String serverId, BitbucketPullRequest pullRequest);
 
+    /**
+     * figures out if this store contains a given branch (if it does, this means the branch has open pull requests)
+     * @param branchName
+     * @param repository
+     * @return boolean on if provided branch has open pull requests or not
+     */
     boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository);
 
+    /**
+     * retrieves a pull request given ids and keys
+     * @param key
+     * @param slug
+     * @param serverId
+     * @param pullRequestId
+     * @return desired pull request else Optional.empty()
+     */
     Optional<BitbucketPullRequest> getPullRequest(String key, String slug, String serverId, int pullRequestId);
 }

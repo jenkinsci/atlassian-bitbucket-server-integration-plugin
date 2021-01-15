@@ -45,7 +45,7 @@ public class BitbucketPullRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, state, fromRef, toRef);
+        return Objects.hash(id, fromRef, toRef);
     }
 
     public int getId() {

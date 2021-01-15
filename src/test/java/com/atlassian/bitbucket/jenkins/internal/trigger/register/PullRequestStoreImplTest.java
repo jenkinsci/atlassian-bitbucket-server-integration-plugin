@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Optional;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -37,39 +39,35 @@ public class PullRequestStoreImplTest {
     @Test
     public void testAddPRWithNewKey() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
-
         pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
 
-        assertTrue(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()) == bitbucketPullRequest);
-
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.of(bitbucketPullRequest));
     }
 
     @Test
     public void testAddPRWithExistingKey() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with same cacheKey
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
 
         BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 2);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
-
         pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
 
-        assertTrue(pullRequestStore.getPullRequest(key, slug, serverId,
-                anotherBitbucketPullRequest.getId()) == anotherBitbucketPullRequest);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
+                anotherBitbucketPullRequest.getId()), Optional.of(anotherBitbucketPullRequest));
     }
 
     @Test
     public void testAddPRWithDifferentKey() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with different cacheKey
-        String newKey = "different-key";
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
 
+        String newKey = "different-key";
         BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, BitbucketPullState.OPEN, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(newKey, slug, serverId);
 
         pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
 
-        assertTrue(pullRequestStore.getPullRequest(newKey, slug, serverId,
-                anotherBitbucketPullRequest.getId()) == anotherBitbucketPullRequest);
+        assertEquals(pullRequestStore.getPullRequest(newKey, slug, serverId,
+                anotherBitbucketPullRequest.getId()), Optional.of(anotherBitbucketPullRequest));
     }
 
     //testAddPrWithExistingCacheKeyAndPR isn't applicable as this isn't allowed in Bitbucket.
@@ -83,19 +81,21 @@ public class PullRequestStoreImplTest {
         pullRequestStore.addPullRequest(serverId, pullRequest);
         pullRequestStore.removePullRequest(serverId, pullRequest);
 
-        assertNull(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
 
         pullRequestStore.addPullRequest(serverId, pullRequest);
-        assertTrue(pullRequestStore.getPullRequest(key, slug, serverId,
-                pullRequest.getId()) == pullRequest);
+
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
+                pullRequest.getId()), Optional.of(pullRequest));
     }
 
     @Test
     public void testHasOpenPRWithNonExistingKey() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with different cacheKey
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+
         String newKey = "different-key";
         String branchName = "branch";
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(newKey, slug, serverId);
         BitbucketSCMRepository repository = mock(BitbucketSCMRepository.class);
         doReturn(slug).when(repository).getRepositorySlug();
         doReturn(newKey).when(repository).getProjectKey();
@@ -106,9 +106,10 @@ public class PullRequestStoreImplTest {
 
     @Test
     public void testHasOpenPRWithExistingKeyButNoOpenPR() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with same cacheKey different pr
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+
         String differentBranchName = "different-branch";
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
         BitbucketSCMRepository repository = mock(BitbucketSCMRepository.class);
         doReturn(slug).when(repository).getRepositorySlug();
         doReturn(key).when(repository).getProjectKey();
@@ -119,8 +120,9 @@ public class PullRequestStoreImplTest {
 
     @Test
     public void testHasOpenPRWithExistingKeyAndOpenPR() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with same cacheKey different pr
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+
         BitbucketSCMRepository repository = mock(BitbucketSCMRepository.class);
         doReturn(slug).when(repository).getRepositorySlug();
         doReturn(key).when(repository).getProjectKey();
@@ -131,46 +133,44 @@ public class PullRequestStoreImplTest {
 
     @Test
     public void testRemovePRWithNonExistingKey() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with different cacheKey
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
         String newKey = "different-key";
 
-        PullRequestStore oldStore = pullRequestStore;
         BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, BitbucketPullState.DELETED, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(newKey, slug, serverId);
-
         pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
 
-        assertEquals("Store has changed;", pullRequestStore, oldStore);
+        assertEquals(pullRequestStore.getPullRequest(newKey, slug, serverId, anotherBitbucketPullRequest.getId()), Optional.empty());
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.of(bitbucketPullRequest));
     }
 
     @Test
     public void testRemovePRWithExistingKeyButNonExistingPR() {
-        testAddPRWithNewKey(); //there is an entry in pullRequestStore with same cacheKey
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
 
         PullRequestStore oldStore = pullRequestStore;
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, BitbucketPullState.DELETED, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, BitbucketPullState.DELETED, 2);
 
         pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
 
-        assertEquals("Store has changed;", pullRequestStore, oldStore);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, anotherBitbucketPullRequest.getId()), Optional.empty());
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.of(bitbucketPullRequest));
     }
 
     @Test
     public void testRemovePRWithExistingKeyAndExistingPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.DELETED, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
 
         pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
         pullRequestStore.removePullRequest(serverId, bitbucketPullRequest);
 
-        assertNull(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.empty());
     }
 
     @Test
     public void testRemovePRWithMultiplePRs() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
-        PullRequestStoreImpl.CacheKey cacheKey = new PullRequestStoreImpl.CacheKey(key, slug, serverId);
 
         pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
 
@@ -179,9 +179,9 @@ public class PullRequestStoreImplTest {
 
         pullRequestStore.removePullRequest(serverId, bitbucketPullRequest);
 
-        assertNull(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()));
-        assertTrue(pullRequestStore.getPullRequest(key, slug, serverId,
-                anotherBitbucketPullRequest.getId()) == anotherBitbucketPullRequest);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.empty());
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
+                anotherBitbucketPullRequest.getId()), Optional.of(anotherBitbucketPullRequest));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class PullRequestStoreImplTest {
         BitbucketPullRequest bitbucketPullRequest = new BitbucketPullRequest(1,
                 BitbucketPullState.OPEN, bitbucketPullRequestRef, bitbucketPullRequestRef);
         BitbucketPullRequest deletepullRequest = new BitbucketPullRequest(1,
-                BitbucketPullState.OPEN, bitbucketPullRequestRef, bitbucketPullRequestRef);
+                BitbucketPullState.DELETED, bitbucketPullRequestRef, bitbucketPullRequestRef);
         doReturn(bitbucketRepository).when(bitbucketPullRequestRef).getRepository();
         doReturn(bitbucketProject).when(bitbucketRepository).getProject();
         doReturn(slug).when(bitbucketRepository).getSlug();
@@ -200,6 +200,6 @@ public class PullRequestStoreImplTest {
 
         pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
         pullRequestStore.removePullRequest(serverId, deletepullRequest);
-        assertNull(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.empty());
     }
 }

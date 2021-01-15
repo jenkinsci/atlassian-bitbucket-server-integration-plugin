@@ -46,12 +46,6 @@ public class PullRequestStoreImpl implements PullRequestStore {
         );
     }
 
-    /**
-     * figures out if this store contains a given branch (if it does, this means the branch has open pull requests)
-     * @param branchName
-     * @param repository
-     * @return boolean on if provided branch has open pull requests or not
-     */
     @Override
     public boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository) {
 
@@ -64,21 +58,16 @@ public class PullRequestStoreImpl implements PullRequestStore {
                 .isPresent();
     }
 
-    /**
-     * retrieves a pull request given ids and keys
-     * @param key
-     * @param slug
-     * @param serverId
-     * @param pullRequestId
-     * @return desired pull request else null
-     */
     @Override
     public Optional<BitbucketPullRequest> getPullRequest(String key, String slug, String serverId, int pullRequestId) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(key, slug, serverId);
-        for (BitbucketPullRequest b: pullRequests.get(cacheKey)) {
-            if (b.getId() == pullRequestId) {
-                return Optional.of(b);
+        if (!pullRequests.containsKey(cacheKey)) {
+            return Optional.empty();
+        }
+        for (BitbucketPullRequest pullRequest: pullRequests.get(cacheKey)) {
+            if (pullRequest.getId() == pullRequestId) {
+                return Optional.of(pullRequest);
             }
         }
         return Optional.empty();
@@ -87,7 +76,7 @@ public class PullRequestStoreImpl implements PullRequestStore {
     /**
      * key for the store that distinguishes between pull requests within different repos/projects/servers
      */
-    static class CacheKey {
+    private static class CacheKey {
 
         private final String projectKey;
         private final String repositorySlug;

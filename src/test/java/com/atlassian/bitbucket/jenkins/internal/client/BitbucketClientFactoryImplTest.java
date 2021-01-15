@@ -319,7 +319,7 @@ public class BitbucketClientFactoryImplTest {
 
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getCapabilityClient().getWebhookSupportedEvents();
-        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventIds().get(0)));
     }
 
     @Test(expected = BitbucketMissingCapabilityException.class)
