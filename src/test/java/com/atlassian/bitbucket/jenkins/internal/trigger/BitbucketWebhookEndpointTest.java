@@ -29,7 +29,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testRefsChangedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventIds())
+                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -47,7 +47,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testMirrorSynchronizedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -65,7 +65,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testPullRequestOpenedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -83,7 +83,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testPullRequestMergedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, PULL_REQUEST_CLOSED_EVENT.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -101,7 +101,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testPullRequestDeletedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, PULL_REQUEST_CLOSED_EVENT.getEventIds().get(2))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -119,7 +119,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testPullRequestDeclinedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, PULL_REQUEST_OPENED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, PULL_REQUEST_CLOSED_EVENT.getEventIds().get(1))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -137,7 +137,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testMirrorSynchronizedWebhook65AndLower() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventIds())
+                .header(X_EVENT_KEY, MIRROR_SYNCHRONIZED_EVENT.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(
@@ -180,7 +180,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testWebhookShouldFailIfInvalidJsonBody() {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventIds())
+                .header(X_EVENT_KEY, REPO_REF_CHANGE.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(Collections.emptyMap())
@@ -194,7 +194,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testWebhookTestConnection() {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, DIAGNOSTICS_PING_EVENT.getEventIds())
+                .header(X_EVENT_KEY, DIAGNOSTICS_PING_EVENT.getEventIds().get(0))
                 .log()
                 .ifValidationFails()
                 .body(Collections.emptyMap())
