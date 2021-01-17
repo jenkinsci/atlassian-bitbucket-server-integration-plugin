@@ -41,15 +41,18 @@ public class BitbucketWebhookHandler implements WebhookHandler {
     private final BitbucketCapabilitiesClient serverCapabilities;
     private final BitbucketWebhookClient webhookClient;
 
+    static {
+        AllPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
+        AllPREventIds.addAll(PULL_REQUEST_CLOSED_EVENT.getEventIds());
+        refAndPREventIds.addAll(REPO_REF_CHANGE.getEventIds());
+        refAndPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
+    }
+
     public BitbucketWebhookHandler(
             BitbucketCapabilitiesClient serverCapabilities,
             BitbucketWebhookClient webhookClient) {
         this.serverCapabilities = serverCapabilities;
         this.webhookClient = webhookClient;
-        AllPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
-        AllPREventIds.addAll(PULL_REQUEST_CLOSED_EVENT.getEventIds());
-        refAndPREventIds.addAll(REPO_REF_CHANGE.getEventIds());
-        refAndPREventIds.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
     }
 
     @Override
@@ -114,10 +117,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         if (request.isMirror()) {
             try {
                 BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
-                Set<String> hooks = events.getApplicationWebHooks(); //set intersection, cast list to set set.unison
-                if (!hooks.stream().filter(MIRROR_SYNCHRONIZED_EVENT.getEventIds()::contains).collect(Collectors.toSet()).isEmpty()) {
+                Set<String> hooks = events.getApplicationWebHooks();
+                if (!Collections.disjoint(hooks, MIRROR_SYNCHRONIZED_EVENT.getEventIds())) {
                     supportedEvents.add(MIRROR_SYNCHRONIZED_EVENT);
-                } else if (!hooks.stream().filter(REPO_REF_CHANGE.getEventIds()::contains).collect(Collectors.toSet()).isEmpty()) {
+                } else if (!Collections.disjoint(hooks, REPO_REF_CHANGE.getEventIds())) {
                     supportedEvents.add(REPO_REF_CHANGE);
                 }
             } catch (BitbucketMissingCapabilityException exception) { //version doesn't support webhooks but support ref change & pr
@@ -164,8 +167,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                         PULL_REQUEST_OPENED_EVENT, PULL_REQUEST_CLOSED_EVENT))
                         .filter(hook -> hook.getName().equals(request.getName()) || hook.getUrl().equals(callback))
                         .collect(toList());
+
+        //Creating lists of different kinds of webhooks
         List<BitbucketWebhook> webhookWithMirrorSync = ownedHooks.stream()
-                .filter(hook -> !hook.getEvents().stream().filter(MIRROR_SYNCHRONIZED_EVENT.getEventIds()::contains).collect(Collectors.toSet()).isEmpty())
+                .filter(hook -> !Collections.disjoint(hook.getEvents(), MIRROR_SYNCHRONIZED_EVENT.getEventIds()))
                 .collect(toList());
         List<BitbucketWebhook> webhookWithRepoRefChangeOnly = ownedHooks
                 .stream()
@@ -182,6 +187,9 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .filter(hook -> hook.getEvents().stream().anyMatch(refAndPREventIds::contains))
                 .collect(toList());
 
+        //Determining whether to create a new webhook
+        //We will handle mirror syncs separate from all other events.
+        // If no webhook with wanted events exist, we register a new one.
         if (ownedHooks.isEmpty() ||
             (webhookWithMirrorSync.isEmpty() && events.contains(MIRROR_SYNCHRONIZED_EVENT)) ||
             (webhookWithRepoRefChangeOrPR.isEmpty() && (events.contains(PULL_REQUEST_OPENED_EVENT) || events.contains(REPO_REF_CHANGE)))) {
@@ -194,17 +202,22 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         BitbucketWebhook mirrorSyncResult =
                 handleExistingWebhook(request, webhookWithMirrorSync, Collections.singleton(MIRROR_SYNCHRONIZED_EVENT));
 
-        //This next section is determining which existing webhooks to update/delete for ref changes and pull request events
+        //Determining which existing webhooks to update/delete for ref changes and pull request events
         BitbucketWebhook repoResult = null;
         Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
         if (events.contains(REPO_REF_CHANGE) && events.contains(PULL_REQUEST_OPENED_EVENT)) {
+            //we need to update any webhook that listens to pr/ref change and update them to listen to both
             repoResult =
                     handleExistingWebhook(request, webhookWithRepoRefChangeOrPR, events);
         } else if (!webhookWithRepoRefChangeOnly.isEmpty() && events.contains(REPO_REF_CHANGE)) {
+            //if we have a ref change only webhook and we only want to listen for ref changes, we don't change that
             repoResult = handleExistingWebhook(request, webhookWithRepoRefChangeOnly, events);
         } else if (!webhookWithPROnly.isEmpty() && events.contains(PULL_REQUEST_OPENED_EVENT)) {
+            //if we have a pr only webhook and we only want to listen for prs, we don't change that
             repoResult = handleExistingWebhook(request, webhookWithPROnly, events);
         } else {
+            //otherwise e.g. if we have a pr only webhook and we want to listen to ref changes as well now, update
+            //any webhooks that listen to either and make them listen to both
             supportedEvents.add(REPO_REF_CHANGE);
             supportedEvents.addAll(allPREvents);
             repoResult = handleExistingWebhook(request, webhookWithRepoRefChangeOrPR, supportedEvents);

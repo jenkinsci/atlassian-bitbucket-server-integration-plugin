@@ -62,15 +62,11 @@ public class PullRequestStoreImpl implements PullRequestStore {
     public Optional<BitbucketPullRequest> getPullRequest(String key, String slug, String serverId, int pullRequestId) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(key, slug, serverId);
-        if (!pullRequests.containsKey(cacheKey)) {
+        ConcurrentLinkedQueue<BitbucketPullRequest> pullRequest = pullRequests.get(cacheKey);
+        if (pullRequest == null || pullRequest.isEmpty()) {
             return Optional.empty();
         }
-        for (BitbucketPullRequest pullRequest: pullRequests.get(cacheKey)) {
-            if (pullRequest.getId() == pullRequestId) {
-                return Optional.of(pullRequest);
-            }
-        }
-        return Optional.empty();
+        return pullRequest.stream().filter(pr -> pr.getId() == pullRequestId).findFirst();
     }
 
     /**
