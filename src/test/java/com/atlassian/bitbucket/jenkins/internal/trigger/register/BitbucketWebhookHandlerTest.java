@@ -107,27 +107,6 @@ public class BitbucketWebhookHandlerTest {
     }
 
     @Test
-    public void testCorrectPREventSubscription() {
-        BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).shouldTriggerOnPR(true).build());
-
-        assertThat(result.getEvents(), iterableWithSize(1));
-        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
-        verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
-        verify(webhookClient, never()).deleteWebhook(anyInt());
-    }
-
-    @Test
-    public void testCorrectPushAndPREventSubscription() {
-        BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).shouldTriggerOnPush(true).shouldTriggerOnPR(true).build());
-
-        assertThat(result.getEvents(), iterableWithSize(2));
-        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
-        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
-        verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
-        verify(webhookClient, never()).deleteWebhook(anyInt());
-    }
-
-    @Test
     public void testCorrectEventSubscriptionForMirrors() {
         WebhookRegisterRequest request = defaultBuilder.isMirror(true).shouldTriggerOnPush(true).build();
 

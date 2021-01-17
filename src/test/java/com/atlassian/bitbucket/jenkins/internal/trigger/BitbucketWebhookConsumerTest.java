@@ -120,15 +120,6 @@ public class BitbucketWebhookConsumerTest {
         pullRequestClosedEvent = new PullRequestWebhookEvent(
                 BITBUCKET_USER, PULL_REQUEST_CLOSED_EVENT.getEventIds().get(2), new Date(), pullRequest);
 
-        BitbucketPullRequest pullRequest = mock(BitbucketPullRequest.class);
-        BitbucketPullRequestRef pullRef = mock(BitbucketPullRequestRef.class);
-        when(pullRequest.getFromRef()).thenReturn(pullRef);
-        when(pullRequest.getToRef()).thenReturn(pullRef);
-        when(pullRef.getRepository()).thenReturn(bitbucketRepository);
-
-        pullRequestEvent = new PullRequestWebhookEvent(
-                BITBUCKET_USER, PULL_REQUEST_OPENED_EVENT.getEventId(), new Date(), pullRequest);
-
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", "", JENKINS_PROJECT_NAME,
                 JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, "");
         when(bitbucketSCM.getRepositories())
