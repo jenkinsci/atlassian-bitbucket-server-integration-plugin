@@ -3,9 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)

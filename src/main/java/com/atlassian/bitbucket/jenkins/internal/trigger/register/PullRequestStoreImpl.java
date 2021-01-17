@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import javax.inject.Singleton;
 import java.util.Objects;
 import java.util.Optional;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * There can be multiple pull requests (with different from or to refs) for the same project/repo/server
  */
+
 @Singleton
 public class PullRequestStoreImpl implements PullRequestStore {
 

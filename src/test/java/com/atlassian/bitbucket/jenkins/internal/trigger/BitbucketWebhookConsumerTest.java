@@ -54,6 +54,7 @@ public class BitbucketWebhookConsumerTest {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private FreeStyleProject freeStyleProject;
     private BitbucketRepository bitbucketRepository;
+
     @Mock
     private PullRequestStore pullRequestStore;
 
@@ -76,7 +77,6 @@ public class BitbucketWebhookConsumerTest {
     private PullRequestWebhookEvent pullRequestClosedEvent;
     private WorkflowJob workflowJob;
     @Mock
-
     private BitbucketSCM workflowSCM;
     @Mock
     private BitbucketWebhookTriggerImpl workflowTrigger;
@@ -119,6 +119,15 @@ public class BitbucketWebhookConsumerTest {
                 BITBUCKET_USER, PULL_REQUEST_OPENED_EVENT.getEventIds().get(0), new Date(), pullRequest);
         pullRequestClosedEvent = new PullRequestWebhookEvent(
                 BITBUCKET_USER, PULL_REQUEST_CLOSED_EVENT.getEventIds().get(2), new Date(), pullRequest);
+
+        BitbucketPullRequest pullRequest = mock(BitbucketPullRequest.class);
+        BitbucketPullRequestRef pullRef = mock(BitbucketPullRequestRef.class);
+        when(pullRequest.getFromRef()).thenReturn(pullRef);
+        when(pullRequest.getToRef()).thenReturn(pullRef);
+        when(pullRef.getRepository()).thenReturn(bitbucketRepository);
+
+        pullRequestEvent = new PullRequestWebhookEvent(
+                BITBUCKET_USER, PULL_REQUEST_OPENED_EVENT.getEventId(), new Date(), pullRequest);
 
         BitbucketSCMRepository scmRepo = new BitbucketSCMRepository("credentialId", "", JENKINS_PROJECT_NAME,
                 JENKINS_PROJECT_KEY.toUpperCase(), JENKINS_REPO_NAME, JENKINS_REPO_SLUG.toUpperCase(), serverId, "");

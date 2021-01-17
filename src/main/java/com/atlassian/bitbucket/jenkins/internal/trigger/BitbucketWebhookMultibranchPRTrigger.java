@@ -27,7 +27,7 @@ public class BitbucketWebhookMultibranchPRTrigger extends Trigger<MultiBranchPro
         return (BitbucketWebhookMultibranchPRTrigger.DescriptorImpl) super.getDescriptor();
     }
 
-    @Symbol("BitbucketWebhookMultibranchPRTriggerImpl")
+    @Symbol("BbsPRTrigger")
     @Extension
     public static class DescriptorImpl extends TriggerDescriptor {
 

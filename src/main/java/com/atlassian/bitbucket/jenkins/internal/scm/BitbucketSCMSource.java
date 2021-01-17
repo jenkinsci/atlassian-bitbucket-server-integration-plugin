@@ -151,26 +151,21 @@ public class BitbucketSCMSource extends SCMSource {
             if (owner instanceof ComputedFolder) {
                 ComputedFolder project = (ComputedFolder) owner;
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-                try {
-                    BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
-                            .orElseThrow(() -> new BitbucketClientException(
-                                    "Server config not found for input server id " + getServerId()));
-                    boolean containsPushTrigger = project.getTriggers()
-                            .keySet()
-                            .stream()
-                            .anyMatch(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance);
-                    boolean containsPRTrigger = project.getTriggers()
-                            .keySet()
-                            .stream()
-                            .anyMatch(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class::isInstance);
-                    descriptor.getRetryingWebhookHandler().register(
-                            bitbucketServerConfiguration.getBaseUrl(),
-                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, containsPushTrigger, containsPRTrigger);
-                } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
-                    throw ex;
-                }
+                BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
+                        .orElseThrow(() -> new BitbucketClientException(
+                                "Server config not found for input server id " + getServerId()));
+                boolean containsPushTrigger = project.getTriggers()
+                        .keySet()
+                        .stream()
+                        .anyMatch(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class::isInstance);
+                boolean containsPRTrigger = project.getTriggers()
+                        .keySet()
+                        .stream()
+                        .anyMatch(BitbucketWebhookMultibranchPRTrigger.DescriptorImpl.class::isInstance);
+                descriptor.getRetryingWebhookHandler().register(
+                        bitbucketServerConfiguration.getBaseUrl(),
+                        bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
+                        repository, containsPushTrigger, containsPRTrigger);
             }
         }
     }

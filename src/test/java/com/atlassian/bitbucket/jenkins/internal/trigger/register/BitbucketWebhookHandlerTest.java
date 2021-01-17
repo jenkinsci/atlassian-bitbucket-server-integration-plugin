@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
 import java.util.*;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
@@ -103,6 +102,27 @@ public class BitbucketWebhookHandlerTest {
 
         assertThat(result.getEvents(), iterableWithSize(5));
         assertEquals(result.getEvents(), REF_AND_PR_EVENTS);
+        verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
+        verify(webhookClient, never()).deleteWebhook(anyInt());
+    }
+
+    @Test
+    public void testCorrectPREventSubscription() {
+        BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).shouldTriggerOnPR(true).build());
+
+        assertThat(result.getEvents(), iterableWithSize(1));
+        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
+        verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
+        verify(webhookClient, never()).deleteWebhook(anyInt());
+    }
+
+    @Test
+    public void testCorrectPushAndPREventSubscription() {
+        BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).shouldTriggerOnPush(true).shouldTriggerOnPR(true).build());
+
+        assertThat(result.getEvents(), iterableWithSize(2));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
+        assertThat(result.getEvents(), hasItem(PULL_REQUEST_OPENED_EVENT.getEventId()));
         verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
         verify(webhookClient, never()).deleteWebhook(anyInt());
     }
