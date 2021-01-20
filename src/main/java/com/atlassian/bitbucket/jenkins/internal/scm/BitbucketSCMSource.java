@@ -267,8 +267,8 @@ public class BitbucketSCMSource extends SCMSource {
                 .orElseThrow(() -> new BitbucketClientException(
                         "Server config not found for input server id " + getServerId()));
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = new JenkinsToBitbucketCredentialsImpl();
-        GlobalCredentialsProvider globalCredentialsProvider = bitbucketServerConfiguration.getGlobalCredentialsProvider(getOwner());
-        BitbucketCredentials credentials = globalCredentialsProvider.getGlobalAdminCredentials()
+        BitbucketCredentials credentials = bitbucketServerConfiguration.getGlobalCredentialsProvider(getOwner())
+                .getGlobalAdminCredentials()
                 .map(creds -> jenkinsToBitbucketCredentials.toBitbucketCredentials(creds))
                 .orElseThrow(() -> new BitbucketClientException(
                         "bitbucket credentials not found"));
