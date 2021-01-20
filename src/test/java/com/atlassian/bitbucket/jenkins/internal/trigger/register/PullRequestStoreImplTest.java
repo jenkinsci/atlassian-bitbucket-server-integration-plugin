@@ -5,6 +5,10 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
@@ -200,5 +204,96 @@ public class PullRequestStoreImplTest {
         pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
         pullRequestStore.removePullRequest(serverId, deletepullRequest);
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, bitbucketPullRequest.getId()), Optional.empty());
+    }
+
+    //refresh store
+    @Test
+    public void testRestoreStoreWithNonExistingKey() {
+        //store is currently empty
+        BitbucketPullRequest pullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
+    }
+
+    @Test
+    public void testRestoreStoreWithExistingKeyButEmptyQueue() {
+        BitbucketPullRequest pullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, pullRequest);
+        pullRequestStore.removePullRequest(serverId, pullRequest);
+        List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest);
+        //key exists but queue is empty
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
+    }
+
+    @Test
+    public void testRestoreStoreWithExistingKeyAndNonEmptyQueue() {
+        BitbucketPullRequest pullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, pullRequest);
+        List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest);
+        //key exists and pr exists in store
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        //here bbsPullRequests and store should be the same (therefore nothing changes)
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
+    }
+
+    @Test
+    public void testRestoreStoreWithPullRequestsFromBbsEmpty() {
+        BitbucketPullRequest pullRequest = setupPR(key, BitbucketPullState.OPEN, 1);
+        pullRequestStore.addPullRequest(serverId, pullRequest);
+        List<BitbucketPullRequest> bbsPullRequests = Collections.emptyList();
+        //key exists and pr exists in store
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
+    }
+
+    @Test
+    public void testRestoreStoreWithPullRequestsFromBbsHavingLessPRs() {
+        BitbucketPullRequest pullRequest1 = setupPR(key, BitbucketPullState.OPEN, 1);
+        BitbucketPullRequest pullRequest2 = setupPR(key, BitbucketPullState.OPEN, 2);
+        BitbucketPullRequest pullRequest3 = setupPR(key, BitbucketPullState.OPEN, 3);
+
+        pullRequestStore.addPullRequest(serverId, pullRequest1);
+        pullRequestStore.addPullRequest(serverId, pullRequest2);
+        pullRequestStore.addPullRequest(serverId, pullRequest3);
+
+        List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest1, pullRequest2);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.of(pullRequest3));
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.empty());
+    }
+
+    @Test
+    public void testRestoreStoreWithPullRequestsFromBbsHavingMorePRs() {
+        BitbucketPullRequest pullRequest1 = setupPR(key, BitbucketPullState.OPEN, 1);
+        BitbucketPullRequest pullRequest2 = setupPR(key, BitbucketPullState.OPEN, 2);
+        BitbucketPullRequest pullRequest3 = setupPR(key, BitbucketPullState.OPEN, 3);
+
+        pullRequestStore.addPullRequest(serverId, pullRequest1);
+        pullRequestStore.addPullRequest(serverId, pullRequest2);
+
+        List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest1, pullRequest2, pullRequest3);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.empty());
+
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.of(pullRequest3));
     }
 }

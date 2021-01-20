@@ -29,4 +29,11 @@ public interface BitbucketRepositoryClient {
      * @return a client.
      */
     BitbucketWebhookClient getWebhookClient();
+
+    /**
+     * A client for performing various operations on pull requests for this specific repository.
+     *
+     * @return a client.
+     */
+    BitbucketPullRequestsClient getPullRequestsClient();
 }

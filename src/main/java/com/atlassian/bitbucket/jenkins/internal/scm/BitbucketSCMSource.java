@@ -1,17 +1,23 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketPullRequestsClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchPRTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
@@ -48,6 +54,7 @@ import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -245,7 +252,34 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
+        if (event == null) {
+            //on manual scans & creation of jenkins jobs, we call out to bbs and fetch a list of open prs and
+            // sync up our local pullRequestStore
+            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+            List<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
+            descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), getServerId(), bbsPullRequests);
+        }
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
+    }
+
+    private List<BitbucketPullRequest> fetchOpenPullRequestsFromBbsInstance(DescriptorImpl descriptor) {
+        BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
+                .orElseThrow(() -> new BitbucketClientException(
+                        "Server config not found for input server id " + getServerId()));
+        JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = new JenkinsToBitbucketCredentialsImpl();
+        GlobalCredentialsProvider globalCredentialsProvider = bitbucketServerConfiguration.getGlobalCredentialsProvider(getOwner());
+        BitbucketCredentials credentials = globalCredentialsProvider.getGlobalAdminCredentials()
+                .map(creds -> jenkinsToBitbucketCredentials.toBitbucketCredentials(creds))
+                .orElseThrow(() -> new BitbucketClientException(
+                        "bitbucket credentials not found"));
+        BitbucketClientFactory clientFactory =
+                descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
+                        credentials);
+        BitbucketPullRequestsClient pullRequestsClient = clientFactory
+                .getProjectClient(getProjectKey())
+                .getRepositoryClient(getRepositorySlug())
+                .getPullRequestsClient();
+        return pullRequestsClient.getOpenPullRequests().collect(toList());
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
@@ -333,6 +367,8 @@ public class BitbucketSCMSource extends SCMSource {
         private BitbucketScmFormValidationDelegate formValidation;
         @Inject
         private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+        @Inject
+        private PullRequestStore pullRequestStore;
 
         @Inject
         private RetryingWebhookHandler retryingWebhookHandler;
@@ -463,6 +499,14 @@ public class BitbucketSCMSource extends SCMSource {
 
         public RetryingWebhookHandler getRetryingWebhookHandler() {
             return retryingWebhookHandler;
+        }
+
+        public BitbucketClientFactoryProvider getBitbucketClientFactoryProvider() {
+            return bitbucketClientFactoryProvider;
+        }
+
+        public PullRequestStore getPullRequestStore() {
+            return pullRequestStore;
         }
 
         @Override

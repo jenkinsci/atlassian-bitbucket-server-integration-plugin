@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 
 import javax.inject.Singleton;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -69,6 +70,17 @@ public class PullRequestStoreImpl implements PullRequestStore {
             return Optional.empty();
         }
         return pullRequest.stream().filter(pr -> pr.getId() == pullRequestId).findFirst();
+    }
+
+    @Override
+    public void refreshStore(String key, String slug, String serverId, List<BitbucketPullRequest> bbsPullRequests) {
+        PullRequestStoreImpl.CacheKey cacheKey =
+                new PullRequestStoreImpl.CacheKey(key, slug, serverId);
+        ConcurrentLinkedQueue<BitbucketPullRequest> pullRequest = pullRequests.get(cacheKey);
+        if (pullRequest != null) {
+            pullRequest.clear();
+        }
+        bbsPullRequests.stream().forEach(bbsPullRequest -> addPullRequest(serverId, bbsPullRequest));
     }
 
     /**
