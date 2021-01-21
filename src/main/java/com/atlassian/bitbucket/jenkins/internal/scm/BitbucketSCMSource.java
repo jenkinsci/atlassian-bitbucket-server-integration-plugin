@@ -257,7 +257,10 @@ public class BitbucketSCMSource extends SCMSource {
             // sync up our local pullRequestStore
             DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
             List<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
-            descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), getServerId(), bbsPullRequests);
+            String serverId = getServerId();
+            if (serverId != null) {
+                descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId, bbsPullRequests);
+            }
         }
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
@@ -267,19 +270,24 @@ public class BitbucketSCMSource extends SCMSource {
                 .orElseThrow(() -> new BitbucketClientException(
                         "Server config not found for input server id " + getServerId()));
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = new JenkinsToBitbucketCredentialsImpl();
-        BitbucketCredentials credentials = bitbucketServerConfiguration.getGlobalCredentialsProvider(getOwner())
-                .getGlobalAdminCredentials()
-                .map(creds -> jenkinsToBitbucketCredentials.toBitbucketCredentials(creds))
-                .orElseThrow(() -> new BitbucketClientException(
-                        "bitbucket credentials not found"));
-        BitbucketClientFactory clientFactory =
-                descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
-                        credentials);
-        BitbucketPullRequestsClient pullRequestsClient = clientFactory
-                .getProjectClient(getProjectKey())
-                .getRepositoryClient(getRepositorySlug())
-                .getPullRequestsClient();
-        return pullRequestsClient.getOpenPullRequests().collect(toList());
+
+        SCMSourceOwner owner = getOwner();
+        if (owner != null) {
+            BitbucketCredentials credentials = bitbucketServerConfiguration.getGlobalCredentialsProvider(owner)
+                    .getGlobalAdminCredentials()
+                    .map(creds -> jenkinsToBitbucketCredentials.toBitbucketCredentials(creds))
+                    .orElseThrow(() -> new BitbucketClientException(
+                            "bitbucket credentials not found"));
+            BitbucketClientFactory clientFactory =
+                    descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
+                            credentials);
+            BitbucketPullRequestsClient pullRequestsClient = clientFactory
+                    .getProjectClient(getProjectKey())
+                    .getRepositoryClient(getRepositorySlug())
+                    .getPullRequestsClient();
+            return pullRequestsClient.getOpenPullRequests().collect(toList());
+        }
+        return Collections.emptyList();
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
