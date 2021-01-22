@@ -6,6 +6,8 @@ import java.util.stream.Stream;
 
 /**
  * A client to get the state of pull requests in Bitbucket Server.
+ *
+ * @since 2.1.2
  */
 public interface BitbucketPullRequestsClient {
 
