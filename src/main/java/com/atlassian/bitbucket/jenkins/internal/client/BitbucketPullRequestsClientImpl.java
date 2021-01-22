@@ -30,6 +30,9 @@ public class BitbucketPullRequestsClientImpl implements BitbucketPullRequestsCli
                 .addPathSegment(requireNonNull(stripToNull(repoSlug), "repoSlug"))
                 .addPathSegment("pull-requests")
                 .addQueryParameter("state", "OPEN")
+                .addQueryParameter("withAttributes", "false")
+                .addQueryParameter("withProperties", "false")
+                
                 .build();
     }
 
