@@ -33,7 +33,7 @@ public interface BitbucketRepositoryClient {
     /**
      * A client for performing various operations on pull requests for this specific repository.
      *
-     * @return a client.
+     * @return a client
      */
     BitbucketPullRequestsClient getPullRequestsClient();
 }
