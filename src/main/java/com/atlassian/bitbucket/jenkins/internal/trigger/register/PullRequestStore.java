@@ -39,7 +39,7 @@ public interface PullRequestStore {
     Optional<BitbucketPullRequest> getPullRequest(String key, String slug, String serverId, int pullRequestId);
 
     /**
-     * given a list of pull requests retrieved from a call to bbs, update and sync up our pullRequestStore
+     * Given a list of pull requests retrieved from a call to bbs, update and sync up our pullRequestStore.
      * @param key
      * @param slug
      * @param serverId
