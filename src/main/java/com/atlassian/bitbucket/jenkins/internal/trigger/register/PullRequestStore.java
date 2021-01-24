@@ -4,8 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.google.inject.ImplementedBy;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * local copy of all open pull requests to support selectBranchTrait when we only want to build/display branches with
@@ -45,5 +45,5 @@ public interface PullRequestStore {
      * @param serverId
      * @param bbsPullRequests
      */
-    void refreshStore(String key, String slug, String serverId, List<BitbucketPullRequest> bbsPullRequests);
+    void refreshStore(String key, String slug, String serverId, Stream<BitbucketPullRequest> bbsPullRequests);
 }

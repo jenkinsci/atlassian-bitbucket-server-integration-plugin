@@ -262,7 +262,7 @@ public class BitbucketSCMSource extends SCMSource {
                     String serverId = getServerId();
                     if (serverId != null) {
                         descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId,
-                                bbsPullRequests.collect(Collectors.toList()));
+                                bbsPullRequests);
                     }
                 } catch (RuntimeException e) {
                     listener.getLogger().print("Fetching pull requests failed with error " + e.getMessage());

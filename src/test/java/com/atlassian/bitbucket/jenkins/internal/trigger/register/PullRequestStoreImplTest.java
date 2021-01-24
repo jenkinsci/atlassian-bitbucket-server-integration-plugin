@@ -214,7 +214,7 @@ public class PullRequestStoreImplTest {
         List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequest);
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
     }
 
@@ -227,7 +227,7 @@ public class PullRequestStoreImplTest {
         //key exists but queue is empty
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
     }
 
@@ -239,7 +239,7 @@ public class PullRequestStoreImplTest {
         //key exists and pr exists in store
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         //here bbsPullRequests and store should be the same (therefore nothing changes)
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
     }
@@ -252,7 +252,7 @@ public class PullRequestStoreImplTest {
         //key exists and pr exists in store
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.of(pullRequest));
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest.getId()), Optional.empty());
     }
 
@@ -271,7 +271,7 @@ public class PullRequestStoreImplTest {
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.of(pullRequest3));
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.empty());
@@ -291,7 +291,7 @@ public class PullRequestStoreImplTest {
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.empty());
 
-        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests);
+        pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest1.getId()), Optional.of(pullRequest1));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest2.getId()), Optional.of(pullRequest2));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, pullRequest3.getId()), Optional.of(pullRequest3));
