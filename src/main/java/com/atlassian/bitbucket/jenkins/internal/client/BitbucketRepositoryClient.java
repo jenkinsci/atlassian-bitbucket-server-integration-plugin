@@ -1,7 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+
+import java.util.stream.Stream;
 
 /**
  * Repository client, used to interact with a remote repository for all operations except cloning
@@ -31,9 +34,12 @@ public interface BitbucketRepositoryClient {
     BitbucketWebhookClient getWebhookClient();
 
     /**
-     * A client for performing various operations on pull requests for this specific repository.
+     * Gets all the open pull requests for the repository. The returned stream will make paged calls to Bitbucket to
+     * ensure that all pull requests are returned. Consumers are advised that this can return large amounts of data
+     * and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items, but
+     * rather process them as they come in.
      *
-     * @return a client
+     * @return a stream of all (potentially spanning multiple pages) open pull requests
      */
-    BitbucketPullRequestsClient getPullRequestsClient();
+    Stream<BitbucketPullRequest> getOpenPullRequests();
 }

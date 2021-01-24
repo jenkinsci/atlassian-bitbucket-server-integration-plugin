@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketPullRequestsClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -51,10 +50,10 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -253,19 +252,28 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         if (event == null) {
-            //on manual scans & creation of jenkins jobs, we call out to bbs and fetch a list of open prs and
-            // sync up our local pullRequestStore
-            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-            List<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
-            String serverId = getServerId();
-            if (serverId != null) {
-                descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId, bbsPullRequests);
+            if (gitSCMSource.getTraits().stream().anyMatch(trait -> trait.getClass() == SelectBranchTrait.class)) {
+                //on manual scans & creation of jenkins jobs, we call out to bbs and fetch a list of open prs and
+                // sync up our local pullRequestStore
+                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+                try {
+                    listener.getLogger().print("Refreshing pull requests");
+                    Stream<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
+                    String serverId = getServerId();
+                    if (serverId != null) {
+                        descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId,
+                                bbsPullRequests.collect(Collectors.toList()));
+                    }
+                } catch (RuntimeException e) {
+                    listener.getLogger().print("Fetching pull requests failed with error " + e.getMessage());
+                    LOGGER.log(Level.FINE, "Fetching pull requests failed with stack trace", e);
+                }
             }
         }
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
 
-    private List<BitbucketPullRequest> fetchOpenPullRequestsFromBbsInstance(DescriptorImpl descriptor) {
+    private Stream<BitbucketPullRequest> fetchOpenPullRequestsFromBbsInstance(DescriptorImpl descriptor) {
         BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                 .orElseThrow(() -> new BitbucketClientException(
                         "Server config not found for input server id " + getServerId()));
@@ -281,13 +289,11 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketClientFactory clientFactory =
                     descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
                             credentials);
-            BitbucketPullRequestsClient pullRequestsClient = clientFactory
+            return clientFactory
                     .getProjectClient(getProjectKey())
-                    .getRepositoryClient(getRepositorySlug())
-                    .getPullRequestsClient();
-            return pullRequestsClient.getOpenPullRequests().collect(toList());
+                    .getRepositoryClient(getRepositorySlug()).getOpenPullRequests();
         }
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {

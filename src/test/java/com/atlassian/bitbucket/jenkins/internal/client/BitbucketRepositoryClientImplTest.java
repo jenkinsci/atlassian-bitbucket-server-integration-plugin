@@ -18,18 +18,18 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.*;
 
-public class BitbucketPullRequestsClientImplTest {
+public class BitbucketRepositoryClientImplTest {
 
-    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?state=OPEN";
-    private static final String projectKey = "proj";
-    private static final String repoSlug = "repo";
+    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?state=OPEN&withAttributes=false&withProperties=false";
+    private static final String projectKey = "PROJECT_1";
+    private static final String repoSlug = "rep_1";
 
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
             requestExecutor, OBJECT_MAPPER, ANONYMOUS_CREDENTIALS);
-    private BitbucketPullRequestsClientImpl client =
-            new BitbucketPullRequestsClientImpl(bitbucketRequestExecutor, projectKey, repoSlug);
+    private BitbucketRepositoryClientImpl client =
+            new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, projectKey, repoSlug);
 
     @Test
     public void testFetchingOfExistingOpenPullRequests() {
@@ -46,7 +46,7 @@ public class BitbucketPullRequestsClientImplTest {
 
     @Test
     public void testNextPageFetching() {
-        BitbucketPullRequestsClientImpl.NextPageFetcherImpl fetcher = new BitbucketPullRequestsClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+        BitbucketRepositoryClientImpl.NextPageFetcherImpl fetcher = new BitbucketRepositoryClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
         int nextPageStart = 2;
         fakeRemoteHttpServer.mapUrlToResult(
                 BITBUCKET_BASE_URL + "?start=" + nextPageStart,
@@ -65,7 +65,7 @@ public class BitbucketPullRequestsClientImplTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testLastPageDoesNotHaveNext() {
-        BitbucketPullRequestsClientImpl.NextPageFetcherImpl fetcher = new BitbucketPullRequestsClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+        BitbucketRepositoryClientImpl.NextPageFetcherImpl fetcher = new BitbucketRepositoryClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
         BitbucketPage<BitbucketPullRequest> page = new BitbucketPage<>();
         page.setLastPage(true);
 
