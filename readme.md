@@ -209,6 +209,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 2.1.2 (XX January 2021)
+- The minimum version of Jenkins changed to be **2.204.1**
+
 ### 2.1.1 (24 November 2020)
 - Revoke access tokens now a user action
 - JENKINS-63070 - links supports Pipeline and Multibranch Pipeline
