@@ -209,7 +209,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 2.1.2 (27 January 2021)
+### 2.1.2 (28 January 2021)
 - The minimum version of Jenkins changed to be **2.204.1**
 - Fix issue JENKINS-64540
 
