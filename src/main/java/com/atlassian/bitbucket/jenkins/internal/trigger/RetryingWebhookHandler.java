@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.PersistentServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCapabilitiesClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
@@ -16,6 +17,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegisterRequest;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,6 +34,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  */
 @Singleton
 public class RetryingWebhookHandler {
+
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookMultibranchTrigger.class.getName());
 
     private final InstanceBasedNameGenerator instanceBasedNameGenerator;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
@@ -56,7 +60,9 @@ public class RetryingWebhookHandler {
         if (isBlank(bitbucketBaseUrl)) {
             throw new IllegalArgumentException("Invalid Bitbucket base URL. Input - " + bitbucketBaseUrl);
         }
-        String jenkinsUrl = jenkinsProvider.get().getRootUrl();
+
+        String jenkinsUrl = repository.isJenkinsUrlConfigured() ?
+            repository.getJenkinsUrl() : jenkinsProvider.get().getRootUrl();
         if (isBlank(jenkinsUrl)) {
             throw new IllegalArgumentException("Invalid Jenkins base url. Actual - " + jenkinsUrl);
         }

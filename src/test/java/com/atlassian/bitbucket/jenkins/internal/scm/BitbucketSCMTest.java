@@ -13,6 +13,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
@@ -59,7 +60,7 @@ public class BitbucketSCMTest {
         String projectKey = "~USER";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "", "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
@@ -74,11 +75,26 @@ public class BitbucketSCMTest {
         String projectKey = "PROJECT_1";
 
         BitbucketSCMRepository scmRepository =
-                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "");
+                new BitbucketSCMRepository(credentialsId, null, projectName, projectKey, "", "", serverId, "", "");
         BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
         doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
 
         assertEquals(projectName, scm.getProjectName());
+    }
+
+    @Test
+    public void testJenkinsUrl() {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String jenkinsUrl = "jenkins";
+
+        BitbucketSCMRepository scmRepository =
+            new BitbucketSCMRepository(credentialsId, null, "", "", "", "", serverId, "", jenkinsUrl);
+        BitbucketSCM scm = spy(createInstance(credentialsId, serverId));
+        doReturn(scmRepository).when(scm).getBitbucketSCMRepository();
+
+        assertTrue(scmRepository.isJenkinsUrlConfigured());
+        assertEquals(jenkinsUrl, scm.getJenkinsUrl());
     }
 
     private BitbucketSCM createInstance(String credentialId) {
@@ -94,11 +110,11 @@ public class BitbucketSCMTest {
     }
 
     private BitbucketSCM createInstance(String credentialId, String serverId, String projectName, String repo) {
-        return createInstance(credentialId, serverId, projectName, repo, null);
+        return createInstance(credentialId, serverId, projectName, repo, null, null);
     }
 
     private BitbucketSCM createInstance(String credentialsId, String serverId, String project, String repo,
-                                        String mirror) {
+                                        String mirror, String jenkinsUrl) {
         return new BitbucketSCM(
                 "1",
                 Collections.emptyList(),
@@ -109,7 +125,8 @@ public class BitbucketSCMTest {
                 project,
                 repo,
                 serverId,
-                mirror) {
+                mirror,
+                jenkinsUrl) {
             @Override
             public SCMDescriptor<?> getDescriptor() {
                 BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);

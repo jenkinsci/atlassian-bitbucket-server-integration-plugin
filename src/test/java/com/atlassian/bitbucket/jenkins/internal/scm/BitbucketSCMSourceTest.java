@@ -51,6 +51,20 @@ public class BitbucketSCMSourceTest {
     }
 
     @Test
+    public void testBuildHttpWithJenkinsUrl() {
+        BitbucketSCMSource scmSource = createInstance("credentialsId", "", "serverId", "project", "repo", "", "jenkins");
+        SCMHead scmHead = mock(SCMHead.class);
+        when(scmHead.getName()).thenReturn("myBranch");
+        SCM scm = scmSource.build(scmHead, null);
+        assertTrue(scm instanceof GitSCM);
+        GitSCM gitSCM = (GitSCM) scm;
+        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
+        assertEquals(1, userRemoteConfigs.size());
+        assertEquals(httpCloneLink, userRemoteConfigs.get(0).getUrl());
+        assertEquals("jenkins", scmSource.getJenkinsUrl());
+    }
+
+    @Test
     public void testBuildSsh() {
         BitbucketSCMSource scmSource =
                 createInstance("credentialsId", "sshCredentialsId", "serverId", "project", "repo");
@@ -62,6 +76,21 @@ public class BitbucketSCMSourceTest {
         List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
         assertEquals(1, userRemoteConfigs.size());
         assertEquals(sshCloneLink, userRemoteConfigs.get(0).getUrl());
+    }
+
+    @Test
+    public void testBuildSshWithJenkinsUrl() {
+        BitbucketSCMSource scmSource =
+            createInstance("credentialsId", "sshCredentialsId", "serverId", "project", "repo", "", "jenkins");
+        SCMHead scmHead = mock(SCMHead.class);
+        when(scmHead.getName()).thenReturn("myBranch");
+        SCM scm = scmSource.build(scmHead, null);
+        assertTrue(scm instanceof GitSCM);
+        GitSCM gitSCM = (GitSCM) scm;
+        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
+        assertEquals(1, userRemoteConfigs.size());
+        assertEquals(sshCloneLink, userRemoteConfigs.get(0).getUrl());
+        assertEquals("jenkins", scmSource.getJenkinsUrl());
     }
 
     @Test
@@ -164,7 +193,13 @@ public class BitbucketSCMSourceTest {
     }
 
     private BitbucketSCMSource createInstance(String credentialsId, String sshCredentialId, @Nullable String serverId,
-                                              @Nullable String projectName, @Nullable String repo) {
+        @Nullable String projectName, @Nullable String repo) {
+        return createInstance(credentialsId, sshCredentialId, serverId, projectName, repo, "", "");
+    }
+
+    private BitbucketSCMSource createInstance(String credentialsId, String sshCredentialId, @Nullable String serverId,
+                                              @Nullable String projectName, @Nullable String repo,
+                                              @Nullable String mirrorName, @Nullable String jenkinsUrl) {
         return new BitbucketSCMSource(
                 "1",
                 credentialsId,
@@ -173,7 +208,8 @@ public class BitbucketSCMSourceTest {
                 projectName,
                 repo,
                 serverId,
-                null) {
+                mirrorName,
+                jenkinsUrl) {
             @Override
             public SCMSourceDescriptor getDescriptor() {
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);

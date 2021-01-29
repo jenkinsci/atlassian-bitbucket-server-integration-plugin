@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import javax.annotation.Nullable;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class BitbucketSCMRepository {
@@ -14,10 +15,11 @@ public class BitbucketSCMRepository {
     private final String repositorySlug;
     private final String serverId;
     private final String mirrorName;
+    private final String jenkinsUrl;
 
     public BitbucketSCMRepository(@Nullable String credentialsId, @Nullable String sshCredentialsId, String projectName, String projectKey,
                                   String repositoryName, String repositorySlug, @Nullable String serverId,
-                                  String mirrorName) {
+                                  String mirrorName, @Nullable String jenkinsUrl) {
         this.credentialsId = credentialsId;
         this.sshCredentialsId = sshCredentialsId;
         this.projectName = projectName;
@@ -26,6 +28,7 @@ public class BitbucketSCMRepository {
         this.repositorySlug = repositorySlug;
         this.serverId = serverId;
         this.mirrorName = mirrorName;
+        this.jenkinsUrl = jenkinsUrl;
     }
 
     @Nullable
@@ -62,8 +65,16 @@ public class BitbucketSCMRepository {
         return mirrorName;
     }
 
+    public String getJenkinsUrl() {
+        return jenkinsUrl;
+    }
+
     public boolean isMirrorConfigured() {
         return !isEmpty(mirrorName);
+    }
+
+    public boolean isJenkinsUrlConfigured() {
+        return !isBlank(jenkinsUrl);
     }
 
     public boolean isPersonal() {

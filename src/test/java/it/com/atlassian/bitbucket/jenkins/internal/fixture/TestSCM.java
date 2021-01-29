@@ -9,7 +9,8 @@ public class TestSCM extends BitbucketSCM {
     public TestSCM(BitbucketSCM bitbucketSCM) {
         super(bitbucketSCM.getId(), bitbucketSCM.getBranches(), bitbucketSCM.getCredentialsId(), bitbucketSCM.getSshCredentialsId(),
                 bitbucketSCM.getExtensions(), bitbucketSCM.getGitTool(), bitbucketSCM.getProjectName(),
-                bitbucketSCM.getRepositoryName(), bitbucketSCM.getServerId(), bitbucketSCM.getMirrorName());
+                bitbucketSCM.getRepositoryName(), bitbucketSCM.getServerId(), bitbucketSCM.getMirrorName(),
+                bitbucketSCM.getJenkinsUrl());
     }
 
     @Override

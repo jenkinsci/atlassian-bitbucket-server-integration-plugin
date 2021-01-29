@@ -334,10 +334,10 @@ public class BitbucketWebhookTriggerImplTest {
     }
 
     private BitbucketSCMRepository createSCMRepo() {
-        return createSCMRepo("serverId", "");
+        return createSCMRepo("serverId", "", "");
     }
 
-    private BitbucketSCMRepository createSCMRepo(String serverId, String mirrorName) {
+    private BitbucketSCMRepository createSCMRepo(String serverId, String mirrorName, String jenkinsUrl) {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(serverId)).thenReturn(Optional.of(serverConfiguration));
         when(serverConfiguration.getGlobalCredentialsProvider(any(Item.class))).thenReturn(mock(GlobalCredentialsProvider.class));
@@ -350,15 +350,16 @@ public class BitbucketWebhookTriggerImplTest {
                 REPO,
                 REPO,
                 serverId,
-                mirrorName);
+                mirrorName,
+                jenkinsUrl);
     }
 
     private BitbucketSCMRepository createSCMRepoWithMirror(String mirrorName) {
-        return createSCMRepo("serverID", mirrorName);
+        return createSCMRepo("serverID", mirrorName, "");
     }
 
     private BitbucketSCMRepository createSCMRepoWithServerId(String serverId) {
-        return createSCMRepo(serverId, "");
+        return createSCMRepo(serverId, "", "");
     }
 
     private Job createWorkflowJob() {

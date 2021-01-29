@@ -101,7 +101,7 @@ public class BitbucketSCMSourceIT {
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
         BitbucketSCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
+                new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null, "");
         assertThat(scmSource.getTraits(), hasSize(0));
         assertThat(scmSource.getRemote(), containsStringIgnoringCase(forkCloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
@@ -140,7 +140,8 @@ public class BitbucketSCMSourceIT {
                 PROJECT_NAME,
                 forkRepoName,
                 serverId,
-                null);
+                null,
+                "");
 
         executeFullFlow(scmSource);
     }
@@ -158,7 +159,8 @@ public class BitbucketSCMSourceIT {
                 PROJECT_NAME,
                 forkRepoName,
                 serverId,
-                null);
+                null,
+                "");
 
         executeFullFlow(scmSource);
     }
