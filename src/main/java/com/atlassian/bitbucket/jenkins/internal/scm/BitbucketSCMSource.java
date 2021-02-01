@@ -2,8 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.StreamController;
-import com.atlassian.bitbucket.jenkins.internal.client.StreamControllerImpl;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -49,7 +47,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -261,7 +258,7 @@ public class BitbucketSCMSource extends SCMSource {
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
                 try {
                     listener.getLogger().print("Refreshing pull requests");
-                    StreamController<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
+                    Stream<BitbucketPullRequest> bbsPullRequests = fetchOpenPullRequestsFromBbsInstance(descriptor);
                     String serverId = getServerId();
                     if (serverId != null) {
                         descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId,
@@ -276,7 +273,7 @@ public class BitbucketSCMSource extends SCMSource {
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
 
-    private StreamController<BitbucketPullRequest> fetchOpenPullRequestsFromBbsInstance(DescriptorImpl descriptor) {
+    private Stream<BitbucketPullRequest> fetchOpenPullRequestsFromBbsInstance(DescriptorImpl descriptor) {
         BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                 .orElseThrow(() -> new BitbucketClientException(
                         "Server config not found for input server id " + getServerId()));
@@ -294,9 +291,9 @@ public class BitbucketSCMSource extends SCMSource {
                             credentials);
             return clientFactory
                     .getProjectClient(getProjectKey())
-                    .getRepositoryClient(getRepositorySlug()).getOpenPullRequests();
+                    .getRepositoryClient(getRepositorySlug()).getAllPullRequests();
         }
-        return new StreamControllerImpl<>(Stream.empty(), new AtomicBoolean(false));
+        return Stream.empty();
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {

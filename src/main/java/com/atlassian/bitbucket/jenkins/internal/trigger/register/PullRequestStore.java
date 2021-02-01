@@ -1,11 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
-import com.atlassian.bitbucket.jenkins.internal.client.StreamController;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.google.inject.ImplementedBy;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * local copy of all open pull requests to support selectBranchTrait when we only want to build/display branches with
@@ -33,10 +33,11 @@ public interface PullRequestStore {
      * @param projectKey
      * @param slug
      * @param serverId
-     * @param pullRequestId
+     * @param fromBranch
+     * @param toBranch
      * @return desired pull request else Optional.empty()
      */
-    public Optional<MinimalPullRequest> getPullRequest(String projectKey, String slug, String serverId, long pullRequestId);
+    public Optional<MinimalPullRequest> getPullRequest(String projectKey, String slug, String serverId, String fromBranch, String toBranch);
 
     /**
      * Given a list of pull requests retrieved from a call to bbs, update and sync up our pullRequestStore.
@@ -45,5 +46,7 @@ public interface PullRequestStore {
      * @param serverId
      * @param bbsPullRequests
      */
-    void refreshStore(String projectKey, String slug, String serverId, StreamController<BitbucketPullRequest> bbsPullRequests);
+    void refreshStore(String projectKey, String slug, String serverId, Stream<BitbucketPullRequest> bbsPullRequests);
+
+    void deleteClosedPullRequests(long date);
 }

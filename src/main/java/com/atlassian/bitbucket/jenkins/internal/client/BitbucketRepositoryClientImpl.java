@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import static java.lang.String.valueOf;
 import static java.util.Objects.requireNonNull;
@@ -32,7 +32,6 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                 .addPathSegment("repos")
                 .addPathSegment(requireNonNull(stripToNull(repositorySlug), "repoSlug"))
                 .addPathSegment("pull-requests")
-                .addQueryParameter("state", "ALL")
                 .addQueryParameter("withAttributes", "false")
                 .addQueryParameter("withProperties", "false")
                 .build();
@@ -55,14 +54,25 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
-    public StreamController<BitbucketPullRequest> getOpenPullRequests() {
+    public Stream<BitbucketPullRequest> getAllPullRequests() {
+        HttpUrl.Builder urlBuilder = url.newBuilder();
+        urlBuilder.addQueryParameter("state", "ALL");
+        return getBitbucketPullRequestStream(urlBuilder);
+    }
+
+    @Override
+    public Stream<BitbucketPullRequest> getOpenPullRequests() {
+        HttpUrl.Builder urlBuilder = url.newBuilder();
+        urlBuilder.addQueryParameter("state", "OPEN");
+        return getBitbucketPullRequestStream(urlBuilder);
+    }
+
+    private Stream<BitbucketPullRequest> getBitbucketPullRequestStream(HttpUrl.Builder urlBuilder) {
+        HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketPullRequest> firstPage =
                 bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketPullRequest>>() {}).getBody();
-        AtomicBoolean valve = new AtomicBoolean(true);
-        return new StreamControllerImpl<BitbucketPullRequest>(
-                BitbucketPageStreamUtil.toStream(firstPage, new BitbucketRepositoryClientImpl.NextPageFetcherImpl(url, bitbucketRequestExecutor), valve)
-                .map(BitbucketPage::getValues).flatMap(Collection::stream), valve);
-
+        return BitbucketPageStreamUtil.toStream(firstPage, new NextPageFetcherImpl(url, bitbucketRequestExecutor))
+                .map(BitbucketPage::getValues).flatMap(Collection::stream);
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketPullRequest> {

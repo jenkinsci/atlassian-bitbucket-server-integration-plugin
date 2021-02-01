@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
-import com.atlassian.bitbucket.jenkins.internal.client.StreamController;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -13,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 /**
  * There can be multiple pull requests (with different from or to refs) for the same project/repo/server
@@ -21,8 +21,8 @@ import java.util.function.BiFunction;
 @Singleton
 public class PullRequestStoreImpl implements PullRequestStore {
 
-    private static final MinimalPullRequest CLOSED_PR = new MinimalPullRequest(0, BitbucketPullState.DECLINED, "", 0);
-    private final ConcurrentMap<PullRequestStoreImpl.CacheKey, ConcurrentMap<String, MinimalPullRequest>> pullRequests;
+    private static final MinimalPullRequest CLOSED_PR = new MinimalPullRequest(0, BitbucketPullState.DECLINED, "", "", 0);
+    private final ConcurrentMap<PullRequestStoreImpl.CacheKey, ConcurrentMap<String, ConcurrentMap<String, MinimalPullRequest>>> pullRequests;
 
     public PullRequestStoreImpl() {
         pullRequests = new ConcurrentHashMap<>();
@@ -39,16 +39,23 @@ public class PullRequestStoreImpl implements PullRequestStore {
             }).compute(pr.getFromRefDisplayId(), getUpdatePrBiFunction(pr));
     }
 
-    private BiFunction<String, MinimalPullRequest, MinimalPullRequest> getUpdatePrBiFunction(MinimalPullRequest pr) {
-        return (key, currentPr) -> {
-            if (currentPr == null) { //there is no PR in store, use the new one
-                return pr;
+    private BiFunction<String, ConcurrentMap<String, MinimalPullRequest>,
+            ConcurrentMap<String, MinimalPullRequest>> getUpdatePrBiFunction(MinimalPullRequest pr) {
+        return (key, map) -> {
+            ConcurrentMap newMap = new ConcurrentHashMap<>();
+            newMap.put(pr.getToRefDisplayId(), pr);
+            if (map == null) { //there is no PR in store, use the new one
+                return newMap;
             }
-            if (currentPr.getUpdatedDate() >
+            ConcurrentMap concatMap = new ConcurrentHashMap<>(map);
+            concatMap.put(pr.getToRefDisplayId(), pr);
+            if (map.get(pr.getToRefDisplayId()) == null) { //there is no PR in store, use the new one
+                return concatMap;
+            } else if (map.getOrDefault(pr.getToRefDisplayId(), pr).getUpdatedDate() >=
                 pr.getUpdatedDate()) { //the PR in the store is newer than the one we got in, return the existing one
-                return currentPr;
+                return map;
             }
-            return pr; //PR we got in is newest version, use it.
+            return concatMap; //PR we got in is newest version, use it.
         };
     }
 
@@ -63,50 +70,71 @@ public class PullRequestStoreImpl implements PullRequestStore {
 
     @Override
     public boolean hasOpenPullRequests(String branchName, BitbucketSCMRepository repository) {
-
         PullRequestStoreImpl.CacheKey key =
                 new PullRequestStoreImpl.CacheKey(repository.getProjectKey(), repository.getRepositorySlug(), repository.getServerId());
         return pullRequests.getOrDefault(key, new ConcurrentHashMap<>())
-                .getOrDefault(branchName, CLOSED_PR).getState() == BitbucketPullState.OPEN;
+                .getOrDefault(branchName, new ConcurrentHashMap<>()).values().stream().filter(
+                        pr -> pr.getState() == BitbucketPullState.OPEN).findFirst().isPresent();
 
     }
 
     @Override
-    public Optional<MinimalPullRequest> getPullRequest(String projectKey, String slug, String serverId, long pullRequestId) {
+    public Optional<MinimalPullRequest> getPullRequest(String projectKey, String slug, String serverId, String fromBranch, String toBranch) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(projectKey, slug, serverId);
-        return pullRequests.getOrDefault(cacheKey, new ConcurrentHashMap<>()).values().stream().filter(pr -> pr.getId() == pullRequestId).findFirst();
+        return Optional.ofNullable(pullRequests.getOrDefault(cacheKey, new ConcurrentHashMap<>())
+                .getOrDefault(fromBranch, new ConcurrentHashMap<>()).get(toBranch));
     }
 
+    //TODO: when a pr gets deleted
     @Override
-    public void refreshStore(String projectKey, String slug, String serverId, StreamController<BitbucketPullRequest> bbsPullRequests) {
+    public void refreshStore(String projectKey, String slug, String serverId, Stream<BitbucketPullRequest> bbsPullRequests) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(projectKey, slug, serverId);
         AtomicLong oldestUpdate = new AtomicLong(0);
-        pullRequests.getOrDefault(cacheKey, new ConcurrentHashMap<>()).values().stream().forEach(pr -> {
-            if (oldestUpdate.get() == 0) {
-                oldestUpdate.set(pr.getUpdatedDate());
-            }
-            if (pr.getUpdatedDate() < oldestUpdate.get()) {
-                oldestUpdate.set(pr.getUpdatedDate());
-            }
+        pullRequests.getOrDefault(cacheKey, new ConcurrentHashMap<>()).values().stream().forEach(fromBranch -> {
+            fromBranch.values().forEach(pr -> {
+                if (oldestUpdate.get() == 0) {
+                    oldestUpdate.set(pr.getUpdatedDate());
+                }
+                if (pr.getUpdatedDate() < oldestUpdate.get()) {
+                    oldestUpdate.set(pr.getUpdatedDate());
+                }
+            });
         });
 
-        bbsPullRequests.getStream().forEach(pr -> {
-            if (pr.getUpdatedDate() < oldestUpdate.get()) {
-                bbsPullRequests.stopStream();
-            } else {
+        //bbspullrequests is ordered from newest to oldest
+        bbsPullRequests.map(pr -> {
+            if (pr.getUpdatedDate() > oldestUpdate.get()) {
                 addPullRequest(serverId, pr);
             }
-        });
+            return pr.getUpdatedDate();
+        }).filter(updated -> updated < oldestUpdate.get())
+                .findFirst();
     }
 
-    //delete old pull requests older than date
-    //if new only fetch open pr
-    //tests
+    //TODO: When should this be called? regularly schedule or when add/remove/refresh is called?
+    @Override
+    public void deleteClosedPullRequests(long date) {
+       pullRequests.values().forEach(fromMap -> {
+           fromMap.values().forEach(toMap -> {
+               toMap.keySet().forEach(ref -> {
+                   toMap.compute(ref, (toBranch, pr) -> {
+                       if (pr.getUpdatedDate() < date) {
+                           return null;
+                       }
+                       return pr;
+                   });
+               });
+           });
+       });
+    }
+
+    //TODO: if new only fetch open pr
 
     public static MinimalPullRequest convert(BitbucketPullRequest bbsPR) {
-        return new MinimalPullRequest(bbsPR.getId(), bbsPR.getState(), bbsPR.getFromRef().getDisplayId(), bbsPR.getUpdatedDate());
+        return new MinimalPullRequest(bbsPR.getId(), bbsPR.getState(), bbsPR.getFromRef().getDisplayId(),
+                bbsPR.getToRef().getDisplayId(), bbsPR.getUpdatedDate());
     }
 
     /**

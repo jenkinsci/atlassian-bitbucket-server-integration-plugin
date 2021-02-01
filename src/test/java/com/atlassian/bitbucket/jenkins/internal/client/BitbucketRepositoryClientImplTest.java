@@ -9,15 +9,18 @@ import java.util.List;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
+import static java.lang.String.format;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.*;
 
 public class BitbucketRepositoryClientImplTest {
 
-    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?state=OPEN&withAttributes=false&withProperties=false";
+    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?state=ALL&withAttributes=false&withProperties=false";
     private static final String projectKey = "PROJECT_1";
     private static final String repoSlug = "rep_1";
 
@@ -28,8 +31,8 @@ public class BitbucketRepositoryClientImplTest {
     private BitbucketRepositoryClientImpl client =
             new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, projectKey, repoSlug);
 
-    /*@Test
-    public void testFetchingOfExistingOpenPullRequests() {
+    @Test
+    public void testFetchingOfExistingPullRequests() {
         String response = readFileToString("/open-pull-requests.json");
         String url = format(WEBHOOK_URL, BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
@@ -37,9 +40,9 @@ public class BitbucketRepositoryClientImplTest {
         List<BitbucketPullRequest> pullRequests = client.getOpenPullRequests().collect(toList());
 
         assertThat(pullRequests.size(), is(equalTo(2)));
-        assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(96, 97));
+        assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
          assertThat(pullRequests.stream().map(BitbucketPullRequest::getState).collect(toSet()), hasItems(BitbucketPullState.OPEN));
-    }*/
+    }
 
     @Test
     public void testNextPageFetching() {
@@ -56,7 +59,7 @@ public class BitbucketRepositoryClientImplTest {
         assertEquals(next.getSize(), values.size());
         assertTrue(next.getSize() > 0);
 
-        assertThat(values.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(96, 97));
+        assertThat(values.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
         assertThat(next.isLastPage(), is(true));
     }
 
