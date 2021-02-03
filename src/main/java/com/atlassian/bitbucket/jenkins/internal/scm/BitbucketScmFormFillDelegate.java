@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
@@ -167,7 +168,10 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                                     providedCredentials.orElse(null));
                     try {
                         Collection<BitbucketRepository> repositories = findRepositories(repositoryName, projectName,
-                                bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
+                                bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials))
+                                .stream()
+                                .filter(repository -> repository.getProject().getName().equals(projectName))
+                                .collect(Collectors.toList());
                         return okJSON(JSONArray.fromObject(repositories));
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
