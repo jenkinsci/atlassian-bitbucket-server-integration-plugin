@@ -146,7 +146,7 @@ public class BitbucketSCMSource extends SCMSource {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return gitSCMSource.build(head, revision);
+        return getGitSCMSource().build(head, revision);
     }
 
     @Override
@@ -180,7 +180,7 @@ public class BitbucketSCMSource extends SCMSource {
         return repository;
     }
 
-    public CustomGitSCMSource getGitSCMSource() {
+    CustomGitSCMSource getGitSCMSource() {
         return gitSCMSource;
     }
 
@@ -203,7 +203,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public String getRemote() {
-        return gitSCMSource.getRemote();
+        return getGitSCMSource().getRemote();
     }
 
     public String getRepositoryName() {
@@ -256,7 +256,7 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         handleRefreshingPRStore(event, listener);
-        gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
+        getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
     }
 
     protected void handleRefreshingPRStore(@CheckForNull SCMHeadEvent<?> event,
@@ -320,8 +320,8 @@ public class BitbucketSCMSource extends SCMSource {
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
-        gitSCMSource.setTraits(traits);
-        gitSCMSource.setCredentialsId(credentialsId);
+        getGitSCMSource().setTraits(traits);
+        getGitSCMSource().setCredentialsId(credentialsId);
     }
 
     @SuppressWarnings("Duplicates")
