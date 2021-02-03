@@ -3,8 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,7 +12,6 @@ import java.util.Optional;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
 public class PullRequestStoreImplTest {
 
     PullRequestStore pullRequestStore = new PullRequestStoreImpl();
@@ -69,7 +66,7 @@ public class PullRequestStoreImplTest {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalPullRequest));
@@ -78,12 +75,13 @@ public class PullRequestStoreImplTest {
     @Test
     public void testAddPRWithExistingKey() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 2, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN,
+                2, bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 2,
                 anotherBitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalPullRequest));
@@ -95,14 +93,15 @@ public class PullRequestStoreImplTest {
         MinimalPullRequest originalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
         String newKey = "different-key";
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, branchName, branchName, BitbucketPullState.OPEN, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(newKey, branchName, branchName, BitbucketPullState.OPEN, 1,
                 anotherBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(newKey, slug, serverId,
                 branchName, branchName), Optional.of(minimalPullRequest));
@@ -116,18 +115,19 @@ public class PullRequestStoreImplTest {
         MinimalPullRequest originalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 1,
                 anotherBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(originalPullRequest));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
-                "different-branch", "different-branch"), Optional.of(minimalPullRequest));
+                "different-branch", branchName), Optional.of(minimalPullRequest));
     }
 
     @Test
@@ -136,13 +136,14 @@ public class PullRequestStoreImplTest {
         MinimalPullRequest originalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 1,
                 anotherBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(originalPullRequest));
@@ -157,17 +158,18 @@ public class PullRequestStoreImplTest {
     @Test
     public void testAddPRThenDeleteThenAddAgainOutdatedPR() {
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        BitbucketPullRequest removePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest updatePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                pullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
-                removePullRequest.getUpdatedDate());
+                updatePullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        pullRequestStore.removePullRequest(serverId, removePullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, updatePullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalDeletedPullRequest));
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalDeletedPullRequest));
@@ -182,21 +184,23 @@ public class PullRequestStoreImplTest {
     @Test
     public void testAddPRThenDeleteThenAddAgain() {
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        BitbucketPullRequest removePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest updatePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                pullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
-                removePullRequest.getUpdatedDate());
+                updatePullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        pullRequestStore.removePullRequest(serverId, removePullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, updatePullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalDeletedPullRequest));
 
-        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                updatePullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 newPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, newPullRequest);
+        pullRequestStore.updatePullRequest(serverId, newPullRequest);
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName), Optional.of(minimalPullRequest));
 
@@ -210,7 +214,7 @@ public class PullRequestStoreImplTest {
     @Test
     public void testHasOpenPRWithNonExistingKey() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
         String newKey = "different-key";
         String branchName = "branch";
@@ -225,7 +229,7 @@ public class PullRequestStoreImplTest {
     @Test
     public void testHasOpenPRWithExistingKeyButNoOpenPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
         String differentBranchName = "different-branch";
         BitbucketSCMRepository repository = mock(BitbucketSCMRepository.class);
@@ -239,7 +243,7 @@ public class PullRequestStoreImplTest {
     @Test
     public void testHasOpenPRWithExistingKeyAndOpenPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
         BitbucketSCMRepository repository = mock(BitbucketSCMRepository.class);
         doReturn(slug).when(repository).getRepositorySlug();
@@ -250,112 +254,122 @@ public class PullRequestStoreImplTest {
     }
 
     @Test
-    public void testRemovePRWithNonExistingKey() {
+    public void testAddClosedPRWithNonExistingKey() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
         String newKey = "different-key";
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
-
-        pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(newKey, branchName, branchName, BitbucketPullState.DELETED, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
+        MinimalPullRequest anotherMinimalPullRequest = setupMinimalPR(newKey, branchName, branchName, BitbucketPullState.DELETED, 1,
+                anotherBitbucketPullRequest.getUpdatedDate());
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals((pullRequestStore.getPullRequest(newKey, slug, serverId,
-                branchName, branchName)), Optional.empty());
+                branchName, branchName)), Optional.of(anotherMinimalPullRequest));
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName)), Optional.of(minimalPullRequest));
     }
 
     @Test
-    public void testRemovePRWithExistingKeyButClosedPR() {
+    public void testAddClosedPRWithExistingKeyButClosedPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                removeBitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest anotherPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
                 anotherBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName)), Optional.of(anotherPullRequest));
     }
 
     @Test
-    public void testRemovePRWithExistingKeyButNonExistingBranch() {
+    public void testAddClosedPRWithExistingKeyButNonExistingBranch() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 1,
                 removeBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName)), Optional.of(minimalPullRequest));
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
-                "different-branch", "different-branch")), Optional.of(minimalDeletedPullRequest));
+                "different-branch", branchName)), Optional.of(minimalDeletedPullRequest));
     }
 
     @Test
-    public void testRemovePRWithExistingKeyAndExistingPR() {
+    public void testAddClosedPRWithExistingKeyAndExistingPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
                 removeBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName)), Optional.of(minimalDeletedPullRequest));
     }
 
     @Test
-    public void testRemovePRWithMultiplePRsForSameFromAndToBranch() {
+    public void testAddClosedPRWithMultiplePRsForSameFromAndToBranch() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 2, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN,
+                2, bitbucketPullRequest.getUpdatedDate() + 1);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
+                anotherBitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
                 removeBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minimalDeletedPullRequest));
     }
 
     @Test
-    public void testRemovePRWithMultiplePRsDifferentToBranch() {
+    public void testAddClosedPRWithMultiplePRsDifferentToBranch() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDifferentPullRequest = setupMinimalPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2,
                 anotherBitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
+                anotherBitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
                 removeBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minimalDeletedPullRequest));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, "different-branch"), Optional.of(minimalDifferentPullRequest));
@@ -363,20 +377,22 @@ public class PullRequestStoreImplTest {
     }
 
     @Test
-    public void testRemovePRWithMultiplePRsDifferentFromBranch() { //open, open, close BUG
+    public void testAddClosedPRWithMultiplePRsDifferentFromBranch() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 2, System.currentTimeMillis());
+        BitbucketPullRequest anotherBitbucketPullRequest = setupPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 2,
+                bitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDifferentPullRequest = setupMinimalPR(key, "different-branch", branchName, BitbucketPullState.OPEN, 2,
                 anotherBitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, anotherBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, anotherBitbucketPullRequest);
 
-        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2, System.currentTimeMillis());
+        BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
+                anotherBitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 2,
                 removeBitbucketPullRequest.getUpdatedDate());
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minimalDeletedPullRequest));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, "different-branch", branchName), Optional.of(minimalDifferentPullRequest));
@@ -384,21 +400,20 @@ public class PullRequestStoreImplTest {
     }
 
     @Test
-    public void testRemovePRWithOutdatedPR() {
+    public void testUpdatePRWithOutdatedPR() {
         //outdated pr
         BitbucketPullRequest removeBitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 2, System.currentTimeMillis());
 
-        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                removeBitbucketPullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 bitbucketPullRequest.getUpdatedDate());
-        pullRequestStore.addPullRequest(serverId, bitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        pullRequestStore.removePullRequest(serverId, removeBitbucketPullRequest);
+        pullRequestStore.updatePullRequest(serverId, removeBitbucketPullRequest);
 
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minimalPullRequest));
     }
-
-    //refresh store
 
     @Test
     public void testRestoreStoreWithNonExistingKey() {
@@ -418,15 +433,17 @@ public class PullRequestStoreImplTest {
     @Test
     public void testRestoreStoreWithExistingKeyAndClosedPR() {
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        BitbucketPullRequest removePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        BitbucketPullRequest updatePullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                pullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minimalDeletedPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
-                removePullRequest.getUpdatedDate());
-        pullRequestStore.removePullRequest(serverId, removePullRequest);
+                updatePullRequest.getUpdatedDate());
+        pullRequestStore.updatePullRequest(serverId, updatePullRequest);
         //key exists, pr exists but is closed
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minimalDeletedPullRequest));
 
-        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                updatePullRequest.getUpdatedDate() + 1);
         MinimalPullRequest newMinPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 newPullRequest.getUpdatedDate());
         List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(newPullRequest);
@@ -436,29 +453,36 @@ public class PullRequestStoreImplTest {
     }
 
     @Test
-    public void testRestoreStoreWithPullRequestsFromBbsEmpty() { //BUG should make all current prs in store as closed
+    public void testRestoreStoreWithPullRequestsFromBbsEmpty() {
+        //store should not change (deleting these pull requests will have to be handled manually through REST with closePullRequests
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        pullRequestStore.addPullRequest(serverId, pullRequest);
+        MinimalPullRequest minPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                pullRequest.getUpdatedDate());
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
         //no pull requests have ever been made (or they're all deleted)
         List<BitbucketPullRequest> bbsPullRequests = Collections.emptyList();
 
         pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
-        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.empty());
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minPullRequest));
     }
 
     @Test
     public void testRestoreStoreUpdatingPullRequests() {
-        BitbucketPullRequest oldPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.DELETED, 2, System.currentTimeMillis());
+        BitbucketPullRequest oldPullRequest = setupPR(key, branchName, "different-branch", BitbucketPullState.DELETED,
+                2, System.currentTimeMillis());
 
-        BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
-        BitbucketPullRequest pullRequestClosed = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2, System.currentTimeMillis());
+        BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                oldPullRequest.getUpdatedDate() + 1);
+        BitbucketPullRequest pullRequestClosed = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN,
+                2, pullRequest.getUpdatedDate() + 1);
         MinimalPullRequest ClosedMinPullRequest = setupMinimalPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2,
                 pullRequestClosed.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        pullRequestStore.addPullRequest(serverId, pullRequestClosed);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequestClosed);
 
-        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        BitbucketPullRequest newPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                pullRequestClosed.getUpdatedDate() + 1);
         MinimalPullRequest newMinPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
                 newPullRequest.getUpdatedDate());
 
@@ -475,12 +499,13 @@ public class PullRequestStoreImplTest {
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
         MinimalPullRequest minPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
                 pullRequest.getUpdatedDate());
-        BitbucketPullRequest pullRequestClosed = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2, System.currentTimeMillis());
+        BitbucketPullRequest pullRequestClosed = setupPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2,
+                pullRequest.getUpdatedDate() + 1);
         MinimalPullRequest minClosedPullRequest = setupMinimalPR(key, branchName, "different-branch", BitbucketPullState.OPEN, 2,
                 pullRequestClosed.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        pullRequestStore.addPullRequest(serverId, pullRequestClosed);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequestClosed);
 
         List<BitbucketPullRequest> bbsPullRequests = Arrays.asList(pullRequestClosed, pullRequest);
         pullRequestStore.refreshStore(key, slug, serverId, bbsPullRequests.stream());
@@ -491,28 +516,117 @@ public class PullRequestStoreImplTest {
     //issue: if they're deleted they won't show in bbspullRequests (they'll never get updated)
 
     @Test
-    public void testDeleteClosedPullRequests() {
+    public void testRemoveClosedPullRequests() {
 
         BitbucketPullRequest pullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        BitbucketPullRequest pullRequestDifferentCache = setupPR("new-key", branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
-        Long date = System.currentTimeMillis();
-        BitbucketPullRequest pullRequestDifferentFrom = setupPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 2, System.currentTimeMillis());
+        MinimalPullRequest minPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.OPEN, 1,
+                pullRequest.getUpdatedDate());
+        BitbucketPullRequest pullRequestDifferentCache = setupPR("new-key", branchName, branchName, BitbucketPullState.DELETED, 1,
+                pullRequest.getUpdatedDate() + 1);
+        Long date = pullRequestDifferentCache.getUpdatedDate() + 1;
+        BitbucketPullRequest pullRequestDifferentFrom = setupPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 2, date + 1);
         MinimalPullRequest minPullRequestFrom = setupMinimalPR(key, "different-branch", branchName, BitbucketPullState.DELETED, 2,
                 pullRequestDifferentFrom.getUpdatedDate());
-        BitbucketPullRequest pullRequestDifferentTo = setupPR(key, branchName, "different-branch", BitbucketPullState.DELETED, 3, System.currentTimeMillis());
+        BitbucketPullRequest pullRequestDifferentTo = setupPR(key, branchName, "different-branch", BitbucketPullState.DELETED, 3, date + 2);
         MinimalPullRequest minPullRequestTo = setupMinimalPR(key, branchName, "different-branch", BitbucketPullState.DELETED, 3,
                 pullRequestDifferentTo.getUpdatedDate());
 
-        pullRequestStore.addPullRequest(serverId, pullRequest);
-        pullRequestStore.addPullRequest(serverId, pullRequestDifferentCache);
-        pullRequestStore.addPullRequest(serverId, pullRequestDifferentFrom);
-        pullRequestStore.addPullRequest(serverId, pullRequestDifferentTo);
+        pullRequestStore.updatePullRequest(serverId, pullRequest);
+        pullRequestStore.updatePullRequest(serverId, pullRequestDifferentCache);
+        pullRequestStore.updatePullRequest(serverId, pullRequestDifferentFrom);
+        pullRequestStore.updatePullRequest(serverId, pullRequestDifferentTo);
 
-        pullRequestStore.deleteClosedPullRequests(date);
+        pullRequestStore.removeClosedPullRequests(date);
 
-        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.empty());
+        //first one is not removed because it's not a closed pr
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minPullRequest));
+        //second one gets removed since it is older than the date and is a closed pr
         assertEquals(pullRequestStore.getPullRequest("new-key", slug, serverId, branchName, branchName), Optional.empty());
+        //the rest are not older than the data, so not removed
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, "different-branch", branchName), Optional.of(minPullRequestFrom));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, "different-branch"), Optional.of(minPullRequestTo));
     }
+
+    @Test
+    public void testClosePRWithNonExistingKey() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+        String newKey = "different-key";
+
+        pullRequestStore.closePullRequest(newKey, slug, serverId, branchName, branchName);
+
+        assertEquals((pullRequestStore.getPullRequest(newKey, slug, serverId,
+                branchName, branchName)), Optional.empty());
+    }
+
+    @Test
+    public void testClosePRWithNonExistingFromBranch() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+
+        pullRequestStore.closePullRequest(key, slug, serverId, "different-branch", branchName);
+
+        assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
+                "different-branch", branchName)), Optional.empty());
+    }
+
+    @Test
+    public void testClosePRWithNonExistingToBranch() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+
+        pullRequestStore.closePullRequest(key, slug, serverId, branchName, "different-branch");
+
+        assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
+                 branchName, "different-branch")), Optional.empty());
+    }
+
+    @Test
+    public void testClosePRExistingPR() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.OPEN, 1, System.currentTimeMillis());
+        MinimalPullRequest minPullRequest = setupMinimalPR(key, branchName, branchName, BitbucketPullState.DELETED, 1,
+                bitbucketPullRequest.getUpdatedDate());
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+
+        pullRequestStore.closePullRequest(key, slug, serverId, branchName, branchName);
+
+        assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
+                branchName, branchName)), Optional.of(minPullRequest));
+    }
+
+    @Test
+    public void testHasPRForRepoNonExistingKey() {
+        assertFalse(pullRequestStore.hasPRForRepository(key, slug, serverId));
+    }
+
+    @Test
+    public void testHasPRForRepoExistingKeyEmptyRepoStore() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+        Long date = bitbucketPullRequest.getUpdatedDate() + 1;
+        pullRequestStore.removeClosedPullRequests(date);
+        assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.empty());
+
+        assertFalse(pullRequestStore.hasPRForRepository(key, slug, serverId));
+    }
+
+    @Test
+    public void testHasPRForRepoExistingPR() {
+        BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
+        pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
+        assertTrue(pullRequestStore.hasPRForRepository(key, slug, serverId));
+    }
+
+    /*@Test
+    public void testTimer() {
+        PullRequestStoreImpl mockPRStore = mock(PullRequestStoreImpl.class);
+        mockPRStore.setDelay(TimeUnit.SECONDS.toMillis(1));
+        mockPRStore.setPeriod(TimeUnit.SECONDS.toMillis(2));
+
+        verify(mockPRStore).removeClosedPullRequests(Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli());
+
+    }*/
 }

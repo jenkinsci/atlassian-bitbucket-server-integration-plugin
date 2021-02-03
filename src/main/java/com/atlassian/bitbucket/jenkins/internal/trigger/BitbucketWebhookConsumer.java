@@ -80,7 +80,7 @@ public class BitbucketWebhookConsumer {
             triggerJob(event, refChangedDetails, server);
         } else if (BitbucketWebhookEvent.PULL_REQUEST_CLOSED_EVENT.getEventIds().contains(event.getEventKey())) {
             server.ifPresent(configuration ->
-                    pullRequestStore.removePullRequest(configuration.getId(), event.getPullRequest()));
+                    pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.REMOVED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }
@@ -212,7 +212,7 @@ public class BitbucketWebhookConsumer {
 
             processJobs(refChangedDetails, requestBuilder);
             serverConfig.ifPresent(configuration ->
-                    pullRequestStore.addPullRequest(configuration.getId(), event.getPullRequest()));
+                    pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getToRef().getRepository().getSlug()));
         }
     }

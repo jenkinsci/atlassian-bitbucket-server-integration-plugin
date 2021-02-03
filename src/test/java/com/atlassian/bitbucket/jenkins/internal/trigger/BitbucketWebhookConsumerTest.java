@@ -256,7 +256,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         verify(pullRequestStore)
-                .addPullRequest(serverConfiguration.getId(), pullRequestOpenedEvent.getPullRequest());
+                .updatePullRequest(serverConfiguration.getId(), pullRequestOpenedEvent.getPullRequest());
     }
 
     @Test
@@ -277,7 +277,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         verify(pullRequestStore)
-                .removePullRequest(serverConfiguration.getId(), pullRequestClosedEvent.getPullRequest());
+                .updatePullRequest(serverConfiguration.getId(), pullRequestClosedEvent.getPullRequest());
     }
 
     @Test

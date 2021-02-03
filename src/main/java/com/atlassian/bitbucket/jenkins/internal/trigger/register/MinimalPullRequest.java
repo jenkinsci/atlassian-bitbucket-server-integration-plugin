@@ -7,7 +7,7 @@ import java.util.Objects;
 class MinimalPullRequest {
 
     private final long id;
-    private final BitbucketPullState state;
+    private BitbucketPullState state;
     private final String fromRefDisplayId;
     private final String toRefDisplayId;
     private final long updatedDate;
@@ -58,5 +58,9 @@ class MinimalPullRequest {
 
     public long getUpdatedDate() {
         return updatedDate;
+    }
+
+    void setState(BitbucketPullState newState) {
+        this.state = newState;
     }
 }
