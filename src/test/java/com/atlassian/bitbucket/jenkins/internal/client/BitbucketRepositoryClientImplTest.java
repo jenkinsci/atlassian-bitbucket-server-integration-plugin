@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 
 public class BitbucketRepositoryClientImplTest {
 
-    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?state=ALL&withAttributes=false&withProperties=false";
+    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?withAttributes=false&withProperties=false&state=OPEN";
     private static final String projectKey = "PROJECT_1";
     private static final String repoSlug = "rep_1";
 
@@ -32,7 +32,7 @@ public class BitbucketRepositoryClientImplTest {
             new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, projectKey, repoSlug);
 
     @Test
-    public void testFetchingOfExistingPullRequests() {
+    public void testFetchingOfExistingOpenPullRequests() {
         String response = readFileToString("/open-pull-requests.json");
         String url = format(WEBHOOK_URL, BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
@@ -42,6 +42,19 @@ public class BitbucketRepositoryClientImplTest {
         assertThat(pullRequests.size(), is(equalTo(2)));
         assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
          assertThat(pullRequests.stream().map(BitbucketPullRequest::getState).collect(toSet()), hasItems(BitbucketPullState.OPEN));
+    }
+
+    @Test
+    public void testFetchingOfExistingPullRequests() {
+        String response = readFileToString("/open-pull-requests.json");
+        String webhookUrl = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?withAttributes=false&withProperties=false&state=ALL";
+        String url = format(webhookUrl, BITBUCKET_BASE_URL, projectKey, repoSlug);
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        List<BitbucketPullRequest> pullRequests = client.getAllPullRequests().collect(toList());
+
+        assertThat(pullRequests.size(), is(equalTo(2)));
+        assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
     }
 
     @Test
