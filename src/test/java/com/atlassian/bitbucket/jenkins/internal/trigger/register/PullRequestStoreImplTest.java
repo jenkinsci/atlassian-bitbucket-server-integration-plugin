@@ -513,7 +513,6 @@ public class PullRequestStoreImplTest {
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.of(minPullRequest));
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, "different-branch"), Optional.of(minClosedPullRequest));
     }
-    //issue: if they're deleted they won't show in bbspullRequests (they'll never get updated)
 
     @Test
     public void testRemoveClosedPullRequests() {
@@ -619,14 +618,4 @@ public class PullRequestStoreImplTest {
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
         assertTrue(pullRequestStore.hasPRForRepository(key, slug, serverId));
     }
-
-    /*@Test
-    public void testTimer() {
-        PullRequestStoreImpl mockPRStore = mock(PullRequestStoreImpl.class);
-        mockPRStore.setDelay(TimeUnit.SECONDS.toMillis(1));
-        mockPRStore.setPeriod(TimeUnit.SECONDS.toMillis(2));
-
-        verify(mockPRStore).removeClosedPullRequests(Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli());
-
-    }*/
 }

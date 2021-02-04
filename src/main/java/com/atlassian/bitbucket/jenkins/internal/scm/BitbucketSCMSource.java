@@ -259,7 +259,7 @@ public class BitbucketSCMSource extends SCMSource {
                 try {
                     listener.getLogger().print("Refreshing pull requests");
                     String serverId = getServerId();
-                    Stream<BitbucketPullRequest> bbsPullRequests = fetchAllPullRequestsFromBbsInstance(serverId, descriptor);
+                    Stream<BitbucketPullRequest> bbsPullRequests = fetchPullRequestsFromBbsInstance(serverId, descriptor);
                     if (serverId != null) {
                         descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId,
                                 bbsPullRequests);
@@ -273,7 +273,7 @@ public class BitbucketSCMSource extends SCMSource {
         gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
 
-    private Stream<BitbucketPullRequest> fetchAllPullRequestsFromBbsInstance(String serverId, DescriptorImpl descriptor) {
+    private Stream<BitbucketPullRequest> fetchPullRequestsFromBbsInstance(String serverId, DescriptorImpl descriptor) {
         BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                 .orElseThrow(() -> new BitbucketClientException(
                         "Server config not found for input server id " + getServerId()));

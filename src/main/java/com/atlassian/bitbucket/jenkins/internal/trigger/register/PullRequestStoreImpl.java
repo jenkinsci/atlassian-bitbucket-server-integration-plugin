@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 public class PullRequestStoreImpl implements PullRequestStore {
 
     private final ConcurrentMap<PullRequestStoreImpl.CacheKey, RepositoryStore> pullRequests;
-    //TODO: test timer, test concurrency
     private final Timer timer = new Timer();
     private Long delay = TimeUnit.HOURS.toMillis(12);
     private Long period = TimeUnit.HOURS.toMillis(12);

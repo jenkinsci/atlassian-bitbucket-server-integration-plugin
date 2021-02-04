@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -24,35 +23,28 @@ public final class BitbucketPageStreamUtil {
      */
     public static <T> Stream<BitbucketPage<T>> toStream(BitbucketPage<T> firstPage,
                                                         NextPageFetcher<T> nextPageFetcher) {
-        return toStream(firstPage, nextPageFetcher, new AtomicBoolean(true));
-    }
-
-    public static <T> Stream<BitbucketPage<T>> toStream(BitbucketPage<T> firstPage,
-                                                        NextPageFetcher<T> nextPageFetcher, AtomicBoolean valve) {
-        return StreamSupport.stream(pageIterable(firstPage, nextPageFetcher, valve).spliterator(), false);
+        return StreamSupport.stream(pageIterable(firstPage, nextPageFetcher).spliterator(), false);
     }
 
     private static <T> Iterable<BitbucketPage<T>> pageIterable(BitbucketPage<T> firstPage,
-                                                               NextPageFetcher<T> nextPageFetcher, AtomicBoolean valve) {
-        return () -> new PageIterator<>(nextPageFetcher, firstPage, valve);
+                                                               NextPageFetcher<T> nextPageFetcher) {
+        return () -> new PageIterator<>(nextPageFetcher, firstPage);
     }
 
     private static class PageIterator<T> implements Iterator<BitbucketPage<T>> {
 
         private final NextPageFetcher<T> nextPageFetcher;
         private BitbucketPage<T> currentPage;
-        private final AtomicBoolean valve;
 
         PageIterator(NextPageFetcher<T> nextPageFetcher,
-                     BitbucketPage<T> firstPage, AtomicBoolean valve) {
+                     BitbucketPage<T> firstPage) {
             this.nextPageFetcher = nextPageFetcher;
             this.currentPage = firstPage;
-            this.valve = valve;
         }
 
         @Override
         public boolean hasNext() {
-            return currentPage != null && valve.get();
+            return currentPage != null;
         }
 
         @Override

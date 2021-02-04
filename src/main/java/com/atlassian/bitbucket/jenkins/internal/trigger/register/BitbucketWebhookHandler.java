@@ -84,7 +84,6 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .forEach(webhookClient::deleteWebhook);
     }
 
-    //TODO: find same needs to change
     private Optional<BitbucketWebhook> findSame(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
                                                 Collection<BitbucketWebhookEvent> toSubscribe) {
         String callback = constructCallbackUrl(request);
