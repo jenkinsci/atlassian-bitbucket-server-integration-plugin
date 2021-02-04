@@ -8,12 +8,14 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchPRTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStoreImpl;
+import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.SCM;
+import hudson.util.LogTaskListener;
 import jenkins.branch.MultiBranchProject;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMSourceDescriptor;
+import jenkins.scm.api.*;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
@@ -22,6 +24,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -189,6 +194,31 @@ public class BitbucketSCMSourceTest {
         verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
     }
 
+    @Test
+    public void testHandleRefreshingPRStore() {
+        String credentialsId = "valid-credentials";
+        String serverId = "server-id";
+        String baseUrl = "http://example.com";
+        String project = "project";
+        String repo = "repo";
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, "", serverId, project, repo));
+        Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
+        TaskListener listener = new LogTaskListener(LOGGER, Level.FINE);
+        CustomGitSCMSource gitSCMSource = mock(CustomGitSCMSource.class);
+        SelectBranchTrait trait = new SelectBranchTrait();
+
+        doReturn(project).when(bitbucketSCMSource).getProjectKey();
+        doReturn(repo).when(bitbucketSCMSource).getRepositorySlug();
+        doReturn(gitSCMSource).when(bitbucketSCMSource).getGitSCMSource();
+        doReturn(Collections.singletonList(trait)).when(gitSCMSource).getTraits();
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
+
+        bitbucketSCMSource.handleRefreshingPRStore(null, listener);
+
+        verify(descriptor.getPullRequestStore()).refreshStore(eq(project), eq(repo), eq(serverId), any(Stream.class));
+    }
+
     private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
                                                               String serverId, String baseUrl, MultiBranchProject<?, ?> owner) {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
@@ -255,6 +285,7 @@ public class BitbucketSCMSourceTest {
                             nullable(String.class)))
                             .thenReturn(scmHelper);
                     when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
+                    when(descriptor.getPullRequestStore()).thenReturn(mock(PullRequestStoreImpl.class));
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                     when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));

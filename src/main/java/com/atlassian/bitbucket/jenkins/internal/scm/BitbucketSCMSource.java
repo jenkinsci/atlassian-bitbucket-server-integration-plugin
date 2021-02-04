@@ -146,7 +146,7 @@ public class BitbucketSCMSource extends SCMSource {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return gitSCMSource.build(head, revision);
+        return getGitSCMSource().build(head, revision);
     }
 
     @Override
@@ -180,6 +180,10 @@ public class BitbucketSCMSource extends SCMSource {
         return repository;
     }
 
+    CustomGitSCMSource getGitSCMSource() {
+        return gitSCMSource;
+    }
+
     @CheckForNull
     public String getCredentialsId() {
         return getBitbucketSCMRepository().getCredentialsId();
@@ -199,7 +203,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public String getRemote() {
-        return gitSCMSource.getRemote();
+        return getGitSCMSource().getRemote();
     }
 
     public String getRepositoryName() {
@@ -251,8 +255,14 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
+        handleRefreshingPRStore(event, listener);
+        getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+    }
+
+    protected void handleRefreshingPRStore(@CheckForNull SCMHeadEvent<?> event,
+                                         TaskListener listener) {
         if (event == null) {
-            if (gitSCMSource.getTraits().stream().anyMatch(trait -> trait.getClass() == SelectBranchTrait.class)) {
+            if (getGitSCMSource().getTraits().stream().anyMatch(trait -> trait.getClass() == SelectBranchTrait.class)) {
                 //on manual scans & creation of jenkins jobs, we call out to bbs and fetch a list of open prs and
                 // sync up our local pullRequestStore
                 DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
@@ -270,7 +280,6 @@ public class BitbucketSCMSource extends SCMSource {
                 }
             }
         }
-        gitSCMSource.accessibleRetrieve(criteria, observer, event, listener);
     }
 
     private Stream<BitbucketPullRequest> fetchPullRequestsFromBbsInstance(String serverId, DescriptorImpl descriptor) {
@@ -316,8 +325,8 @@ public class BitbucketSCMSource extends SCMSource {
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
-        gitSCMSource.setTraits(traits);
-        gitSCMSource.setCredentialsId(credentialsId);
+        getGitSCMSource().setTraits(traits);
+        getGitSCMSource().setCredentialsId(credentialsId);
     }
 
     @SuppressWarnings("Duplicates")

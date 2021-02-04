@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -48,8 +49,8 @@ public class BitbucketWebhookHandlerTest {
     @Mock
     private BitbucketWebhookClient webhookClient;
 
-    @Before
-    public void setup() {
+    @BeforeClass
+    public static void setupEventTypes() {
         REF_AND_PR_EVENTS.addAll(REPO_REF_CHANGE.getEventIds());
         REF_AND_PR_EVENTS.addAll(PULL_REQUEST_CLOSED_EVENT.getEventIds());
         REF_AND_PR_EVENTS.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
@@ -59,7 +60,10 @@ public class BitbucketWebhookHandlerTest {
         ALL_EVENTS.addAll(REPO_REF_CHANGE.getEventIds());
         ALL_EVENTS.addAll(PULL_REQUEST_OPENED_EVENT.getEventIds());
         ALL_EVENTS.addAll(PULL_REQUEST_CLOSED_EVENT.getEventIds());
+    }
 
+    @Before
+    public void setup() {
         when(capabilitiesClient.getWebhookSupportedEvents()).thenReturn(new BitbucketWebhookSupportedEvents(ALL_EVENTS));
         doAnswer(answer -> create((BitbucketWebhookRequest) answer.getArguments()[0])).when(webhookClient).registerWebhook(any(BitbucketWebhookRequest.class));
         doAnswer(answer -> create((Integer) answer.getArguments()[0], (BitbucketWebhookRequest) answer.getArguments()[1])).when(webhookClient).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
