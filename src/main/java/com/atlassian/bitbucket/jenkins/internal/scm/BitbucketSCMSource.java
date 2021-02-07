@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
@@ -87,9 +88,9 @@ public class BitbucketSCMSource extends SCMSource {
                         projectName,
                         repositoryName,
                         mirrorName));
-        String baseUrl = serverConfiguration.getBaseUrl();
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(baseUrl, credentialsId);
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
             setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
@@ -468,10 +469,10 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                 @Nullable String credentialsId) {
+                                                 @Nullable BitbucketTokenCredentials tokenCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    credentialsId, jenkinsToBitbucketCredentials);
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(tokenCredentials));
         }
 
         Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {

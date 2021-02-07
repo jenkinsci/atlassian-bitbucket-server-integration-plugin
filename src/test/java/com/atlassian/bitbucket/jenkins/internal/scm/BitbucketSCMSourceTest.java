@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -181,13 +183,15 @@ public class BitbucketSCMSourceTest {
                 BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
                 BitbucketRepository repository = mock(BitbucketRepository.class);
 
+                doReturn(mock(GlobalCredentialsProvider.class))
+                        .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));
                 when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
                         .thenReturn(Optional.of(bitbucketServerConfiguration));
                 when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
                         .thenReturn(Optional.empty());
                 when(descriptor.getBitbucketScmHelper(
                         nullable(String.class),
-                        nullable(String.class)))
+                        nullable(BitbucketTokenCredentials.class)))
                         .thenReturn(scmHelper);
                 when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                 when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);

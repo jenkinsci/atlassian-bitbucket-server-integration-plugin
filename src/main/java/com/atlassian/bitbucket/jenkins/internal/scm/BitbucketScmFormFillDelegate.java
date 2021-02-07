@@ -119,7 +119,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 2 characters long");
         }
 
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }
@@ -156,7 +156,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
         }
 
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }

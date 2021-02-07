@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
@@ -170,7 +171,8 @@ public class BitbucketSCMStep extends SCMStep {
                         repositoryName,
                         mirrorName));
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), credentialsId);
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
         BitbucketRepository repository;
         if (!isBlank(mirrorName)) {
             try {
@@ -367,12 +369,11 @@ public class BitbucketSCMStep extends SCMStep {
                     (client, project, repo) -> helper.getRepository(project, repo));
         }
 
-        private BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                         @Nullable String credentialsId) {
-            injectJenkinsToBitbucketCredentials();
+        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
+                                                 @Nullable BitbucketTokenCredentials tokenCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    credentialsId, jenkinsToBitbucketCredentials);
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(tokenCredentials));
         }
 
         private Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {

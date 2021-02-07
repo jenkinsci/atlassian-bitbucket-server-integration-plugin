@@ -58,8 +58,7 @@ public class BitbucketScmHelperTest {
         bitbucketScmHelper =
                 new BitbucketScmHelper("myBaseUrl",
                         bitbucketClientFactoryProvider,
-                        "",
-                        jenkinsToBitbucketCredentials);
+                        BitbucketCredentials.ANONYMOUS_CREDENTIALS);
     }
 
     @Test

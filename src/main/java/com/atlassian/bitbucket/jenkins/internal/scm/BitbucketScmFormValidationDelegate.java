@@ -60,7 +60,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
             return FormValidation.warning(
                     "Without credentials, Jenkins can’t check out source code from non-public repositories. ");
         }
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
             return FormValidation.error("No credentials exist for the provided credentialsId");
         }
@@ -70,7 +70,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     @Override
     public FormValidation doCheckSshCredentialsId(@Nullable Item context, String sshCredentialsId) {
         checkPermission(context);
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(sshCredentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(sshCredentialsId, context);
         if (!isBlank(sshCredentialsId) && !providedCredentials.isPresent()) {
             return FormValidation.error("No credentials exist for the provided sshCredentialsId");
         }
@@ -86,7 +86,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         if (isBlank(credentialsId)) {
             return FormValidation.ok(); // There will be an error in the credentials field
         }
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
             return FormValidation.ok(); // There will be an error in the credentials field
         }
@@ -123,7 +123,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         if (isBlank(credentialsId)) {
             return FormValidation.ok(); // There will be an error in the credentials field
         }
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
             return FormValidation.ok(); // There will be an error in the credentials field
         }
@@ -220,7 +220,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         if (isBlank(serverId) || isBlank(projectName) || isBlank(repositoryName) || isBlank(credentialsId)) {
             return FormValidation.ok(); // Validation error would have been in one of the other fields
         }
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
             return FormValidation.ok(); // There will be an error in the credentials field
         }
