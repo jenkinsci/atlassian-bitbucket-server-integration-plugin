@@ -30,6 +30,8 @@ public final class BitbucketSearchHelper {
                                                                 BitbucketClientFactory clientFactory) throws BitbucketClientException {
         return findRepositories(repositoryNameOrSlug, projectNameOrKey, clientFactory)
                 .stream()
+                // The search endpoint matches partial project keys, so we filter to only include exact matches
+                .filter(r -> projectNameOrKey.equalsIgnoreCase(r.getProject().getName()))
                 .filter(r -> repositoryNameOrSlug.equalsIgnoreCase(r.getName()))
                 // Repo names are unique within a project
                 .findAny()
