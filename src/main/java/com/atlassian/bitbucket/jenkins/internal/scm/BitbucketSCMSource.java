@@ -298,7 +298,9 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketClientFactory clientFactory =
                     descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
                             credentials);
-            if (descriptor.getPullRequestStore().hasPRForRepository(getProjectKey(), getRepositorySlug(), serverId)) {
+            //When Jenkins starts up, and our store has no prs - we don't want to fetch all prs as it is too time-consuming
+            // so in this case we only fetch open pull requests instead.
+            if (descriptor.getPullRequestStore().hasPullRequestForRepository(getProjectKey(), getRepositorySlug(), serverId)) {
                 return clientFactory
                         .getProjectClient(getProjectKey())
                         .getRepositoryClient(getRepositorySlug()).getAllPullRequests();

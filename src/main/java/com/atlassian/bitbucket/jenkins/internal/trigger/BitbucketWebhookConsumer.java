@@ -76,11 +76,11 @@ public class BitbucketWebhookConsumer {
                         .getSelfLink()
                         .contains(serverConfig.getBaseUrl()))
                 .findFirst();
+        server.ifPresent(configuration ->
+                pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
         if (BitbucketWebhookEvent.PULL_REQUEST_OPENED_EVENT.getEventIds().contains(event.getEventKey())) {
-            triggerJob(event, refChangedDetails, server);
+            triggerJob(event, refChangedDetails);
         } else if (BitbucketWebhookEvent.PULL_REQUEST_CLOSED_EVENT.getEventIds().contains(event.getEventKey())) {
-            server.ifPresent(configuration ->
-                    pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.REMOVED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }
@@ -204,15 +204,12 @@ public class BitbucketWebhookConsumer {
                 .forEach(triggerDetails -> triggerDetails.getTrigger().trigger(requestBuilder.build()));
     }
 
-    private void triggerJob(PullRequestWebhookEvent event, RefChangedDetails refChangedDetails,
-                            Optional<BitbucketServerConfiguration> serverConfig) {
+    private void triggerJob(PullRequestWebhookEvent event, RefChangedDetails refChangedDetails) {
         try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
             processJobs(refChangedDetails, requestBuilder);
-            serverConfig.ifPresent(configuration ->
-                    pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getToRef().getRepository().getSlug()));
         }
     }

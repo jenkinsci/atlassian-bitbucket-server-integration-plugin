@@ -553,7 +553,7 @@ public class PullRequestStoreImplTest {
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
         String newKey = "different-key";
 
-        pullRequestStore.closePullRequest(newKey, slug, serverId, branchName, branchName);
+        pullRequestStore.setState(newKey, slug, serverId, branchName, branchName, BitbucketPullState.DELETED);
 
         assertEquals((pullRequestStore.getPullRequest(newKey, slug, serverId,
                 branchName, branchName)), Optional.empty());
@@ -565,7 +565,7 @@ public class PullRequestStoreImplTest {
 
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        pullRequestStore.closePullRequest(key, slug, serverId, "different-branch", branchName);
+        pullRequestStore.setState(key, slug, serverId, "different-branch", branchName, BitbucketPullState.DELETED);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 "different-branch", branchName)), Optional.empty());
@@ -577,7 +577,7 @@ public class PullRequestStoreImplTest {
 
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        pullRequestStore.closePullRequest(key, slug, serverId, branchName, "different-branch");
+        pullRequestStore.setState(key, slug, serverId, branchName, "different-branch", BitbucketPullState.DELETED);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                  branchName, "different-branch")), Optional.empty());
@@ -590,7 +590,7 @@ public class PullRequestStoreImplTest {
                 bitbucketPullRequest.getUpdatedDate());
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
 
-        pullRequestStore.closePullRequest(key, slug, serverId, branchName, branchName);
+        pullRequestStore.setState(key, slug, serverId, branchName, branchName, BitbucketPullState.DELETED);
 
         assertEquals((pullRequestStore.getPullRequest(key, slug, serverId,
                 branchName, branchName)), Optional.of(minPullRequest));
@@ -598,7 +598,7 @@ public class PullRequestStoreImplTest {
 
     @Test
     public void testHasPRForRepoNonExistingKey() {
-        assertFalse(pullRequestStore.hasPRForRepository(key, slug, serverId));
+        assertFalse(pullRequestStore.hasPullRequestForRepository(key, slug, serverId));
     }
 
     @Test
@@ -609,13 +609,13 @@ public class PullRequestStoreImplTest {
         pullRequestStore.removeClosedPullRequests(date);
         assertEquals(pullRequestStore.getPullRequest(key, slug, serverId, branchName, branchName), Optional.empty());
 
-        assertFalse(pullRequestStore.hasPRForRepository(key, slug, serverId));
+        assertFalse(pullRequestStore.hasPullRequestForRepository(key, slug, serverId));
     }
 
     @Test
     public void testHasPRForRepoExistingPR() {
         BitbucketPullRequest bitbucketPullRequest = setupPR(key, branchName, branchName, BitbucketPullState.DELETED, 1, System.currentTimeMillis());
         pullRequestStore.updatePullRequest(serverId, bitbucketPullRequest);
-        assertTrue(pullRequestStore.hasPRForRepository(key, slug, serverId));
+        assertTrue(pullRequestStore.hasPullRequestForRepository(key, slug, serverId));
     }
 }

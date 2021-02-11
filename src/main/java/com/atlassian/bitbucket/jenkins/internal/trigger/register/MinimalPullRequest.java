@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
 
 import java.util.Objects;
@@ -18,6 +19,14 @@ class MinimalPullRequest {
         this.fromRefDisplayId = fromRefDisplayId;
         this.toRefDisplayId = toRefDisplayId;
         this.updatedDate = updatedDate;
+    }
+
+    public MinimalPullRequest(BitbucketPullRequest bbsPR) {
+        this.id = bbsPR.getId();
+        this.state = bbsPR.getState();
+        this.fromRefDisplayId = bbsPR.getFromRef().getDisplayId();
+        this.toRefDisplayId = bbsPR.getToRef().getDisplayId();
+        this.updatedDate = bbsPR.getUpdatedDate();
     }
 
     @Override
