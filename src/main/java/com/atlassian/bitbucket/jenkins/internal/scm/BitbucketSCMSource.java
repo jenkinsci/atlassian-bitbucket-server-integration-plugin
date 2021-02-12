@@ -16,6 +16,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
+import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
@@ -164,10 +165,16 @@ public class BitbucketSCMSource extends SCMSource {
                 Boolean containsPushTrigger = triggers.stream().anyMatch(trigger -> trigger.isRefTrigger());
                 Boolean containsPRTrigger = triggers.stream().anyMatch(trigger -> trigger.isPullRequestTrigger());
 
-                descriptor.getRetryingWebhookHandler().register(
-                        bitbucketServerConfiguration.getBaseUrl(),
-                        bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                        repository, containsPushTrigger, containsPRTrigger);
+                try {
+                    descriptor.getRetryingWebhookHandler().register(
+                            bitbucketServerConfiguration.getBaseUrl(),
+                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
+                            repository, containsPushTrigger, containsPRTrigger);
+                } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
+                    LOGGER.severe("Webhook failed to register- token credentials assigned to " + bitbucketServerConfiguration.getServerName()
+                                  + " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
+                }
+
             }
         }
     }
