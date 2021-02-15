@@ -55,6 +55,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
     }
 
     @Override
+    @Nullable
     public BitbucketWebhook register(WebhookRegisterRequest request) {
         Collection<BitbucketWebhookEvent> events = getEvents(request);
         //If wanted webhook has no events, do nothing

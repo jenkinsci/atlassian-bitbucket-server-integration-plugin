@@ -18,7 +18,7 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
-        f.combobox(context: app, placeholder: "Start typing to find a repository or click help to see how to find a personal repository", checkMethod: "post", clazz:'searchable')
+        f.combobox(context: app, placeholder: "Start typing to find a repository or click help to see how to find a personal repository", checkMetxhod: "post", clazz:'searchable')
     }
 
     f.entry(title: _("bitbucket.scm.mirror"), field: "mirrorName") {

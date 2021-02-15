@@ -162,8 +162,8 @@ public class BitbucketSCMSource extends SCMSource {
                                 "Server config not found for input server id " + getServerId()));
                 List<BitbucketWebhookMultibranchTrigger> triggers =
                         new ArrayList<BitbucketWebhookMultibranchTrigger>(project.getTriggers().values());
-                Boolean containsPushTrigger = triggers.stream().anyMatch(trigger -> trigger.isRefTrigger());
-                Boolean containsPRTrigger = triggers.stream().anyMatch(trigger -> trigger.isPullRequestTrigger());
+                boolean containsPushTrigger = triggers.stream().anyMatch(trigger -> trigger.isRefTrigger());
+                boolean containsPRTrigger = triggers.stream().anyMatch(trigger -> trigger.isPullRequestTrigger());
 
                 try {
                     descriptor.getRetryingWebhookHandler().register(

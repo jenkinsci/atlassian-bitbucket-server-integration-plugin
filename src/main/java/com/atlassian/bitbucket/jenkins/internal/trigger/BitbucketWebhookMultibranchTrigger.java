@@ -38,7 +38,7 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
         return refTrigger;
     }
 
-    @Symbol("BbsTrigger")
+    @Symbol("BitbucketWebhookMultibranchTrigger")
     @Extension
     public static class DescriptorImpl extends TriggerDescriptor {
 
