@@ -80,8 +80,20 @@ public class PullRequestStoreImpl implements PullRequestStore {
                 new PullRequestStoreImpl.CacheKey(projectKey, slug, serverId);
         long oldestUpdateInStore = pullRequests.getOrDefault(cacheKey, new RepositoryStore()).findOldestUpdateInStore();
 
-        // update/add pull requests only with information that is newer than the oldest update
-        bbsPullRequests.filter(pr -> pr.getUpdatedDate() > oldestUpdateInStore).forEach(pr -> updatePullRequest(serverId, pr));
+        //bbspullrequests is ordered from newest to oldest
+        //noinspection ResultOfMethodCallIgnored
+        bbsPullRequests.map(pr -> {
+            //check if the PR needs to be updated, and if so update.
+            if (pr.getUpdatedDate() > oldestUpdateInStore) {
+                updatePullRequest(serverId, pr);
+            }
+            //return the date for the next part of our stream
+            return pr.getUpdatedDate();
+        })
+        //only return dates that are older than our oldest so find first works
+        .filter(updated -> updated < oldestUpdateInStore)
+        //findFirst will find the first result of the stream and terminate the stream, thus once we've found an older PR we will stop streaming.
+        .findFirst();
     }
 
     @Override
