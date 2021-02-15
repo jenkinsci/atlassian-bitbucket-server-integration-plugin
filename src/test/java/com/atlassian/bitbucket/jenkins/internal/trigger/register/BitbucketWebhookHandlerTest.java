@@ -294,9 +294,6 @@ public class BitbucketWebhookHandlerTest {
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventIds().get(0)), EXPECTED_URL, false);
         BitbucketWebhook event2 =
                 new BitbucketWebhook(2, WEBHOOK_NAME, singleton(MIRROR_SYNCHRONIZED_EVENT.getEventIds().get(0)), EXPECTED_URL, false);
-        when(webhookClient.getWebhooks(getEventIdAsStrings(REPO_REF_CHANGE, MIRROR_SYNCHRONIZED_EVENT,
-                PULL_REQUEST_OPENED_EVENT, PULL_REQUEST_CLOSED_EVENT)))
-                .thenReturn(asList(event1, event2).stream());
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(false).shouldTriggerOnPR(false).shouldTriggerOnPush(false).build());
 
