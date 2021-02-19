@@ -209,6 +209,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 2.1.3 (19 February 2021)
+- Fix issue JENKINS-63009 (Jobs now work with folder credentials)
+- Fix issues JENKINS-61182 and JENKINS-62789 
+
 ### 2.1.2 (28 January 2021)
 - The minimum version of Jenkins changed to be **2.204.1**
 - Fix issue JENKINS-64540
