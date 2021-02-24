@@ -81,7 +81,7 @@ To add a Bitbucket Server instance:
 
 ### Create an Application Link 
 
-Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
+Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. Watch our [video](https://youtu.be/djXwI9OGvhQ) to find out how to do this, or see below for written instructions. This step is only relevant if you’re on Bitbucket 7.4+. 
 
 #### 1. Register Bitbucket Server as a consumer
 
