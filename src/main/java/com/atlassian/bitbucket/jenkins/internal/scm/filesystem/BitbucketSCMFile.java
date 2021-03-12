@@ -8,6 +8,19 @@ import java.io.InputStream;
 
 public class BitbucketSCMFile extends SCMFile {
 
+    /**
+     * Constructor for the root BitbucketSCMFile
+     */
+    public BitbucketSCMFile() {
+    }
+
+    /**
+     * Constructor for any child file/directory
+     */
+    public BitbucketSCMFile(BitbucketSCMFile parent, String name) {
+        super(parent, name);
+    }
+
     @NonNull
     @Override
     protected SCMFile newChild(@NonNull String name, boolean assumeIsDirectory) {
