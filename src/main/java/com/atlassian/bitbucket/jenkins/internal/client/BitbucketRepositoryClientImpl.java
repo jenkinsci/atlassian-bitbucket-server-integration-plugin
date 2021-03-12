@@ -33,4 +33,8 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     public BitbucketWebhookClient getWebhookClient() {
         return new BitbucketWebhookClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
     }
+
+    public BitbucketFilePathClient getFilePathClient() {
+        return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    }
 }
