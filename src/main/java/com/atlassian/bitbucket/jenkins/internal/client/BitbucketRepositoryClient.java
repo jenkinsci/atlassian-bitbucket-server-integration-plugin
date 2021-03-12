@@ -29,4 +29,11 @@ public interface BitbucketRepositoryClient {
      * @return a client.
      */
     BitbucketWebhookClient getWebhookClient();
+
+    /**
+     * A client for getting file content and directory information on paths in a repository
+     *
+     * @return a client.
+     */
+    BitbucketFilePathClient getFilePathClient();
 }

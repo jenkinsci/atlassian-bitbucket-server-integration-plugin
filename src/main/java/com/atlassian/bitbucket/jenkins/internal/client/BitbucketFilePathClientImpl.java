@@ -5,13 +5,16 @@ import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import com.fasterxml.jackson.core.type.TypeReference;
+import jenkins.scm.api.SCMFile;
 import okhttp3.HttpUrl;
+import jenkins.scm.api.SCMFile.Type;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.lang.String.valueOf;
+import static jenkins.scm.api.SCMFile.Type.*;
 
 public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
 
@@ -25,6 +28,31 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
         this.projectKey = projectKey;
         this.repositorySlug = repositorySlug;
+    }
+
+    public List<SCMFile> getDirectoryContent(BitbucketSCMFile directory) {
+        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug)
+                .addPathSegment("browse")
+                .addQueryParameter("at", directory.getRef())
+                .build();
+
+        BitbucketPage<BitbucketDirectoryChild> firstPage =
+                bitbucketRequestExecutor.makeGetRequest(url, BitbucketDirectory.class)
+                        .getBody().getChildren();
+        return BitbucketPageStreamUtil.toStream(firstPage, new DirectoryNextPageFetcher(url, bitbucketRequestExecutor))
+                .map(BitbucketPage::getValues)
+                .flatMap(Collection::stream)
+                // This gets the first element in the component of a child path, which is the immediate directory name
+                .map(child -> {
+                    // TODO: Can we treat submodules as directories here? Confirm.
+                    Type type = "FILE".equals(child.getType()) ? REGULAR_FILE : DIRECTORY;
+                    return new BitbucketSCMFile(directory, child.getPath().getComponents().get(0), type);
+                })
+                .collect(Collectors.toList());
     }
 
     public String getFileContent(BitbucketSCMFile file) {
@@ -41,36 +69,16 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
         return BitbucketPageStreamUtil.toStream(firstPage, new FileNextPageFetcher(url, bitbucketRequestExecutor))
                 .map(page -> ((BitbucketFilePage) page).getLines())
                 .flatMap(Collection::stream)
-                .collect(Collectors.joining());
-    }
-
-    public List<BitbucketSCMFile> getDirectoryContent(BitbucketSCMFile directory) {
-        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug)
-                .addPathSegment("browse")
-                .addQueryParameter("at", directory.getRef())
-                .build();
-
-        BitbucketPage<BitbucketDirectoryChild> firstPage = bitbucketRequestExecutor.makeGetRequest(url, BitbucketDirectory.class)
-                .getBody().getChildren();
-        return BitbucketPageStreamUtil.toStream(firstPage, new DirectoryNextPageFetcher(url, bitbucketRequestExecutor))
-                .map(BitbucketPage::getValues)
-                .flatMap(Collection::stream)
-                // This gets the first element in the component of a child path, which is the immediate directory name
-                .map(child -> new BitbucketSCMFile(directory, child.getPath().getComponents().get(0)))
-                .collect(Collectors.toList());
+                .collect(Collectors.joining("\n"));
     }
 
     static class DirectoryNextPageFetcher implements NextPageFetcher<BitbucketDirectoryChild> {
 
-        private final HttpUrl url;
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
+        private final HttpUrl url;
 
         DirectoryNextPageFetcher(HttpUrl url,
-                            BitbucketRequestExecutor bitbucketRequestExecutor) {
+                                 BitbucketRequestExecutor bitbucketRequestExecutor) {
             this.url = url;
             this.bitbucketRequestExecutor = bitbucketRequestExecutor;
         }
@@ -92,8 +100,8 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
 
     static class FileNextPageFetcher implements NextPageFetcher<String> {
 
-        private final HttpUrl url;
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
+        private final HttpUrl url;
 
         FileNextPageFetcher(HttpUrl url,
                             BitbucketRequestExecutor bitbucketRequestExecutor) {
