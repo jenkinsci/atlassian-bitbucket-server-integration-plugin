@@ -247,7 +247,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             BitbucketWebhook webhook = retryingWebhookHandler.register(
                     bitbucketServerConfiguration.getBaseUrl(),
                     bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
-                    repository, refChange, pullRequest);
+                    repository, pullRequest, refChange);
             LOGGER.info("Webhook returned -" + webhook);
         }
 

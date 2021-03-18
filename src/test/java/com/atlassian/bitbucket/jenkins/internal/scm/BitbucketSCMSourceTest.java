@@ -173,7 +173,7 @@ public class BitbucketSCMSourceTest {
 
         bitbucketSCMSource.afterSave();
 
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(true), eq(false));
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
     }
 
     @Test
@@ -196,7 +196,7 @@ public class BitbucketSCMSourceTest {
 
         bitbucketSCMSource.afterSave();
 
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(true), eq(false));
     }
 
     @Test

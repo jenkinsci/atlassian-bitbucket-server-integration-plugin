@@ -12,8 +12,8 @@ public class WebhookRegisterRequest {
     private final String name;
     private final String projectKey;
     private final String repoSlug;
-    private final boolean triggerOnPR;
-    private final boolean triggerOnPush;
+    private final boolean triggerOnPullRequest;
+    private final boolean triggerOnRefChange;
 
     public WebhookRegisterRequest(Builder builder) {
         this.projectKey = requireNonNull(builder.projectKey);
@@ -21,8 +21,8 @@ public class WebhookRegisterRequest {
         this.name = requireNonNull(builder.serverId);
         this.jenkinsUrl = requireNonNull(builder.jenkinsUrl);
         this.isMirror = builder.isMirror;
-        this.triggerOnPush = builder.triggerOnPush;
-        this.triggerOnPR = builder.triggerOnPR;
+        this.triggerOnRefChange = builder.triggerOnRefChange;
+        this.triggerOnPullRequest = builder.triggerOnPullRequest;
     }
 
     public String getName() {
@@ -45,12 +45,12 @@ public class WebhookRegisterRequest {
         return isMirror;
     }
 
-    public boolean isTriggerOnPR() {
-        return triggerOnPR;
+    public boolean isTriggerOnPullRequest() {
+        return triggerOnPullRequest;
     }
 
-    public boolean isTriggerOnPush() {
-        return triggerOnPush;
+    public boolean isTriggerOnRefChange() {
+        return triggerOnRefChange;
     }
 
     public static class Builder {
@@ -60,8 +60,8 @@ public class WebhookRegisterRequest {
         private boolean isMirror;
         private String jenkinsUrl;
         private String serverId;
-        private boolean triggerOnPR;
-        private boolean triggerOnPush;
+        private boolean triggerOnPullRequest;
+        private boolean triggerOnRefChange;
 
         private Builder(String projectKey, String repoSlug) {
             this.projectKey = projectKey;
@@ -81,13 +81,13 @@ public class WebhookRegisterRequest {
             return this;
         }
 
-        public Builder shouldTriggerOnPR(boolean triggerOnPR) {
-            this.triggerOnPR = triggerOnPR;
+        public Builder shouldTriggerOnPullRequest(boolean triggerOnPullRequest) {
+            this.triggerOnPullRequest = triggerOnPullRequest;
             return this;
         }
 
-        public Builder shouldTriggerOnPush(boolean triggerOnPush) {
-            this.triggerOnPush = triggerOnPush;
+        public Builder shouldTriggerOnRefChange(boolean triggerOnRefChange) {
+            this.triggerOnRefChange = triggerOnRefChange;
             return this;
         }
 

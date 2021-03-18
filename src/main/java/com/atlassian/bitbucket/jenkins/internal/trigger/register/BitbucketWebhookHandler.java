@@ -130,10 +130,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                     supportedEvents.add(REPO_REF_CHANGE);
             }
         } else {
-            if (request.isTriggerOnPush()) {
+            if (request.isTriggerOnRefChange()) {
                 supportedEvents.add(REPO_REF_CHANGE);
             }
-            if (request.isTriggerOnPR()) {
+            if (request.isTriggerOnPullRequest()) {
                 supportedEvents.add(PULL_REQUEST_CLOSED_EVENT);
                 supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
             }
