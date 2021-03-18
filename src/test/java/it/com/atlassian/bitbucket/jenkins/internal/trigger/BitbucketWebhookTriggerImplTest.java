@@ -1,8 +1,13 @@
 package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerRequest;
+import com.atlassian.bitbucket.jenkins.internal.trigger.PullRequestWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.RefsChangedWebhookEvent;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -23,16 +28,16 @@ import org.jvnet.hudson.test.JenkinsRule;
 import wiremock.com.google.common.collect.Streams;
 
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class BitbucketWebhookTriggerImplTest {
 
@@ -52,13 +57,73 @@ public class BitbucketWebhookTriggerImplTest {
         project = jenkinsRule.createFreeStyleProject();
         scm = new TestScm();
         ((FreeStyleProject) project).setScm(scm);
-        trigger = new BitbucketWebhookTriggerImpl();
+        trigger = new BitbucketWebhookTriggerImpl(false, true);
         trigger.start(project, true);
     }
 
     @After
     public void tearDown() throws InterruptedException, IOException {
         project.delete();
+    }
+
+    @Test
+    public void testIsApplicableForAllEvents() {
+        trigger = new BitbucketWebhookTriggerImpl(true, true);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        assertTrue("Trigger should be applicable to PR open event",
+                trigger.isApplicableForEventType(prEvent));
+        assertTrue("Trigger should be applicable to refChange change event", trigger.isApplicableForEventType(event));
+    }
+
+    @Test
+    public void testIsApplicableForPullrequestDeclineEvent() {
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.DECLINED);
+        assertFalse("Trigger should not be applicable to PR declined event",
+                trigger.isApplicableForEventType(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+    }
+
+    @Test
+    public void testIsApplicableForPullrequestDeleteEvent() {
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.DELETED);
+        assertFalse("Trigger should not be applicable to PR deleted event",
+                trigger.isApplicableForEventType(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+    }
+
+    @Test
+    public void testIsApplicableForPullrequestMergeEvent() {
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.MERGED);
+        assertFalse("Trigger should not be applicable to PR merge event",
+                trigger.isApplicableForEventType(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+    }
+
+    @Test
+    public void testIsApplicableForPullrequestOpenEvent() {
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        assertTrue("Trigger should be applicable to PR open event",
+                trigger.isApplicableForEventType(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+    }
+
+    @Test
+    public void testIsApplicableForRefChangeEvent() {
+        trigger = new BitbucketWebhookTriggerImpl(false, true);
+        RefsChangedWebhookEvent event = getRefChangedEvent();
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        assertTrue("Trigger should be applicable to ref change event",
+                trigger.isApplicableForEventType(event));
+        assertFalse("Trigger should not be applicable to a PR change event", trigger.isApplicableForEventType(prEvent));
     }
 
     @Test
@@ -163,6 +228,16 @@ public class BitbucketWebhookTriggerImplTest {
                 equalTo("Triggered by Bitbucket webhook due to changes by You."));
     }
 
+    private PullRequestWebhookEvent getPullRequestEvent(BitbucketPullState prState) {
+        BitbucketPullRequest pr = mock(BitbucketPullRequest.class);
+        when(pr.getState()).thenReturn(prState);
+        return new PullRequestWebhookEvent(null, "pr-key", new Date(), pr);
+    }
+
+    private RefsChangedWebhookEvent getRefChangedEvent() {
+        return new RefsChangedWebhookEvent(null, "event", new Date(), Collections.emptyList(), mock(BitbucketRepository.class));
+    }
+
     private RunList<Run> waitForBuild() {
         return waitForBuild(1);
     }
@@ -176,9 +251,9 @@ public class BitbucketWebhookTriggerImplTest {
                     if (size < count) {
                         return of(
                                 "There are only "
-                                + size
-                                + " builds for the project, but we need "
-                                + count);
+                                        + size
+                                        + " builds for the project, but we need "
+                                        + count);
                     }
                     return empty();
                 },

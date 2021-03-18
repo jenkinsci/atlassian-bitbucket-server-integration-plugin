@@ -87,6 +87,11 @@ public class BitbucketWebhookConsumerTest {
 
     @Before
     public void setup() throws Exception {
+        when(bitbucketTrigger.isApplicableForEventType(any())).thenReturn(true);
+        when(gitTrigger.isApplicableForEventType(any())).thenReturn(true);
+        when(nullBitbucketTrigger.isApplicableForEventType(any())).thenReturn(true);
+        when(workflowTrigger.isApplicableForEventType(any())).thenReturn(true);
+
         FreeStyleProject ignoredProject = jenkins.createFreeStyleProject();
         nullProject = jenkins.createFreeStyleProject();
         nullProject.addTrigger(nullBitbucketTrigger);

@@ -193,12 +193,13 @@ public class BitbucketWebhookConsumer {
         return true;
     }
 
-    private void processJobs(RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
+    private void processJobs(AbstractWebhookEvent event, RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
         Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                 .stream()
                 .map(BitbucketWebhookConsumer::toTriggerDetails)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
+                .filter(details -> details.getTrigger().isApplicableForEventType(event))
                 .filter(triggerDetails -> hasMatchingRepository(refChangedDetails, triggerDetails.getJob()))
                 .peek(triggerDetails -> LOGGER.fine("Triggering " + triggerDetails.getJob().getFullDisplayName()))
                 .forEach(triggerDetails -> triggerDetails.getTrigger().trigger(requestBuilder.build()));
@@ -209,7 +210,7 @@ public class BitbucketWebhookConsumer {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
-            processJobs(refChangedDetails, requestBuilder);
+            processJobs(event, refChangedDetails, requestBuilder);
             BitbucketSCMHeadPREvent.fireNow(new BitbucketSCMHeadPREvent(SCMEvent.Type.CREATED, event, event.getPullRequest().getToRef().getRepository().getSlug()));
         }
     }
@@ -220,7 +221,7 @@ public class BitbucketWebhookConsumer {
             BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
             event.getActor().ifPresent(requestBuilder::actor);
 
-            processJobs(refChangedDetails, requestBuilder);
+            processJobs(event, refChangedDetails, requestBuilder);
             //fire the head event to indicate to the SCMSources that changes have happened.
             BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.UPDATED, event, event.getRepository().getSlug()));
         }

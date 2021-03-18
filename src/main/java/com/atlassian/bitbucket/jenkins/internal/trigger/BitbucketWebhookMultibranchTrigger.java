@@ -15,12 +15,13 @@ import java.util.logging.Logger;
 public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProject<?, ?>> {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookMultibranchTrigger.class.getName());
-    private final boolean refTrigger;
+
     private final boolean pullRequestTrigger;
+    private final boolean refTrigger;
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
-    public BitbucketWebhookMultibranchTrigger(boolean refTrigger, boolean pullRequestTrigger) {
+    public BitbucketWebhookMultibranchTrigger(boolean pullRequestTrigger, boolean refTrigger) {
         this.refTrigger = refTrigger;
         this.pullRequestTrigger = pullRequestTrigger;
     }

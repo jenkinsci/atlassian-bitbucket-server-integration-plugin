@@ -167,7 +167,7 @@ public class BitbucketSCMSourceIT {
 
         WorkflowMultiBranchProject project =
                 bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
-        project.addTrigger(new BitbucketWebhookMultibranchTrigger(true, false));
+        project.addTrigger(new BitbucketWebhookMultibranchTrigger(false, true));
 
         BranchSource branchSource = new BranchSource(scmSource);
 
