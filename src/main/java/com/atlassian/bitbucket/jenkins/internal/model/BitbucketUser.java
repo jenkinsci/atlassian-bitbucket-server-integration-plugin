@@ -24,7 +24,7 @@ public class BitbucketUser {
             @JsonProperty(value = "emailAddress") String emailAddress,
             @JsonProperty(value = "displayName", required = true) String displayName) {
         this.name = requireNonNull(name, "name");
-        this.emailAddress = requireNonNull(emailAddress, "emailAddress");
+        this.emailAddress = emailAddress;
         this.displayName = requireNonNull(displayName, "displayName");
     }
 

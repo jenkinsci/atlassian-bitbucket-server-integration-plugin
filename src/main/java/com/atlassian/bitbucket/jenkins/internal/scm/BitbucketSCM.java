@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
@@ -82,7 +83,7 @@ public class BitbucketSCM extends SCM {
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
         if (!mayBeServerConf.isPresent()) {
             LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -93,15 +94,16 @@ public class BitbucketSCM extends SCM {
                         repositoryName,
                         mirrorName));
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), credentialsId);
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
         if (isBlank(projectName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
         if (isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
 
@@ -118,9 +120,8 @@ public class BitbucketSCM extends SCM {
                                                 repositoryName,
                                                 mirrorName));
                 setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirroredRepository);
-                return;
             } catch (MirrorFetchException ex) {
-                setEmptyRepsitory(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
+                setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             }
         } else {
             BitbucketRepository repository = scmHelper.getRepository(projectName, repositoryName);
@@ -335,12 +336,12 @@ public class BitbucketSCM extends SCM {
                 gitTool, extensions);
     }
 
-    private void setEmptyRepsitory(@CheckForNull String credentialsId,
-                                   @CheckForNull String sshCredentialsId,
-                                   @CheckForNull String projectName,
-                                   @CheckForNull String repositoryName,
-                                   @CheckForNull String serverId,
-                                   @CheckForNull String mirrorName) {
+    private void setEmptyRepository(@CheckForNull String credentialsId,
+                                    @CheckForNull String sshCredentialsId,
+                                    @CheckForNull String projectName,
+                                    @CheckForNull String repositoryName,
+                                    @CheckForNull String serverId,
+                                    @CheckForNull String mirrorName) {
         projectName = Objects.toString(projectName, "");
         repositoryName = Objects.toString(repositoryName, "");
         mirrorName = Objects.toString(mirrorName, "");
@@ -541,10 +542,10 @@ public class BitbucketSCM extends SCM {
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                 @Nullable String credentialsId) {
+                                                 @Nullable BitbucketTokenCredentials tokenCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    credentialsId, jenkinsToBitbucketCredentials);
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(tokenCredentials));
         }
 
         private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {

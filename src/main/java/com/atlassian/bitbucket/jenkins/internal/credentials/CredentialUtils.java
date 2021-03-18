@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.credentials;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import hudson.model.Item;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -23,6 +24,14 @@ public final class CredentialUtils {
     private CredentialUtils() {
         throw new UnsupportedOperationException(
                 CredentialUtils.class.getName() + " should not be instantiated");
+    }
+
+    public static Optional<Credentials> getCredentials(@Nullable String credentialsId, @Nullable Item context) {
+        return CREDENTIAL_TYPES.stream().map(type -> firstOrNull(
+                lookupCredentials(type, context, ACL.SYSTEM, Collections.emptyList()),
+                withId(trimToEmpty(credentialsId))))
+                .filter(Objects::nonNull)
+                .findAny();
     }
 
     public static Optional<Credentials> getCredentials(@Nullable String credentialsId) {

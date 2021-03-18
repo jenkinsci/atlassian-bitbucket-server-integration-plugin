@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
@@ -80,13 +81,13 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                 .includeEmptyValue()
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        jenkinsProvider.get(),
+                        context,
                         StringCredentials.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always())
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        jenkinsProvider.get(),
+                        context,
                         StandardUsernamePasswordCredentials.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always());
@@ -100,7 +101,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                 .includeEmptyValue()
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        jenkinsProvider.get(),
+                        context,
                         BasicSSHUserPrivateKey.class,
                         URIRequirementBuilder.fromUri(baseUrl).build(),
                         CredentialsMatchers.always());
@@ -118,7 +119,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The project name must be at least 2 characters long");
         }
 
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }
@@ -155,7 +156,7 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
             return errorWithoutStack(HTTP_BAD_REQUEST, "The projectName must be present");
         }
 
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!isBlank(credentialsId) && !providedCredentials.isPresent()) {
             return errorWithoutStack(HTTP_BAD_REQUEST, "No credentials exist for the provided credentialsId");
         }
@@ -167,7 +168,10 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                                     providedCredentials.orElse(null));
                     try {
                         Collection<BitbucketRepository> repositories = findRepositories(repositoryName, projectName,
-                                bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
+                                bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials))
+                                .stream()
+                                .filter(repository -> repository.getProject().getName().equals(projectName))
+                                .collect(Collectors.toList());
                         return okJSON(JSONArray.fromObject(repositories));
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket

@@ -81,7 +81,7 @@ To add a Bitbucket Server instance:
 
 ### Create an Application Link 
 
-Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. This step is only relevant if you’re on Bitbucket 7.4+. 
+Creating an Application Link to Jenkins enables additional functionality in Bitbucket Server. Watch our [video](https://youtu.be/djXwI9OGvhQ) to find out how to do this, or see below for written instructions. This step is only relevant if you’re on Bitbucket 7.4+. 
 
 #### 1. Register Bitbucket Server as a consumer
 
@@ -209,15 +209,20 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 2.1.2 (XX January 2021)
+### 2.1.3 (19 February 2021)
+- Fix issue JENKINS-63009 (Jobs now work with folder credentials)
+- Fix issues JENKINS-61182 and JENKINS-62798
+
+### 2.1.2 (28 January 2021)
 - The minimum version of Jenkins changed to be **2.204.1**
+- Fix issue JENKINS-64540
 
 ### 2.1.1 (24 November 2020)
 - Revoke access tokens now a user action
 - JENKINS-63070 - links supports Pipeline and Multibranch Pipeline
 - JENKINS-60274 - Personal repos supports Pipeline and Multibranch Pipeline
-- Fix for JENKINS-63815 (performance fix- our webhook now filters non-bitbucket SCMs)
-- Fix for JENKINS-64258 (403 when authorising actions with CSRF protection enabled
+- Fix issue JENKINS-63815 (performance fix- our webhook now filters non-bitbucket SCMs)
+- Fix issue JENKINS-64258 (403 when authorising actions with CSRF protection enabled
 - A few other small performance improvements related to loading jobs
 
 ### 2.1.0 (31 August 2020)

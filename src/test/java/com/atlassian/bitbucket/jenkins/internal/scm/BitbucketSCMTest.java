@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import hudson.scm.SCMDescriptor;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
@@ -9,10 +11,10 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
@@ -113,6 +115,8 @@ public class BitbucketSCMTest {
             @Override
             public SCMDescriptor<?> getDescriptor() {
                 BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
+                doReturn(mock(GlobalCredentialsProvider.class))
+                        .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);
                 when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
                         .thenReturn(Optional.of(bitbucketServerConfiguration));
@@ -120,7 +124,7 @@ public class BitbucketSCMTest {
                         .thenReturn(Optional.empty());
                 when(descriptor.getBitbucketScmHelper(
                         nullable(String.class),
-                        nullable(String.class)))
+                        nullable(BitbucketTokenCredentials.class)))
                         .thenReturn(mock(BitbucketScmHelper.class));
                 return descriptor;
             }

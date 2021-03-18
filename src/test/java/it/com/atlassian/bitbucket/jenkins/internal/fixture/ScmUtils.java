@@ -40,7 +40,7 @@ public final class ScmUtils {
                 new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
         BitbucketCredentials credentials =
                 new JenkinsToBitbucketCredentialsImpl().toBitbucketCredentials(
-                        getCredentials(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId()).orElse(null));
+                        getCredentials(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(), null).orElse(null));
         BitbucketRepository repository =
                 bitbucketClientFactoryProvider.getClient(serverConfiguration.getBaseUrl(), credentials)
                         .getProjectClient(PROJECT_KEY)

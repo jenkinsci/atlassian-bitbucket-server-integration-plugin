@@ -35,10 +35,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import wiremock.com.google.common.collect.ImmutableMap;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.*;
@@ -63,6 +65,9 @@ public class BitbucketScmFormFillDelegateTest {
     private static String SERVER_ID_VALID = "ServerID_Valid";
     private static String SERVER_NAME_INVALID = "ServerName_Invalid";
     private static String SERVER_NAME_VALID = "ServerName_Valid";
+    private static Map<String, List<String>> PROJECT_SERVER_MAP = ImmutableMap.<String, List<String>>builder()
+            .put("myProject", Arrays.asList("test-match", "test-match2"))
+            .build();
     @Mock
     private BitbucketClientFactory bitbucketClientFactory;
     @Mock
@@ -105,37 +110,6 @@ public class BitbucketScmFormFillDelegateTest {
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_INVALID)).thenReturn(of(serverConfigurationInvalid));
 
-        when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
-            String partialProjectName = getSearchClientInvocation.getArgument(0);
-            BitbucketProject project = new BitbucketProject(partialProjectName + "-key", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name");
-
-            BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
-
-            when(searchClient.findProjects()).thenAnswer((Answer<BitbucketPage<BitbucketProject>>) findProjectsInvocation -> {
-                BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
-                ArrayList<BitbucketProject> results = new ArrayList<>();
-                results.add(project);
-                BitbucketProject extraMatchingProject = new BitbucketProject(partialProjectName + "-key2", getSelfLink(partialProjectName + "-key1"), partialProjectName + "-full-name2");
-                results.add(extraMatchingProject);
-                page.setValues(results);
-                return page;
-            });
-
-            when(searchClient.findRepositories(any()))
-                    .thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) findRepositoriesInvocation -> {
-                        String partialRepositoryName = findRepositoriesInvocation.getArgument(0);
-                        BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
-                        ArrayList<BitbucketRepository> results = new ArrayList<>();
-                        results.add(new BitbucketRepository(0, partialRepositoryName + "-full-name", emptyMap(), project,
-                                partialRepositoryName + "-slug", RepositoryState.AVAILABLE));
-                        results.add(new BitbucketRepository(0, partialRepositoryName + "-full-name2", emptyMap(), project,
-                                partialRepositoryName + "-slug2", RepositoryState.AVAILABLE));
-                        page.setValues(results);
-                        return page;
-                    });
-            return searchClient;
-        });
-
         when(clientFactoryProvider.getClient(eq(SERVER_BASE_URL_VALID), any(BitbucketCredentials.class)))
                 .thenReturn(bitbucketClientFactory);
         when(bitbucketClientFactory.getProjectClient(any())).thenAnswer((Answer<BitbucketProjectClient>) getProjectClientArgs -> {
@@ -157,6 +131,8 @@ public class BitbucketScmFormFillDelegateTest {
     @Test
     public void testDoFillProjectNameItemsBitbucketClientException() throws Exception {
         String searchTerm = "test";
+        mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
+
         BitbucketSearchClient badSearchClient = mock(BitbucketSearchClient.class);
         when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(badSearchClient);
         when(badSearchClient.findProjects()).thenThrow(new BitbucketClientException("Bitbucket had an exception",
@@ -170,15 +146,19 @@ public class BitbucketScmFormFillDelegateTest {
     @Test
     public void testDoFillProjectNameItemsCredentialsIdBlank() {
         String searchTerm = "test";
+        mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
+
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, "", searchTerm);
-        verifyProjectSearchResponse(searchTerm, response);
+        verifyProjectSearchResponse(Arrays.asList("test-key", "test-key2"), response);
     }
 
     @Test
     public void testDoFillProjectNameItemsCredentialsIdNull() {
         String searchTerm = "test";
+        mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
+
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, null, searchTerm);
-        verifyProjectSearchResponse(searchTerm, response);
+        verifyProjectSearchResponse(Arrays.asList("test-key", "test-key2"), response);
     }
 
     @Test
@@ -191,8 +171,10 @@ public class BitbucketScmFormFillDelegateTest {
         store.addCredentials(domain, credentials);
 
         String searchTerm = "test";
+        mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
+
         HttpResponse response = delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, credentialId, searchTerm);
-        verifyProjectSearchResponse(searchTerm, response);
+        verifyProjectSearchResponse(Arrays.asList("test-key", "test-key2"), response);
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -261,17 +243,35 @@ public class BitbucketScmFormFillDelegateTest {
 
     @Test
     public void testDoFillRepositoryNameItemsCredentialsIdBlank() {
-        String searchTerm = "test";
-        HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", "myProject", searchTerm);
-        verifyRepositorySearchResponse(searchTerm, "myProject", response);
+        mockSearchClientWithRepos(PROJECT_SERVER_MAP);
+
+        String searchTerm = "test-match";
+        String projectName = "myProject-name";
+        HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", projectName, searchTerm);
+        verifyRepositorySearchResponse(PROJECT_SERVER_MAP, response);
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsPartialProjectMatching() {
+        mockSearchClientWithRepos(ImmutableMap.<String, List<String>>builder()
+                .put("myProject", Arrays.asList("test-match", "test-match2"))
+                .put("myProj", Arrays.asList("test-match", "test-match2"))
+                .build());
+
+        String searchTerm = "test-match";
+        String projectName = "myProject-name";
+        HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", projectName, searchTerm);
+        verifyRepositorySearchResponse(PROJECT_SERVER_MAP, response);
     }
 
     @Test
     public void testDoFillRepositoryNameItemsCredentialsIdNull() throws Exception {
-        String searchTerm = "test";
-        String projectName = "myProject";
+        mockSearchClientWithRepos(PROJECT_SERVER_MAP);
+
+        String searchTerm = "test-match";
+        String projectName = "myProject-name";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, null, projectName, searchTerm);
-        verifyRepositorySearchResponse(searchTerm, projectName, response);
+        verifyRepositorySearchResponse(PROJECT_SERVER_MAP, response);
     }
 
     @Test
@@ -282,11 +282,13 @@ public class BitbucketScmFormFillDelegateTest {
         Credentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, credentialId,
                 "", "myUsername", "myPassword");
         store.addCredentials(domain, credentials);
+        mockSearchClientWithRepos(PROJECT_SERVER_MAP);
 
         String searchTerm = "test";
+        String projectName = "myProject-name";
         HttpResponse response = delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, credentialId,
-                "myProject", searchTerm);
-        verifyRepositorySearchResponse(searchTerm, "myProject", response);
+                projectName, searchTerm);
+        verifyRepositorySearchResponse(PROJECT_SERVER_MAP, response);
     }
 
     @Test
@@ -410,6 +412,44 @@ public class BitbucketScmFormFillDelegateTest {
         assertTrue(modelContains(model, serverConfigurationValid, true));
     }
 
+    private void mockSearchClientWithProjects(List<String> projectKeys) {
+        when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
+            List<BitbucketProject> projectList = projectKeys.stream().map(projectKey ->
+                new BitbucketProject(projectKey, getSelfLink(projectKey), projectKey + "-name")).collect(Collectors.toList());
+
+            BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
+
+            when(searchClient.findProjects()).thenAnswer((Answer<BitbucketPage<BitbucketProject>>) findProjectsInvocation -> {
+                BitbucketPage<BitbucketProject> page = new BitbucketPage<>();
+                page.setValues(projectList);
+                return page;
+            });
+            return searchClient;
+        });
+    }
+
+    private void mockSearchClientWithRepos(Map<String, List<String>> projectReposMap) {
+        when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {
+            Map<String, BitbucketProject> projectMap = new HashMap<>();
+            projectReposMap.keySet().stream().forEach(projectKey ->
+                    projectMap.put(projectKey, new BitbucketProject(projectKey, getSelfLink(projectKey), projectKey + "-name")));
+            List<BitbucketRepository> repositoryList = new ArrayList<>();
+            projectReposMap.forEach((projectKey, repoSlugList) ->
+                repoSlugList.forEach(repoSlug -> repositoryList.add(new BitbucketRepository(0, repoSlug + "-name", emptyMap(), projectMap.get(projectKey),
+                        repoSlug, RepositoryState.AVAILABLE))));
+
+            BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
+
+            when(searchClient.findRepositories(any()))
+                    .thenAnswer((Answer<BitbucketPage<BitbucketRepository>>) findRepositoriesInvocation -> {
+                        BitbucketPage<BitbucketRepository> page = new BitbucketPage<>();
+                        page.setValues(repositoryList);
+                        return page;
+                    });
+            return searchClient;
+        });
+    }
+
     private static JSONObject getJsonObject(JSONArray values, String key, String value) {
         return values.stream()
                 .map(v -> (JSONObject) v)
@@ -445,37 +485,39 @@ public class BitbucketScmFormFillDelegateTest {
         verify(resp).sendError(eq(responseCode), eq(message));
     }
 
-    private static void verifyProject(JSONObject v1, String key, String name) {
-        assertEquals(key, v1.get("key"));
-        assertEquals(name, v1.get("name"));
+    private static void verifyProject(JSONObject jsonProject, String key, String name) {
+        assertEquals(key, jsonProject.get("key"));
+        assertEquals(name, jsonProject.get("name"));
     }
 
-    private static void verifyProjectSearchResponse(String searchTerm, HttpResponse response) {
+    private static void verifyRepository(JSONObject jsonRepo, String slug, String name) {
+        assertEquals(slug, jsonRepo.get("slug"));
+        assertEquals(name, jsonRepo.get("name"));
+    }
+
+    private static void verifyProjectSearchResponse(List<String> expectedKeys, HttpResponse response) {
         JSONObject responseBody = JsonResponseFactory.getJsonObject(response);
         assertEquals("ok", responseBody.get("status"));
         JSONArray values = responseBody.getJSONArray("data");
-        assertThat(values.size(), equalTo(2));
-        String key = "key";
-        String value = searchTerm + "-key";
-        JSONObject v1 = getJsonObject(values, key, value);
-        verifyProject(v1, value, searchTerm + "-full-name");
-        String value2 = searchTerm + "-key2";
-        JSONObject v2 = getJsonObject(values, key, value2);
-        verifyProject(v2, searchTerm + "-key2", searchTerm + "-full-name2");
+        assertThat(values.size(), equalTo(expectedKeys.size()));
+        expectedKeys.stream().forEach(expectedKey -> {
+            JSONObject jsonProject = getJsonObject(values, "key", expectedKey);
+            verifyProject(jsonProject, expectedKey, expectedKey + "-name");
+                }
+        );
     }
 
-    private static void verifyRepositorySearchResponse(String searchTerm, String projectName, HttpResponse response) {
+    private static void verifyRepositorySearchResponse(Map<String, List<String>> projectRepoMap, HttpResponse response) {
         JSONObject responseBody = JsonResponseFactory.getJsonObject(response);
         assertEquals("ok", responseBody.get("status"));
         JSONArray values = responseBody.getJSONArray("data");
-        assertThat(values.size(), equalTo(2));
-        JSONObject v1 = getJsonObject(values, "slug", searchTerm + "-slug");
-        assertEquals(searchTerm + "-slug", v1.get("slug"));
-        assertEquals(searchTerm + "-full-name", v1.get("name"));
-        verifyProject((JSONObject) v1.get("project"), projectName + "-key", projectName + "-full-name");
-        JSONObject v2 = getJsonObject(values, "slug", searchTerm + "-slug2");
-        assertEquals(searchTerm + "-slug2", v2.get("slug"));
-        assertEquals(searchTerm + "-full-name2", v2.get("name"));
-        verifyProject((JSONObject) v2.get("project"), projectName + "-key", projectName + "-full-name");
+        assertThat(values.size(), equalTo(projectRepoMap.values().stream().map(List::size).reduce(0, Integer::sum)));
+        projectRepoMap.forEach((projectKey, repoSlugList) ->
+            repoSlugList.forEach(expectedSlug -> {
+                JSONObject jsonRepo = getJsonObject(values, "slug", expectedSlug);
+                verifyRepository(jsonRepo, expectedSlug, expectedSlug + "-name");
+                verifyProject((JSONObject) jsonRepo.get("project"), projectKey, projectKey + "-name");
+            })
+        );
     }
 }
