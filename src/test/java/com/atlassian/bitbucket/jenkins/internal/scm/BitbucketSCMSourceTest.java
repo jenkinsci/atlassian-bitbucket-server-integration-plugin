@@ -281,6 +281,8 @@ public class BitbucketSCMSourceTest {
                     BitbucketRepository repository = mock(BitbucketRepository.class);
                     String baseUrl = "http://example.com";
 
+                    doReturn(mock(GlobalCredentialsProvider.class))
+                            .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));
                     when(descriptor.getConfiguration(argThat(serverId -> !isBlank(serverId))))
                             .thenReturn(Optional.of(bitbucketServerConfiguration));
                     when(descriptor.getConfiguration(argThat(StringUtils::isBlank)))
@@ -289,8 +291,8 @@ public class BitbucketSCMSourceTest {
                             nullable(String.class),
                             nullable(BitbucketTokenCredentials.class)))
                             .thenReturn(scmHelper);
-                    when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                     when(descriptor.getPullRequestStore()).thenReturn(mock(PullRequestStoreImpl.class));
+                    when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                     when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
