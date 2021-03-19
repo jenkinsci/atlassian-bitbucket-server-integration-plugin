@@ -47,13 +47,23 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
+    //the version (of this class) where the PR trigger was introduced. Version is 0 based.
+    private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
-    private boolean pullRequestTrigger = false;
-    private boolean refTrigger = true;
+
+    private boolean pullRequestTrigger;
+    private boolean refTrigger;
+    /**
+     * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
+     * classes will serialise the actual value that was stored. Because the constructor is not run during de-serialisation
+     * we can safely set the value in the constructor to indicate which version this class is.
+     */
+    private final int version;
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
     public BitbucketWebhookTriggerImpl(boolean pullRequestTrigger, boolean refTrigger) {
+        version = BUILD_ON_PULL_REQUEST_VERSION;
         this.pullRequestTrigger = pullRequestTrigger;
         this.refTrigger = refTrigger;
     }
@@ -68,7 +78,15 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
     }
 
     public boolean isRefTrigger() {
-        return refTrigger;
+        /*
+         * If it is an old version we should return true as that is the old default.
+         * If it is a new version we should use the value that was set.
+         */
+        if (version < BUILD_ON_PULL_REQUEST_VERSION) {
+            return true;
+        } else {
+            return refTrigger;
+        }
     }
 
     @Override
@@ -212,6 +230,11 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         @Override
         public Trigger<?> newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
             return super.newInstance(req, formData);
+        }
+
+        @Inject
+        public void setJenkinsProvider(JenkinsProvider jenkinsProvider) {
+            this.jenkinsProvider = jenkinsProvider;
         }
 
         public void schedule(
