@@ -13,7 +13,7 @@ import java.util.Date;
  * @since 3.0.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PullRequestClosedWebhookEvent extends PullRequestWebhookEvent {
+    public class PullRequestClosedWebhookEvent extends PullRequestWebhookEvent {
 
     @JsonCreator
     protected PullRequestClosedWebhookEvent(

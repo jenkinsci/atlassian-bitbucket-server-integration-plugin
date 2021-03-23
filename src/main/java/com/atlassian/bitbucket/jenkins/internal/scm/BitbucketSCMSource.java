@@ -164,14 +164,14 @@ public class BitbucketSCMSource extends SCMSource {
                                 "Server config not found for input server id " + getServerId()));
                 List<BitbucketWebhookMultibranchTrigger> triggers =
                         new ArrayList<BitbucketWebhookMultibranchTrigger>(project.getTriggers().values());
-                boolean containsPushTrigger = triggers.stream().anyMatch(trigger -> trigger.isRefTrigger());
-                boolean containsPRTrigger = triggers.stream().anyMatch(trigger -> trigger.isPullRequestTrigger());
+                boolean containsPRTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isPullRequestTrigger);
+                boolean containsRefChangeTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isRefTrigger);
 
                 try {
                     descriptor.getRetryingWebhookHandler().register(
                             bitbucketServerConfiguration.getBaseUrl(),
                             bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, containsPRTrigger, containsPushTrigger);
+                            repository, containsPRTrigger, containsRefChangeTrigger);
                 } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
                     LOGGER.severe("Webhook failed to register- token credentials assigned to " + bitbucketServerConfiguration.getServerName()
                                   + " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
