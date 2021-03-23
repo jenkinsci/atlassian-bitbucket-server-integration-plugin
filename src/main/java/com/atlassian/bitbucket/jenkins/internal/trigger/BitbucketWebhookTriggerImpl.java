@@ -3,12 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProviderModule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhookEvent;
 import com.google.inject.Guice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -90,10 +92,9 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
     }
 
     @Override
-    public boolean isApplicableForEventType(AbstractWebhookEvent event) {
-        if (event instanceof PullRequestWebhookEvent && isPullRequestTrigger()) {
-            PullRequestWebhookEvent pullRequestWebhookEvent = (PullRequestWebhookEvent) event;
-            return pullRequestWebhookEvent.getPullRequest().getState() == BitbucketPullState.OPEN;
+    public boolean isApplicableForEvent(AbstractWebhookEvent event) {
+        if (event instanceof PullRequestOpenedWebhookEvent && isPullRequestTrigger()) {
+            return true;
         }
         return event instanceof RefsChangedWebhookEvent && isRefTrigger();
     }

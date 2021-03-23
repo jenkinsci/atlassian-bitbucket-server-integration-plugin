@@ -1,8 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.trigger;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+package com.atlassian.bitbucket.jenkins.internal.trigger.events;
 
 public enum BitbucketWebhookEvent {
 
@@ -10,16 +6,18 @@ public enum BitbucketWebhookEvent {
     MIRROR_SYNCHRONIZED_EVENT("mirror:repo_synchronized"),
     DIAGNOSTICS_PING_EVENT("diagnostics:ping"),
     PULL_REQUEST_OPENED_EVENT("pr:opened"),
-    PULL_REQUEST_CLOSED_EVENT("pr:merged", "pr:declined", "pr:deleted"),
+    PULL_REQUEST_MERGRED("pr:merged"),
+    PULL_REQUEST_DECLINED("pr:declined"),
+    PULL_REQUEST_DELETED("pr:deleted"),
     UNSUPPORTED("");
 
-    private final List<String> eventId;
+    private final String eventId;
 
-    BitbucketWebhookEvent(String... eventId) {
-        this.eventId = Collections.unmodifiableList(Arrays.asList(eventId));
+    BitbucketWebhookEvent(String eventId) {
+        this.eventId = eventId;
     }
 
-    public List<String> getEventIds() {
+    public String getEventId() {
         return eventId;
     }
 

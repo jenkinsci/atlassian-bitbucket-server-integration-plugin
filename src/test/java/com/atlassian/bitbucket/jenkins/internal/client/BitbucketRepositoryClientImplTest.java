@@ -41,7 +41,7 @@ public class BitbucketRepositoryClientImplTest {
 
         assertThat(pullRequests.size(), is(equalTo(2)));
         assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
-         assertThat(pullRequests.stream().map(BitbucketPullRequest::getState).collect(toSet()), hasItems(BitbucketPullState.OPEN));
+         assertThat(pullRequests.stream().map(BitbucketPullRequest::getState).collect(toSet()), hasItems(BitbucketPullRequestState.OPEN));
     }
 
     @Test

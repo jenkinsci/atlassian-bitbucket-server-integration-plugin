@@ -1,5 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
+
 public interface BitbucketWebhookTrigger {
 
     void trigger(BitbucketWebhookTriggerRequest triggerRequest);
@@ -13,5 +15,5 @@ public interface BitbucketWebhookTrigger {
      *
      * @since 3.0.0
      */
-    boolean isApplicableForEventType(AbstractWebhookEvent event);
+    boolean isApplicableForEvent(AbstractWebhookEvent event);
 }

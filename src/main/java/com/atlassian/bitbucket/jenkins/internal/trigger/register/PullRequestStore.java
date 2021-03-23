@@ -1,7 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.google.inject.ImplementedBy;
 
@@ -35,7 +35,7 @@ public interface PullRequestStore {
      * @param fromBranch
      * @param toBranch
      */
-    void setState(String projectKey, String slug, String serverId, String fromBranch, String toBranch, BitbucketPullState state);
+    void setState(String projectKey, String slug, String serverId, String fromBranch, String toBranch, BitbucketPullRequestState state);
 
     /**
      * Figures out if this store contains a given branch (if it does, this means the branch has open pull requests).

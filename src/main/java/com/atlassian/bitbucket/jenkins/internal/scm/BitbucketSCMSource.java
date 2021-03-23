@@ -16,6 +16,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
@@ -247,6 +248,7 @@ public class BitbucketSCMSource extends SCMSource {
         this.webhookRegistered = webhookRegistered;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     @VisibleForTesting
     List<BitbucketWebhookMultibranchTrigger.DescriptorImpl> getTriggers(ComputedFolder<?> owner) {
         return owner.getTriggers().keySet().stream()
@@ -260,7 +262,23 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         handleRefreshingPRStore(event, listener);
-        getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+        SCMSourceOwner owner = super.getOwner();
+        if (owner instanceof ComputedFolder && event != null) {
+            Object payload = event.getPayload();
+            if (payload instanceof AbstractWebhookEvent) {
+                AbstractWebhookEvent webhookEvent = (AbstractWebhookEvent) payload;
+                boolean eventApplicable = ((ComputedFolder<?>) owner).getTriggers().values().stream()
+                        .filter(trg -> trg instanceof BitbucketWebhookMultibranchTrigger)
+                        .anyMatch(trig -> (
+                                (BitbucketWebhookMultibranchTrigger) trig).isApplicableForEventType(webhookEvent)
+                        );
+                if (eventApplicable) {
+                    getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+                }
+            }
+        } else {
+            getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+        }
     }
 
     protected void handleRefreshingPRStore(@CheckForNull SCMHeadEvent<?> event,

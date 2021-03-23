@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import java.util.Optional;
 
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent.REPO_REF_CHANGE;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
@@ -94,7 +94,7 @@ public class RetryingWebhookHandlerIT {
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
-        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventIds().get(0)));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class RetryingWebhookHandlerIT {
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
-        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventIds().get(0)));
+        assertThat(result.getEvents(), hasItem(REPO_REF_CHANGE.getEventId()));
     }
 
     private void cleanWebhooks() {

@@ -1,9 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 
+import javax.annotation.Nullable;
 import javax.inject.Singleton;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,10 +26,12 @@ import java.util.stream.Stream;
 @Singleton
 public class PullRequestStoreImpl implements PullRequestStore {
 
+    private static final long DELAY = TimeUnit.HOURS.toMillis(12);
+    private static final long PERIOD = TimeUnit.HOURS.toMillis(12);
+
     private final ConcurrentMap<PullRequestStoreImpl.CacheKey, RepositoryStore> pullRequests;
+    @SuppressWarnings("FieldCanBeLocal")
     private final Timer timer = new Timer();
-    private long delay = TimeUnit.HOURS.toMillis(12);
-    private long period = TimeUnit.HOURS.toMillis(12);
 
     public PullRequestStoreImpl() {
 
@@ -38,7 +41,7 @@ public class PullRequestStoreImpl implements PullRequestStore {
             public void run() {
                 removeClosedPullRequests(Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli());
             }
-        }, delay, period);
+        }, DELAY, PERIOD);
     }
 
     @Override
@@ -47,13 +50,11 @@ public class PullRequestStoreImpl implements PullRequestStore {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(pullRequest.getToRef().getRepository().getProject().getKey(),
                 pullRequest.getToRef().getRepository().getSlug(), serverId);
-        pullRequests.computeIfAbsent(cacheKey, key -> {
-            return new RepositoryStore();
-            }).updatePullRequest(pr);
+        pullRequests.computeIfAbsent(cacheKey, key -> new RepositoryStore()).updatePullRequest(pr);
     }
 
     @Override
-    public void setState(String projectKey, String slug, String serverId, String fromBranch, String toBranch, BitbucketPullState state) {
+    public void setState(String projectKey, String slug, String serverId, String fromBranch, String toBranch, BitbucketPullRequestState state) {
         PullRequestStoreImpl.CacheKey cacheKey =
                 new PullRequestStoreImpl.CacheKey(projectKey, slug, serverId);
         pullRequests.getOrDefault(cacheKey, new RepositoryStore()).setState(fromBranch, toBranch, state);
@@ -109,22 +110,22 @@ public class PullRequestStoreImpl implements PullRequestStore {
     }
 
     /**
-     * @Since 2.1.3
-     * holds information on all pullRequests in a particular repository, identified by their fromRef and toRef branch.
+     * Holds information on all pullRequests in a particular repository, identified by their fromRef and toRef branch.
+     * @since 2.1.3
      */
     private static class RepositoryStore {
 
-        private static final MinimalPullRequest DEFAULT_PULL_REQUEST = new MinimalPullRequest(0, BitbucketPullState.DELETED,
+        private static final MinimalPullRequest DEFAULT_PULL_REQUEST = new MinimalPullRequest(0, BitbucketPullRequestState.DELETED,
                 "", "", 0);
         //This is a map from <fromBranch, innerMap> where innerMap is <toBranch, pullRequest>
         // (Thus, we distinguish pull requests by fromBranch and toBranch.)
-        private ConcurrentMap<String, ConcurrentMap<String, MinimalPullRequest>> pullRequests;
+        private final ConcurrentMap<String, ConcurrentMap<String, MinimalPullRequest>> pullRequests;
 
         public RepositoryStore() {
             this.pullRequests = new ConcurrentHashMap<>();
         }
 
-        public void setState(String fromBranch, String toBranch, BitbucketPullState state) {
+        public void setState(String fromBranch, String toBranch, BitbucketPullRequestState state) {
             //If a pull request doesn't exist in the store, we get a default pull request not in the store to operate on
             // so the store doesn't change
             pullRequests.getOrDefault(fromBranch, new ConcurrentHashMap<>()).getOrDefault(toBranch, DEFAULT_PULL_REQUEST)
@@ -140,13 +141,14 @@ public class PullRequestStoreImpl implements PullRequestStore {
                     .orElse(0);
         }
 
+        @Nullable
         public MinimalPullRequest getPullRequest(String fromBranch, String toBranch) {
             return pullRequests.getOrDefault(fromBranch, new ConcurrentHashMap<>()).get(toBranch);
         }
 
         public boolean hasOpenPullRequests(String branchName) {
             return pullRequests.getOrDefault(branchName, new ConcurrentHashMap<>()).values().stream()
-                    .anyMatch(pr -> pr.getState() == BitbucketPullState.OPEN);
+                    .anyMatch(pr -> pr.getState() == BitbucketPullRequestState.OPEN);
         }
 
         public boolean hasPullRequest() {
@@ -155,16 +157,14 @@ public class PullRequestStoreImpl implements PullRequestStore {
 
         public void removeClosedPullRequests(long date) {
             pullRequests.values().forEach(innerMap -> {
-                innerMap.keySet().forEach(key -> {
-                    innerMap.compute(key, (toBranch, pr) -> {
-                        if (pr.getUpdatedDate() < date) {
-                            if (pr.getState() != BitbucketPullState.OPEN) {
-                                return null;
-                            }
+                innerMap.keySet().forEach(key -> innerMap.compute(key, (toBranch, pr) -> {
+                    if (pr != null && pr.getUpdatedDate() < date) {
+                        if (pr.getState() != BitbucketPullRequestState.OPEN) {
+                            return null;
                         }
-                        return pr;
-                    });
-                });
+                    }
+                    return pr;
+                }));
             });
         }
 
@@ -176,11 +176,11 @@ public class PullRequestStoreImpl implements PullRequestStore {
                 ConcurrentMap<String, MinimalPullRequest>> getUpdatePrBiFunction(MinimalPullRequest pr) {
             return (fromBranch, innerMap) -> {
                 if (innerMap == null) { //there is no map in store, create a new one with PR in it
-                    ConcurrentMap newMap = new ConcurrentHashMap<>();
+                    ConcurrentMap<String, MinimalPullRequest> newMap = new ConcurrentHashMap<>();
                     newMap.put(pr.getToRefDisplayId(), pr);
                     return newMap;
                 }
-                ConcurrentMap appendMap = new ConcurrentHashMap<>(innerMap);
+                ConcurrentMap<String, MinimalPullRequest> appendMap = new ConcurrentHashMap<>(innerMap);
                 appendMap.put(pr.getToRefDisplayId(), pr);
                 if (innerMap.get(pr.getToRefDisplayId()) == null) { //there is no PR in store, add the new pr to store
                     return appendMap;
@@ -194,8 +194,8 @@ public class PullRequestStoreImpl implements PullRequestStore {
     }
 
     /**
-     * @Since 2.1.3
-     * key for the store that distinguishes between pull requests within different repos/projects/servers
+     * Key for the store that distinguishes between pull requests within different repos/projects/servers.
+     * @since 2.1.3
      */
     private static class CacheKey {
 

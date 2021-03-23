@@ -1,19 +1,19 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 
 import java.util.Objects;
 
 class MinimalPullRequest {
 
     private final long id;
-    private BitbucketPullState state;
+    private BitbucketPullRequestState state;
     private final String fromRefDisplayId;
     private final String toRefDisplayId;
     private final long updatedDate;
 
-    public MinimalPullRequest(long id, BitbucketPullState state, String fromRefDisplayId, String toRefDisplayId, long updatedDate) {
+    public MinimalPullRequest(long id, BitbucketPullRequestState state, String fromRefDisplayId, String toRefDisplayId, long updatedDate) {
         this.id = id;
         this.state = state;
         this.fromRefDisplayId = fromRefDisplayId;
@@ -53,7 +53,7 @@ class MinimalPullRequest {
         return id;
     }
 
-    public BitbucketPullState getState() {
+    public BitbucketPullRequestState getState() {
         return state;
     }
 
@@ -69,7 +69,7 @@ class MinimalPullRequest {
         return updatedDate;
     }
 
-    void setState(BitbucketPullState newState) {
+    void setState(BitbucketPullRequestState newState) {
         this.state = newState;
     }
 }

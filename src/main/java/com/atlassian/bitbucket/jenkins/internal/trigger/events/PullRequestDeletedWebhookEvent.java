@@ -1,6 +1,7 @@
-package com.atlassian.bitbucket.jenkins.internal.trigger;
+package com.atlassian.bitbucket.jenkins.internal.trigger.events;
 
-import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,26 +9,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.annotation.Nullable;
 import java.util.Date;
 
-import static java.util.Objects.requireNonNull;
-
+/**
+ * @since 3.0.0
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PullRequestWebhookEvent extends AbstractWebhookEvent {
-
-    private final BitbucketPullRequest pullRequest;
+public class PullRequestDeletedWebhookEvent extends PullRequestClosedWebhookEvent {
 
     @JsonCreator
-    public PullRequestWebhookEvent(
+    public PullRequestDeletedWebhookEvent(
             @JsonProperty(value = "actor") @Nullable BitbucketUser actor,
             @JsonProperty(value = "eventKey", required = true) String eventKey,
             @JsonProperty(value = "date", required = true) Date date,
             @JsonProperty(value = "pullRequest", required = true) BitbucketPullRequest pullRequest) {
-        super(actor, eventKey, date);
-        this.pullRequest = requireNonNull(pullRequest, "pullRequest");
+        super(actor, eventKey, date, pullRequest);
     }
-
-    public BitbucketPullRequest getPullRequest() {
-        return pullRequest;
-    }
-
 }
 

@@ -6,11 +6,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * @since 3.0.0
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketPullRequest {
 
     private final long id;
-    private final BitbucketPullState state;
+    private final BitbucketPullRequestState state;
     private final BitbucketPullRequestRef fromRef;
     private final BitbucketPullRequestRef toRef;
     private final long updatedDate;
@@ -18,15 +21,15 @@ public class BitbucketPullRequest {
     @JsonCreator
     public BitbucketPullRequest(
             @JsonProperty("id") long id,
-            @JsonProperty("state") BitbucketPullState state,
+            @JsonProperty("state") BitbucketPullRequestState state,
             @JsonProperty("fromRef") BitbucketPullRequestRef fromRef,
             @JsonProperty("toRef") BitbucketPullRequestRef toRef,
             @JsonProperty("updatedDate") long updatedDate) {
-        this.id = requireNonNull(id, "id");
+        this.id = id;
         this.state = requireNonNull(state, "state");
         this.fromRef = requireNonNull(fromRef, "fromRef");
         this.toRef = requireNonNull(toRef, "toRef");
-        this.updatedDate = requireNonNull(updatedDate, "updatedDate");
+        this.updatedDate = updatedDate;
         }
 
     //Requests don't have to have the same state to be equal
@@ -57,7 +60,7 @@ public class BitbucketPullRequest {
         return id;
     }
 
-    public BitbucketPullState getState() {
+    public BitbucketPullRequestState getState() {
         return state;
     }
 

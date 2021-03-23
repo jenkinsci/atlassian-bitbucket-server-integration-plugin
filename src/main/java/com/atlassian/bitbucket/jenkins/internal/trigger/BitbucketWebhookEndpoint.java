@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Extension;
 import hudson.model.UnprotectedRootAction;
@@ -31,6 +32,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     private BitbucketWebhookConsumer webhookConsumer;
 
     @POST
+    @SuppressWarnings("unused")
     public HttpResponse doTrigger(StaplerRequest request, StaplerResponse response) {
         validateContentType(request);
 
@@ -40,13 +42,17 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
             case DIAGNOSTICS_PING_EVENT:
                 return org.kohsuke.stapler.HttpResponses.ok();
             case REPO_REF_CHANGE:
-                return processRefChangedEvent(request);
+                return processEvent(request, RefsChangedWebhookEvent.class);
             case MIRROR_SYNCHRONIZED_EVENT:
-                return processMirrorSynchronizedEvent(request);
+                return processEvent(request, MirrorSynchronizedWebhookEvent.class);
             case PULL_REQUEST_OPENED_EVENT:
-            case PULL_REQUEST_CLOSED_EVENT: {
-                return processPullRequestEvent(request);
-            }
+                return processEvent(request, PullRequestOpenedWebhookEvent.class);
+            case PULL_REQUEST_DECLINED:
+                return processEvent(request, PullRequestDeclinedWebhookEvent.class);
+            case PULL_REQUEST_DELETED:
+                return processEvent(request, PullRequestDeletedWebhookEvent.class);
+            case PULL_REQUEST_MERGRED:
+                return processEvent(request, PullRequestMergedWebhookEvent.class);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("Event is not supported: " + eventKey);
@@ -92,20 +98,8 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
         }
     }
 
-    private HttpResponse processMirrorSynchronizedEvent(StaplerRequest request) {
-        MirrorSynchronizedWebhookEvent event = parse(request, MirrorSynchronizedWebhookEvent.class);
-        webhookConsumer.process(event);
-        return org.kohsuke.stapler.HttpResponses.ok();
-    }
-
-    private HttpResponse processRefChangedEvent(StaplerRequest request) {
-        RefsChangedWebhookEvent event = parse(request, RefsChangedWebhookEvent.class);
-        webhookConsumer.process(event);
-        return org.kohsuke.stapler.HttpResponses.ok();
-    }
-
-    private HttpResponse processPullRequestEvent(StaplerRequest request) {
-        PullRequestWebhookEvent event = parse(request, PullRequestWebhookEvent.class);
+    private <T extends AbstractWebhookEvent> HttpResponse processEvent(StaplerRequest request, Class<T> eventType) {
+        T event = parse(request, eventType);
         webhookConsumer.process(event);
         return org.kohsuke.stapler.HttpResponses.ok();
     }

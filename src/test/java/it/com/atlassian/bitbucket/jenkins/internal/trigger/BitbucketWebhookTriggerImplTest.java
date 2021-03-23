@@ -1,13 +1,12 @@
 package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullState;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerRequest;
-import com.atlassian.bitbucket.jenkins.internal.trigger.PullRequestWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.RefsChangedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -70,60 +69,60 @@ public class BitbucketWebhookTriggerImplTest {
     public void testIsApplicableForAllEvents() {
         trigger = new BitbucketWebhookTriggerImpl(true, true);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to PR open event",
-                trigger.isApplicableForEventType(prEvent));
-        assertTrue("Trigger should be applicable to refChange change event", trigger.isApplicableForEventType(event));
+                trigger.isApplicableForEvent(prEvent));
+        assertTrue("Trigger should be applicable to refChange change event", trigger.isApplicableForEvent(event));
     }
 
     @Test
     public void testIsApplicableForPullrequestDeclineEvent() {
         trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.DECLINED);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.DECLINED);
         assertFalse("Trigger should not be applicable to PR declined event",
-                trigger.isApplicableForEventType(prEvent));
-        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+                trigger.isApplicableForEvent(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEvent(event));
     }
 
     @Test
     public void testIsApplicableForPullrequestDeleteEvent() {
         trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.DELETED);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.DELETED);
         assertFalse("Trigger should not be applicable to PR deleted event",
-                trigger.isApplicableForEventType(prEvent));
-        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+                trigger.isApplicableForEvent(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEvent(event));
     }
 
     @Test
     public void testIsApplicableForPullrequestMergeEvent() {
         trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.MERGED);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.MERGED);
         assertFalse("Trigger should not be applicable to PR merge event",
-                trigger.isApplicableForEventType(prEvent));
-        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+                trigger.isApplicableForEvent(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEvent(event));
     }
 
     @Test
     public void testIsApplicableForPullrequestOpenEvent() {
         trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to PR open event",
-                trigger.isApplicableForEventType(prEvent));
-        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEventType(event));
+                trigger.isApplicableForEvent(prEvent));
+        assertFalse("Trigger should not be applicable to refChange change event", trigger.isApplicableForEvent(event));
     }
 
     @Test
     public void testIsApplicableForRefChangeEvent() {
         trigger = new BitbucketWebhookTriggerImpl(false, true);
         RefsChangedWebhookEvent event = getRefChangedEvent();
-        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullState.OPEN);
+        PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to ref change event",
-                trigger.isApplicableForEventType(event));
-        assertFalse("Trigger should not be applicable to a PR change event", trigger.isApplicableForEventType(prEvent));
+                trigger.isApplicableForEvent(event));
+        assertFalse("Trigger should not be applicable to a PR change event", trigger.isApplicableForEvent(prEvent));
     }
 
     @Test
@@ -228,10 +227,20 @@ public class BitbucketWebhookTriggerImplTest {
                 equalTo("Triggered by Bitbucket webhook due to changes by You."));
     }
 
-    private PullRequestWebhookEvent getPullRequestEvent(BitbucketPullState prState) {
+    private PullRequestWebhookEvent getPullRequestEvent(BitbucketPullRequestState prState) {
         BitbucketPullRequest pr = mock(BitbucketPullRequest.class);
         when(pr.getState()).thenReturn(prState);
-        return new PullRequestWebhookEvent(null, "pr-key", new Date(), pr);
+        switch (prState) {
+            case DECLINED:
+                return new PullRequestDeclinedWebhookEvent(null, "pr-key", new Date(), pr);
+            case DELETED:
+                return new PullRequestDeletedWebhookEvent(null, "pr-key", new Date(), pr);
+            case OPEN:
+                return new PullRequestOpenedWebhookEvent(null, "pr-key", new Date(), pr);
+            case MERGED:
+                return new PullRequestMergedWebhookEvent(null, "pr-key", new Date(), pr);
+        }
+        throw new RuntimeException("Unhandled PR state: " + prState);
     }
 
     private RefsChangedWebhookEvent getRefChangedEvent() {
