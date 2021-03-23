@@ -28,6 +28,8 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
      * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
      * classes will serialise the actual value that was stored. Because the constructor is not run during de-serialisation
      * we can safely set the value in the constructor to indicate which version this class is.
+     *
+     * @since 3.0.0
      */
     private final int version;
 

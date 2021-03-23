@@ -13,6 +13,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.inject.Inject;
 import java.util.logging.Logger;
 
+/**
+ * @since 3.0.0
+ */
 public class SelectBranchTrait extends SCMSourceTrait {
 
     private static final Logger LOGGER = Logger.getLogger(SelectBranchTrait.class.getName());
@@ -52,7 +55,7 @@ public class SelectBranchTrait extends SCMSourceTrait {
 
         @Override
         public String getDisplayName() {
-            return "Only build pull request source branches";
+            return "Bitbucket Server: require a pull request to build";
         }
     }
 }
