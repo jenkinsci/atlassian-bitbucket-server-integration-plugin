@@ -33,7 +33,7 @@ import static java.util.stream.Collectors.toList;
 public class BitbucketWebhookHandler implements WebhookHandler {
 
     private static final Collection<BitbucketWebhookEvent> ALL_PULL_REQUEST_EVENTS = Arrays.asList(PULL_REQUEST_DECLINED,
-            PULL_REQUEST_DELETED, PULL_REQUEST_MERGRED, PULL_REQUEST_OPENED_EVENT);
+            PULL_REQUEST_DELETED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED_EVENT);
     private static final Collection<String> ALL_PULL_REQUEST_EVENT_IDS = new HashSet<>();
     private static final String CALLBACK_URL_SUFFIX = BIBUCKET_WEBHOOK_URL + "/trigger";
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookHandler.class.getName());
@@ -138,7 +138,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             if (request.isTriggerOnPullRequest()) {
                 supportedEvents.add(PULL_REQUEST_DECLINED);
                 supportedEvents.add(PULL_REQUEST_DELETED);
-                supportedEvents.add(PULL_REQUEST_MERGRED);
+                supportedEvents.add(PULL_REQUEST_MERGED);
                 supportedEvents.add(PULL_REQUEST_OPENED_EVENT);
             }
         }
@@ -169,7 +169,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         String callback = constructCallbackUrl(request);
         List<BitbucketWebhook> ownedHooks =
                 webhookClient.getWebhooks(getEventIdAsStrings(MIRROR_SYNCHRONIZED_EVENT, PULL_REQUEST_DECLINED,
-                        PULL_REQUEST_DELETED, PULL_REQUEST_MERGRED, PULL_REQUEST_OPENED_EVENT, REPO_REF_CHANGE))
+                        PULL_REQUEST_DELETED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED_EVENT, REPO_REF_CHANGE))
                         .filter(hook -> hook.getName().equals(request.getName()) || hook.getUrl().equals(callback))
                         .collect(toList());
 

@@ -275,10 +275,11 @@ public class BitbucketSCMSource extends SCMSource {
                 if (eventApplicable) {
                     getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
                 }
+                return;
             }
-        } else {
-            getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
         }
+        getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+
     }
 
     protected void handleRefreshingPRStore(@CheckForNull SCMHeadEvent<?> event,

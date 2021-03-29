@@ -83,7 +83,7 @@ public class BitbucketWebhookEndpointTest {
     @Test
     public void testPullRequestMergedWebhook() throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
-                .header(X_EVENT_KEY, PULL_REQUEST_MERGRED.getEventId())
+                .header(X_EVENT_KEY, PULL_REQUEST_MERGED.getEventId())
                 .log()
                 .ifValidationFails()
                 .body(

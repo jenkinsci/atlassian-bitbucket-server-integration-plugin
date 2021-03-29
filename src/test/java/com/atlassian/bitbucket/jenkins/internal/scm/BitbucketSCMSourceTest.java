@@ -8,6 +8,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestClosedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStoreImpl;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
@@ -16,11 +18,14 @@ import hudson.scm.SCM;
 import hudson.util.LogTaskListener;
 import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadEvent;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceDescriptor;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,14 +35,16 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class BitbucketSCMSourceTest {
@@ -224,6 +231,91 @@ public class BitbucketSCMSourceTest {
         verify(descriptor.getPullRequestStore()).refreshStore(eq(project), eq(repo), eq(serverId), any(Stream.class));
     }
 
+    @Test
+    public void testRetrieveApplicableEvent() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+
+        CustomGitSCMSource mockScmSource = mock(CustomGitSCMSource.class);
+        SCMHeadEvent<PullRequestOpenedWebhookEvent> mockEvent = mock(SCMHeadEvent.class);
+        SCMHeadObserver mockHeadObserver = mock(SCMHeadObserver.class);
+        PullRequestOpenedWebhookEvent payload = mock(PullRequestOpenedWebhookEvent.class);
+        TaskListener mockTaskListener = mock(TaskListener.class);
+        when(bitbucketSCMsource.getGitSCMSource()).thenReturn(mockScmSource);
+        when(mockEvent.getPayload()).thenReturn(payload);
+        when(owner.getTriggers()).thenReturn(singletonMap(new BitbucketWebhookMultibranchTrigger.DescriptorImpl(),
+                new BitbucketWebhookMultibranchTrigger(true, false)));
+
+        bitbucketSCMsource.retrieve(null, mockHeadObserver, mockEvent, mockTaskListener);
+
+        verify(mockScmSource).accessibleRetrieve(isNull(), eq(mockHeadObserver), eq(mockEvent), eq(mockTaskListener));
+    }
+
+    @Test
+    public void testRetrieveNotApplicableEvent() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+
+        CustomGitSCMSource mockScmSource = mock(CustomGitSCMSource.class);
+        SCMHeadEvent<PullRequestClosedWebhookEvent> mockEvent = mock(SCMHeadEvent.class);
+        SCMHeadObserver mockHeadObserver = mock(SCMHeadObserver.class);
+        PullRequestClosedWebhookEvent payload = mock(PullRequestClosedWebhookEvent.class);
+        TaskListener mockTaskListener = mock(TaskListener.class);
+        when(bitbucketSCMsource.getGitSCMSource()).thenReturn(mockScmSource);
+        when(mockEvent.getPayload()).thenReturn(payload);
+        when(owner.getTriggers()).thenReturn(singletonMap(new BitbucketWebhookMultibranchTrigger.DescriptorImpl(),
+                new BitbucketWebhookMultibranchTrigger(true, false)));
+
+        bitbucketSCMsource.retrieve(null, mockHeadObserver, mockEvent, mockTaskListener);
+
+        verify(mockScmSource, never()).accessibleRetrieve(isNull(), eq(mockHeadObserver), eq(mockEvent), eq(mockTaskListener));
+    }
+
+    @Test
+    public void testRetrieveNullBbSPayload() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+
+        CustomGitSCMSource mockScmSource = mock(CustomGitSCMSource.class);
+        SCMHeadEvent<String> mockEvent = mock(SCMHeadEvent.class);
+        SCMHeadObserver mockHeadObserver = mock(SCMHeadObserver.class);
+        TaskListener mockTaskListener = mock(TaskListener.class);
+
+        when(bitbucketSCMsource.getGitSCMSource()).thenReturn(mockScmSource);
+        when(mockEvent.getPayload()).thenReturn("This is not a Bitbucket Server event");
+        when(owner.getTriggers()).thenReturn(singletonMap(new BitbucketWebhookMultibranchTrigger.DescriptorImpl(),
+                new BitbucketWebhookMultibranchTrigger(true, false)));
+
+        bitbucketSCMsource.retrieve(null, mockHeadObserver, mockEvent, mockTaskListener);
+
+        verify(mockScmSource).accessibleRetrieve(isNull(), eq(mockHeadObserver), eq(mockEvent), eq(mockTaskListener));
+    }
+
+    @Test
+    public void testRetrieveNullEvent() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        BitbucketSCMSource bitbucketSCMsource = spy(createInstance(credentialsId));
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+
+        CustomGitSCMSource mockScmSource = mock(CustomGitSCMSource.class);
+        SCMHeadObserver mockHeadObserver = mock(SCMHeadObserver.class);
+        TaskListener mockTaskListener = mock(TaskListener.class);
+        when(bitbucketSCMsource.getGitSCMSource()).thenReturn(mockScmSource);
+        when(owner.getTriggers()).thenReturn(singletonMap(new BitbucketWebhookMultibranchTrigger.DescriptorImpl(),
+                new BitbucketWebhookMultibranchTrigger(true, false)));
+
+        bitbucketSCMsource.retrieve(null, mockHeadObserver, null, mockTaskListener);
+
+        verify(mockScmSource).accessibleRetrieve(isNull(), eq(mockHeadObserver), isNull(), eq(mockTaskListener));
+    }
+
     private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
                                                               String serverId, String baseUrl, MultiBranchProject<?, ?> owner) {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
@@ -279,7 +371,6 @@ public class BitbucketSCMSourceTest {
                     BitbucketScmHelper scmHelper = mock(BitbucketScmHelper.class);
                     BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
                     BitbucketRepository repository = mock(BitbucketRepository.class);
-                    String baseUrl = "http://example.com";
 
                     doReturn(mock(GlobalCredentialsProvider.class))
                             .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));

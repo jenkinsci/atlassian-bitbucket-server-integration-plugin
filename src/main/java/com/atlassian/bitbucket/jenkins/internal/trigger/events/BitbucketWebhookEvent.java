@@ -6,7 +6,7 @@ public enum BitbucketWebhookEvent {
     MIRROR_SYNCHRONIZED_EVENT("mirror:repo_synchronized"),
     DIAGNOSTICS_PING_EVENT("diagnostics:ping"),
     PULL_REQUEST_OPENED_EVENT("pr:opened"),
-    PULL_REQUEST_MERGRED("pr:merged"),
+    PULL_REQUEST_MERGED("pr:merged"),
     PULL_REQUEST_DECLINED("pr:declined"),
     PULL_REQUEST_DELETED("pr:deleted"),
     UNSUPPORTED("");
