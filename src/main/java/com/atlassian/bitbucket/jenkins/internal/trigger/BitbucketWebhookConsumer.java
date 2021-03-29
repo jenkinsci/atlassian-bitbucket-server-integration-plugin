@@ -58,7 +58,7 @@ public class BitbucketWebhookConsumer {
         }
     }
 
-    void process(RefsChangedWebhookEvent event) {
+    private void process(RefsChangedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
         LOGGER.fine(format("Received refs changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
         if (!isEligibleRefs(event)) {
@@ -68,7 +68,7 @@ public class BitbucketWebhookConsumer {
         triggerJob(event, refChangedDetails);
     }
 
-    void process(MirrorSynchronizedWebhookEvent event) {
+    private void process(MirrorSynchronizedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
         LOGGER.fine(format("Received Mirror Synchronized changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
         if (!isEligibleRefs(event)) {
@@ -78,7 +78,7 @@ public class BitbucketWebhookConsumer {
         triggerJob(event, refChangedDetails);
     }
 
-    void process(PullRequestWebhookEvent event) {
+    private void process(PullRequestWebhookEvent event) {
         LOGGER.fine("Received pull request event");
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
         Optional<BitbucketServerConfiguration> server = bitbucketPluginConfiguration.getValidServerList()
