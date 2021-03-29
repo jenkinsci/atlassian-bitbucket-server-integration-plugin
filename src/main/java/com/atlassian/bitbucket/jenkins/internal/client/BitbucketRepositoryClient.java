@@ -2,8 +2,10 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
+import javax.annotation.Nullable;
 import java.util.stream.Stream;
 
 /**
@@ -39,17 +41,9 @@ public interface BitbucketRepositoryClient {
      * and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items, but
      * rather process them as they come in.
      *
+     * @param state the state of the pull requests to fetch, a value of null means fetch all pull requests
      * @return a stream of all (potentially spanning multiple pages) open pull requests
+     * @since 3.0.0
      */
-    Stream<BitbucketPullRequest> getOpenPullRequests();
-
-    /**
-     * Gets all pull requests (open, merged, declined) for the repository. The returned stream will make paged calls to Bitbucket to
-     * ensure that all pull requests are returned. Consumers are advised that this can return large amounts of data
-     * and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items, but
-     * rather process them as they come in.
-     *
-     * @return a stream of all (potentially spanning multiple pages) pull requests
-     */
-     Stream<BitbucketPullRequest> getAllPullRequests();
+    Stream<BitbucketPullRequest> getPullRequests(@Nullable BitbucketPullRequestState state);
 }

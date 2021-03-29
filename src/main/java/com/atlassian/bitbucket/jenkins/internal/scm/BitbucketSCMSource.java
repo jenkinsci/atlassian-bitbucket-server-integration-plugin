@@ -10,10 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
@@ -326,11 +323,11 @@ public class BitbucketSCMSource extends SCMSource {
             if (descriptor.getPullRequestStore().hasPullRequestForRepository(getProjectKey(), getRepositorySlug(), serverId)) {
                 return clientFactory
                         .getProjectClient(getProjectKey())
-                        .getRepositoryClient(getRepositorySlug()).getAllPullRequests();
+                        .getRepositoryClient(getRepositorySlug()).getPullRequests(null);
             }
             return clientFactory
                     .getProjectClient(getProjectKey())
-                    .getRepositoryClient(getRepositorySlug()).getOpenPullRequests();
+                    .getRepositoryClient(getRepositorySlug()).getPullRequests(BitbucketPullRequestState.OPEN);
         }
         return Stream.empty();
     }

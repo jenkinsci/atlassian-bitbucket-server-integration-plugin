@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * @since 3.0.0
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketPullRequestRef {
 

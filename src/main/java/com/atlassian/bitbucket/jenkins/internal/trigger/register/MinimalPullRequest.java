@@ -5,6 +5,10 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 
 import java.util.Objects;
 
+/**
+ * This class contains the bare minimum of information needed to store a pull request.
+ * @since 3.0.0
+ */
 class MinimalPullRequest {
 
     private final long id;

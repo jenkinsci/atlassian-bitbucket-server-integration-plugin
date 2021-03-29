@@ -4,10 +4,12 @@ import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStrea
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.stream.Stream;
 
@@ -54,16 +56,15 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
-    public Stream<BitbucketPullRequest> getAllPullRequests() {
+    public Stream<BitbucketPullRequest> getPullRequests(@Nullable BitbucketPullRequestState state) {
         HttpUrl.Builder urlBuilder = url.newBuilder();
-        urlBuilder.addQueryParameter("state", "ALL");
-        return getBitbucketPullRequestStream(urlBuilder);
-    }
-
-    @Override
-    public Stream<BitbucketPullRequest> getOpenPullRequests() {
-        HttpUrl.Builder urlBuilder = url.newBuilder();
-        urlBuilder.addQueryParameter("state", "OPEN");
+        String queryState;
+        if (state == null) {
+            queryState = "ALL";
+        } else {
+            queryState = state.toString();
+        }
+        urlBuilder.addQueryParameter("state", queryState);
         return getBitbucketPullRequestStream(urlBuilder);
     }
 
