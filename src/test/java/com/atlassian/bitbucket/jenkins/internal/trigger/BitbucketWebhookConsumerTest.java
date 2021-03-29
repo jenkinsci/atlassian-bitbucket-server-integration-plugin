@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.GitSCM;
 import jenkins.plugins.git.GitSCMSource;
@@ -59,9 +58,6 @@ public class BitbucketWebhookConsumerTest {
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private FreeStyleProject freeStyleProject;
     private BitbucketRepository bitbucketRepository;
-
-    @Mock
-    private PullRequestStore pullRequestStore;
 
     @Mock
     private BitbucketSCM bitbucketSCM;
@@ -260,9 +256,6 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
-
-        verify(pullRequestStore)
-                .updatePullRequest(serverConfiguration.getId(), pullRequestOpenedEvent.getPullRequest());
     }
 
     @Test
@@ -281,9 +274,6 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never())
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
-
-        verify(pullRequestStore)
-                .updatePullRequest(serverConfiguration.getId(), pullRequestClosedEvent.getPullRequest());
     }
 
     @Test

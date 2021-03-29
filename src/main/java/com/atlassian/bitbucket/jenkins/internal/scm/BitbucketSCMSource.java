@@ -14,7 +14,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.google.common.annotations.VisibleForTesting;
@@ -258,7 +257,6 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        handleRefreshingPRStore(event, listener);
         SCMSourceOwner owner = super.getOwner();
         if (owner instanceof ComputedFolder && event != null) {
             Object payload = event.getPayload();
@@ -278,29 +276,6 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
-    protected void handleRefreshingPRStore(@CheckForNull SCMHeadEvent<?> event,
-                                         TaskListener listener) {
-        if (event == null) {
-            if (getGitSCMSource().getTraits().stream().anyMatch(trait -> trait.getClass() == SelectBranchTrait.class)) {
-                //on manual scans & creation of jenkins jobs, we call out to bbs and fetch a list of open prs and
-                // sync up our local pullRequestStore
-                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-                try {
-                    listener.getLogger().print("Refreshing pull requests");
-                    String serverId = getServerId();
-                    Stream<BitbucketPullRequest> bbsPullRequests = fetchPullRequestsFromBbsInstance(serverId, descriptor);
-                    if (serverId != null) {
-                        descriptor.getPullRequestStore().refreshStore(getProjectKey(), getRepositorySlug(), serverId,
-                                bbsPullRequests);
-                    }
-                } catch (RuntimeException e) {
-                    listener.getLogger().print("Fetching pull requests failed with error " + e.getMessage());
-                    LOGGER.log(Level.FINE, "Fetching pull requests failed with stack trace", e);
-                }
-            }
-        }
-    }
-
     private Stream<BitbucketPullRequest> fetchPullRequestsFromBbsInstance(String serverId, DescriptorImpl descriptor) {
         BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
                 .orElseThrow(() -> new BitbucketClientException(
@@ -317,13 +292,6 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketClientFactory clientFactory =
                     descriptor.getBitbucketClientFactoryProvider().getClient(bitbucketServerConfiguration.getBaseUrl(),
                             credentials);
-            //When Jenkins starts up, and our store has no prs - we don't want to fetch all prs as it is too time-consuming
-            // so in this case we only fetch open pull requests instead.
-            if (descriptor.getPullRequestStore().hasPullRequestForRepository(getProjectKey(), getRepositorySlug(), serverId)) {
-                return clientFactory
-                        .getProjectClient(getProjectKey())
-                        .getRepositoryClient(getRepositorySlug()).getPullRequests(null);
-            }
             return clientFactory
                     .getProjectClient(getProjectKey())
                     .getRepositoryClient(getRepositorySlug()).getPullRequests(BitbucketPullRequestState.OPEN);
@@ -416,8 +384,6 @@ public class BitbucketSCMSource extends SCMSource {
         private BitbucketScmFormValidationDelegate formValidation;
         @Inject
         private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
-        @Inject
-        private PullRequestStore pullRequestStore;
 
         @Inject
         private RetryingWebhookHandler retryingWebhookHandler;
@@ -552,10 +518,6 @@ public class BitbucketSCMSource extends SCMSource {
 
         public BitbucketClientFactoryProvider getBitbucketClientFactoryProvider() {
             return bitbucketClientFactoryProvider;
-        }
-
-        public PullRequestStore getPullRequestStore() {
-            return pullRequestStore;
         }
 
         @Override

@@ -1,13 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
-import com.atlassian.bitbucket.jenkins.internal.trigger.register.PullRequestStore;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -45,9 +43,6 @@ public class BitbucketWebhookConsumer {
     @Inject
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
 
-    @Inject
-    private PullRequestStore pullRequestStore;
-
     void process(AbstractWebhookEvent e) {
         if (e instanceof MirrorSynchronizedWebhookEvent) {
             process((MirrorSynchronizedWebhookEvent) e);
@@ -81,14 +76,6 @@ public class BitbucketWebhookConsumer {
     void process(PullRequestWebhookEvent event) {
         LOGGER.fine("Received pull request event");
         RefChangedDetails refChangedDetails = new RefChangedDetails(event);
-        Optional<BitbucketServerConfiguration> server = bitbucketPluginConfiguration.getValidServerList()
-                .stream()
-                .filter(serverConfig -> refChangedDetails.getRepository()
-                        .getSelfLink()
-                        .contains(serverConfig.getBaseUrl()))
-                .findFirst();
-        server.ifPresent(configuration ->
-                pullRequestStore.updatePullRequest(configuration.getId(), event.getPullRequest()));
         if (event instanceof PullRequestOpenedWebhookEvent) {
             triggerJob(event, refChangedDetails);
         } else if (event instanceof PullRequestClosedWebhookEvent) {
