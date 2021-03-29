@@ -9,9 +9,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * local copy of all open pull requests to support selectBranchTrait when we only want to build/display branches with
+ * Local copy of all open pull requests to support {@link com.atlassian.bitbucket.jenkins.internal.scm.SelectBranchTrait} when we only want to build/display branches with
  * open pull requests
- *
  * @since 3.0.0
  */
 
@@ -21,6 +20,7 @@ public interface PullRequestStore {
     /**
      * When a new (not outdated) pull request enters, it gets added to the store or the state is updated.
      * Handles both open and closing of pull requests.
+     *
      * @param serverId
      * @param pullRequest
      */
