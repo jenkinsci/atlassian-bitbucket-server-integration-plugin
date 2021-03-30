@@ -51,7 +51,7 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
                 return processEvent(request, PullRequestDeclinedWebhookEvent.class);
             case PULL_REQUEST_DELETED:
                 return processEvent(request, PullRequestDeletedWebhookEvent.class);
-            case PULL_REQUEST_MERGRED:
+            case PULL_REQUEST_MERGED:
                 return processEvent(request, PullRequestMergedWebhookEvent.class);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

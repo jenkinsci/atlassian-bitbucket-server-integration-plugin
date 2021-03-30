@@ -54,7 +54,7 @@ public class BitbucketWebhookHandlerTest {
         PR_EVENTS.add(PULL_REQUEST_OPENED_EVENT.getEventId());
         PR_EVENTS.add(PULL_REQUEST_DECLINED.getEventId());
         PR_EVENTS.add(PULL_REQUEST_DELETED.getEventId());
-        PR_EVENTS.add(PULL_REQUEST_MERGRED.getEventId());
+        PR_EVENTS.add(PULL_REQUEST_MERGED.getEventId());
 
         REF_AND_PR_EVENTS.add(REPO_REF_CHANGE.getEventId());
         REF_AND_PR_EVENTS.addAll(PR_EVENTS);
@@ -438,7 +438,7 @@ public class BitbucketWebhookHandlerTest {
 
     private void mockGetExistingWebhooks(BitbucketWebhook... events) {
         when(webhookClient.getWebhooks(getEventIdAsStrings(MIRROR_SYNCHRONIZED_EVENT, PULL_REQUEST_DECLINED,
-                PULL_REQUEST_DELETED, PULL_REQUEST_MERGRED, PULL_REQUEST_OPENED_EVENT, REPO_REF_CHANGE)))
+                PULL_REQUEST_DELETED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED_EVENT, REPO_REF_CHANGE)))
                 .thenReturn(Stream.of(events));
     }
 }
