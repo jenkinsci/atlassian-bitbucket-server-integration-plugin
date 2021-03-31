@@ -1,9 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Item;
@@ -55,10 +53,12 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
      * @since 3.0.0
      */
     public boolean isApplicableForEventType(AbstractWebhookEvent event) {
-        if (isRefTrigger() && event instanceof RefsChangedWebhookEvent) {
-            return true;
+        if (event instanceof PullRequestWebhookEvent) {
+            if (isPullRequestTrigger()) {
+                return event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent;
+            }
         }
-        return isPullRequestTrigger() && event instanceof PullRequestOpenedWebhookEvent;
+        return event instanceof RefsChangedWebhookEvent && isRefTrigger();
     }
 
     public boolean isPullRequestTrigger() {

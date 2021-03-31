@@ -39,20 +39,22 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
         String eventKey = getEventKey(request);
 
         switch (BitbucketWebhookEvent.findByEventId(eventKey)) {
-            case DIAGNOSTICS_PING_EVENT:
+            case DIAGNOSTICS_PING:
                 return org.kohsuke.stapler.HttpResponses.ok();
             case REPO_REF_CHANGE:
                 return processEvent(request, RefsChangedWebhookEvent.class);
-            case MIRROR_SYNCHRONIZED_EVENT:
+            case MIRROR_SYNCHRONIZED:
                 return processEvent(request, MirrorSynchronizedWebhookEvent.class);
-            case PULL_REQUEST_OPENED_EVENT:
-                return processEvent(request, PullRequestOpenedWebhookEvent.class);
             case PULL_REQUEST_DECLINED:
                 return processEvent(request, PullRequestDeclinedWebhookEvent.class);
             case PULL_REQUEST_DELETED:
                 return processEvent(request, PullRequestDeletedWebhookEvent.class);
+            case PULL_REQUEST_FROM_REF_UPDATED:
+                return processEvent(request, PullRequestFromRefUpdatedWebhookEvent.class);
             case PULL_REQUEST_MERGED:
                 return processEvent(request, PullRequestMergedWebhookEvent.class);
+            case PULL_REQUEST_OPENED:
+                return processEvent(request, PullRequestOpenedWebhookEvent.class);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("Event is not supported: " + eventKey);

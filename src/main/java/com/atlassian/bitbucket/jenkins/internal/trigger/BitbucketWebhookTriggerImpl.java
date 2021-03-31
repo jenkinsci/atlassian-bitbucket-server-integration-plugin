@@ -8,9 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProviderModule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
-import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.google.inject.Guice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -93,8 +91,10 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
     @Override
     public boolean isApplicableForEvent(AbstractWebhookEvent event) {
-        if (event instanceof PullRequestOpenedWebhookEvent && isPullRequestTrigger()) {
-            return true;
+        if (event instanceof PullRequestWebhookEvent) {
+            if (isPullRequestTrigger()) {
+                return event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent;
+            }
         }
         return event instanceof RefsChangedWebhookEvent && isRefTrigger();
     }
