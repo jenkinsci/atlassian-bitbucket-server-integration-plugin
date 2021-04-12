@@ -13,6 +13,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibra
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.TaskListener;
@@ -241,6 +242,7 @@ public class BitbucketSCMSource extends SCMSource {
                 .orElse("");
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
         repository = bitbucketSCMRepository;
         String credentialsId = isBlank(bitbucketSCMRepository.getSshCredentialsId()) ?

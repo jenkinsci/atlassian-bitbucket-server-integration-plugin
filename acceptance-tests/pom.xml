@@ -14,10 +14,10 @@
         <plugin.build.dir>../target</plugin.build.dir>
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
-        <jenkins.acceptance-test-harness.version>1.82</jenkins.acceptance-test-harness.version>
+        <jenkins.acceptance-test-harness.version>1.89</jenkins.acceptance-test-harness.version>
         <bitbucket.version>7.8.0</bitbucket.version>
         <httpclient.version>4.5.10</httpclient.version>
-        <jenkins.version>2.204.1</jenkins.version>
+        <jenkins.version>2.204.6</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.10.3</jackson.version>
         <groovy.version>3.0.7</groovy.version>
