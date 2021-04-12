@@ -80,10 +80,6 @@ public class BitbucketPluginConfigurationIT {
         waitTillItemIsRendered(adminCredential::getOptions);
         adminCredential.getOption(1).click();
 
-        HtmlSelect credential = form.getSelectByName("_.credentialsId");
-        waitTillItemIsRendered(credential::getOptions);
-        credential.getOption(1).click();
-
         bbJenkinsRule.submit(form);
 
         //verify Bitbucket configuration has been saved
