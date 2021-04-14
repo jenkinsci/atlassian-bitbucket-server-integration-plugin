@@ -62,34 +62,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         @Override
         public SCMFileSystem build(Item item, SCM scm,
                                    SCMRevision scmRevision) throws IOException, InterruptedException {
-            if (!(scm instanceof BitbucketSCM)) {
-                return null;
-            }
-            BitbucketSCM bitbucketSCM = (BitbucketSCM) scm;
-            Optional<BitbucketServerConfiguration> maybeServerConfiguration =
-                    pluginConfiguration.getServerById(bitbucketSCM.getServerId());
-            if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR ||
-                bitbucketSCM.getBranchSpec() == null) {
-                return null;
-            }
-            BitbucketSCMRepository repository = bitbucketSCM.getBitbucketSCMRepository();
-
-            BitbucketRepositoryClient repositoryClient = clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
-                    .getProjectClient(repository.getProjectKey())
-                    .getRepositoryClient(repository.getRepositorySlug());
-
-            if (scmRevision == null) {
-                List<BitbucketBranch> branchList = repositoryClient.getBranches();
-                return branchList.stream()
-                        .map(BitbucketBranch::getId)
-                        .filter(ref -> bitbucketSCM.getBranchSpec()
-                                .matchesRepositoryBranch(repository.getRepositoryName(), ref))
-                        .findAny()
-                        .map(ref -> new BitbucketSCMFileSystem(repositoryClient.getFilePathClient(), null, ref))
-                        .orElse(null);
-            }
-            // Unsupported ref type. Lightweight checkout not supported
+            // TODO: Add pipeline support (see branch mh/lightweight-checkout-pipeline)
             return null;
         }
 
@@ -122,7 +95,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public boolean supports(SCM scm) {
-            return scm instanceof BitbucketSCM;
+            return false;
         }
 
         @Override

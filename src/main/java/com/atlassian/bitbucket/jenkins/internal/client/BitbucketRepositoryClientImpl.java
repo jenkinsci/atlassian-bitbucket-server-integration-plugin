@@ -30,24 +30,6 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
-    public List<BitbucketBranch> getBranches() {
-        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug)
-                .addPathSegment("branches")
-                .build();
-
-        BitbucketPage<BitbucketBranch> firstPage =
-                bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketBranch>>() {}).getBody();
-        return BitbucketPageStreamUtil.toStream(firstPage, new NextPageFetcherImpl(url, bitbucketRequestExecutor))
-                .map(BitbucketPage::getValues)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public BitbucketRepository getRepository() {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
@@ -65,31 +47,5 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
 
     public BitbucketFilePathClient getFilePathClient() {
         return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
-    }
-
-    static class NextPageFetcherImpl implements NextPageFetcher<BitbucketBranch> {
-
-        private final HttpUrl url;
-        private final BitbucketRequestExecutor bitbucketRequestExecutor;
-
-        NextPageFetcherImpl(HttpUrl url,
-                            BitbucketRequestExecutor bitbucketRequestExecutor) {
-            this.url = url;
-            this.bitbucketRequestExecutor = bitbucketRequestExecutor;
-        }
-
-        @Override
-        public BitbucketPage<BitbucketBranch> next(BitbucketPage<BitbucketBranch> previous) {
-            if (previous.isLastPage()) {
-                throw new IllegalArgumentException("Last page does not have next page");
-            }
-            return bitbucketRequestExecutor.makeGetRequest(
-                    nextPageUrl(previous),
-                    new TypeReference<BitbucketPage<BitbucketBranch>>() {}).getBody();
-        }
-
-        private HttpUrl nextPageUrl(BitbucketPage<BitbucketBranch> previous) {
-            return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
-        }
     }
 }
