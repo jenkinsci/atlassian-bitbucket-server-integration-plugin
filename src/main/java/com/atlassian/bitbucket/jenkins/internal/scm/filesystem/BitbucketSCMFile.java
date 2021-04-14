@@ -3,10 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import jenkins.scm.api.SCMFile;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Optional;
 
 import static jenkins.scm.api.SCMFile.Type.*;
 
@@ -18,7 +22,7 @@ public class BitbucketSCMFile extends SCMFile {
     /**
      * Constructor for the root BitbucketSCMFile
      */
-    public BitbucketSCMFile(BitbucketFilePathClient client, String ref) {
+    public BitbucketSCMFile(BitbucketFilePathClient client, @Nullable String ref) {
         this.client = client;
         this.ref = ref;
         type(DIRECTORY);
@@ -47,6 +51,16 @@ public class BitbucketSCMFile extends SCMFile {
         throw new IOException("Cannot get content- only valid with DIRECTORY type files");
     }
 
+    public String getFilePath() {
+        String path = getName();
+        SCMFile nextParent = parent();
+        while(nextParent != null && !StringUtils.isEmpty(nextParent.getName())) {
+            path = nextParent.getName() + '/' + path;
+            nextParent = nextParent.parent();
+        }
+        return path;
+    }
+
     // We do not provide this information in the REST response, so this is undefined.
     @Override
     public long lastModified() throws IOException, InterruptedException {
@@ -66,7 +80,7 @@ public class BitbucketSCMFile extends SCMFile {
         throw new IOException("Cannot get content- only valid with REGULAR_FILE type files");
     }
 
-    public String getRef() {
-        return ref;
+    public Optional<String> getRef() {
+        return Optional.ofNullable(ref);
     }
 }

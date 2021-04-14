@@ -31,14 +31,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     public List<SCMFile> getDirectoryContent(BitbucketSCMFile directory) {
-        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug)
-                .addPathSegment("browse")
-                .addQueryParameter("at", directory.getRef())
-                .build();
+        HttpUrl url = getUrl(directory);
 
         BitbucketPage<BitbucketDirectoryChild> firstPage =
                 bitbucketRequestExecutor.makeGetRequest(url, BitbucketDirectory.class)
@@ -56,20 +49,26 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     public String getFileContent(BitbucketSCMFile file) {
-        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug)
-                .addPathSegment("browse")
-                .addQueryParameter("at", file.getRef())
-                .build();
+        HttpUrl url = getUrl(file);
 
         BitbucketFilePage firstPage = bitbucketRequestExecutor.makeGetRequest(url, BitbucketFilePage.class).getBody();
         return BitbucketPageStreamUtil.toStream(firstPage, new FileNextPageFetcher(url, bitbucketRequestExecutor))
                 .map(page -> ((BitbucketFilePage) page).getLines())
                 .flatMap(Collection::stream)
                 .collect(Collectors.joining("\n"));
+    }
+
+    private HttpUrl getUrl(BitbucketSCMFile scmFile) {
+        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug)
+                .addPathSegment("browse")
+                .addPathSegments(scmFile.getFilePath());
+        scmFile.getRef().map(ref -> urlBuilder.addQueryParameter("at", ref));
+
+        return urlBuilder.build();
     }
 
     static class DirectoryNextPageFetcher implements NextPageFetcher<BitbucketDirectoryChild> {

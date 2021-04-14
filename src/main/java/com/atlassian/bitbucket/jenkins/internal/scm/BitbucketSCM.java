@@ -233,6 +233,15 @@ public class BitbucketSCM extends SCM {
     }
 
     @CheckForNull
+    public BranchSpec getBranchSpec() {
+        // Adding this here so any potential upgrade task doesn't need to be applied outside this class
+        if (gitSCM == null) {
+            return null;
+        }
+        return gitSCM.getBranches().get(0);
+    }
+
+    @CheckForNull
     @Override
     public RepositoryBrowser<?> getBrowser() {
         return gitSCM.getBrowser();
