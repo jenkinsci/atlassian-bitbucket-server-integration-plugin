@@ -41,7 +41,6 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
                 .flatMap(Collection::stream)
                 // This gets the first element in the component of a child path, which is the immediate directory name
                 .map(child -> {
-                    // TODO: Can we treat submodules as directories here? Confirm.
                     Type type = "FILE".equals(child.getType()) ? REGULAR_FILE : DIRECTORY;
                     return new BitbucketSCMFile(directory, child.getPath().getComponents().get(0), type);
                 })

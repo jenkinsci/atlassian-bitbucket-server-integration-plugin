@@ -2,12 +2,9 @@ package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -26,6 +23,8 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+
+import static org.eclipse.jgit.lib.Constants.*;
 
 public class BitbucketSCMFileSystem extends SCMFileSystem {
 
@@ -62,8 +61,26 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         @Override
         public SCMFileSystem build(Item item, SCM scm,
                                    SCMRevision scmRevision) throws IOException, InterruptedException {
-            // TODO: Add pipeline support (see branch mh/lightweight-checkout-pipeline)
-            return null;
+            if (!(scm instanceof BitbucketSCM)) {
+                return null;
+            }
+
+            BitbucketSCM bitbucketSCM = (BitbucketSCM) scm;
+            Optional<BitbucketServerConfiguration> maybeServerConfiguration =
+                    pluginConfiguration.getServerById(bitbucketSCM.getServerId());
+            if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
+                return null;
+            }
+
+            BitbucketSCMRepository repository = bitbucketSCM.getBitbucketSCMRepository();
+
+            BitbucketFilePathClient filePathClient = clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
+                    .getProjectClient(repository.getProjectKey())
+                    .getRepositoryClient(repository.getRepositorySlug())
+                    .getFilePathClient();
+
+            return new BitbucketSCMFileSystem(filePathClient, null, bitbucketSCM.getBranches().get(0).toString());
         }
 
         @Override
@@ -95,6 +112,13 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public boolean supports(SCM scm) {
+            if (scm instanceof BitbucketSCM) {
+                List<BranchSpec> branchSpecList = ((BitbucketSCM) scm).getBranches();
+                return branchSpecList.size() == 1 &&
+                       branchSpecList.get(0).toString() != null && (
+                               branchSpecList.get(0).toString().startsWith(R_HEADS) ||
+                               branchSpecList.get(0).toString().startsWith(R_TAGS));
+            }
             return false;
         }
 
