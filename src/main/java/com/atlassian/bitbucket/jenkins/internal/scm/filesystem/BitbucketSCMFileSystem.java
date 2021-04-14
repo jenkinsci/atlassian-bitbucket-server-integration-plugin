@@ -31,7 +31,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
     private final BitbucketFilePathClient client;
     private final String ref;
 
-    protected BitbucketSCMFileSystem(BitbucketFilePathClient client, @Nullable SCMRevision scmRevision, @Nullable String ref) {
+    protected BitbucketSCMFileSystem(BitbucketFilePathClient client, @Nullable SCMRevision scmRevision,
+                                     @Nullable String ref) {
         super(scmRevision);
         this.client = client;
         this.ref = ref;
@@ -60,7 +61,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public SCMFileSystem build(Item item, SCM scm,
-                                   SCMRevision scmRevision) throws IOException, InterruptedException {
+                                   @CheckForNull SCMRevision scmRevision) throws IOException, InterruptedException {
             if (!(scm instanceof BitbucketSCM)) {
                 return null;
             }
@@ -74,18 +75,19 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
             BitbucketSCMRepository repository = bitbucketSCM.getBitbucketSCMRepository();
 
-            BitbucketFilePathClient filePathClient = clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
-                    .getProjectClient(repository.getProjectKey())
-                    .getRepositoryClient(repository.getRepositorySlug())
-                    .getFilePathClient();
+            BitbucketFilePathClient filePathClient =
+                    clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
+                            .getProjectClient(repository.getProjectKey())
+                            .getRepositoryClient(repository.getRepositorySlug())
+                            .getFilePathClient();
 
             return new BitbucketSCMFileSystem(filePathClient, null, bitbucketSCM.getBranches().get(0).toString());
         }
 
         @Override
         public SCMFileSystem build(SCMSource source, SCMHead head,
-                                   SCMRevision scmRevision) throws IOException, InterruptedException {
+                                   @CheckForNull SCMRevision scmRevision) throws IOException, InterruptedException {
             if (!(source instanceof BitbucketSCMSource)) {
                 return null;
             }
@@ -97,13 +99,14 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             }
             BitbucketSCMRepository repository = bitbucketSCMSource.getBitbucketSCMRepository();
 
-            BitbucketFilePathClient filePathClient = clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
-                    .getProjectClient(repository.getProjectKey())
-                    .getRepositoryClient(repository.getRepositorySlug())
-                    .getFilePathClient();
+            BitbucketFilePathClient filePathClient =
+                    clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId()))
+                            .getProjectClient(repository.getProjectKey())
+                            .getRepositoryClient(repository.getRepositorySlug())
+                            .getFilePathClient();
 
-            if (scmRevision.getHead() instanceof GitBranchSCMHead) {
+            if (scmRevision != null && scmRevision.getHead() instanceof GitBranchSCMHead) {
                 return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((GitBranchSCMHead) scmRevision.getHead()).getRef());
             }
             // Unsupported ref type. Lightweight checkout not supported

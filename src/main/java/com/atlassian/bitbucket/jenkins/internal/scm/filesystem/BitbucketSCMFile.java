@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import jenkins.scm.api.SCMFile;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -74,7 +75,11 @@ public class BitbucketSCMFile extends SCMFile {
     @Override
     public InputStream content() throws IOException, InterruptedException {
         if (isFile()) {
-            return IOUtils.toInputStream(client.getFileContent(this), Charset.defaultCharset());
+            try {
+                return IOUtils.toInputStream(client.getFileContent(this), Charset.defaultCharset());
+            } catch (NotFoundException nfe) {
+
+            }
         }
         throw new IOException("Cannot get content- only valid with REGULAR_FILE type files");
     }
