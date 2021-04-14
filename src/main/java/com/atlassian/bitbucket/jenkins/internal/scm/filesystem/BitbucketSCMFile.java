@@ -3,7 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import jenkins.scm.api.SCMFile;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -53,7 +53,7 @@ public class BitbucketSCMFile extends SCMFile {
     public String getFilePath() {
         String path = getName();
         SCMFile nextParent = parent();
-        while(nextParent != null && !StringUtils.isEmpty(nextParent.getName())) {
+        while (nextParent != null && !StringUtils.isEmpty(nextParent.getName())) {
             path = nextParent.getName() + '/' + path;
             nextParent = nextParent.parent();
         }

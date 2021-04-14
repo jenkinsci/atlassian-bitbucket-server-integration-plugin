@@ -15,15 +15,12 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.scm.api.SCMFileSystem;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import org.hamcrest.Matchers;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -32,7 +29,6 @@ import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasValue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -43,7 +39,7 @@ public class BitbucketSCMFileSystemTest {
     static final String SERVER_ID = "SERVER-ID";
 
     @Rule
-    BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+    public BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
     JenkinsProjectHandler projectHandler = new JenkinsProjectHandler(bitbucketJenkinsRule);
     @InjectMocks
     BitbucketSCMFileSystem.BuilderImpl builder;
@@ -112,7 +108,7 @@ public class BitbucketSCMFileSystemTest {
 
         SCMFileSystem fileSystem = builder.build(multiBranchProject.getSCMSources().get(0), head, revision);
         assertThat(fileSystem, Matchers.notNullValue());
-        BitbucketSCMFile root = ((BitbucketSCMFile)fileSystem.getRoot());
+        BitbucketSCMFile root = ((BitbucketSCMFile) fileSystem.getRoot());
         assertThat(root.getRef().get(), equalTo("refs/heads/master"));
     }
 

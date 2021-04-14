@@ -1,19 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
-import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
-import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static java.lang.String.valueOf;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
 

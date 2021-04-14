@@ -137,6 +137,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             return scmSourceDescriptor instanceof BitbucketSCMSource.DescriptorImpl;
         }
 
+        @CheckForNull
         private String getRefString(@CheckForNull SCMRevision revision) {
             if (revision == null) {
                 // Cannot use FS, fall back to full checkout

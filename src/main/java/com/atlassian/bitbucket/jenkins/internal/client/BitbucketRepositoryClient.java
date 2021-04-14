@@ -1,10 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-
-import java.util.List;
 
 /**
  * Repository client, used to interact with a remote repository for all operations except cloning
