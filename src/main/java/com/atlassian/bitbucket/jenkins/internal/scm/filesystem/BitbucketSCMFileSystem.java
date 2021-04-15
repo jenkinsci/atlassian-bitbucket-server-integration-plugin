@@ -99,11 +99,12 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                 return null;
             }
             BitbucketSCMSource bitbucketSCMSource = (BitbucketSCMSource) source;
+            String ownerName = source.getOwner() == null ? "" : source.getOwner().getName();
             Optional<BitbucketServerConfiguration> maybeServerConfiguration =
                     pluginConfiguration.getServerById(bitbucketSCMSource.getServerId());
             if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
-                LOGGER.finer("ERROR: Bitbucket Server configuration for job " + source.getOwner().getName() +
-                             " is invalid- cannot continue lightweight checkout");
+                LOGGER.finer("ERROR: Bitbucket Server configuration for job " + ownerName +
+                             "is invalid- cannot continue lightweight checkout");
                 return null;
             }
             BitbucketSCMRepository repository = bitbucketSCMSource.getBitbucketSCMRepository();
@@ -121,7 +122,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             // Unsupported ref type. Lightweight checkout not supported
             LOGGER.finer(
                     "Lightweight checkout for Bitbucket SCM source only supported for Multibranch Pipeline jobs. Cannot build file system for job " +
-                    source.getOwner().getName());
+                    ownerName);
             return null;
         }
 
