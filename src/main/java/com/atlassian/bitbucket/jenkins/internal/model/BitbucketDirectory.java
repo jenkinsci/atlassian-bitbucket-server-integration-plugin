@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * @since 3.0.0
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketDirectory {
 
@@ -14,8 +17,8 @@ public class BitbucketDirectory {
     @JsonCreator
     public BitbucketDirectory(
             @JsonProperty(value = "children") BitbucketPage<BitbucketDirectoryChild> children,
-        @JsonProperty(value = "path") BitbucketDirectoryPath path,
-        @JsonProperty(value = "revision") String revision) {
+            @JsonProperty(value = "path") BitbucketDirectoryPath path,
+            @JsonProperty(value = "revision") String revision) {
         this.children = children;
         this.path = path;
         this.revision = revision;

@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -14,6 +15,9 @@ import java.util.Optional;
 
 import static jenkins.scm.api.SCMFile.Type.*;
 
+/**
+ * @since 3.0.0
+ */
 public class BitbucketSCMFile extends SCMFile {
 
     private final BitbucketFilePathClient client;
@@ -63,8 +67,8 @@ public class BitbucketSCMFile extends SCMFile {
 
     // We do not provide this information in the REST response, so this is undefined.
     @Override
-    public long lastModified() throws IOException, InterruptedException {
-        return 0;
+    public long lastModified() {
+        return 0L;
     }
 
     @Override
@@ -78,7 +82,7 @@ public class BitbucketSCMFile extends SCMFile {
             try {
                 return IOUtils.toInputStream(client.getFileContent(this), Charset.defaultCharset());
             } catch (NotFoundException nfe) {
-
+                throw new FileNotFoundException("No file present at location " + getFilePath());
             }
         }
         throw new IOException("Cannot get content- only valid with REGULAR_FILE type files");

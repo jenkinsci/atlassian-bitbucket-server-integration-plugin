@@ -6,6 +6,10 @@ import jenkins.scm.api.SCMFile;
 
 import java.util.List;
 
+/**
+ * Client to find the contents of files and directories in a repository
+ * @since 3.0.0
+ */
 public interface BitbucketFilePathClient {
 
     /**

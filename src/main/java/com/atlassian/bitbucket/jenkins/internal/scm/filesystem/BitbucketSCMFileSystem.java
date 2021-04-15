@@ -20,13 +20,18 @@ import jenkins.scm.api.*;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import static org.eclipse.jgit.lib.Constants.*;
 
+/**
+ * @since 3.0.0
+ */
 public class BitbucketSCMFileSystem extends SCMFileSystem {
+
+    private static final Logger LOGGER = Logger.getLogger(BitbucketSCMFileSystem.class.getName());
 
     private final BitbucketFilePathClient client;
     private final String ref;
@@ -45,8 +50,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
     // We do not provide this information in the REST response, so this is undefined.
     @Override
-    public long lastModified() throws IOException, InterruptedException {
-        return 0;
+    public long lastModified() {
+        return 0L;
     }
 
     @Extension
@@ -61,7 +66,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public SCMFileSystem build(Item item, SCM scm,
-                                   @CheckForNull SCMRevision scmRevision) throws IOException, InterruptedException {
+                                   @CheckForNull SCMRevision scmRevision) {
             if (!(scm instanceof BitbucketSCM)) {
                 return null;
             }
@@ -70,6 +75,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             Optional<BitbucketServerConfiguration> maybeServerConfiguration =
                     pluginConfiguration.getServerById(bitbucketSCM.getServerId());
             if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
+                LOGGER.finer("ERROR: Bitbucket Server configuration for job " + item.getName() +
+                             " is invalid- cannot build file system");
                 return null;
             }
 
@@ -87,7 +94,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public SCMFileSystem build(SCMSource source, SCMHead head,
-                                   @CheckForNull SCMRevision scmRevision) throws IOException, InterruptedException {
+                                   @CheckForNull SCMRevision scmRevision) {
             if (!(source instanceof BitbucketSCMSource)) {
                 return null;
             }
@@ -95,6 +102,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             Optional<BitbucketServerConfiguration> maybeServerConfiguration =
                     pluginConfiguration.getServerById(bitbucketSCMSource.getServerId());
             if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
+                LOGGER.finer("ERROR: Bitbucket Server configuration for job " + source.getOwner().getName() +
+                             " is invalid- cannot continue lightweight checkout");
                 return null;
             }
             BitbucketSCMRepository repository = bitbucketSCMSource.getBitbucketSCMRepository();
@@ -110,6 +119,9 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                 return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((GitBranchSCMHead) scmRevision.getHead()).getRef());
             }
             // Unsupported ref type. Lightweight checkout not supported
+            LOGGER.finer(
+                    "Lightweight checkout for Bitbucket SCM source only supported for Multibranch Pipeline jobs. Cannot build file system for job " +
+                    source.getOwner().getName());
             return null;
         }
 
@@ -117,10 +129,13 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         public boolean supports(SCM scm) {
             if (scm instanceof BitbucketSCM) {
                 List<BranchSpec> branchSpecList = ((BitbucketSCM) scm).getBranches();
-                return branchSpecList.size() == 1 &&
-                       branchSpecList.get(0).toString() != null && (
-                               branchSpecList.get(0).toString().startsWith(R_HEADS) ||
-                               branchSpecList.get(0).toString().startsWith(R_TAGS));
+                if (branchSpecList.size() == 1 && branchSpecList.get(0).toString() != null && (
+                        branchSpecList.get(0).toString().startsWith(R_HEADS) ||
+                        branchSpecList.get(0).toString().startsWith(R_TAGS))) {
+                    return true;
+                }
+                LOGGER.finer("Branch spec must be in the form 'refs/heads/<branchname>' or 'refs/tags/<tagname>'. " +
+                             "Cannot build file system for this job.");
             }
             return false;
         }

@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
+/**
+ * @since 3.0.0
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketDirectoryPath {
 

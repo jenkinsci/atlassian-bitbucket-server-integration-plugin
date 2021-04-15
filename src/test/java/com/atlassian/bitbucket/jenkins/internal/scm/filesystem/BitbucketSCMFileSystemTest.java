@@ -1,6 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 
+import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.model.Item;
@@ -9,11 +12,9 @@ import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler;
-import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.scm.api.SCMFileSystem;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import org.hamcrest.Matchers;
@@ -22,22 +23,34 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.*;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketSCMFileSystemTest {
 
     @Rule
     public BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
+    @InjectMocks
     BitbucketSCMFileSystem.BuilderImpl builder;
+    @Mock
+    BitbucketClientFactoryProvider clientFactoryProvider;
+    BitbucketServerConfiguration invalidConfiguration;
+    @Mock
+    JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    @Mock
+    BitbucketPluginConfiguration pluginConfiguration;
     JenkinsProjectHandler projectHandler = new JenkinsProjectHandler(bitbucketJenkinsRule);
+    BitbucketServerConfiguration validConfiguration;
 
     @After
     public void cleanUp() {
@@ -46,7 +59,19 @@ public class BitbucketSCMFileSystemTest {
 
     @Before
     public void setUp() {
-        builder = Jenkins.get().getExtensionList(builder.getClass()).get(0);
+        invalidConfiguration = mock(BitbucketServerConfiguration.class);
+        validConfiguration = mock(BitbucketServerConfiguration.class);
+        doReturn(FormValidation.ok()).when(validConfiguration).validate();
+        doReturn(FormValidation.error("")).when(invalidConfiguration).validate();
+
+        BitbucketClientFactory clientFactory = mock(BitbucketClientFactory.class);
+        BitbucketProjectClient projectClient = mock(BitbucketProjectClient.class);
+        BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
+
+        doReturn(clientFactory).when(clientFactoryProvider).getClient(any(), any());
+        doReturn(projectClient).when(clientFactory).getProjectClient("PROJECT_1");
+        doReturn(repositoryClient).when(projectClient).getRepositoryClient("rep_1");
+        doReturn(mock(BitbucketFilePathClient.class)).when(repositoryClient).getFilePathClient();
     }
 
     @Test
@@ -54,6 +79,7 @@ public class BitbucketSCMFileSystemTest {
         WorkflowJob pipelineProject =
                 projectHandler.createPipelineJobWithBitbucketScm("testBuildPipelineSCM", "rep_1", "refs/heads/master");
         BitbucketSCM scm = (BitbucketSCM) ((CpsScmFlowDefinition) pipelineProject.getDefinition()).getScm();
+        doReturn(Optional.of(validConfiguration)).when(pluginConfiguration).getServerById(eq(scm.getServerId()));
 
         SCMFileSystem fileSystem = builder.build(pipelineProject, scm, null);
         assertThat(fileSystem, Matchers.notNullValue());
@@ -63,21 +89,17 @@ public class BitbucketSCMFileSystemTest {
 
     @Test
     public void testBuildPipelineSCMInvalidServerConfiguration() throws Exception {
-        String invalidServerID = "INVALID-SERVER-ID";
         BitbucketSCM scm = mock(BitbucketSCM.class);
-        BitbucketServerConfiguration invalidConfiguration = mock(BitbucketServerConfiguration.class);
-        doReturn(FormValidation.error("")).when(invalidConfiguration).validate();
-        //doReturn(Optional.of(invalidConfiguration)).when(pluginConfiguration).getServerById(eq(invalidServerID));
-        doReturn(invalidServerID).when(scm).getServerId();
+        doReturn("INVALID-CONFIG-ID").when(scm).getServerId();
+        doReturn(Optional.of(invalidConfiguration)).when(pluginConfiguration).getServerById("INVALID-CONFIG-ID");
 
         assertThat(builder.build(mock(Item.class), scm, null), Matchers.nullValue());
     }
 
     @Test
     public void testBuildPipelineSCMNoServerConfiguration() throws Exception {
-        String invalidServerID = "NO-SERVER-ID";
         BitbucketSCM scm = mock(BitbucketSCM.class);
-        doReturn(invalidServerID).when(scm).getServerId();
+        doReturn("ABSENT-SERVER-ID").when(scm).getServerId();
 
         assertThat(builder.build(mock(Item.class), scm, null), Matchers.nullValue());
     }
@@ -89,6 +111,9 @@ public class BitbucketSCMFileSystemTest {
         GitBranchSCMHead head = new GitBranchSCMHead("master");
         SCMRevision revision = new GitBranchSCMRevision(head, "");
 
+        String serverConfigID = ((BitbucketSCMSource) multiBranchProject.getSCMSources().get(0)).getServerId();
+        doReturn(Optional.of(validConfiguration)).when(pluginConfiguration).getServerById(eq(serverConfigID));
+
         SCMFileSystem fileSystem = builder.build(multiBranchProject.getSCMSources().get(0), head, revision);
         assertThat(fileSystem, Matchers.notNullValue());
         BitbucketSCMFile root = ((BitbucketSCMFile) fileSystem.getRoot());
@@ -99,39 +124,45 @@ public class BitbucketSCMFileSystemTest {
     public void testBuildSCMSourceInvalidRevision() throws Exception {
         WorkflowMultiBranchProject multiBranchProject =
                 projectHandler.createMultibranchJob("testBuildSCMSourceInvalidRevision", "PROJECT_1", "rep_1");
-        SCMHead head = mock(SCMHead.class);
-        SCMRevision revision = mock(SCMRevision.class);
-        doReturn(head).when(revision).getHead();
+        SCMRevision revision = new GitBranchSCMRevision(mock(GitBranchSCMHead.class), "");
 
-        assertThat(builder.build(multiBranchProject.getSCMSources().get(0), mock(GitBranchSCMHead.class),
-                mock(GitBranchSCMRevision.class)), Matchers.nullValue());
+        assertThat(builder.build(multiBranchProject.getSCMSources().get(0), revision.getHead(), revision),
+                Matchers.nullValue());
     }
 
     @Test
     public void testBuildSCMSourceInvalidServerConfiguration() throws Exception {
-        String invalidServerID = "INVALID-SERVER-ID";
-        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
-        BitbucketServerConfiguration invalidConfiguration = mock(BitbucketServerConfiguration.class);
-        doReturn(FormValidation.error("")).when(invalidConfiguration).validate();
-        //doReturn(Optional.of(invalidConfiguration)).when(pluginConfiguration).getServerById(eq(invalidServerID));
-        doReturn(invalidServerID).when(scmSource).getServerId();
+        WorkflowMultiBranchProject multiBranchProject =
+                projectHandler.createMultibranchJob("testBuildSCMSourceInvalidServerConfiguration", "PROJECT_1", "rep_1");
+        BitbucketSCMSource scmSource = (BitbucketSCMSource) multiBranchProject.getSCMSources().get(0);
+
+        doReturn(Optional.of(invalidConfiguration)).when(pluginConfiguration).getServerById(scmSource.getServerId());
 
         assertThat(builder.build(scmSource, mock(GitBranchSCMHead.class), mock(GitBranchSCMRevision.class)), Matchers.nullValue());
     }
 
     @Test
     public void testBuildSCMSourceNoServerConfiguration() throws Exception {
-        String invalidServerID = "NO-SERVER-ID";
-        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
-        doReturn(invalidServerID).when(scmSource).getServerId();
+        WorkflowMultiBranchProject multiBranchProject =
+                projectHandler.createMultibranchJob("testBuildSCMSourceNoServerConfiguration", "PROJECT_1", "rep_1");
+        BitbucketSCMSource scmSource = (BitbucketSCMSource) multiBranchProject.getSCMSources().get(0);
+
+        doReturn(Optional.empty()).when(pluginConfiguration).getServerById(scmSource.getServerId());
 
         assertThat(builder.build(scmSource, mock(GitBranchSCMHead.class), mock(GitBranchSCMRevision.class)), Matchers.nullValue());
     }
 
     @Test
-    public void testSupportsPipelineSCM() {
+    public void testSupportsPipelineSCMRefsHeads() {
         BitbucketSCM pipelineSCM = mock(BitbucketSCM.class);
         doReturn(Collections.singletonList(new BranchSpec("refs/heads/master"))).when(pipelineSCM).getBranches();
+        assertThat(builder.supports(pipelineSCM), equalTo(true));
+    }
+
+    @Test
+    public void testSupportsPipelineSCMRefsTags() {
+        BitbucketSCM pipelineSCM = mock(BitbucketSCM.class);
+        doReturn(Collections.singletonList(new BranchSpec("refs/tags/release-2.1"))).when(pipelineSCM).getBranches();
         assertThat(builder.supports(pipelineSCM), equalTo(true));
     }
 

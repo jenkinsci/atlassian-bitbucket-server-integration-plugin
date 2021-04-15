@@ -34,6 +34,7 @@ public interface BitbucketRepositoryClient {
      * A client for getting file content and directory information on paths in a repository
      *
      * @return a client.
+     * @since 3.0.0
      */
     BitbucketFilePathClient getFilePathClient();
 }
