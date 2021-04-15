@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
+package it.com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 
 import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -6,6 +6,8 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
+import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFileSystem;
 import hudson.model.Item;
 import hudson.plugins.git.BranchSpec;
 import hudson.scm.SCM;
@@ -36,7 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BitbucketSCMFileSystemTest {
+public class BitbucketSCMFileSystemIT {
 
     @Rule
     public BitbucketJenkinsRule bitbucketJenkinsRule = new BitbucketJenkinsRule();
