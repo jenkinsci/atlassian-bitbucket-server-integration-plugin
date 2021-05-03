@@ -18,7 +18,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <java.level>8</java.level>
         <jackson.version>2.11.2</jackson.version>
-        <jenkins.version>2.204.6</jenkins.version>
+        <jenkins.version>2.222.4</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <surefireTestExclusions>nothing-to-exclude</surefireTestExclusions>
