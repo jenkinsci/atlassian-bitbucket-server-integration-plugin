@@ -1,11 +1,13 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package com.atlassian.bitbucket.jenkins.internal.link;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
-import hudson.model.Project;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -33,6 +35,7 @@ public class BitbucketJobLinkActionFactoryTest {
     private static final String BASE_URL = "http://localhost:8080/bitbucket";
 
     private BitbucketJobLinkActionFactory actionFactory;
+    private BitbucketExternalLinkUtils externalLinkUtils;
     @Rule
     public JenkinsRule jenkins = new JenkinsRule();
     @Mock
@@ -42,8 +45,6 @@ public class BitbucketJobLinkActionFactoryTest {
     @Mock
     private BitbucketServerConfiguration configuration;
     @Mock
-    private BitbucketScmFormValidationDelegate formValidationDelegate;
-    @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private FreeStyleProject freeStyleProject;
@@ -52,8 +53,6 @@ public class BitbucketJobLinkActionFactoryTest {
     private WorkflowJob multibranchJobFromSource;
     @Mock
     private WorkflowMultiBranchProject multibranchProject;
-    @Mock
-    private Project target;
 
     @Before
     public void init() throws IOException {
@@ -62,20 +61,21 @@ public class BitbucketJobLinkActionFactoryTest {
         when(mockSCMSource.getBitbucketSCMRepository()).thenReturn(bitbucketRepository);
         when(bitbucketRepository.getProjectKey()).thenReturn("PROJ");
         when(bitbucketRepository.getRepositorySlug()).thenReturn("repo");
+        when(bitbucketRepository.getServerId()).thenReturn(SERVER_ID);
 
         workflowJob = jenkins.createProject(WorkflowJob.class);
         workflowJob.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
-        multibranchJob = jenkins.createProject(WorkflowJob.class);
-        multibranchJobFromSource = jenkins.createProject(WorkflowJob.class);
+        multibranchJob = jenkins.createProject(WorkflowJob.class, "branch1");
+        multibranchJobFromSource = jenkins.createProject(WorkflowJob.class, "branch2");
 
         when(freeStyleProject.getScm()).thenReturn(scm);
         when(multibranchProject.getSCMSources()).thenReturn(Arrays.asList(mockSCMSource));
-        when(bitbucketRepository.getServerId()).thenReturn(SERVER_ID);
 
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(configuration));
         when(configuration.getBaseUrl()).thenReturn(BASE_URL);
         when(configuration.validate()).thenReturn(FormValidation.ok());
 
+        externalLinkUtils = new BitbucketExternalLinkUtils(pluginConfiguration);
         actionFactory = getActionFactory();
     }
 
@@ -103,7 +103,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
         assertThat(actions.size(), equalTo(1));
         BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
-        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo"));
+        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/compare/commits?sourceBranch=refs%2Fheads%2Fbranch2"));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
         assertThat(actions.size(), equalTo(1));
         BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
-        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo"));
+        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/compare/commits?sourceBranch=refs%2Fheads%2Fbranch1"));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class BitbucketJobLinkActionFactoryTest {
     }
 
     private BitbucketJobLinkActionFactory getActionFactory() {
-        return new BitbucketJobLinkActionFactory(pluginConfiguration, formValidationDelegate) {
+        return new BitbucketJobLinkActionFactory(externalLinkUtils) {
 
             @Override
             Collection<? extends SCM> getWorkflowSCMs(WorkflowJob job) {
