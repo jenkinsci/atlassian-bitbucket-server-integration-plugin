@@ -1,4 +1,4 @@
-package it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client;
+package it.com.atlassian.bitbucket.jenkins.internal.util;
 
 import io.restassured.http.Header;
 
