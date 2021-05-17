@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Basic implementation of a page as returned by all paged resources in Bitbucket Server.
+ * A BitbucketPage for deserializing the contents of text files
  * @since 3.0.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

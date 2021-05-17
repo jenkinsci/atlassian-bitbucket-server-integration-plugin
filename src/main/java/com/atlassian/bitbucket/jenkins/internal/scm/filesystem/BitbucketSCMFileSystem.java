@@ -64,9 +64,10 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         @Inject
         BitbucketPluginConfiguration pluginConfiguration;
 
+        // Pipeline SCM jobs will only build on lightweight if the branch selector points to a specific branch or tag
+        // ref- otherwise, we default to full checkout
         @Override
-        public SCMFileSystem build(Item item, SCM scm,
-                                   @CheckForNull SCMRevision scmRevision) {
+        public SCMFileSystem build(Item item, SCM scm, @CheckForNull SCMRevision scmRevision) {
             if (!(scm instanceof BitbucketSCM)) {
                 return null;
             }
@@ -93,8 +94,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         }
 
         @Override
-        public SCMFileSystem build(SCMSource source, SCMHead head,
-                                   @CheckForNull SCMRevision scmRevision) {
+        public SCMFileSystem build(SCMSource source, SCMHead head, @CheckForNull SCMRevision scmRevision) {
             if (!(source instanceof BitbucketSCMSource)) {
                 return null;
             }
@@ -103,7 +103,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             Optional<BitbucketServerConfiguration> maybeServerConfiguration =
                     pluginConfiguration.getServerById(bitbucketSCMSource.getServerId());
             if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
-                LOGGER.finer("ERROR: Bitbucket Server configuration for job " + ownerName +
+                LOGGER.warning("ERROR: Bitbucket Server configuration for job " + ownerName +
                              "is invalid- cannot continue lightweight checkout");
                 return null;
             }

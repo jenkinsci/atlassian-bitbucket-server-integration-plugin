@@ -17,7 +17,7 @@ public interface BitbucketFilePathClient {
      * This method assumed UTF8 encoding on the file.
      *
      * @param scmFile the file to retrieve
-     * @return the UTF8-encoded contents of the file, with newlinse separated with newline characters.
+     * @return the UTF8-encoded contents of the file, with new lines separated with newline characters
      * @throws AuthorizationException if the credentials did not allow access to the given url
      * @throws NoContentException if the server did not respond with a body
      * @throws ConnectionFailureException if the server did not respond

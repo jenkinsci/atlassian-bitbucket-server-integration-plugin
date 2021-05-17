@@ -56,13 +56,13 @@ public class BitbucketSCMFile extends SCMFile {
     }
 
     public String getFilePath() {
-        String path = getName();
+        StringBuilder path = new StringBuilder(getName());
         SCMFile nextParent = parent();
         while (nextParent != null && !StringUtils.isEmpty(nextParent.getName())) {
-            path = nextParent.getName() + '/' + path;
+            path.insert(0, nextParent.getName() + '/');
             nextParent = nextParent.parent();
         }
-        return path;
+        return path.toString();
     }
 
     // We do not provide this information in the REST response, so this is undefined.

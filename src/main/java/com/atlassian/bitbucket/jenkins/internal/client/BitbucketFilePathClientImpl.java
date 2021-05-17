@@ -30,6 +30,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
         this.repositorySlug = repositorySlug;
     }
 
+    @Override
     public List<SCMFile> getDirectoryContent(BitbucketSCMFile directory) {
         HttpUrl url = getUrl(directory);
 
@@ -47,6 +48,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public String getFileContent(BitbucketSCMFile file) {
         HttpUrl url = getUrl(file);
 
