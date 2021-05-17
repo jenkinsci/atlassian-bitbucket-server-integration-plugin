@@ -15,7 +15,9 @@ import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSourceDescriptor;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -35,6 +37,9 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 
 public class BitbucketSCMSourceTest {
+
+    @Rule
+    public JenkinsRule jenkins = new JenkinsRule();
 
     private static final String httpCloneLink = "http://localhost:7990/fake.git";
     private static final String sshCloneLink = "ssh://git@localhost:7990/fake.git";
@@ -197,7 +202,7 @@ public class BitbucketSCMSourceTest {
                 when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                 when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                 when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
-
+                when(repository.getSelfLink()).thenReturn("");
                 return descriptor;
             }
         };
