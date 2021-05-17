@@ -28,14 +28,12 @@ public class JenkinsApplinksClient {
 
     public OAuthConsumer createOAuthConsumer() throws JsonProcessingException {
         OAuthConsumer consumer = newConsumer();
-        String consumerCreateUri = jenkinsUtils.toAbsoluteUrl(CREATE_OAUTH_CONSUMER_PATH);
 
-        RequestSpecification request = RestAssured.given()
+        jenkinsUtils.decorateWithCookie(RestAssured.given())
                 .contentType(URLENC)
-                .formParam("json", jsonSerializer.writeValueAsString(consumer));
-        jenkinsUtils.decorateWithCookie(request)
+                .formParam("json", jsonSerializer.writeValueAsString(consumer))
                 .when()
-                .post(consumerCreateUri)
+                .post(jenkinsUtils.toAbsoluteUrl(CREATE_OAUTH_CONSUMER_PATH))
                 .then()
                 .statusCode(302);
         return consumer;
