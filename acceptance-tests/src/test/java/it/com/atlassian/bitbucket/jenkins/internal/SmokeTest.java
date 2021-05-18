@@ -527,8 +527,6 @@ public class SmokeTest extends AbstractJUnitTest {
         multiBranchJob.enableBitbucketWebhookTrigger(triggerOnRefChange, triggerOnPullRequest);
         multiBranchJob.save();
 
-
-
         // Clone (fork) repo
         File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
         Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
@@ -550,6 +548,9 @@ public class SmokeTest extends AbstractJUnitTest {
                 commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir,
                         JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String featureBranchCommitId = featureBranchCommit.getId().getName();
+
+        //wait for indexing to complete
+        multiBranchJob.waitForBranchIndexingFinished(30);
 
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
         if (triggerOnRefChange && !triggerOnPullRequest) {
