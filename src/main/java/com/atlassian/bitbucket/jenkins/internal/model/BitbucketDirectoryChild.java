@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketDirectoryChild {
 
+    // content id for directories
     private String node;
     private BitbucketDirectoryPath path;
     private String type;

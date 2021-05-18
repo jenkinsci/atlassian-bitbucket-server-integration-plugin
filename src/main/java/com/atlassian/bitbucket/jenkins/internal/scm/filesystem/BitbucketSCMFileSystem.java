@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.plugins.git.BranchSpec;
@@ -93,18 +94,23 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             return new BitbucketSCMFileSystem(filePathClient, null, bitbucketSCM.getBranches().get(0).toString());
         }
 
+        // FB supression due to a false positive on Item.getName (not recognizing we check for null)
         @Override
+        @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         public SCMFileSystem build(SCMSource source, SCMHead head, @CheckForNull SCMRevision scmRevision) {
             if (!(source instanceof BitbucketSCMSource)) {
                 return null;
             }
             BitbucketSCMSource bitbucketSCMSource = (BitbucketSCMSource) source;
-            String ownerName = source.getOwner() == null ? "" : source.getOwner().getName();
+            String ownerName = "";
+            if (source.getOwner() != null && source.getOwner().getName() != null) {
+                ownerName = source.getOwner().getName();
+            }
             Optional<BitbucketServerConfiguration> maybeServerConfiguration =
                     pluginConfiguration.getServerById(bitbucketSCMSource.getServerId());
             if (!maybeServerConfiguration.isPresent() || maybeServerConfiguration.get().validate().kind == Kind.ERROR) {
                 LOGGER.warning("ERROR: Bitbucket Server configuration for job " + ownerName +
-                             "is invalid- cannot continue lightweight checkout");
+                             " is invalid- cannot continue lightweight checkout");
                 return null;
             }
             BitbucketSCMRepository repository = bitbucketSCMSource.getBitbucketSCMRepository();
@@ -120,9 +126,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                 return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((GitBranchSCMHead) scmRevision.getHead()).getRef());
             }
             // Unsupported ref type. Lightweight checkout not supported
-            LOGGER.finer(
-                    "Lightweight checkout for Bitbucket SCM source only supported for Multibranch Pipeline jobs. Cannot build file system for job " +
-                    ownerName);
+            LOGGER.finer("Lightweight checkout for Bitbucket SCM source only supported for Multibranch Pipeline jobs. " +
+                         "Cannot build file system for job " + ownerName);
             return null;
         }
 
