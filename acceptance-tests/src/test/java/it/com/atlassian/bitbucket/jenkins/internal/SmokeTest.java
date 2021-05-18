@@ -542,7 +542,7 @@ public class SmokeTest extends AbstractJUnitTest {
         multiBranchJob.waitForBranchIndexingFinished(30);
 
         // Push Jenkinsfile to feature branch
-        final String featureBranchName = "feature/test-feature";
+        final String featureBranchName = "test-feature";
         gitRepo.branchCreate().setName(featureBranchName).call();
         RevCommit featureBranchCommit =
                 commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir,
@@ -551,10 +551,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
         //wait for indexing to complete
         multiBranchJob.waitForBranchIndexingFinished(30);
-        //This is not really excellent but we need to give Jenkins a chance to pop the job off the queue, IF there should be a job
-        //We just blindly wait 5s and then do our checks.
-        Thread.sleep(5000);
-        
+
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
         if (triggerOnRefChange && !triggerOnPullRequest) {
             assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
