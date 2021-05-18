@@ -362,17 +362,17 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testFullBuildFlowWithMultibranchPRTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithMultibranchPRTrigger() throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranch(false, true);
     }
 
     @Test
-    public void testFullBuildFlowWithMultibranchRefTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithMultibranchRefTrigger() throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranch(true, false);
     }
 
     @Test
-    public void testFullBuildFlowWitMultibranchRefAndPRTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWitMultibranchRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranch(true, true);
     }
 
@@ -515,7 +515,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 assertThat(status, successfulBuildWithKey(getBuildKey(workflowJob))));
     }
 
-    private void runFullFlowMultiBranch(boolean triggerOnRefChange, boolean triggerOnPullRequest) throws IOException, GitAPIException {
+    private void runFullFlowMultiBranch(boolean triggerOnRefChange, boolean triggerOnPullRequest) throws IOException, GitAPIException, InterruptedException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
         BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
@@ -551,7 +551,10 @@ public class SmokeTest extends AbstractJUnitTest {
 
         //wait for indexing to complete
         multiBranchJob.waitForBranchIndexingFinished(30);
-
+        //This is not really excellent but we need to give Jenkins a chance to pop the job off the queue, IF there should be a job
+        //We just blindly wait 5s and then do our checks.
+        Thread.sleep(5000);
+        
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
         if (triggerOnRefChange && !triggerOnPullRequest) {
             assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
