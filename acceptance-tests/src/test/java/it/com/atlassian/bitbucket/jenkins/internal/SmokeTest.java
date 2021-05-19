@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -551,6 +552,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
         //wait for indexing to complete
         multiBranchJob.waitForBranchIndexingFinished(30);
+        Thread.sleep(Duration.ofSeconds(10).toMillis());
 
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
         if (triggerOnRefChange && !triggerOnPullRequest) {
