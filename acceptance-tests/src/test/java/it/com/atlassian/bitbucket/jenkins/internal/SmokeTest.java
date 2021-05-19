@@ -230,17 +230,17 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testFullBuildFlowWithFreeStyleJobPRTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithFreeStyleJobPRTrigger() throws IOException, GitAPIException, InterruptedException {
         runFeeStyleTriggerTest(false, true, 1);
     }
 
     @Test
-    public void testFullBuildFlowWithFreeStyleJobRefTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithFreeStyleJobRefTrigger() throws IOException, GitAPIException, InterruptedException {
         runFeeStyleTriggerTest(true, false, 1);
     }
 
     @Test
-    public void testFullBuildFlowWithFreeStyleJobRefAndPRTrigger() throws IOException, GitAPIException {
+    public void testFullBuildFlowWithFreeStyleJobRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
         runFeeStyleTriggerTest(true, true, 2);
     }
 
@@ -454,7 +454,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 .filter(queryParam -> queryParam.getName().equals("oauth_token"))
                 .findFirst().get().getValue();
     }
-    private void runFeeStyleTriggerTest(boolean triggerOnRefChange, boolean triggerOnPullRequest, int expectedBuilds) throws IOException, GitAPIException {
+    private void runFeeStyleTriggerTest(boolean triggerOnRefChange, boolean triggerOnPullRequest, int expectedBuilds) throws IOException, GitAPIException, InterruptedException {
         FreeStyleJob freeStyleJob = jenkins.jobs.create();
         BitbucketScmConfig bitbucketScm = freeStyleJob.useScm(BitbucketScmConfig.class);
         bitbucketScm
@@ -486,7 +486,8 @@ public class SmokeTest extends AbstractJUnitTest {
         //Build should not have triggered, so next build should be the first one after the PR is created.
         int lastBuildNumber = freeStyleJob.getLastBuild().getNumber();
         BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), branchName);
-
+        //this is terrible but we must give Jenkins a chance to react to the webhook and schedule a build
+        Thread.sleep(Duration.ofSeconds(5).toMillis());
         // Verify build was triggered
         verifySuccessfulBuild(freeStyleJob.getLastBuild());
 
@@ -552,6 +553,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
         //wait for indexing to complete
         multiBranchJob.waitForBranchIndexingFinished(30);
+        //this is terrible but we must give Jenkins a chance to react to the trigger and schedule a build
         Thread.sleep(Duration.ofSeconds(10).toMillis());
 
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
