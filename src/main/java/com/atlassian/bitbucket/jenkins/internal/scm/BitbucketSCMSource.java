@@ -128,7 +128,7 @@ public class BitbucketSCMSource extends SCMSource {
             selfLink = localRepo.getSelfLink();
         }
         //self link contains `/browse` which we must trim off.
-        String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
+        String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
         gitSCMSource.setBrowser(new Stash(repositoryUrl));
     }
 
