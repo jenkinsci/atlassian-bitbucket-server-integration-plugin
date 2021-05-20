@@ -130,7 +130,7 @@ public class BitbucketSCMSourceIT {
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
         BitbucketSCMSource scmSource =
-                new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
+                new BitbucketSCMSource(id, credentialsId, "sshCredentialIdCanBeAnything", null, PROJECT_NAME, forkRepoName, serverId, null);
         SCMHead scmHead = mock(SCMHead.class);
         when(scmHead.getName()).thenReturn("myBranch");
         SCM scm = scmSource.build(scmHead, null);
