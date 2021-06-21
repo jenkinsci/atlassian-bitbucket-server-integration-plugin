@@ -60,9 +60,9 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     private Stream<BitbucketPullRequest> getPullRequestsWithState(String stateQuery) {
         return getBitbucketPullRequestStream(getRepositoryUrl()
                 .addPathSegment("pull-requests")
-                .addQueryParameter("state", stateQuery)
                 .addQueryParameter("withAttributes", "false")
-                .addQueryParameter("withProperties", "false"));
+                .addQueryParameter("withProperties", "false")
+                .addQueryParameter("state", stateQuery));
     }
 
     private HttpUrl.Builder getRepositoryUrl() {
