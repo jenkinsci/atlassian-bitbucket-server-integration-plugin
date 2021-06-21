@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -114,7 +113,6 @@ public class BitbucketSCMSourceTest {
         bitbucketSCMsource.setOwner(owner);
         BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
                 mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
-        doReturn(singletonList(triggerDesc)).when(bitbucketSCMsource).getTriggers(any());
 
         bitbucketSCMsource.afterSave();
 
@@ -131,7 +129,6 @@ public class BitbucketSCMSourceTest {
         doReturn(true).when(bitbucketSCMsource).isValid();
         BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
                 mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
-        doReturn(singletonList(triggerDesc)).when(bitbucketSCMsource).getTriggers(any());
 
         bitbucketSCMsource.afterSave();
 

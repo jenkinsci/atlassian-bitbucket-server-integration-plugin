@@ -51,7 +51,7 @@ public class BitbucketRepositoryClientImplTest {
         String url = format(webhookUrl, BITBUCKET_BASE_URL, projectKey, repoSlug);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        List<BitbucketPullRequest> pullRequests = client.getPullRequests(null).collect(toList());
+        List<BitbucketPullRequest> pullRequests = client.getPullRequests().collect(toList());
 
         assertThat(pullRequests.size(), is(equalTo(2)));
         assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));

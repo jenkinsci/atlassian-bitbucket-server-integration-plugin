@@ -77,7 +77,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
 
     private BitbucketWebhookRequest createRequest(WebhookRegisterRequest request,
                                                   Collection<BitbucketWebhookEvent> events) {
-        return BitbucketWebhookRequest.Builder.aRequestFor(events.stream().map(BitbucketWebhookEvent::getEventId)
+        return new BitbucketWebhookRequest.Builder(events.stream().map(BitbucketWebhookEvent::getEventId)
                 .collect(Collectors.toSet()))
                 .withCallbackTo(constructCallbackUrl(request))
                 .name(request.getName())

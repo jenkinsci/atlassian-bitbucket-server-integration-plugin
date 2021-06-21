@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.stream.Stream;
 
@@ -22,50 +21,32 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String projectKey;
     private final String repositorySlug;
-    private final HttpUrl url;
 
-    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey, String repositorySlug) {
+    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
+                                  String repositorySlug) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repositorySlug = requireNonNull(stripToNull(repositorySlug), "repositorySlug");
-        url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(requireNonNull(stripToNull(projectKey), "projectKey"))
-                .addPathSegment("repos")
-                .addPathSegment(requireNonNull(stripToNull(repositorySlug), "repoSlug"))
-                .addPathSegment("pull-requests")
-                .addQueryParameter("withAttributes", "false")
-                .addQueryParameter("withProperties", "false")
-                .build();
+    }
+
+    @Override
+    public Stream<BitbucketPullRequest> getPullRequests(BitbucketPullRequestState state) {
+        return getPullRequestsWithState(state.toString());
+    }
+
+    @Override
+    public Stream<BitbucketPullRequest> getPullRequests() {
+        return getPullRequestsWithState("ALL");
     }
 
     @Override
     public BitbucketRepository getRepository() {
-        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug);
-
-        return bitbucketRequestExecutor.makeGetRequest(urlBuilder.build(), BitbucketRepository.class).getBody();
+        return bitbucketRequestExecutor.makeGetRequest(getRepositoryUrl().build(), BitbucketRepository.class).getBody();
     }
 
     @Override
     public BitbucketWebhookClient getWebhookClient() {
         return new BitbucketWebhookClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
-    }
-
-    @Override
-    public Stream<BitbucketPullRequest> getPullRequests(@Nullable BitbucketPullRequestState state) {
-        HttpUrl.Builder urlBuilder = url.newBuilder();
-        String queryState;
-        if (state == null) {
-            queryState = "ALL";
-        } else {
-            queryState = state.toString();
-        }
-        urlBuilder.addQueryParameter("state", queryState);
-        return getBitbucketPullRequestStream(urlBuilder);
     }
 
     private Stream<BitbucketPullRequest> getBitbucketPullRequestStream(HttpUrl.Builder urlBuilder) {
@@ -76,10 +57,26 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                 .map(BitbucketPage::getValues).flatMap(Collection::stream);
     }
 
+    private Stream<BitbucketPullRequest> getPullRequestsWithState(String stateQuery) {
+        return getBitbucketPullRequestStream(getRepositoryUrl()
+                .addPathSegment("pull-requests")
+                .addQueryParameter("state", stateQuery)
+                .addQueryParameter("withAttributes", "false")
+                .addQueryParameter("withProperties", "false"));
+    }
+
+    private HttpUrl.Builder getRepositoryUrl() {
+        return bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug);
+    }
+
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketPullRequest> {
 
-        private final HttpUrl url;
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
+        private final HttpUrl url;
 
         NextPageFetcherImpl(HttpUrl url,
                             BitbucketRequestExecutor bitbucketRequestExecutor) {

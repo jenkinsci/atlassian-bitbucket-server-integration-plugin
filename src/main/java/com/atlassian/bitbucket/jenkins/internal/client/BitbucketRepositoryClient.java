@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
-import javax.annotation.Nullable;
 import java.util.stream.Stream;
 
 /**
@@ -36,14 +35,25 @@ public interface BitbucketRepositoryClient {
     BitbucketWebhookClient getWebhookClient();
 
     /**
-     * Gets all the open pull requests for the repository. The returned stream will make paged calls to Bitbucket to
+     * Gets all pull requests of the given state for the repository. The returned stream will make paged calls to
+     * Bitbucket to ensure that all pull requests are returned. Consumers are advised that this can return large amounts
+     * of data and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items,
+     * but rather process them as they come in.
+     *
+     * @param state the state of the pull requests to fetch
+     * @return a stream of all pull requests in the repository with the given state
+     * @since 3.0.0
+     */
+    Stream<BitbucketPullRequest> getPullRequests(BitbucketPullRequestState state);
+
+    /**
+     * Gets all pull requests for the repository. The returned stream will make paged calls to Bitbucket to
      * ensure that all pull requests are returned. Consumers are advised that this can return large amounts of data
      * and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items, but
      * rather process them as they come in.
      *
-     * @param state the state of the pull requests to fetch, a value of null means fetch all pull requests
-     * @return a stream of all (potentially spanning multiple pages) open pull requests
+     * @return a stream of all pull requests in the repository
      * @since 3.0.0
      */
-    Stream<BitbucketPullRequest> getPullRequests(@Nullable BitbucketPullRequestState state);
+    Stream<BitbucketPullRequest> getPullRequests();
 }

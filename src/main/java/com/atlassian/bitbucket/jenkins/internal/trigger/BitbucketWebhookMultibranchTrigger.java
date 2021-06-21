@@ -66,10 +66,14 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
     }
 
     public boolean isRefTrigger() {
-        if (version >= BUILD_ON_PULL_REQUEST_VERSION) {
-            return refTrigger;
+        /*
+         * If it is an old version we should return true as that is the old default.
+         * If it is a new version we should use the value that was set.
+         */
+        if (version < BUILD_ON_PULL_REQUEST_VERSION) {
+            return true;
         } else {
-            return true; //the default before trigger on PR was introduced.
+            return refTrigger;
         }
     }
 
