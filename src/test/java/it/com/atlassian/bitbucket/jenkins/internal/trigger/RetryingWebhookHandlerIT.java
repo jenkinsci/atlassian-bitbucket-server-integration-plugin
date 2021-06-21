@@ -15,7 +15,6 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.InstanceBasedNameGenerat
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.cloudbees.plugins.credentials.Credentials;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import jenkins.model.Jenkins;
 import org.junit.After;
 import org.junit.Before;
