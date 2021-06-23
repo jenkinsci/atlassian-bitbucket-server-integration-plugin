@@ -21,6 +21,7 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
+import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -49,6 +50,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
+import static java.lang.Math.max;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -104,7 +106,7 @@ public class BitbucketSCMSource extends SCMSource {
             setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             return;
         }
-
+        String selfLink = "";
         if (isNotBlank(mirrorName)) {
             try {
                 EnrichedBitbucketMirroredRepository mirroredRepository =
@@ -118,13 +120,18 @@ public class BitbucketSCMSource extends SCMSource {
                                                 repositoryName,
                                                 mirrorName));
                 setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirroredRepository);
+                selfLink = mirroredRepository.getRepository().getSelfLink();
             } catch (MirrorFetchException ex) {
                 setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
             }
         } else {
             BitbucketRepository localRepo = scmHelper.getRepository(projectName, repositoryName);
             setRepositoryDetails(credentialsId, sshCredentialsId, serverId, "", localRepo);
+            selfLink = localRepo.getSelfLink();
         }
+        //self link contains `/browse` which we must trim off.
+        String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
+        gitSCMSource.setBrowser(new Stash(repositoryUrl));
     }
 
     /**

@@ -333,7 +333,7 @@ public class BitbucketSCM extends SCM {
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         // self-link include /browse which needs to be trimmed
-        String repositoryUrl = selfLink.substring(0, max(selfLink.indexOf("/browse"), 0));
+        String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
         gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
                 gitTool, extensions);
     }

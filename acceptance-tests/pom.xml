@@ -16,7 +16,7 @@
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
         <jenkins.acceptance-test-harness.version>1.89</jenkins.acceptance-test-harness.version>
         <bitbucket.version>7.8.0</bitbucket.version>
-        <httpclient.version>4.5.10</httpclient.version>
+        <httpclient.version>4.5.13</httpclient.version>
         <jenkins.version>2.222.4</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.10.3</jackson.version>

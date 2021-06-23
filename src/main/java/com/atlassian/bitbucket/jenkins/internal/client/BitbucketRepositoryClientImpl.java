@@ -98,4 +98,8 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
         }
     }
+
+    public BitbucketFilePathClient getFilePathClient() {
+        return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    }
 }

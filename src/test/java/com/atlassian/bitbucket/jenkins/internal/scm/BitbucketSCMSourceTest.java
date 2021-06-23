@@ -11,11 +11,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestClosedWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
 import hudson.model.TaskListener;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.UserRemoteConfig;
-import hudson.scm.SCM;
 import jenkins.branch.MultiBranchProject;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceDescriptor;
@@ -25,85 +21,20 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class BitbucketSCMSourceTest {
 
     private static final String httpCloneLink = "http://localhost:7990/fake.git";
     private static final String sshCloneLink = "ssh://git@localhost:7990/fake.git";
-
-    @Test
-    public void testBuildHttp() {
-        BitbucketSCMSource scmSource = createInstance("credentialsId", "serverId", "project", "repo");
-        SCMHead scmHead = mock(SCMHead.class);
-        when(scmHead.getName()).thenReturn("myBranch");
-        SCM scm = scmSource.build(scmHead, null);
-        assertTrue(scm instanceof GitSCM);
-        GitSCM gitSCM = (GitSCM) scm;
-        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
-        assertEquals(1, userRemoteConfigs.size());
-        assertEquals(httpCloneLink, userRemoteConfigs.get(0).getUrl());
-    }
-
-    @Test
-    public void testBuildSsh() {
-        BitbucketSCMSource scmSource =
-                createInstance("credentialsId", "sshCredentialsId", "serverId", "project", "repo");
-        SCMHead scmHead = mock(SCMHead.class);
-        when(scmHead.getName()).thenReturn("myBranch");
-        SCM scm = scmSource.build(scmHead, null);
-        assertTrue(scm instanceof GitSCM);
-        GitSCM gitSCM = (GitSCM) scm;
-        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
-        assertEquals(1, userRemoteConfigs.size());
-        assertEquals(sshCloneLink, userRemoteConfigs.get(0).getUrl());
-    }
-
-    @Test
-    public void testCredentialAndServerIdSaved() {
-        String credentialsId = "valid-credentials";
-        String serverId = "serverId1";
-
-        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId);
-
-        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
-        assertThat(bitbucketSCMsource.getServerId(), is(equalTo(serverId)));
-    }
-
-    @Test
-    public void testCredentialServerProjectSaved() {
-        String credentialsId = "valid-credentials";
-        String serverId = "serverId1";
-        String projectName = "proj1";
-
-        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId, projectName);
-
-        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
-        assertThat(bitbucketSCMsource.getServerId(), is(equalTo(serverId)));
-        assertThat(bitbucketSCMsource.getProjectName(), is(equalTo(projectName)));
-    }
-
-    @Test
-    public void testCredentialsIdAreSavedIfServerIdNotSelected() {
-        String credentialsId = "valid-credentials";
-        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId);
-
-        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
-    }
 
     @Test
     public void testAfterSaveDoesNothingIfIsInvalid() {
@@ -143,36 +74,13 @@ public class BitbucketSCMSourceTest {
         BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
         bitbucketSCMSource.setOwner(owner);
-        doReturn(Collections.emptyMap()).when(owner).getTriggers();
+        doReturn(emptyMap()).when(owner).getTriggers();
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
 
         bitbucketSCMSource.afterSave();
 
         verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(false));
-    }
-
-    @Test
-    public void testAfterSaveWithPushTrigger() {
-        String credentialsId = "valid-credentials";
-        String serverId = "server-id";
-        String baseUrl = "http://example.com";
-        BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
-        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
-                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
-        BitbucketWebhookMultibranchTrigger trigger =
-                mock(BitbucketWebhookMultibranchTrigger.class);
-        doReturn(true).when(trigger).isRefTrigger();
-        doReturn(false).when(trigger).isPullRequestTrigger();
-        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
-        bitbucketSCMSource.setOwner(owner);
-        doReturn(Collections.singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
-        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
-        doReturn(true).when(bitbucketSCMSource).isValid();
-
-        bitbucketSCMSource.afterSave();
-
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
     }
 
     @Test
@@ -189,13 +97,68 @@ public class BitbucketSCMSourceTest {
         doReturn(true).when(trigger).isPullRequestTrigger();
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
         bitbucketSCMSource.setOwner(owner);
-        doReturn(Collections.singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
+        doReturn(singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
 
         bitbucketSCMSource.afterSave();
 
         verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(true), eq(false));
+    }
+
+    @Test
+    public void testAfterSaveWithPushTrigger() {
+        String credentialsId = "valid-credentials";
+        String serverId = "server-id";
+        String baseUrl = "http://example.com";
+        BitbucketSCMSource bitbucketSCMSource = spy(createInstance(credentialsId, serverId));
+        BitbucketWebhookMultibranchTrigger.DescriptorImpl triggerDesc =
+                mock(BitbucketWebhookMultibranchTrigger.DescriptorImpl.class);
+        BitbucketWebhookMultibranchTrigger trigger =
+                mock(BitbucketWebhookMultibranchTrigger.class);
+        doReturn(true).when(trigger).isRefTrigger();
+        doReturn(false).when(trigger).isPullRequestTrigger();
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMSource.setOwner(owner);
+        doReturn(singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
+        doReturn(true).when(bitbucketSCMSource).isValid();
+
+        bitbucketSCMSource.afterSave();
+
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
+    }
+
+    @Test
+    public void testCredentialAndServerIdSaved() {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+
+        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId);
+
+        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
+        assertThat(bitbucketSCMsource.getServerId(), is(equalTo(serverId)));
+    }
+
+    @Test
+    public void testCredentialServerProjectSaved() {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String projectName = "proj1";
+
+        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId, projectName);
+
+        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
+        assertThat(bitbucketSCMsource.getServerId(), is(equalTo(serverId)));
+        assertThat(bitbucketSCMsource.getProjectName(), is(equalTo(projectName)));
+    }
+
+    @Test
+    public void testCredentialsIdAreSavedIfServerIdNotSelected() {
+        String credentialsId = "valid-credentials";
+        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId);
+
+        assertThat(bitbucketSCMsource.getCredentialsId(), is(equalTo(credentialsId)));
     }
 
     @Test
@@ -283,19 +246,6 @@ public class BitbucketSCMSourceTest {
         verify(mockScmSource).accessibleRetrieve(isNull(), eq(mockHeadObserver), isNull(), eq(mockTaskListener));
     }
 
-    private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
-                                                              String serverId, String baseUrl, MultiBranchProject<?, ?> owner) {
-        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
-        BitbucketServerConfiguration bbsConfig = mock(BitbucketServerConfiguration.class);
-        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
-
-        when(descriptor.getConfiguration(serverId)).thenReturn(Optional.of(bbsConfig));
-        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
-        when(bbsConfig.getGlobalCredentialsProvider(owner)).thenReturn(credentialsProvider);
-
-        return descriptor;
-    }
-
     private BitbucketSCMSource createInstance(String credentialId) {
         return createInstance(credentialId, null);
     }
@@ -322,7 +272,7 @@ public class BitbucketSCMSourceTest {
                 "1",
                 credentialsId,
                 sshCredentialId,
-                Collections.emptyList(),
+                emptyList(),
                 projectName,
                 repo,
                 serverId,
@@ -336,7 +286,8 @@ public class BitbucketSCMSourceTest {
                 if (descriptor == null) {
                     descriptor = mock(DescriptorImpl.class);
                     BitbucketScmHelper scmHelper = mock(BitbucketScmHelper.class);
-                    BitbucketServerConfiguration bitbucketServerConfiguration = mock(BitbucketServerConfiguration.class);
+                    BitbucketServerConfiguration bitbucketServerConfiguration =
+                            mock(BitbucketServerConfiguration.class);
                     BitbucketRepository repository = mock(BitbucketRepository.class);
 
                     doReturn(mock(GlobalCredentialsProvider.class))
@@ -353,11 +304,27 @@ public class BitbucketSCMSourceTest {
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                     when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
+                    when(repository.getSelfLink()).thenReturn("");
                     doReturn(mock(GlobalCredentialsProvider.class))
                             .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));
                 }
                 return descriptor;
             }
         };
+    }
+
+    private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
+                                                              String serverId, String baseUrl,
+                                                              MultiBranchProject<?, ?> owner) {
+        BitbucketSCMSource.DescriptorImpl descriptor =
+                (BitbucketSCMSource.DescriptorImpl) bitbucketSCMSource.getDescriptor();
+        BitbucketServerConfiguration bbsConfig = mock(BitbucketServerConfiguration.class);
+        GlobalCredentialsProvider credentialsProvider = mock(GlobalCredentialsProvider.class);
+
+        when(descriptor.getConfiguration(serverId)).thenReturn(Optional.of(bbsConfig));
+        when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
+        when(bbsConfig.getGlobalCredentialsProvider(owner)).thenReturn(credentialsProvider);
+
+        return descriptor;
     }
 }
