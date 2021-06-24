@@ -21,7 +21,7 @@ import static java.lang.String.format;
  * The following assumptions is made while handling webhooks,
  * 1. A single webhook will be used for all events
  * 2. Input name and url is unique across all jenkins instance and will not shared by any system. Difference in URL only
- *    is treated as a separate webook and will not be updated nor deleted.
+ * is treated as a separate webook and will not be updated nor deleted.
  *
  * Webhook handling is done in following ways,
  *
@@ -30,8 +30,9 @@ import static java.lang.String.format;
  */
 public class BitbucketWebhookHandler implements WebhookHandler {
 
-    private static final Collection<BitbucketWebhookEvent> ALL_PULL_REQUEST_EVENTS = Arrays.asList(PULL_REQUEST_DECLINED,
-            PULL_REQUEST_DELETED, PULL_REQUEST_FROM_REF_UPDATED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED);
+    private static final Collection<BitbucketWebhookEvent> ALL_PULL_REQUEST_EVENTS =
+            Arrays.asList(PULL_REQUEST_DECLINED,
+                    PULL_REQUEST_DELETED, PULL_REQUEST_FROM_REF_UPDATED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED);
     private static final Collection<String> ALL_PULL_REQUEST_EVENT_IDS = new HashSet<>();
     private static final String CALLBACK_URL_SUFFIX = BIBUCKET_WEBHOOK_URL + "/trigger";
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookHandler.class.getName());
@@ -89,20 +90,6 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .forEach(webhookClient::deleteWebhook);
     }
 
-    private Optional<BitbucketWebhook> findSame(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
-                                                Collection<BitbucketWebhookEvent> toSubscribe) {
-        String callback = constructCallbackUrl(request);
-        return webhooks
-                .stream()
-                .filter(hook -> hook.getName().equals(request.getName()))
-                .filter(hook -> hook.getUrl().equals(callback))
-                .filter(BitbucketWebhookRequest::isActive)
-                .filter(hook -> hook.getEvents().containsAll(toSubscribe.stream()
-                        .map(BitbucketWebhookEvent::getEventId).collect(Collectors.toSet())))
-                .peek(hook -> LOGGER.info("Found an existing webhook - " + hook))
-                .findFirst();
-    }
-
     /**
      * Returns the webhook events to subscribe to.
      * For Mirror sync event, the input request should point to mirror.
@@ -116,7 +103,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * @return the correct webhook event
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
-        Collection<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
+        Set<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
         Set<BitbucketWebhookEvent> forbiddenEvents = new HashSet<>();
         Set<String> hooks = new HashSet<>();
         try {
@@ -152,8 +139,8 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      * The following is a summary of what this method does:
      * 1. Registering new webhooks: This only happens when there is no webhook
      * 2. Updating existing webhooks:
-     *    The events on the existing webhook will be retained and any new events are added to it.
-     *    It will not *remove* existing events from the webhook, only add new ones.
+     * The events on the existing webhook will be retained and any new events are added to it.
+     * It will not *remove* existing events from the webhook, only add new ones.
      *
      * @param request the input request
      * @param events
@@ -169,12 +156,15 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                         .collect(Collectors.toSet());
 
         Set<BitbucketWebhookEvent> desiredEvents = new HashSet<>(events);
-        Set<BitbucketWebhookEvent> serverSideWebhookEvents = serverSideWebhooks.stream().flatMap(event -> event.getEvents().stream().map(BitbucketWebhookEvent::findByEventId)).collect(Collectors.toSet());
+        Set<BitbucketWebhookEvent> serverSideWebhookEvents = serverSideWebhooks.stream().flatMap(event ->
+                event.getEvents().stream().map(BitbucketWebhookEvent::findByEventId)).collect(Collectors.toSet());
         desiredEvents.addAll(serverSideWebhookEvents);
 
-        if (serverSideWebhookEvents.containsAll(desiredEvents) && serverSideWebhookEvents.size() == desiredEvents.size()) {
+        if (serverSideWebhookEvents.containsAll(desiredEvents) &&
+            serverSideWebhookEvents.size() == desiredEvents.size()) {
             //check that the webhooks are actually active and not just registered by disabled.
-            Optional<BitbucketWebhook> foundWebook = serverSideWebhooks.stream().filter(event -> event.isActive() && callback.equalsIgnoreCase(event.getUrl()))
+            Optional<BitbucketWebhook> foundWebook = serverSideWebhooks.stream().filter(event -> event.isActive() &&
+                                                                                                 callback.equalsIgnoreCase(event.getUrl()))
                     .findFirst();
             if (foundWebook.isPresent()) {
                 return foundWebook.get();
@@ -191,13 +181,20 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             return result;
         }
 
-       return update(webhooks, request, desiredEvents);
+        return update(webhooks, request, desiredEvents);
     }
 
     private BitbucketWebhook update(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
                                     Collection<BitbucketWebhookEvent> toSubscribe) {
-        return findSame(webhooks, request, toSubscribe)
-                .orElseGet(() -> updateRemoteWebhook(webhooks.get(0), request, toSubscribe));
+        if (!webhooks.isEmpty()) {
+            BitbucketWebhook webhook = updateRemoteWebhook(webhooks.get(0), request, toSubscribe);
+            // We remove all other matching webhooks other than the first, so there are no duplicates
+            if (webhooks.size() > 1) {
+                deleteWebhooks(webhooks.subList(1, webhooks.size()));
+            }
+            return webhook;
+        }
+        throw new IllegalArgumentException("Empty list of webhooks provided, need at least one to update");
     }
 
     private BitbucketWebhook updateRemoteWebhook(BitbucketWebhook existing, WebhookRegisterRequest request,

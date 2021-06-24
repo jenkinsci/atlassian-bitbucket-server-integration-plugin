@@ -212,19 +212,21 @@ public class BitbucketWebhookHandlerTest {
                 new BitbucketWebhook(1, WEBHOOK_NAME, REF_AND_PR_EVENTS, wrongCallback, true);
         BitbucketWebhook event2 =
                 new BitbucketWebhook(2, WEBHOOK_NAME, singleton(MIRROR_SYNCHRONIZED.getEventId()), wrongCallback, true);
-        mockGetExistingWebhooks(event2, event1);
+        mockGetExistingWebhooks(event1, event2);
 
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).shouldTriggerOnRefChange(true).shouldTriggerOnPullRequest(true).build());
 
         assertThat(result.getUrl(), is(equalTo(EXPECTED_URL)));
         verify(webhookClient, never()).registerWebhook(any(BitbucketWebhookRequest.class));
-        verify(webhookClient, times(1)).updateWebhook(anyInt(), argThat((BitbucketWebhookRequest request) -> request.getUrl().equals(EXPECTED_URL)));
-        verify(webhookClient, never()).deleteWebhook(anyInt());
+        verify(webhookClient, times(1)).updateWebhook(eq(1), argThat((BitbucketWebhookRequest request) -> request.getUrl().equals(EXPECTED_URL)));
+        //And we delete the existing, now redundant webhook
+        verify(webhookClient, times(1)).deleteWebhook(eq(2));
     }
 
     @Test
-    public void testUpdateNonActiveExistingWebhook() {
-        //this is the old setup, we have two webhooks with the same name but different events. We should work with this
+    public void testUpdateDeleteRedundantWebhook() {
+        // In an existing setup, multiple webhooks could be registered, each with their own event. The new code will
+        // update the first webhook, and delete the others
         BitbucketWebhook event1 =
                 new BitbucketWebhook(1, WEBHOOK_NAME, singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, false);
         BitbucketWebhook event2 =
@@ -236,8 +238,9 @@ public class BitbucketWebhookHandlerTest {
         assertThat(result.isActive(), is(equalTo(true)));
         verify(webhookClient, never()).registerWebhook(any(BitbucketWebhookRequest.class));
         //only update one of the webhooks.
-        verify(webhookClient, times(1)).updateWebhook(anyInt(), argThat(BitbucketWebhookRequest::isActive));
-        verify(webhookClient, never()).deleteWebhook(anyInt());
+        verify(webhookClient, times(1)).updateWebhook(eq(1), argThat(BitbucketWebhookRequest::isActive));
+        //And we delete the existing, now redundant webhook
+        verify(webhookClient, times(1)).deleteWebhook(eq(2));
     }
 
     @Test
