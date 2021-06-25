@@ -206,7 +206,7 @@ public class BitbucketWebhookHandlerTest {
     }
 
     @Test
-    public void testUpdateExistingWebhookWithCorrectCallback() {
+    public void testDoNotUpdateExistingWebhookWithCorrectCallback() {
         String wrongCallback = JENKINS_URL;
         BitbucketWebhook event1 =
                 new BitbucketWebhook(1, WEBHOOK_NAME, REF_AND_PR_EVENTS, wrongCallback, true);
@@ -217,10 +217,10 @@ public class BitbucketWebhookHandlerTest {
         BitbucketWebhook result = handler.register(defaultBuilder.isMirror(true).shouldTriggerOnRefChange(true).shouldTriggerOnPullRequest(true).build());
 
         assertThat(result.getUrl(), is(equalTo(EXPECTED_URL)));
-        verify(webhookClient, never()).registerWebhook(any(BitbucketWebhookRequest.class));
-        verify(webhookClient, times(1)).updateWebhook(eq(1), argThat((BitbucketWebhookRequest request) -> request.getUrl().equals(EXPECTED_URL)));
+        verify(webhookClient, times(1)).registerWebhook(argThat((BitbucketWebhookRequest request) -> request.getUrl().equals(EXPECTED_URL)));
+        verify(webhookClient, never()).updateWebhook(anyInt(), any(BitbucketWebhookRequest.class));
         //And we delete the existing, now redundant webhook
-        verify(webhookClient, times(1)).deleteWebhook(eq(2));
+        verify(webhookClient, never()).deleteWebhook(anyInt());
     }
 
     @Test
