@@ -7,7 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl.BitbucketWebhookTriggerDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookScmTrigger.BitbucketWebhookTriggerDescriptor;
 import hudson.model.*;
 import hudson.scm.SCM;
 import hudson.util.SequentialExecutionQueue;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BitbucketWebhookTriggerImplTest {
+public class BitbucketWebhookScmTriggerTest {
 
     @Mock
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
@@ -86,14 +86,14 @@ public class BitbucketWebhookTriggerImplTest {
 
     @Test
     public void testDoNotSkipRegistrationForNewInstances() {
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         FreeStyleProject proj = createFreeStyleProject();
         assertThat(t.skipWebhookRegistration(proj, true), is(false));
     }
 
     @Test
     public void testDoNotSkipRegistrationForWorkflowJob() {
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         WorkflowJob workflowJob = new WorkflowJob(jenkinsProvider.get(), "testJob");
         assertThat(t.skipWebhookRegistration(workflowJob, true), is(false));
     }
@@ -105,7 +105,7 @@ public class BitbucketWebhookTriggerImplTest {
         FreeStyleProject project = createFreestyleProjectWithSCM(scm);
         mockExistingProjectWithSCMs(project, false, scm);
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, false);
 
         trigger.start(project, true);
         scm.setWebhookRegistered(false);
@@ -115,12 +115,12 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo)));
+                        argThat(arg -> arg.equals(repo)), eq(false), eq(true));
     }
 
     @Test
     public void testSkipRegistrationForOldInstanceAndNonWorkFlowJob() {
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         FreeStyleProject proj = createFreeStyleProject();
         assertThat(t.skipWebhookRegistration(proj, false), is(true));
     }
@@ -129,7 +129,7 @@ public class BitbucketWebhookTriggerImplTest {
     public void testTrigger() {
         BitbucketWebhookTriggerDescriptor mockDescriptor =
                 mock(BitbucketWebhookTriggerDescriptor.class);
-        BitbucketWebhookTriggerImpl trigger = createInstance(mockDescriptor);
+        BitbucketWebhookScmTrigger trigger = createInstance(mockDescriptor);
         FreeStyleProject project = createFreeStyleProject();
         BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
         BitbucketWebhookTriggerRequest request = BitbucketWebhookTriggerRequest.builder()
@@ -148,11 +148,11 @@ public class BitbucketWebhookTriggerImplTest {
         FreeStyleProject project = createFreestyleProjectWithSCM(scm);
         mockExistingProjectWithSCMs(project, scm);
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, false);
 
         trigger.start(project, true);
 
-        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class));
+        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), eq(false), eq(true));
     }
 
     @Test
@@ -161,13 +161,13 @@ public class BitbucketWebhookTriggerImplTest {
         BitbucketSCM scm = createSCM(repo);
         Job workflowJob = createWorkflowJob();
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, scm);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, scm);
         trigger.start(workflowJob, true);
         verify(webhookHandler)
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo)));
+                        argThat(arg -> arg.equals(repo)), eq(false), eq(true));
     }
 
     @Test
@@ -176,19 +176,19 @@ public class BitbucketWebhookTriggerImplTest {
         BitbucketSCMRepository repo2 = createSCMRepo();
         FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(repo1, repo2));
 
-        BitbucketWebhookTriggerImpl trigger = createInstance();
+        BitbucketWebhookScmTrigger trigger = createInstance();
 
         trigger.start(project, true);
         verify(webhookHandler)
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo1)));
+                        argThat(arg -> arg.equals(repo1)), eq(false), eq(true));
         verify(webhookHandler)
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo2)));
+                        argThat(arg -> arg.equals(repo2)), eq(false), eq(true));
     }
 
     @Test
@@ -197,7 +197,7 @@ public class BitbucketWebhookTriggerImplTest {
         FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(actualRepo));
         mockExistingProjectWithSCMs(project, createSCM(createSCMRepo()));
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, false);
 
         trigger.start(project, true);
 
@@ -205,7 +205,7 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(actualRepo)));
+                        argThat(arg -> arg.equals(actualRepo)), eq(false), eq(true));
     }
 
     @Test
@@ -214,7 +214,7 @@ public class BitbucketWebhookTriggerImplTest {
         FreeStyleProject project = createFreestyleProjectWithSCM(createSCM(actualRepo));
         mockExistingProjectWithSCMs(project, createSCM(createSCMRepoWithServerId("serverID1")));
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, false);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, false);
 
         trigger.start(project, true);
 
@@ -222,25 +222,25 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(actualRepo)));
+                        argThat(arg -> arg.equals(actualRepo)), eq(false), eq(true));
     }
 
     @Test
     public void testWorkflowJobAreWebhookEligible() {
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         WorkflowJob wj = new WorkflowJob(null, "workflow");
         assertThat(t.skipWebhookRegistration(wj, false), is(false));
     }
 
     @Test
     public void testWorkflowJobNoSCMDoesNotGetTrigger() {
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         Job workflowJob = createWorkflowJob();
 
-        BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, null);
+        BitbucketWebhookScmTrigger trigger = createInstance(descriptor, null);
         trigger.start(workflowJob, true);
 
-        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class));
+        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), eq(false), eq(true));
     }
 
     private FreeStyleProject createFreeStyleProject() {
@@ -258,17 +258,17 @@ public class BitbucketWebhookTriggerImplTest {
         return p;
     }
 
-    private BitbucketWebhookTriggerImpl createInstance() {
+    private BitbucketWebhookScmTrigger createInstance() {
         return createInstance(descriptor, false);
     }
 
-    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor) {
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor) {
         return createInstance(descriptor, false);
     }
 
-    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor,
-                                                       boolean skipRegistration) {
-        return new BitbucketWebhookTriggerImpl() {
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+                                                      boolean skipRegistration) {
+        return new BitbucketWebhookScmTrigger(false, true) {
 
             /**
              * Jenkins is not available while running Unit test.
@@ -301,10 +301,10 @@ public class BitbucketWebhookTriggerImplTest {
      * @param workflowSCM a mock SCM to return
      * @return the webhook trigger
      */
-    private BitbucketWebhookTriggerImpl createInstance(BitbucketWebhookTriggerDescriptor descriptor,
-                                                       @Nullable SCM workflowSCM) {
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+                                                      @Nullable SCM workflowSCM) {
 
-        return new BitbucketWebhookTriggerImpl() {
+        return new BitbucketWebhookScmTrigger(false, true) {
 
             /**
              * Jenkins is not available while running Unit test.
@@ -413,7 +413,7 @@ public class BitbucketWebhookTriggerImplTest {
                                              BitbucketSCM... scms) {
         FreeStyleProject existingProject = createFreestyleProjectWithSCM(scms);
         Arrays.asList(scms).stream().forEach(scm -> when(scm.isWebhookRegistered()).thenReturn(triggerPreviouslyAdded));
-        BitbucketWebhookTriggerImpl t = new BitbucketWebhookTriggerImpl();
+        BitbucketWebhookScmTrigger t = new BitbucketWebhookScmTrigger(false, true);
         when(existingProject.getTriggers()).thenReturn(Collections.singletonMap(descriptor, t));
         when(jenkins.getAllItems(any(Class.class))).thenReturn(asList(existingProject, newProject));
     }

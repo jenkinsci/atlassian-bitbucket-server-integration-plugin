@@ -291,7 +291,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 .serverId(serverId)
                 .projectName(forkRepo.getProject().getKey())
                 .repositoryName(forkRepo.getSlug());
-        multiBranchJob.enableBitbucketWebhookTrigger();
+        multiBranchJob.enableBitbucketWebhookTrigger(true, false);
         multiBranchJob.save();
 
         // Clone (fork) repo

@@ -12,6 +12,7 @@ import okio.Buffer;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -21,8 +22,6 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
-import static org.apache.commons.lang3.StringUtils.deleteWhitespace;
-import static org.apache.commons.lang3.StringUtils.normalizeSpace;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
@@ -85,6 +84,8 @@ public class BitbucketWebhookClientImplTest {
         String response = readFileToString("/webhook/webhook_created_response.json");
         String url = "www.example.com";
         String requestBody = readFileToString("/webhook/webhook_creation_request.json");
+        BitbucketWebhookRequest bitbucketWebhookRequest =
+                OBJECT_MAPPER.readValue(requestBody, BitbucketWebhookRequest.class);
         String registerUrl =
                 format(WEBHOOK_URL,
                         BITBUCKET_BASE_URL,
@@ -92,8 +93,7 @@ public class BitbucketWebhookClientImplTest {
                         repoSlug);
         fakeRemoteHttpServer.mapPostRequestToResult(registerUrl, requestBody, response);
 
-        BitbucketWebhookRequest request = Builder
-                .aRequestFor(repoRefEvent, mirrorSyncEvent)
+        BitbucketWebhookRequest request = new Builder(Arrays.asList(repoRefEvent, mirrorSyncEvent))
                 .withCallbackTo(url)
                 .name("WebhookName")
                 .withIsActive(true)
@@ -105,7 +105,9 @@ public class BitbucketWebhookClientImplTest {
         Request recordedRequest = fakeRemoteHttpServer.getRequest(registerUrl);
         Buffer b = new Buffer();
         recordedRequest.body().writeTo(b);
-        assertEquals("Request body not same as expected.", deleteWhitespace(normalizeSpace(requestBody)), new String(b.readByteArray()));
+        BitbucketWebhookRequest recordedWebhookRequest =
+                OBJECT_MAPPER.readValue(requestBody, BitbucketWebhookRequest.class);
+        assertEquals("Request body not same as expected.", bitbucketWebhookRequest, recordedWebhookRequest);
     }
 
     @Test

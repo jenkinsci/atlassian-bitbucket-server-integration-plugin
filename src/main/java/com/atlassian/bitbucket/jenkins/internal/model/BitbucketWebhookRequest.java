@@ -1,11 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static java.util.Arrays.asList;
+import java.util.*;
+
 import static java.util.Objects.requireNonNull;
 
 public class BitbucketWebhookRequest {
@@ -16,12 +15,37 @@ public class BitbucketWebhookRequest {
     private final String url;
     private final boolean isActive;
 
-    protected BitbucketWebhookRequest(String name, Set<String> events, String url, boolean isActive) {
+    @JsonCreator
+    protected BitbucketWebhookRequest(@JsonProperty("name") String name,
+                                      @JsonProperty("events") Set<String> events,
+                                      @JsonProperty("url") String url,
+                                      @JsonProperty("active") boolean isActive) {
         this.name = name;
         this.events = events;
         this.url = url;
         this.isActive = isActive;
         configuration = Collections.singletonMap("createdBy", "jenkins");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BitbucketWebhookRequest that = (BitbucketWebhookRequest) o;
+        return isActive == that.isActive &&
+               Objects.equals(configuration, that.configuration) &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(events, that.events) &&
+               Objects.equals(url, that.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(configuration, name, events, url, isActive);
     }
 
     public Map<String, String> getConfiguration() {
@@ -51,22 +75,11 @@ public class BitbucketWebhookRequest {
 
         private final Set<String> events;
         private String name;
-        private String url;
         private boolean isActive = true;
+        private String url;
 
-        private Builder(Set<String> events) {
-            this.events = events;
-        }
-
-        public static Builder aRequestFor(String event, String... events) {
-            Set<String> eventSet = new LinkedHashSet<>();
-            eventSet.add(event);
-            eventSet.addAll(asList(events));
-            return aRequestFor(eventSet);
-        }
-
-        static Builder aRequestFor(Set<String> eventSet) {
-            return new Builder(eventSet);
+        public Builder(Collection<String> events) {
+            this.events = Collections.unmodifiableSet(new HashSet<>(events));
         }
 
         public BitbucketWebhookRequest build() {

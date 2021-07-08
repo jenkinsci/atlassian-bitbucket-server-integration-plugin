@@ -16,6 +16,10 @@ public class BitbucketScmWorkflowMultiBranchJob extends WorkflowMultiBranchJob {
 
     private final Control bitbucketWebhookTrigger =
             control("/com-atlassian-bitbucket-jenkins-internal-trigger-BitbucketWebhookMultibranchTrigger");
+    private final Control bitbucketWebhookRefTrigger =
+            control("/com-atlassian-bitbucket-jenkins-internal-trigger-BitbucketWebhookMultibranchTrigger/refTrigger");
+    private final Control bitbucketWebhookPRTrigger =
+            control("/com-atlassian-bitbucket-jenkins-internal-trigger-BitbucketWebhookMultibranchTrigger/pullRequestTrigger");
 
     public BitbucketScmWorkflowMultiBranchJob(Injector injector, URL url, String name) {
         super(injector, url, name);
@@ -33,7 +37,9 @@ public class BitbucketScmWorkflowMultiBranchJob extends WorkflowMultiBranchJob {
         }
     }
 
-    public void enableBitbucketWebhookTrigger() {
+    public void enableBitbucketWebhookTrigger(boolean enableRefTrigger, boolean enablePRTrigger) {
         bitbucketWebhookTrigger.check(true);
+        bitbucketWebhookRefTrigger.check(enableRefTrigger);
+        bitbucketWebhookPRTrigger.check(enablePRTrigger);
     }
 }

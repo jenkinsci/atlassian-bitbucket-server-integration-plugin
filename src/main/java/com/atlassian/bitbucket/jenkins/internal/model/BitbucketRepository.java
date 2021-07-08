@@ -8,6 +8,7 @@ import javax.annotation.CheckForNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
@@ -23,6 +24,18 @@ public class BitbucketRepository {
     private final RepositoryState state;
     private List<BitbucketNamedLink> cloneUrls = new ArrayList<>();
     private String selfLink;
+
+    public BitbucketRepository(int repositoryId, String name, BitbucketProject project, String slug,
+                               RepositoryState state,
+                               List<BitbucketNamedLink> cloneUrls, String selfLink) {
+        id = repositoryId;
+        this.name = name;
+        this.project = project;
+        this.slug = slug;
+        this.state = state;
+        this.cloneUrls = cloneUrls;
+        this.selfLink = selfLink;
+    }
 
     @JsonCreator
     public BitbucketRepository(
@@ -42,24 +55,30 @@ public class BitbucketRepository {
         }
     }
 
-    public BitbucketRepository(int repositoryId, String name, BitbucketProject project, String slug,
-                               RepositoryState state,
-                               List<BitbucketNamedLink> cloneUrls, String selfLink) {
-        this.id = repositoryId;
-        this.name = name;
-        this.project = project;
-        this.slug = slug;
-        this.state = state;
-        this.cloneUrls = cloneUrls;
-        this.selfLink = selfLink;
-    }
-
-    public int getId() {
-        return id;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BitbucketRepository that = (BitbucketRepository) o;
+        return id == that.id &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(project, that.project) &&
+               Objects.equals(slug, that.slug) &&
+               state == that.state &&
+               Objects.equals(cloneUrls, that.cloneUrls) &&
+               Objects.equals(selfLink, that.selfLink);
     }
 
     public List<BitbucketNamedLink> getCloneUrls() {
         return cloneUrls;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getName() {
@@ -85,6 +104,11 @@ public class BitbucketRepository {
 
     public RepositoryState getState() {
         return state;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, project, slug, state, cloneUrls, selfLink);
     }
 
     private void setLinks(Map<String, List<BitbucketNamedLink>> rawLinks) {
