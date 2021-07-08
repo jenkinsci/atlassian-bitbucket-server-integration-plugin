@@ -152,7 +152,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         List<BitbucketWebhook> webhooks = webhookClient.getWebhooks().collect(Collectors.toList());
         Set<BitbucketWebhook> serverSideWebhooks =
                 webhooks.stream()
-                        .filter(hook -> hook.getName().equals(request.getName()))
+                        .filter(hook -> hook.getName().equals(request.getName()) && hook.getUrl().equals(callback))
                         .collect(Collectors.toSet());
 
         Set<BitbucketWebhookEvent> desiredEvents = new HashSet<>(events);
