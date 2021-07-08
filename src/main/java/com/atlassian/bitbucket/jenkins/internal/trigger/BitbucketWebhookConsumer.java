@@ -133,7 +133,7 @@ public class BitbucketWebhookConsumer {
     }
 
     private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
-        BitbucketWebhookTriggerImpl trigger = triggerFrom(job);
+        BitbucketWebhookScmTrigger trigger = triggerFrom(job);
         if (trigger != null) {
             return of(new TriggerDetails(job, trigger));
         }
@@ -141,11 +141,11 @@ public class BitbucketWebhookConsumer {
     }
 
     @Nullable
-    private static BitbucketWebhookTriggerImpl triggerFrom(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
+    private static BitbucketWebhookScmTrigger triggerFrom(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         Map<TriggerDescriptor, Trigger<?>> triggers = job.getTriggers();
         for (Trigger<?> candidate : triggers.values()) {
-            if (candidate instanceof BitbucketWebhookTriggerImpl) {
-                return (BitbucketWebhookTriggerImpl) candidate;
+            if (candidate instanceof BitbucketWebhookScmTrigger) {
+                return (BitbucketWebhookScmTrigger) candidate;
             }
         }
         return null;
@@ -250,12 +250,10 @@ public class BitbucketWebhookConsumer {
             if (!matchingRepo(getPayload().getPullRequest().getToRef().getRepository(), src.getBitbucketSCMRepository())) {
                 return emptyMap();
             }
-            ArrayList<BitbucketPullRequestRef> refStream = new ArrayList<>();
-            refStream.add(getPayload().getPullRequest().getFromRef());
-            return refStream.stream()
-                    .collect(Collectors.toMap(ref -> new GitBranchSCMHead(ref.getDisplayId()),
-                            ref -> new GitBranchSCMRevision(new GitBranchSCMHead(ref.getDisplayId()),
-                                    ref.getLatestCommit())));
+
+            BitbucketPullRequestRef fromRef = getPayload().getPullRequest().getFromRef();
+            return Collections.singletonMap(new GitBranchSCMHead(fromRef.getDisplayId()),
+                    new GitBranchSCMRevision(new GitBranchSCMHead(fromRef.getDisplayId()), fromRef.getLatestCommit()));
         }
 
         @Override

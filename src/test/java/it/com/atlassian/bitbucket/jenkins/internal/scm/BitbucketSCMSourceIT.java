@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.SCM;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -54,7 +55,10 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class BitbucketSCMSourceIT {
 
@@ -71,7 +75,8 @@ public class BitbucketSCMSourceIT {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private UsernamePasswordCredentials bbCredentials;
-    private String forkCloneUrl;
+    private String forkHttpCloneUrl;
+    private String forkSSHCloneUrl;
     private String forkRepoName;
     private String forkRepoSlug;
 
@@ -81,9 +86,15 @@ public class BitbucketSCMSourceIT {
         bbCredentials = bbJenkinsRule.getAdminToken();
         BitbucketRepository forkRepo = forkRepository(PROJECT_KEY, REPO_SLUG, forkRepoName);
         forkRepoSlug = forkRepo.getSlug();
-        forkCloneUrl =
+        forkHttpCloneUrl =
                 forkRepo.getCloneUrls().stream()
                         .filter(repo -> "http".equals(repo.getName()))
+                        .findFirst()
+                        .map(BitbucketNamedLink::getHref)
+                        .orElseThrow(() -> new IllegalStateException("Repo is missing a HTTP clone URL"));
+        forkSSHCloneUrl =
+                forkRepo.getCloneUrls().stream()
+                        .filter(repo -> "ssh".equals(repo.getName()))
                         .findFirst()
                         .map(BitbucketNamedLink::getHref)
                         .orElseThrow(() -> new IllegalStateException("Repo is missing a HTTP clone URL"));
@@ -95,6 +106,42 @@ public class BitbucketSCMSourceIT {
     }
 
     @Test
+    public void testBuildHttp() {
+        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
+        String id = randomUUID().toString();
+        String serverId = serverConf.getId();
+        BitbucketSCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
+        SCMHead scmHead = mock(SCMHead.class);
+        when(scmHead.getName()).thenReturn("myBranch");
+        SCM scm = scmSource.build(scmHead, null);
+        assertTrue(scm instanceof GitSCM);
+        GitSCM gitSCM = (GitSCM) scm;
+        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
+        assertEquals(1, userRemoteConfigs.size());
+        assertEquals(forkHttpCloneUrl, userRemoteConfigs.get(0).getUrl());
+    }
+
+    @Test
+    public void testBuildSsh() {
+        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
+        String id = randomUUID().toString();
+        String serverId = serverConf.getId();
+        BitbucketSCMSource scmSource =
+                new BitbucketSCMSource(id, credentialsId, "sshCredentialIdCanBeAnything", null, PROJECT_NAME, forkRepoName, serverId, null);
+        SCMHead scmHead = mock(SCMHead.class);
+        when(scmHead.getName()).thenReturn("myBranch");
+        SCM scm = scmSource.build(scmHead, null);
+        assertTrue(scm instanceof GitSCM);
+        GitSCM gitSCM = (GitSCM) scm;
+        List<UserRemoteConfig> userRemoteConfigs = gitSCM.getUserRemoteConfigs();
+        assertEquals(1, userRemoteConfigs.size());
+        assertEquals(forkSSHCloneUrl, userRemoteConfigs.get(0).getUrl());
+    }
+
+    @Test
     public void testCreateSCM() {
         BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
@@ -103,7 +150,7 @@ public class BitbucketSCMSourceIT {
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
-        assertThat(scmSource.getRemote(), containsStringIgnoringCase(forkCloneUrl));
+        assertThat(scmSource.getRemote(), containsStringIgnoringCase(forkHttpCloneUrl));
         assertThat(scmSource.getCredentialsId(), equalTo(credentialsId));
         assertThat(scmSource.getId(), equalTo(id));
         assertThat(scmSource.getProjectKey(), equalTo(PROJECT_KEY));
@@ -124,7 +171,7 @@ public class BitbucketSCMSourceIT {
         RemoteConfig remoteConfig = scm.getRepositories().get(0);
         assertThat(remoteConfig.getURIs(), hasSize(1));
         URIish repoCloneUrl = remoteConfig.getURIs().get(0);
-        assertThat(repoCloneUrl.toString(), containsStringIgnoringCase(forkCloneUrl));
+        assertThat(repoCloneUrl.toString(), containsStringIgnoringCase(forkHttpCloneUrl));
     }
 
     @Test
@@ -186,7 +233,7 @@ public class BitbucketSCMSourceIT {
         File checkoutDir = temporaryFolder.newFolder("repositoryCheckout");
         Git gitRepo = Git.cloneRepository()
                 .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
-                .setURI(forkCloneUrl)
+                .setURI(forkHttpCloneUrl)
                 .setCredentialsProvider(cr)
                 .setDirectory(checkoutDir)
                 .setBranch("master")

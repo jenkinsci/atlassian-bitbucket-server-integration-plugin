@@ -16,7 +16,7 @@ public class BitbucketProject {
 
     private final String key;
     private final String name;
-    private String selfLink;
+    private final String selfLink;
 
     @JsonCreator
     public BitbucketProject(
@@ -29,7 +29,11 @@ public class BitbucketProject {
             List<BitbucketNamedLink> self = links.get("self");
             if (self != null && !self.isEmpty()) { // there should always be exactly one self link.
                 selfLink = self.get(0).getHref();
+            } else {
+                selfLink = null;
             }
+        } else {
+            selfLink = null;
         }
     }
 
@@ -44,7 +48,7 @@ public class BitbucketProject {
         BitbucketProject that = (BitbucketProject) o;
         return key.equals(that.key) &&
                name.equals(that.name) &&
-               selfLink.equals(that.selfLink);
+               Objects.equals(selfLink, that.selfLink);
     }
 
     @Override

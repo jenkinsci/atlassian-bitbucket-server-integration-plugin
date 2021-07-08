@@ -44,15 +44,15 @@ import static java.util.Objects.requireNonNull;
 import static jenkins.triggers.SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
+public class BitbucketWebhookScmTrigger extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
     //the version (of this class) where the PR trigger was introduced. Version is 0 based.
     private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
-    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookScmTrigger.class.getName());
 
-    private boolean pullRequestTrigger;
-    private boolean refTrigger;
+    private final boolean pullRequestTrigger;
+    private final boolean refTrigger;
     /**
      * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
      * classes will serialise the actual value that was stored. Because the constructor is not run during de-serialisation
@@ -62,7 +62,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
-    public BitbucketWebhookTriggerImpl(boolean pullRequestTrigger, boolean refTrigger) {
+    public BitbucketWebhookScmTrigger(boolean pullRequestTrigger, boolean refTrigger) {
         version = BUILD_ON_PULL_REQUEST_VERSION;
         this.pullRequestTrigger = pullRequestTrigger;
         this.refTrigger = refTrigger;
@@ -301,7 +301,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             return job.getTriggers()
                     .values()
                     .stream()
-                    .anyMatch(v -> v instanceof BitbucketWebhookTriggerImpl);
+                    .anyMatch(v -> v instanceof BitbucketWebhookScmTrigger);
         }
 
         private boolean isExistingWebhookOnRepo(BitbucketSCM scm, BitbucketSCMRepository repository) {

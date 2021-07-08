@@ -75,20 +75,11 @@ public class BitbucketWebhookRequest {
 
         private final Set<String> events;
         private String name;
-        private String url;
         private boolean isActive = true;
+        private String url;
 
-        private Builder(Set<String> events) {
-            this.events = events;
-        }
-
-        public static Builder aRequestFor(Collection<String> events) {
-            Set<String> eventSet = new HashSet<>(events);
-            return aRequestFor(eventSet);
-        }
-
-        static Builder aRequestFor(Set<String> eventSet) {
-            return new Builder(eventSet);
+        public Builder(Collection<String> events) {
+            this.events = Collections.unmodifiableSet(new HashSet<>(events));
         }
 
         public BitbucketWebhookRequest build() {
