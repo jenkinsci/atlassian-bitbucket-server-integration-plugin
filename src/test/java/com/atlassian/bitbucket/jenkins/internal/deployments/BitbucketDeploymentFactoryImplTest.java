@@ -1,0 +1,141 @@
+package com.atlassian.bitbucket.jenkins.internal.deployments;
+
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Result;
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public class BitbucketDeploymentFactoryImplTest {
+
+    private static final String RUN_URL = "run-url";
+
+    @InjectMocks
+    BitbucketDeploymentFactoryImpl deploymentFactory;
+    @Mock
+    DisplayURLProvider displayURLProvider;
+    @Mock
+    Jenkins jenkins;
+
+    @Before
+    public void setup() {
+        when(displayURLProvider.getRunURL(any())).thenReturn(RUN_URL);
+        when(jenkins.getFullName()).thenReturn("");
+    }
+
+    @Test
+    public void testCreateDeploymentFailed() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.FAILED, RUN_URL);
+        Result result = Result.FAILURE;
+        FreeStyleBuild run = mockRun(expected, result);
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void testCreateDeploymentFallsBackOnDisplayNameWhenNoDescription() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.SUCCESSFUL, RUN_URL);
+        Result result = Result.SUCCESS;
+        FreeStyleBuild run = mockRun(expected, result);
+        // Force the run to have no description
+        when(run.getDescription()).thenReturn(null);
+        when(run.getDisplayName()).thenReturn(expected.getDescription());
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void testCreateDeploymentInProgress() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.IN_PROGRESS, RUN_URL);
+        Result result = null;
+        FreeStyleBuild run = mockRun(expected, result);
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void testCreateDeploymentSuccessful() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my description", "my display name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.SUCCESSFUL, RUN_URL);
+        Result result = Result.SUCCESS;
+        FreeStyleBuild run = mockRun(expected, result);
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void testCreateDeploymentUnstable() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.SUCCESSFUL, RUN_URL);
+        Result result = Result.UNSTABLE;
+        FreeStyleBuild run = mockRun(expected, result);
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void testCreateDeploymentWithSpecificState() {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .build();
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.IN_PROGRESS, RUN_URL);
+        Result result = Result.SUCCESS; // Something different to expected to make sure we're using that instead
+        FreeStyleBuild run = mockRun(expected, result);
+
+        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment,
+                BitbucketDeployment.DeploymentState.IN_PROGRESS);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    private FreeStyleBuild mockRun(BitbucketDeployment expected, Result result) {
+        FreeStyleBuild run = mock(FreeStyleBuild.class);
+        FreeStyleProject job = mock(FreeStyleProject.class);
+        when(run.getParent()).thenReturn(job);
+        when(job.getParent()).thenReturn(jenkins);
+        when(run.getDescription()).thenReturn(expected.getDescription());
+        when(run.getNumber()).thenReturn((int) expected.getDeploymentSequenceNumber());
+        when(run.getResult()).thenReturn(result);
+        when(job.getDisplayName()).thenReturn(expected.getDisplayName());
+        when(job.getName()).thenReturn(expected.getKey());
+        return run;
+    }
+}

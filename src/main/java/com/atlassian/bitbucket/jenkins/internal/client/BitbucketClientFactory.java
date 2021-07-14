@@ -35,6 +35,15 @@ public interface BitbucketClientFactory {
                                                     BitbucketCICapabilities ciCapabilities);
 
     /**
+     * Return a client that can post deployment information to Bitbucket.
+     *
+     * @param revisionSha      the revision for the build status
+     * @param bitbucketSCMRepo the (Bitbucket) SCM Repo
+     * @return a client that can post deployment information
+     */
+    BitbucketDeploymentClient getDeploymentClient(String revisionSha, BitbucketSCMRepository bitbucketSCMRepo);
+
+    /**
      * Construct a client that can retrieve the list of mirrored repositories for a given {@code repoId} from Bitbucket.
      *
      * @param repositoryId the repositoryId

@@ -5,6 +5,8 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
@@ -320,6 +322,33 @@ public class BitbucketClientFactoryImplTest {
         BitbucketWebhookSupportedEvents hookSupportedEvents =
                 anonymousClientFactory.getCapabilityClient().getWebhookSupportedEvents();
         assertThat(hookSupportedEvents.getApplicationWebHooks(), hasItem(REPO_REF_CHANGE.getEventId()));
+    }
+
+    @Test
+    public void testPostDeployment() throws IOException {
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
+                .type(BitbucketDeploymentEnvironment.Type.DEVELOPMENT)
+                .url("http://url.to.env")
+                .build();
+        BitbucketDeployment deployment = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
+                "my-key", BitbucketDeployment.DeploymentState.FAILED, "http://url.to.job");
+        String projectKey = "myProject";
+        String repoSlug = "myRepo";
+        when(bitbucketSCMRepo.getProjectKey()).thenReturn(projectKey);
+        when(bitbucketSCMRepo.getRepositorySlug()).thenReturn(repoSlug);
+
+        String url = String.format("%s/rest/api/1.0/projects/%s/repos/%s/commits/%s/deployments", BITBUCKET_BASE_URL,
+                projectKey, repoSlug, REVISION);
+        String requestString = readFileToString("/deployments/send_deployment_request.json");
+        mockExecutor.mapPostRequestToResult(url, requestString, "");
+        Buffer b = new Buffer();
+
+        BitbucketDeploymentClient client = anonymousClientFactory.getDeploymentClient(REVISION, bitbucketSCMRepo);
+        client.post(deployment);
+
+        Request clientRequest = mockExecutor.getRequest(url);
+        clientRequest.body().writeTo(b);
+        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(new String(b.readByteArray())));
     }
 
     @Test(expected = BitbucketMissingCapabilityException.class)
