@@ -61,7 +61,7 @@ public final class BitbucketDeploymentEnvironment {
     /**
      * @return a unique identifier for this environment
      */
-    @JsonProperty(DISPLAY_NAME)
+    @JsonProperty(KEY)
     @Nonnull
     public String getKey() {
         return key;
@@ -70,7 +70,7 @@ public final class BitbucketDeploymentEnvironment {
     /**
      * @return a human-readable name for this environment
      */
-    @JsonProperty(KEY)
+    @JsonProperty(DISPLAY_NAME)
     @Nonnull
     public String getName() {
         return name;

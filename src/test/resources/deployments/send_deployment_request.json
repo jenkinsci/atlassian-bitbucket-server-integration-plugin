@@ -3,8 +3,8 @@
   "description": "my-description",
   "displayName": "my-display-name",
   "environment": {
-    "key": "My-env",
-    "displayName": "MY-ENV",
+    "key": "MY-ENV",
+    "displayName": "My-env",
     "type": "DEVELOPMENT",
     "url": "http://url.to.env"
   },
