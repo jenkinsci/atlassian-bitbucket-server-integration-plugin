@@ -81,7 +81,7 @@ public class BuildStatusPosterIT {
     @Test
     public void testAgainstFreeStyle() throws Exception {
         FreeStyleProject project =
-                jenkinsProjectHandler.createFreeStyleProject(repoSlug, MASTER_BRANCH_PATTERN);
+                jenkinsProjectHandler.createFreeStyleProject(PROJECT_KEY, repoSlug, MASTER_BRANCH_PATTERN);
 
         String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, gitHelper.getLatestCommit());
@@ -130,7 +130,7 @@ public class BuildStatusPosterIT {
     @Test
     public void testAgainstPipelineWithBitbucketSCM() throws Exception {
         WorkflowJob wfj =
-                jenkinsProjectHandler.createPipelineJobWithBitbucketScm("wfj", repoSlug, MASTER_BRANCH_PATTERN);
+                jenkinsProjectHandler.createPipelineJobWithBitbucketScm("wfj", PROJECT_KEY, repoSlug, MASTER_BRANCH_PATTERN);
 
         String latestCommit = checkInJenkinsFile(
                 "pipeline {\n" +

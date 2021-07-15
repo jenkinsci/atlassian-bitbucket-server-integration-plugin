@@ -79,7 +79,7 @@ public class BitbucketSCMFileSystemIT {
     @Test
     public void testBuildPipelineSCM() throws Exception {
         WorkflowJob pipelineProject =
-                projectHandler.createPipelineJobWithBitbucketScm("testBuildPipelineSCM", "rep_1", "refs/heads/master");
+                projectHandler.createPipelineJobWithBitbucketScm("testBuildPipelineSCM", "project_1", "rep_1", "refs/heads/master");
         BitbucketSCM scm = (BitbucketSCM) ((CpsScmFlowDefinition) pipelineProject.getDefinition()).getScm();
         doReturn(Optional.of(validConfiguration)).when(pluginConfiguration).getServerById(eq(scm.getServerId()));
 
