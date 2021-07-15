@@ -17,9 +17,9 @@ public class BitbucketDeploymentClientImpl implements BitbucketDeploymentClient 
     public BitbucketDeploymentClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
-        this.revisionSha = requireNonNull(stripToNull(revisionSha), "revisionSha");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repoSlug = requireNonNull(stripToNull(repoSlug), "repoSlug");
+        this.revisionSha = requireNonNull(stripToNull(revisionSha), "revisionSha");
     }
 
     @Override

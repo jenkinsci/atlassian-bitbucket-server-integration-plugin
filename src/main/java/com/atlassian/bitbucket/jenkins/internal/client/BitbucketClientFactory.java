@@ -37,7 +37,7 @@ public interface BitbucketClientFactory {
     /**
      * Return a client that can post deployment information to Bitbucket.
      *
-     * @param revisionSha      the revision for the build status
+     * @param revisionSha      the revision for the deployment
      * @param bitbucketSCMRepo the (Bitbucket) SCM Repo
      * @return a client that can post deployment information
      */

@@ -11,7 +11,7 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCDCapabilities {
 
-    public static final String DEPLOYMENTS = "deployments";
+    public static final String DEPLOYMENTS_CAPABILITY_VALUE = "deployments";
 
     private final Set<String> cdCapabilities;
 
@@ -25,6 +25,6 @@ public class BitbucketCDCapabilities {
     }
 
     public boolean supportsDeployments() {
-        return cdCapabilities.contains(DEPLOYMENTS);
+        return cdCapabilities.contains(DEPLOYMENTS_CAPABILITY_VALUE);
     }
 }
