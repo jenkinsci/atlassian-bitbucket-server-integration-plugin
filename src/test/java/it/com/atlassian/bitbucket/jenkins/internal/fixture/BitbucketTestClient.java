@@ -10,7 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent;
 
 /**
- * To make communicating wth Bitbucket easier in tests.
+ * To make communicating with Bitbucket easier in tests.
  *
  * @since 3.0.0
  */
@@ -28,12 +28,12 @@ public class BitbucketTestClient {
     }
 
     /**
-     * Check if the given webhook exists in the capability provded by the server. This has one big flaw in that
+     * Check if the given webhook exists in the capability provided by the server. This has one big flaw in that
      * webhooks were released in 5.6 but the capability was only added in 6.6, thus this method can only be used
      * with certainty for webhooks newer than Bitbucket Server 6.6
      *
-     * @param event
-     * @return
+     * @param event event to check
+     * @return true if the remote instance supports the webhook, with the caveat listed above
      */
     public boolean supportsWebhook(BitbucketWebhookEvent event) {
         try {

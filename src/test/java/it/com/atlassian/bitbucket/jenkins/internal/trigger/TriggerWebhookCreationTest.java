@@ -62,7 +62,7 @@ public class TriggerWebhookCreationTest {
                         .filter(repo ->
                                 "http".equals(repo.getName()))
                         .findFirst()
-                        .orElse(null)
+                        .orElseThrow(() -> new RuntimeException("No http clone url found in repository"))
                         .getHref();
         PR_EVENTS_PRE_7_6.add(PULL_REQUEST_OPENED.getEventId());
         PR_EVENTS_PRE_7_6.add(PULL_REQUEST_DECLINED.getEventId());

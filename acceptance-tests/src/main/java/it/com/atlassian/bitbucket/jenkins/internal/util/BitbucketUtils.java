@@ -70,6 +70,7 @@ public class BitbucketUtils {
         return new BitbucketRepository(forkId, forkName, project, forkSlug, forkHttpCloneUrl, forkSshCloneUrl);
     }
 
+    @SuppressWarnings("unchecked")
     public static PersonalAccessToken createPersonalAccessToken(String... permissions) {
         HashMap<String, Object> createTokenRequest = new HashMap<>();
         createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
@@ -92,6 +93,7 @@ public class BitbucketUtils {
         return new PersonalAccessToken(tokenResponse.path("id"), tokenResponse.path("token"));
     }
 
+    @SuppressWarnings("unchecked")
     public static BitbucketSshKeyPair createSshKeyPair() throws IOException {
         SshKeyPair keyPair = new SshKeyPairGenerator().get();
         Map<String, Object> createSshKeyRequest = new HashMap<>();
@@ -132,6 +134,17 @@ public class BitbucketUtils {
         return job;
     }
 
+    /*
+     * Creates an application link between Bitbucket Server and Jenkins.
+     */
+    public static URL createBitbucketApplicationLink(String jenkinsUrl,  OAuthConsumer oAuthConsumer) throws Exception {
+        URL applicationLinkUrl = registerApplicationLink("generic", "Jenkins Testing", jenkinsUrl, jenkinsUrl);
+        setupApplicationLinkProviderAndConsumer(applicationLinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
+                "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
+
+        return applicationLinkUrl;
+    }
+
     @SuppressWarnings("unchecked")
     public static void createPullRequest(String projectKey, String repoSlug, String sourceBranch) {
         HashMap<String, Object> createPullRequestRequest = new HashMap<>();
@@ -149,35 +162,23 @@ public class BitbucketUtils {
         createPullRequestRequest.put("fromRef", fromRef);
         createPullRequestRequest.put("toRef", toRef);
 
-        ResponseBody<Response> prCeateResponse =
-                RestAssured
-                        .given()
-                        .log()
-                        .ifValidationFails()
-                        .auth()
-                        .preemptive()
-                        .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
-                        .contentType(ContentType.JSON)
-                        .body(createPullRequestRequest)
-                        .expect()
-                        .statusCode(201)
-                        .given()
-                        .pathParam("projectKey", projectKey)
-                        .pathParam("repositorySlug", repoSlug)
-                        .when()
-                        .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests")
-                        .getBody();
-    }
-
-    /*
-     * Creates an application link between Bitbucket Server and Jenkins.
-     */
-    public static URL createBitbucketApplicationLink(String jenkinsUrl,  OAuthConsumer oAuthConsumer) throws Exception {
-        URL applicationLinkUrl = registerApplicationLink("generic", "Jenkins Testing", jenkinsUrl, jenkinsUrl);
-        setupApplicationLinkProviderAndConsumer(applicationLinkUrl, oAuthConsumer.getKey(), oAuthConsumer.getKey(), oAuthConsumer.getSecret(),
-                "/bitbucket/oauth/access-token", "/bbs-oauth/authorize", "/bitbucket/oauth/request-token");
-
-        return applicationLinkUrl;
+        RestAssured
+                .given()
+                .log()
+                .ifValidationFails()
+                .auth()
+                .preemptive()
+                .basic(BITBUCKET_ADMIN_USERNAME, BITBUCKET_ADMIN_PASSWORD)
+                .contentType(ContentType.JSON)
+                .body(createPullRequestRequest)
+                .expect()
+                .statusCode(201)
+                .given()
+                .pathParam("projectKey", projectKey)
+                .pathParam("repositorySlug", repoSlug)
+                .when()
+                .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests")
+                .getBody();
     }
 
     public static URL registerApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {

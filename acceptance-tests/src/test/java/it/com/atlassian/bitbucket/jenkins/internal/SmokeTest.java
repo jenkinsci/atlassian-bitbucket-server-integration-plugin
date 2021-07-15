@@ -10,7 +10,6 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthCons
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import net.sf.json.JSONObject;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jgit.api.Git;
@@ -231,17 +230,17 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Test
     public void testFullBuildFlowWithFreeStyleJobPRTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFeeStyleTriggerTest(false, true, 1);
+        runFreeStyleTriggerTest(false, true, 1);
     }
 
     @Test
     public void testFullBuildFlowWithFreeStyleJobRefTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFeeStyleTriggerTest(true, false, 1);
+        runFreeStyleTriggerTest(true, false, 1);
     }
 
     @Test
     public void testFullBuildFlowWithFreeStyleJobRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFeeStyleTriggerTest(true, true, 2);
+        runFreeStyleTriggerTest(true, true, 2);
     }
 
     @Test
@@ -454,7 +453,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 .filter(queryParam -> queryParam.getName().equals("oauth_token"))
                 .findFirst().get().getValue();
     }
-    private void runFeeStyleTriggerTest(boolean triggerOnRefChange, boolean triggerOnPullRequest, int expectedBuilds) throws IOException, GitAPIException, InterruptedException {
+    private void runFreeStyleTriggerTest(boolean triggerOnRefChange, boolean triggerOnPullRequest, int expectedBuilds) throws IOException, GitAPIException, InterruptedException {
         FreeStyleJob freeStyleJob = jenkins.jobs.create();
         BitbucketScmConfig bitbucketScm = freeStyleJob.useScm(BitbucketScmConfig.class);
         bitbucketScm
@@ -485,7 +484,7 @@ public class SmokeTest extends AbstractJUnitTest {
 
         //Build should not have triggered, so next build should be the first one after the PR is created.
         int lastBuildNumber = freeStyleJob.getLastBuild().getNumber();
-        BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), branchName);
+        createPullRequest(PROJECT_KEY, forkRepo.getSlug(), branchName);
         //this is terrible but we must give Jenkins a chance to react to the webhook and schedule a build
         Thread.sleep(Duration.ofSeconds(5).toMillis());
         // Verify build was triggered
@@ -557,14 +556,11 @@ public class SmokeTest extends AbstractJUnitTest {
         Thread.sleep(Duration.ofSeconds(10).toMillis());
 
         Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
-        if (triggerOnRefChange && !triggerOnPullRequest) {
+        if (triggerOnRefChange) {
             assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
         }
-        if (triggerOnPullRequest && !triggerOnRefChange) {
+        if (!triggerOnRefChange && triggerOnPullRequest) {
             assertThat("Wrong started state of build after ref change", build.hasStarted(), is(false));
-        }
-        if (triggerOnRefChange && triggerOnPullRequest) {
-            assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
         }
 
         BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
