@@ -4,11 +4,26 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 
 /**
  * Client to get capabilities from the remote server.
  */
 public interface BitbucketCapabilitiesClient {
+
+    /**
+     * Get the supported deployment capabilities of the linked Bitbucket Server.
+     *
+     * @return the supported capabilities
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws NoContentException         if the server did not respond with a body
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException          if the requested url does not exist
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
+     */
+    BitbucketCDCapabilities getCDCapabilities();
 
     /**
      * Get the supported ci capabilities of the linked Bitbucket Server.

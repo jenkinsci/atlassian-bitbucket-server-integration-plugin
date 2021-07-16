@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
@@ -90,7 +91,10 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
                     buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1(),
                     buildStatus.getRef()));
 
-            bbsClient.getBuildStatusClient(revisionAction.getRevisionSha1(), revisionAction.getBitbucketSCMRepo(), ciCapabilities)
+            BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
+            bbsClient.getProjectClient(bitbucketSCMRepo.getProjectKey())
+                    .getRepositoryClient(bitbucketSCMRepo.getRepositorySlug())
+                    .getBuildStatusClient(revisionAction.getRevisionSha1(), ciCapabilities)
                     .post(buildStatus);
         } catch (RuntimeException e) {
             String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();

@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 
 /**
@@ -37,4 +38,23 @@ public interface BitbucketRepositoryClient {
      * @return a client that is ready to use
      */
     BitbucketWebhookClient getWebhookClient();
+
+    /**
+     * Return a client that can post the current status of a build to Bitbucket.
+     *
+     * @param revisionSha      the revision for the build status
+     * @param ciCapabilities   CI capabilities of the remote server
+     * @return a client that can post a build status
+     * @since deployments
+     */
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketCICapabilities ciCapabilities);
+
+    /**
+     * Return a client that can post deployment information to Bitbucket.
+     *
+     * @param revisionSha      the revision for the deployment
+     * @return a client that can post deployment information
+     * @since deployments
+     */
+    BitbucketDeploymentClient getDeploymentClient(String revisionSha);
 }

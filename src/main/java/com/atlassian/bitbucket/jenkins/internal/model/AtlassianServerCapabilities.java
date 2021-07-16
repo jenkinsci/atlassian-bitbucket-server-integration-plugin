@@ -16,6 +16,7 @@ public class AtlassianServerCapabilities {
 
     public static final String WEBHOOK_CAPABILITY_KEY = "webhooks";
     public static final String RICH_BUILDSTATUS_CAPABILITY_KEY = "build";
+    public static final String DEPLOYMENTS_CAPABILITY_KEY = "deployment";
 
     private final String application;
     private final Map<String, String> capabilities;
