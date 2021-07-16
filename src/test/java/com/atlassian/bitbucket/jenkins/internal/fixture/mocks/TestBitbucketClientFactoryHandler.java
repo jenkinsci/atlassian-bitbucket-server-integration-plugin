@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import org.mockito.Answers;
 
 import java.util.HashSet;
 
@@ -19,7 +20,7 @@ public class TestBitbucketClientFactoryHandler {
 
     private final BitbucketClientFactoryProvider clientFactoryProvider =
             mock(BitbucketClientFactoryProvider.class);
-    private final BitbucketClientFactory clientFactory = mock(BitbucketClientFactory.class);
+    private final BitbucketClientFactory clientFactory = mock(BitbucketClientFactory.class, Answers.RETURNS_DEEP_STUBS);
     private final BitbucketCapabilitiesClient capabilitiesClient = mock(BitbucketCapabilitiesClient.class);
     private final BitbucketCICapabilities ciCapabilities = mock(BitbucketCICapabilities.class);
     private final BitbucketBuildStatusClient buildStatusClient = mock(BitbucketBuildStatusClient.class);
@@ -50,7 +51,11 @@ public class TestBitbucketClientFactoryHandler {
     }
 
     public TestBitbucketClientFactoryHandler withBuildStatusClient(String revision, BitbucketSCMRepository scmRepo) {
-        when(clientFactory.getBuildStatusClient(revision, scmRepo, ciCapabilities)).thenReturn(buildStatusClient);
+        when(clientFactory
+                .getProjectClient(scmRepo.getProjectKey())
+                .getRepositoryClient(scmRepo.getRepositorySlug())
+                .getBuildStatusClient(revision, ciCapabilities))
+                .thenReturn(buildStatusClient);
         return this;
     }
 
