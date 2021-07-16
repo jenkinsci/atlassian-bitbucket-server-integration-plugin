@@ -77,7 +77,7 @@ public final class BitbucketDeploymentEnvironment {
     }
 
     /**
-     * @return the {@link Type} of environment, or {@code null} to indicate no type
+     * @return the {@link BitbucketDeploymentEnvironmentType} of environment, or {@code null} to indicate no type
      */
     @JsonProperty(TYPE)
     @Nullable
@@ -109,22 +109,12 @@ public final class BitbucketDeploymentEnvironment {
                '}';
     }
 
-    /**
-     * The types of environments available via the Bitbucket Server API.
-     */
-    public enum Type {
-        DEVELOPMENT,
-        TESTING,
-        STAGING,
-        PRODUCTION;
-    }
-
     public static class Builder {
 
         private final String key;
         private final String name;
 
-        private Type type;
+        private BitbucketDeploymentEnvironmentType type;
         private String url;
 
         public Builder(@Nonnull String key, @Nonnull String name) {
@@ -138,7 +128,7 @@ public final class BitbucketDeploymentEnvironment {
         }
 
         @Nonnull
-        public Builder type(@Nullable Type value) {
+        public Builder type(@Nullable BitbucketDeploymentEnvironmentType value) {
             type = value;
 
             return this;

@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.model.Job;
 import hudson.model.Result;
@@ -36,7 +37,7 @@ public final class BitbucketDeploymentFactoryImpl implements BitbucketDeployment
     @Override
     public BitbucketDeployment createDeployment(Run<?, ?> run,
                                                 BitbucketDeploymentEnvironment environment,
-                                                @CheckForNull BitbucketDeployment.DeploymentState state) {
+                                                @CheckForNull DeploymentState state) {
         Job<?, ?> job = run.getParent();
         String description = getDescription(run);
         String key = job.getFullName();
@@ -62,14 +63,14 @@ public final class BitbucketDeploymentFactoryImpl implements BitbucketDeployment
         return job.getDisplayName();
     }
 
-    private BitbucketDeployment.DeploymentState getStateFromRun(Run<?, ?> run) {
+    private DeploymentState getStateFromRun(Run<?, ?> run) {
         Result result = run.getResult();
         if (result == null) {
-            return BitbucketDeployment.DeploymentState.IN_PROGRESS;
+            return DeploymentState.IN_PROGRESS;
         }
         if (successfulResults.contains(result)) {
-            return BitbucketDeployment.DeploymentState.SUCCESSFUL;
+            return DeploymentState.SUCCESSFUL;
         }
-        return BitbucketDeployment.DeploymentState.FAILED;
+        return DeploymentState.FAILED;
     }
 }

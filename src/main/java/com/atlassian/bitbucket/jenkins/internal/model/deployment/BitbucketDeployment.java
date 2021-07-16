@@ -9,6 +9,11 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * The details of a deployment.
+ *
+ * @since deployments
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BitbucketDeployment {
@@ -113,15 +118,5 @@ public class BitbucketDeployment {
                ", state=" + state +
                ", url='" + url + '\'' +
                '}';
-    }
-
-    public enum DeploymentState {
-        PENDING,
-        IN_PROGRESS,
-        CANCELLED,
-        FAILED,
-        ROLLED_BACK,
-        SUCCESSFUL,
-        UNKNOWN
     }
 }

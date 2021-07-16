@@ -4,6 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import okhttp3.Request;
 import okio.Buffer;
 import org.junit.Test;
@@ -39,11 +41,11 @@ public class BitbucketDeploymentClientImplTest {
         fakeRemoteHttpServer.mapPostRequestToResult(deploymentsUrl, requestBody, response);
 
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .type(BitbucketDeploymentEnvironment.Type.DEVELOPMENT)
+                .type(BitbucketDeploymentEnvironmentType.DEVELOPMENT)
                 .url("http://url.to.env")
                 .build();
         BitbucketDeployment deployment = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", BitbucketDeployment.DeploymentState.FAILED, "http://url.to.job");
+                "my-key", DeploymentState.FAILED, "http://url.to.job");
         client.post(deployment);
 
         Request recordedRequest = fakeRemoteHttpServer.getRequest(deploymentsUrl);

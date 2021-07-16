@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.google.inject.ImplementedBy;
 import hudson.model.Run;
 
@@ -29,7 +30,7 @@ public interface BitbucketDeploymentFactory {
 
     /**
      * Create a deployment from the provided {@link Run}, {@link BitbucketDeploymentEnvironment} and
-     * {@link BitbucketDeployment.DeploymentState}.
+     * {@link DeploymentState}.
      *
      * The value of {@link Run#getResult()} will be ignored and the {@link BitbucketDeployment#getState()} will be
      * populated based on the provided {@code state}
@@ -41,5 +42,5 @@ public interface BitbucketDeploymentFactory {
      */
     BitbucketDeployment createDeployment(Run<?, ?> run,
                                          BitbucketDeploymentEnvironment environment,
-                                         @CheckForNull BitbucketDeployment.DeploymentState state);
+                                         @CheckForNull DeploymentState state);
 }
