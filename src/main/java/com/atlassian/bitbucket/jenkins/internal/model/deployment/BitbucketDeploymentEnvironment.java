@@ -1,8 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.model.deployment;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -15,7 +18,9 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
  *
  * @since deployments
  */
-public final class BitbucketDeploymentEnvironment {
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class BitbucketDeploymentEnvironment {
 
     private static final String DISPLAY_NAME = "displayName";
     private static final String KEY = "key";
@@ -28,17 +33,14 @@ public final class BitbucketDeploymentEnvironment {
     private final String url;
 
     private BitbucketDeploymentEnvironment(Builder builder) {
-        key = builder.key;
-        name = builder.name;
-        type = builder.type == null ? null : builder.type.name();
-        url = builder.url;
+        this(builder.key, builder.name, builder.type == null ? null : builder.type.name(), builder.url);
     }
 
     @JsonCreator
     public BitbucketDeploymentEnvironment(@JsonProperty(KEY) String key,
                                           @JsonProperty(DISPLAY_NAME) String name,
-                                          @JsonProperty(TYPE) String type,
-                                          @JsonProperty(URL) String url) {
+                                          @CheckForNull @JsonProperty(TYPE) String type,
+                                          @CheckForNull @JsonProperty(URL) String url) {
         this.key = key;
         this.name = name;
         this.type = type;
@@ -62,7 +64,6 @@ public final class BitbucketDeploymentEnvironment {
      * @return a unique identifier for this environment
      */
     @JsonProperty(KEY)
-    @Nonnull
     public String getKey() {
         return key;
     }
@@ -71,7 +72,6 @@ public final class BitbucketDeploymentEnvironment {
      * @return a human-readable name for this environment
      */
     @JsonProperty(DISPLAY_NAME)
-    @Nonnull
     public String getName() {
         return name;
     }
@@ -80,7 +80,7 @@ public final class BitbucketDeploymentEnvironment {
      * @return the {@link BitbucketDeploymentEnvironmentType} of environment, or {@code null} to indicate no type
      */
     @JsonProperty(TYPE)
-    @Nullable
+    @CheckForNull
     public String getType() {
         return type;
     }
@@ -89,7 +89,7 @@ public final class BitbucketDeploymentEnvironment {
      * @return the URL of the environment, or {@code null} to indicate no URL
      */
     @JsonProperty(URL)
-    @Nullable
+    @CheckForNull
     public String getUrl() {
         return url;
     }

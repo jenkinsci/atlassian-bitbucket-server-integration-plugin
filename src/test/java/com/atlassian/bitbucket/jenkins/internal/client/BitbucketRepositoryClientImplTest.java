@@ -12,7 +12,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
+import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.security.interfaces.RSAPrivateKey;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,7 +64,15 @@ public class BitbucketRepositoryClientImplTest {
                 .setDescription("#15 in progress")
                 .build();
 
-        String url = BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" + REVISION;
+        String url = HttpUrl.get(BITBUCKET_BASE_URL)
+                .newBuilder()
+                .addPathSegment("rest")
+                .addPathSegment("build-status")
+                .addPathSegment("1.0")
+                .addPathSegment("commits")
+                .addPathSegment(REVISION)
+                .build()
+                .toString();
         String requestString = readFileToString("/build-status-request.json");
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
@@ -73,7 +82,7 @@ public class BitbucketRepositoryClientImplTest {
 
         Request clientRequest = mockExecutor.getRequest(url);
         clientRequest.body().writeTo(b);
-        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(new String(b.readByteArray())));
+        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(b.readString(UTF_8)));
     }
 
     @Test
@@ -81,7 +90,7 @@ public class BitbucketRepositoryClientImplTest {
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
 
         InstanceKeyPairProvider keyPairProvider = mock(InstanceKeyPairProvider.class);
-        when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) TestUtils.createTestKeyPair().getPrivate());
+        when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) createTestKeyPair().getPrivate());
         DisplayURLProvider displayURLProvider = mock(DisplayURLProvider.class);
         when(displayURLProvider.getRoot()).thenReturn("http://localhost:8080/jenkins");
 
@@ -92,8 +101,10 @@ public class BitbucketRepositoryClientImplTest {
                 .setDescription("#15 in progress")
                 .build();
 
-        String url = String.format("%s/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds", BITBUCKET_BASE_URL,
-                PROJECT_KEY, REPO_SLUG, REVISION);
+        String url = getCommitUrl()
+                .addPathSegment("builds")
+                .build()
+                .toString();
         String requestString = readFileToString("/build-status-request.json");
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
@@ -104,7 +115,7 @@ public class BitbucketRepositoryClientImplTest {
 
         Request clientRequest = mockExecutor.getRequest(url);
         clientRequest.body().writeTo(b);
-        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(new String(b.readByteArray())));
+        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(b.readString(UTF_8)));
     }
 
     @Test
@@ -116,8 +127,10 @@ public class BitbucketRepositoryClientImplTest {
         BitbucketDeployment deployment = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
                 "my-key", DeploymentState.FAILED, "http://url.to.job");
 
-        String url = String.format("%s/rest/api/1.0/projects/%s/repos/%s/commits/%s/deployments", BITBUCKET_BASE_URL,
-                PROJECT_KEY, REPO_SLUG, REVISION);
+        String url = getCommitUrl()
+                .addPathSegment("deployments")
+                .build()
+                .toString();
         String requestString = readFileToString("/deployments/send_deployment_request.json");
         mockExecutor.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
@@ -127,6 +140,20 @@ public class BitbucketRepositoryClientImplTest {
 
         Request clientRequest = mockExecutor.getRequest(url);
         clientRequest.body().writeTo(b);
-        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(new String(b.readByteArray())));
+        assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(b.readString(UTF_8)));
+    }
+
+    private HttpUrl.Builder getCommitUrl() {
+        return HttpUrl.get(BITBUCKET_BASE_URL)
+                .newBuilder()
+                .addPathSegment("rest")
+                .addPathSegment("api")
+                .addPathSegment("1.0")
+                .addPathSegment("projects")
+                .addPathSegment(PROJECT_KEY)
+                .addPathSegment("repos")
+                .addPathSegment(REPO_SLUG)
+                .addPathSegment("commits")
+                .addPathSegment(REVISION);
     }
 }

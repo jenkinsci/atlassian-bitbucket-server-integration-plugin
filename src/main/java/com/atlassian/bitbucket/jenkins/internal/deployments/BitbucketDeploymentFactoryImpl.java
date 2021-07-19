@@ -14,7 +14,7 @@ import javax.annotation.CheckForNull;
 import java.util.Arrays;
 import java.util.Collection;
 
-public final class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactory {
+public class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactory {
 
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 
@@ -39,21 +39,13 @@ public final class BitbucketDeploymentFactoryImpl implements BitbucketDeployment
                                                 BitbucketDeploymentEnvironment environment,
                                                 @CheckForNull DeploymentState state) {
         Job<?, ?> job = run.getParent();
-        String description = getDescription(run);
         String key = job.getFullName();
         String name = getName(job);
         state = state == null ? getStateFromRun(run) : state;
+        String description = state.getDescriptiveTest(name, environment.getName());
         String url = displayURLProvider.getRunURL(run);
 
         return new BitbucketDeployment(run.getNumber(), description, name, environment, key, state, url);
-    }
-
-    private String getDescription(Run<?, ?> run) {
-        String description = run.getDescription();
-        if (description != null) {
-            return description;
-        }
-        return run.getDisplayName();
     }
 
     private String getName(Job<?, ?> job) {
