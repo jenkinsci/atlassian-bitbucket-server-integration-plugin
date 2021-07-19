@@ -43,6 +43,6 @@ public enum DeploymentState {
     }
 
     public String getDescriptiveTest(String jobName, String environmentName) {
-        return null;
+        return String.format(formatString, jobName, environmentName);
     }
 }

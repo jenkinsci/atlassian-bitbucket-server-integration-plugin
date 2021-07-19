@@ -43,27 +43,10 @@ public class BitbucketDeploymentFactoryImplTest {
     public void testCreateDeploymentFailed() {
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
                 .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", DeploymentState.FAILED, RUN_URL);
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name failed to deploy to My-env.",
+                "my-display-name", environment, "my-key", DeploymentState.FAILED, RUN_URL);
         Result result = Result.FAILURE;
         FreeStyleBuild run = mockRun(expected, result);
-
-        BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
-
-        assertThat(actual, equalTo(expected));
-    }
-
-    @Test
-    public void testCreateDeploymentFallsBackOnDisplayNameWhenNoDescription() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
-        Result result = Result.SUCCESS;
-        FreeStyleBuild run = mockRun(expected, result);
-        // Force the run to have no description
-        when(run.getDescription()).thenReturn(null);
-        when(run.getDisplayName()).thenReturn(expected.getDescription());
 
         BitbucketDeployment actual = deploymentFactory.createDeployment(run, environment);
 
@@ -74,8 +57,8 @@ public class BitbucketDeploymentFactoryImplTest {
     public void testCreateDeploymentInProgress() {
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
                 .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name is deploying to My-env.",
+                "my-display-name", environment, "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
         Result result = null;
         FreeStyleBuild run = mockRun(expected, result);
 
@@ -88,8 +71,8 @@ public class BitbucketDeploymentFactoryImplTest {
     public void testCreateDeploymentSuccessful() {
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
                 .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my description", "my display name", environment,
-                "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my display name successfully deployed to My-env",
+                "my display name", environment, "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
         Result result = Result.SUCCESS;
         FreeStyleBuild run = mockRun(expected, result);
 
@@ -102,8 +85,8 @@ public class BitbucketDeploymentFactoryImplTest {
     public void testCreateDeploymentUnstable() {
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
                 .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name successfully deployed to My-env",
+                "my-display-name", environment, "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
         Result result = Result.UNSTABLE;
         FreeStyleBuild run = mockRun(expected, result);
 
@@ -116,8 +99,8 @@ public class BitbucketDeploymentFactoryImplTest {
     public void testCreateDeploymentWithSpecificState() {
         BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
                 .build();
-        BitbucketDeployment expected = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
-                "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
+        BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name is deploying to My-env.",
+                "my-display-name", environment, "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
         Result result = Result.SUCCESS; // Something different to expected to make sure we're using that instead
         FreeStyleBuild run = mockRun(expected, result);
 
@@ -132,7 +115,6 @@ public class BitbucketDeploymentFactoryImplTest {
         FreeStyleProject job = mock(FreeStyleProject.class);
         when(run.getParent()).thenReturn(job);
         when(job.getParent()).thenReturn(jenkins);
-        when(run.getDescription()).thenReturn(expected.getDescription());
         when(run.getNumber()).thenReturn((int) expected.getDeploymentSequenceNumber());
         when(run.getResult()).thenReturn(result);
         when(job.getDisplayName()).thenReturn(expected.getDisplayName());
