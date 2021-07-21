@@ -47,7 +47,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         BitbucketCDCapabilities cdCapabilities = clientFactory.getCapabilityClient().getCDCapabilities();
         if (!cdCapabilities.supportsDeployments()) {
             // Bitbucket doesn't have deployments
-            taskListener.error("Could not send deployment notification to Bitbucket Server: The Bitbucket version does not support deployments");
+            taskListener.error(String.format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", server.getServerName()));
             return;
         }
 
@@ -67,7 +67,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
             // There was a problem sending the deployment to Bitbucket
             String errorMsg = String.format("Failed to send notification of deployment to %s due to an error: %s",
                     server.getServerName(), e.getMessage());
-            taskListener.getLogger().println(errorMsg);
+            taskListener.error(errorMsg);
             // This is typically not an error that the user running the job is able to fix, so
             LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
         }

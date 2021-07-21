@@ -42,6 +42,7 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class DeployedToEnvironmentNotifierStep extends Notifier implements SimpleBuildStep {
 
+    private static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
     private static final Logger LOGGER = Logger.getLogger(DeployedToEnvironmentNotifierStep.class.getName());
 
     private final BitbucketDeploymentEnvironment environment;
@@ -50,15 +51,15 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
     public DeployedToEnvironmentNotifierStep(String environmentKey, String environmentName,
                                              @CheckForNull String environmentType,
                                              @CheckForNull String environmentUrl) {
-        environment = new BitbucketDeploymentEnvironment.Builder(getOrGenerateEnvironmentKey(environmentKey),
-                environmentName)
-                .type(BitbucketDeploymentEnvironmentType.fromName(stripToNull(environmentType)).orElse(null))
-                .url(environmentUrl)
-                .build();
+        environment = validateAndGetEnvironment(environmentKey, environmentName, environmentType, environmentUrl);
     }
 
-    public static DescriptorImpl descriptor() {
+    public DescriptorImpl descriptor() {
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
+    }
+
+    public BitbucketDeploymentEnvironment getEnvironment() {
+        return environment;
     }
 
     public String getEnvironmentKey() {
@@ -92,11 +93,12 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
 
             // We use the default call to the bitbucketDeploymentFactory to get the state of the deployment based
             // on the run.
-            BitbucketDeployment deployment = descriptor().bitbucketDeploymentFactory.createDeployment(run, environment);
+            BitbucketDeployment deployment =
+                    descriptor().getBitbucketDeploymentFactory().createDeployment(run, environment);
 
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
             String revisionSha = revisionAction.getRevisionSha1();
-            descriptor().deploymentPoster.postDeployment(bitbucketSCMRepo.getServerId(),
+            descriptor().getDeploymentPoster().postDeployment(bitbucketSCMRepo.getServerId(),
                     bitbucketSCMRepo.getProjectKey(), bitbucketSCMRepo.getRepositorySlug(), revisionSha, deployment,
                     run, listener);
         } catch (RuntimeException e) {
@@ -110,16 +112,67 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         }
     }
 
-    private String getOrGenerateEnvironmentKey(@CheckForNull String environmentKey) {
+    private static String getOrGenerateEnvironmentKey(@CheckForNull String environmentKey) {
         if (!isBlank(environmentKey)) {
             return environmentKey;
         }
         return UUID.randomUUID().toString();
     }
 
+    private static BitbucketDeploymentEnvironment validateAndGetEnvironment(String environmentKey,
+                                                                            String environmentName,
+                                                                            @CheckForNull String environmentType,
+                                                                            @CheckForNull String environmentUrl) {
+        FormValidation environmentNameValidation = validateEnvironmentName(environmentName);
+        if (!environmentNameValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentNameValidation.getMessage());
+        }
+        FormValidation environmentTypeValidation = validateEnvironmentType(environmentType);
+        if (!environmentTypeValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentTypeValidation.getMessage());
+        }
+        FormValidation environmentUrlValidation = validateEnvironmentUrl(environmentUrl);
+        if (!environmentUrlValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentUrlValidation.getMessage());
+        }
+        return new BitbucketDeploymentEnvironment.Builder(getOrGenerateEnvironmentKey(environmentKey),
+                environmentName)
+                .type(BitbucketDeploymentEnvironmentType.fromName(stripToNull(environmentType)).orElse(null))
+                .url(environmentUrl)
+                .build();
+    }
+
+    private static FormValidation validateEnvironmentName(@CheckForNull String environmentName) {
+        if (isBlank(environmentName)) {
+            return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentNameRequired());
+        }
+        return FORM_VALIDATION_OK;
+    }
+
+    private static FormValidation validateEnvironmentType(@CheckForNull String environmentType) {
+        if (isBlank(environmentType)) {
+            return FORM_VALIDATION_OK;
+        }
+        return BitbucketDeploymentEnvironmentType.fromName(environmentType)
+                .map(validType -> FORM_VALIDATION_OK)
+                .orElseGet(() -> FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentTypeInvalid()));
+    }
+
+    private static FormValidation validateEnvironmentUrl(@CheckForNull String environmentUrl) {
+        if (isBlank(environmentUrl)) {
+            return FORM_VALIDATION_OK;
+        }
+        try {
+            new URI(environmentUrl); // Try to coerce it into a URL
+            return FORM_VALIDATION_OK;
+        } catch (URISyntaxException e) {
+            return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentUrlInvalid());
+        }
+    }
+
     @Extension
     @Symbol("DeployedToEnvironmentNotifierStep")
-    public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+    public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         @Inject
         private BitbucketDeploymentFactory bitbucketDeploymentFactory;
@@ -132,37 +185,21 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         public FormValidation doCheckEnvironmentName(@AncestorInPath Item context,
                                                      @QueryParameter String environmentName) {
             checkPermissions(context);
-            if (isBlank(environmentName)) {
-                return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentNameRequired());
-            }
-            return FormValidation.ok();
+            return validateEnvironmentName(environmentName);
         }
 
         @POST
         public FormValidation doCheckEnvironmentType(@AncestorInPath Item context,
                                                      @QueryParameter String environmentType) {
             checkPermissions(context);
-            if (isBlank(environmentType)) {
-                return FormValidation.ok();
-            }
-            return BitbucketDeploymentEnvironmentType.fromName(environmentType)
-                    .map(validType -> FormValidation.ok())
-                    .orElseGet(() -> FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentTypeInvalid()));
+            return validateEnvironmentType(environmentType);
         }
 
         @POST
         public FormValidation doCheckEnvironmentUrl(@AncestorInPath Item context,
                                                     @QueryParameter String environmentUrl) {
             checkPermissions(context);
-            if (isBlank(environmentUrl)) {
-                return FormValidation.ok();
-            }
-            try {
-                new URI(environmentUrl); // Try to coerce it into a URL
-                return FormValidation.ok();
-            } catch (URISyntaxException e) {
-                return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentUrlInvalid());
-            }
+            return validateEnvironmentUrl(environmentUrl);
         }
 
         @POST
@@ -174,6 +211,14 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
                     .sorted(Comparator.comparingInt(BitbucketDeploymentEnvironmentType::getWeight))
                     .forEach(v -> options.add(v.getDisplayName(), v.name()));
             return options;
+        }
+
+        public BitbucketDeploymentFactory getBitbucketDeploymentFactory() {
+            return bitbucketDeploymentFactory;
+        }
+
+        public DeploymentPoster getDeploymentPoster() {
+            return deploymentPoster;
         }
 
         @Override
