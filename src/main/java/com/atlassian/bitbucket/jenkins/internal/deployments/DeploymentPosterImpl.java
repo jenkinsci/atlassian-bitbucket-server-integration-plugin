@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationEx
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
@@ -19,6 +20,8 @@ import javax.inject.Singleton;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.lang.String.format;
 
 @Singleton
 public class DeploymentPosterImpl implements DeploymentPoster {
@@ -38,45 +41,42 @@ public class DeploymentPosterImpl implements DeploymentPoster {
                                TaskListener taskListener) {
         Optional<BitbucketServerConfiguration> maybeServer = pluginConfiguration.getServerById(bbsServerId);
         if (!maybeServer.isPresent()) {
-            taskListener.error(String.format("Could not send deployment notification to Bitbucket Server: Unknown serverId %s", bbsServerId));
+            taskListener.error(format("Could not send deployment notification to Bitbucket Server: Unknown serverId %s", bbsServerId));
             return;
         }
 
         BitbucketServerConfiguration server = maybeServer.get();
-        BitbucketClientFactory clientFactory = getClientFactory(run, server);
+        GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
+        Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
+        BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials);
+        BitbucketClientFactory clientFactory =
+                bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
         BitbucketCDCapabilities cdCapabilities = clientFactory.getCapabilityClient().getCDCapabilities();
         if (!cdCapabilities.supportsDeployments()) {
             // Bitbucket doesn't have deployments
-            taskListener.error(String.format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", server.getServerName()));
+            taskListener.error(format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", server.getServerName()));
             return;
         }
 
-        taskListener.getLogger().printf("Sending notification of %s to %s on commit %s%n",
-                deployment.getState().name(), server.getServerName(), revisionSha);
+        taskListener.getLogger().println(format("Sending notification of %s to %s on commit %s",
+                deployment.getState().name(), server.getServerName(), revisionSha));
         try {
             clientFactory.getProjectClient(projectKey)
                     .getRepositoryClient(repositorySlug)
                     .getDeploymentClient(revisionSha)
                     .post(deployment);
-            taskListener.getLogger().printf("Successfully sent notification of %s deployment to %s on commit %s%n",
-                    deployment.getState().name(), server.getServerName(), revisionSha);
+            taskListener.getLogger().println(format("Successfully sent notification of %s deployment to %s on commit %s",
+                    deployment.getState().name(), server.getServerName(), revisionSha));
         } catch (AuthorizationException e) {
-            taskListener.error(String.format("Failed to send notification of deployment to %s due to an authorization error: %s",
+            taskListener.error(format("The global admin credentials for the Bitbucket Server instance %s are invalid or insufficient to post deployment information: %s",
                     server.getServerName(), e.getMessage()));
         } catch (BitbucketClientException e) {
             // There was a problem sending the deployment to Bitbucket
-            String errorMsg = String.format("Failed to send notification of deployment to %s due to an error: %s",
+            String errorMsg = format("Failed to send notification of deployment to %s due to an error: %s",
                     server.getServerName(), e.getMessage());
             taskListener.error(errorMsg);
             // This is typically not an error that the user running the job is able to fix, so
             LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
         }
-    }
-
-    private BitbucketClientFactory getClientFactory(Run<?, ?> run, BitbucketServerConfiguration server) {
-        GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
-        Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
-        return bitbucketClientFactoryProvider.getClient(server.getBaseUrl(),
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials));
     }
 }

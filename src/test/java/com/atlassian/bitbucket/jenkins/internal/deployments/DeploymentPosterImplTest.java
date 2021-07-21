@@ -29,6 +29,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.PrintStream;
 
+import static java.lang.String.format;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Optional.empty;
@@ -95,14 +96,14 @@ public class DeploymentPosterImplTest {
     public void testPostDeployment() {
         poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).printf("Sending notification of %s to %s on commit %s%n",
-                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA);
+        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(clientFactory.getProjectClient(PROJECT_KEY)
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA))
                 .post(DEPLOYMENT);
-        verify(printStream).printf("Successfully sent notification of %s deployment to %s on commit %s%n",
-                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA);
+        verify(printStream).println(format("Successfully sent notification of %s deployment to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
     }
 
     @Test
@@ -113,9 +114,9 @@ public class DeploymentPosterImplTest {
         doThrow(new AuthorizationException("An auth error", 400, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).printf("Sending notification of %s to %s on commit %s%n",
-                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA);
-        verify(taskListener).error(String.format("Failed to send notification of deployment to %s due to an authorization error: %s",
+        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
+        verify(taskListener).error(format("The global admin credentials for the Bitbucket Server instance %s are invalid or insufficient to post deployment information: %s",
                 SERVER_NAME, "An auth error"));
     }
 
@@ -127,9 +128,9 @@ public class DeploymentPosterImplTest {
         doThrow(new BitbucketClientException("A Bitbucket error", 500, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).printf("Sending notification of %s to %s on commit %s%n",
-                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA);
-        verify(taskListener).error(String.format("Failed to send notification of deployment to %s due to an error: %s",
+        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
+        verify(taskListener).error(format("Failed to send notification of deployment to %s due to an error: %s",
                 server.getServerName(), "A Bitbucket error"));
     }
 
@@ -141,7 +142,7 @@ public class DeploymentPosterImplTest {
         poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(taskListener).error(
-                String.format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", SERVER_NAME));
+                format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", SERVER_NAME));
         verify(clientFactory, never()).getProjectClient(any());
     }
 

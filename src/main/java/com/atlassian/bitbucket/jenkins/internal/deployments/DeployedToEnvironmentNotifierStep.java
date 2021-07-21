@@ -20,13 +20,17 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
+import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.net.URI;
@@ -37,6 +41,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
 
@@ -45,39 +50,56 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
     private static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
     private static final Logger LOGGER = Logger.getLogger(DeployedToEnvironmentNotifierStep.class.getName());
 
-    private final BitbucketDeploymentEnvironment environment;
+    private final String environmentKey;
+    private final String environmentName;
+    private final String environmentType;
+    private final String environmentUrl;
 
     @DataBoundConstructor
     public DeployedToEnvironmentNotifierStep(String environmentKey, String environmentName,
                                              @CheckForNull String environmentType,
                                              @CheckForNull String environmentUrl) {
-        environment = validateAndGetEnvironment(environmentKey, environmentName, environmentType, environmentUrl);
+        this.environmentKey = getOrGenerateEnvironmentKey(environmentKey);
+
+        FormValidation environmentNameValidation = validateEnvironmentName(environmentName);
+        if (!environmentNameValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentNameValidation.getMessage());
+        }
+        this.environmentName = stripToNull(environmentName);
+
+        FormValidation environmentTypeValidation = validateEnvironmentType(environmentType);
+        if (!environmentTypeValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentTypeValidation.getMessage());
+        }
+        this.environmentType = stripToNull(environmentType);
+
+        FormValidation environmentUrlValidation = validateEnvironmentUrl(environmentUrl);
+        if (!environmentUrlValidation.equals(FORM_VALIDATION_OK)) {
+            throw new IllegalArgumentException(environmentUrlValidation.getMessage());
+        }
+        this.environmentUrl = environmentUrl;
     }
 
     public DescriptorImpl descriptor() {
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    public BitbucketDeploymentEnvironment getEnvironment() {
-        return environment;
-    }
-
     public String getEnvironmentKey() {
-        return environment.getKey();
+        return environmentKey;
     }
 
     public String getEnvironmentName() {
-        return environment.getName();
+        return environmentName;
     }
 
     @CheckForNull
     public String getEnvironmentType() {
-        return environment.getType();
+        return environmentType;
     }
 
     @CheckForNull
     public String getEnvironmentUrl() {
-        return environment.getUrl();
+        return environmentUrl;
     }
 
     @Override
@@ -93,8 +115,11 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
 
             // We use the default call to the bitbucketDeploymentFactory to get the state of the deployment based
             // on the run.
-            BitbucketDeployment deployment =
-                    descriptor().getBitbucketDeploymentFactory().createDeployment(run, environment);
+            BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(getOrGenerateEnvironmentKey(environmentKey), environmentName)
+                            .type(BitbucketDeploymentEnvironmentType.fromName(stripToNull(environmentType)).orElse(null))
+                            .url(environmentUrl)
+                            .build();
+            BitbucketDeployment deployment = descriptor().getBitbucketDeploymentFactory().createDeployment(run, environment);
 
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
             String revisionSha = revisionAction.getRevisionSha1();
@@ -104,8 +129,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         } catch (RuntimeException e) {
             // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,
             // we don't want to throw anything and potentially stop other steps from being executed
-            String errorMsg =
-                    String.format("An exception occurred when trying to post the deployment to Bitbucket Server: %s", e.getMessage());
+            String errorMsg = format("An error occurred when trying to post the deployment to Bitbucket Server: %s", e.getMessage());
             listener.error(errorMsg);
             LOGGER.info(errorMsg);
             LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
@@ -117,29 +141,6 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
             return environmentKey;
         }
         return UUID.randomUUID().toString();
-    }
-
-    private static BitbucketDeploymentEnvironment validateAndGetEnvironment(String environmentKey,
-                                                                            String environmentName,
-                                                                            @CheckForNull String environmentType,
-                                                                            @CheckForNull String environmentUrl) {
-        FormValidation environmentNameValidation = validateEnvironmentName(environmentName);
-        if (!environmentNameValidation.equals(FORM_VALIDATION_OK)) {
-            throw new IllegalArgumentException(environmentNameValidation.getMessage());
-        }
-        FormValidation environmentTypeValidation = validateEnvironmentType(environmentType);
-        if (!environmentTypeValidation.equals(FORM_VALIDATION_OK)) {
-            throw new IllegalArgumentException(environmentTypeValidation.getMessage());
-        }
-        FormValidation environmentUrlValidation = validateEnvironmentUrl(environmentUrl);
-        if (!environmentUrlValidation.equals(FORM_VALIDATION_OK)) {
-            throw new IllegalArgumentException(environmentUrlValidation.getMessage());
-        }
-        return new BitbucketDeploymentEnvironment.Builder(getOrGenerateEnvironmentKey(environmentKey),
-                environmentName)
-                .type(BitbucketDeploymentEnvironmentType.fromName(stripToNull(environmentType)).orElse(null))
-                .url(environmentUrl)
-                .build();
     }
 
     private static FormValidation validateEnvironmentName(@CheckForNull String environmentName) {
@@ -229,6 +230,23 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;
+        }
+
+        @Override
+        public Publisher newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+            FormValidation environmentNameValidation = validateEnvironmentName(formData.getString("environmentName"));
+            if (!environmentNameValidation.equals(FORM_VALIDATION_OK)) {
+                throw new FormException(environmentNameValidation.getMessage(), "environmentName");
+            }
+            FormValidation environmentTypeValidation = validateEnvironmentType(formData.getString("environmentType"));
+            if (!environmentTypeValidation.equals(FORM_VALIDATION_OK)) {
+                throw new FormException(environmentTypeValidation.getMessage(), "environmentType");
+            }
+            FormValidation environmentUrlValidation = validateEnvironmentUrl(formData.getString("environmentUrl"));
+            if (!environmentUrlValidation.equals(FORM_VALIDATION_OK)) {
+                throw new FormException(environmentUrlValidation.getMessage(), "environmentUrl");
+            }
+            return super.newInstance(req, formData);
         }
 
         private void checkPermissions(@CheckForNull Item context) {

@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -113,8 +115,12 @@ public class DeployedToEnvironmentNotifierStepTest {
     @Test
     public void testPerformCallsDeploymentPoster() throws IOException, InterruptedException {
         DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
+                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
+                .url(ENV_URL)
+                .build();
         String serverId = "myServerId";
-        BitbucketDeployment deployment = createDeployment(step);
+        BitbucketDeployment deployment = createDeployment(environment);
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
@@ -128,31 +134,34 @@ public class DeployedToEnvironmentNotifierStepTest {
         when(revisionAction.getRevisionSha1()).thenReturn(commit);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
         TaskListener listener = mock(TaskListener.class);
-        when(bitbucketDeploymentFactory.createDeployment(run, step.getEnvironment()))
-                .thenReturn(deployment);
+        when(bitbucketDeploymentFactory.createDeployment(run, environment)).thenReturn(deployment);
 
         step.perform(run, null, null, listener);
 
         verifyZeroInteractions(listener);
-        verify(bitbucketDeploymentFactory).createDeployment(run, step.getEnvironment());
+        verify(bitbucketDeploymentFactory).createDeployment(run, environment);
         verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
     }
 
     @Test
     public void testPerformWhenExceptionDoesNotThrow() throws IOException, InterruptedException {
         DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
+                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
+                .url(ENV_URL)
+                .build();
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
         TaskListener listener = mock(TaskListener.class);
-        when(bitbucketDeploymentFactory.createDeployment(run, step.getEnvironment()))
+        when(bitbucketDeploymentFactory.createDeployment(run, environment))
                 .thenThrow(new RuntimeException("Some exception"));
 
         step.perform(run, null, null, listener);
 
-        verify(listener).error("An exception occurred when trying to post the deployment to Bitbucket Server: Some exception");
+        verify(listener).error("An error occurred when trying to post the deployment to Bitbucket Server: Some exception");
         verifyNoMoreInteractions(listener);
-        verify(bitbucketDeploymentFactory).createDeployment(run, step.getEnvironment());
+        verify(bitbucketDeploymentFactory).createDeployment(run, environment);
         verifyZeroInteractions(deploymentPoster);
     }
 
@@ -170,8 +179,8 @@ public class DeployedToEnvironmentNotifierStepTest {
         verifyZeroInteractions(deploymentPoster);
     }
 
-    private BitbucketDeployment createDeployment(DeployedToEnvironmentNotifierStep step) {
-        return new BitbucketDeployment(1, "desc", "name", step.getEnvironment(), "key", DeploymentState.FAILED, "url");
+    private BitbucketDeployment createDeployment(BitbucketDeploymentEnvironment environment) {
+        return new BitbucketDeployment(1, "desc", "name", environment, "key", DeploymentState.FAILED, "url");
     }
 
     private DeployedToEnvironmentNotifierStep createStep(String environmentKey, String environmentName,
