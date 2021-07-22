@@ -7,7 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookScmTrigger.BitbucketWebhookTriggerDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookScmTrigger.BitbucketWebhookScmTriggerDescriptor;
 import hudson.model.*;
 import hudson.scm.SCM;
 import hudson.util.SequentialExecutionQueue;
@@ -36,7 +36,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Mock
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
-    private BitbucketWebhookTriggerDescriptor descriptor;
+    private BitbucketWebhookScmTriggerDescriptor descriptor;
     @Mock
     private Jenkins jenkins;
     @Mock
@@ -50,7 +50,7 @@ public class BitbucketWebhookScmTriggerTest {
     public void setup() {
         when(jenkinsProvider.get()).thenReturn(jenkins);
         this.descriptor =
-                new BitbucketWebhookTriggerDescriptor(queue, webhookHandler, jenkinsProvider, bitbucketPluginConfiguration);
+                new BitbucketWebhookScmTriggerDescriptor(queue, webhookHandler, jenkinsProvider, bitbucketPluginConfiguration);
     }
 
     @Test
@@ -127,8 +127,8 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testTrigger() {
-        BitbucketWebhookTriggerDescriptor mockDescriptor =
-                mock(BitbucketWebhookTriggerDescriptor.class);
+        BitbucketWebhookScmTriggerDescriptor mockDescriptor =
+                mock(BitbucketWebhookScmTriggerDescriptor.class);
         BitbucketWebhookScmTrigger trigger = createInstance(mockDescriptor);
         FreeStyleProject project = createFreeStyleProject();
         BitbucketUser user = new BitbucketUser("me", "me@test.atlassian", "Me");
@@ -262,11 +262,11 @@ public class BitbucketWebhookScmTriggerTest {
         return createInstance(descriptor, false);
     }
 
-    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor) {
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookScmTriggerDescriptor descriptor) {
         return createInstance(descriptor, false);
     }
 
-    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookScmTriggerDescriptor descriptor,
                                                       boolean skipRegistration) {
         return new BitbucketWebhookScmTrigger(false, true) {
 
@@ -275,7 +275,7 @@ public class BitbucketWebhookScmTriggerTest {
              * @return descriptor
              */
             @Override
-            public BitbucketWebhookTriggerDescriptor getDescriptor() {
+            public BitbucketWebhookScmTriggerDescriptor getDescriptor() {
                 return descriptor;
             }
 
@@ -301,7 +301,7 @@ public class BitbucketWebhookScmTriggerTest {
      * @param workflowSCM a mock SCM to return
      * @return the webhook trigger
      */
-    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookTriggerDescriptor descriptor,
+    private BitbucketWebhookScmTrigger createInstance(BitbucketWebhookScmTriggerDescriptor descriptor,
                                                       @Nullable SCM workflowSCM) {
 
         return new BitbucketWebhookScmTrigger(false, true) {
@@ -311,7 +311,7 @@ public class BitbucketWebhookScmTriggerTest {
              * @return descriptor
              */
             @Override
-            public BitbucketWebhookTriggerDescriptor getDescriptor() {
+            public BitbucketWebhookScmTriggerDescriptor getDescriptor() {
                 return descriptor;
             }
 

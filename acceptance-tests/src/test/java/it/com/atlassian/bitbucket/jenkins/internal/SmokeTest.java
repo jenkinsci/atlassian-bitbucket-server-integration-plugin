@@ -9,8 +9,6 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsA
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jgit.api.Git;
