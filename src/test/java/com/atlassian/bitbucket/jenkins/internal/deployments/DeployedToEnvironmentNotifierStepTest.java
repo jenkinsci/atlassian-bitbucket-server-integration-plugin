@@ -16,12 +16,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.annotation.CheckForNull;
 import java.io.IOException;
+import java.net.URL;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -29,7 +29,8 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     private static final String ENV_KEY = "ENV_KEY";
     private static final String ENV_NAME = "ENV_NAME";
-    private static final String ENV_TYPE = "PRODUCTION";
+    private static final BitbucketDeploymentEnvironmentType ENV_TYPE = BitbucketDeploymentEnvironmentType.PRODUCTION;
+
     private static final String ENV_URL = "http://my-url";
 
     @Mock
@@ -45,7 +46,7 @@ public class DeployedToEnvironmentNotifierStepTest {
         assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
-        assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
+        assertThat(step.getEnvironmentUrl().toString(), equalTo(ENV_URL));
     }
 
     @Test
@@ -54,7 +55,7 @@ public class DeployedToEnvironmentNotifierStepTest {
         assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), nullValue());
-        assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
+        assertThat(step.getEnvironmentUrl().toString(), equalTo(ENV_URL));
     }
 
     @Test
@@ -72,7 +73,7 @@ public class DeployedToEnvironmentNotifierStepTest {
         UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
-        assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
+        assertThat(step.getEnvironmentUrl().toString(), equalTo(ENV_URL));
     }
 
     @Test
@@ -81,44 +82,15 @@ public class DeployedToEnvironmentNotifierStepTest {
         UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
-        assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
-    }
-
-    @Test
-    public void testCreateStepValidatesBlankEnvironmentName() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, " ", ENV_TYPE, ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment name is required."));
-    }
-
-    @Test
-    public void testCreateStepValidatesInvalidEnvironmentType() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, ENV_NAME, "NOT_AN_ENV_TYPE", ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING."));
-    }
-
-    @Test
-    public void testCreateStepValidatesInvalidEnvironmentUrl() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, ENV_NAME, ENV_TYPE, "not a valid url!"));
-        assertThat(exception.getMessage(), equalTo("The environment URL must be a valid URL."));
-    }
-
-    @Test
-    public void testCreateStepValidatesNullEnvironmentName() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, null, ENV_TYPE, ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment name is required."));
+        assertThat(step.getEnvironmentUrl().toString(), equalTo(ENV_URL));
     }
 
     @Test
     public void testPerformCallsDeploymentPoster() throws IOException, InterruptedException {
         DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
-                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
-                .url(ENV_URL)
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment(ENV_KEY, ENV_NAME, ENV_TYPE,
+                new URL(ENV_URL));
+
         String serverId = "myServerId";
         BitbucketDeployment deployment = createDeployment(environment);
         Run<?, ?> run = mock(Run.class);
@@ -146,10 +118,9 @@ public class DeployedToEnvironmentNotifierStepTest {
     @Test
     public void testPerformWhenExceptionDoesNotThrow() throws IOException, InterruptedException {
         DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
-                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
-                .url(ENV_URL)
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment(ENV_KEY, ENV_NAME, ENV_TYPE,
+                new URL(ENV_URL));
+
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
@@ -184,9 +155,10 @@ public class DeployedToEnvironmentNotifierStepTest {
     }
 
     private DeployedToEnvironmentNotifierStep createStep(String environmentKey, String environmentName,
-                                                         @CheckForNull String environmentType,
+                                                         @CheckForNull BitbucketDeploymentEnvironmentType environmentType,
                                                          @CheckForNull String environmentUrl) {
-        return new DeployedToEnvironmentNotifierStep(environmentKey, environmentName, environmentType, environmentUrl) {
+        String enumString = environmentType == null ? null : environmentType.toString();
+        return new DeployedToEnvironmentNotifierStep(environmentKey, environmentName, enumString, environmentUrl) {
             @Override
             public DescriptorImpl descriptor() {
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);

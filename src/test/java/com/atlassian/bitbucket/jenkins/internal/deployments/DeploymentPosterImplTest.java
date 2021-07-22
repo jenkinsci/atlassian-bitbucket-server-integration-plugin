@@ -41,7 +41,7 @@ public class DeploymentPosterImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
     private static final BitbucketDeploymentEnvironment ENVIRONMENT =
-            new BitbucketDeploymentEnvironment.Builder("ENV-KEY", "Env name").build();
+            new BitbucketDeploymentEnvironment("ENV-KEY", "Env name", null, null);
     private static final BitbucketDeployment DEPLOYMENT = new BitbucketDeployment(1, "desc", "name",
             ENVIRONMENT, "key", DeploymentState.FAILED, "url");
     private static final String PROJECT_KEY = "projectKey";

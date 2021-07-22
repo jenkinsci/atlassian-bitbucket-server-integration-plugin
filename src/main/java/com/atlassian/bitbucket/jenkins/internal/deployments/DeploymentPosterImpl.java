@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
@@ -28,12 +27,18 @@ public class DeploymentPosterImpl implements DeploymentPoster {
 
     protected static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
-    @Inject
     private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    @Inject
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
-    @Inject
     private BitbucketPluginConfiguration pluginConfiguration;
+
+    @Inject
+    public DeploymentPosterImpl(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
+                                BitbucketPluginConfiguration pluginConfiguration) {
+        this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
+        this.pluginConfiguration = pluginConfiguration;
+    }
 
     @Override
     public void postDeployment(String bbsServerId, String projectKey, String repositorySlug, String revisionSha,
@@ -46,8 +51,9 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         }
 
         BitbucketServerConfiguration server = maybeServer.get();
-        GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
-        Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
+
+        Credentials globalAdminCredentials = server.getGlobalCredentialsProvider(run.getParent())
+                .getGlobalAdminCredentials().orElse(null);
         BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials);
         BitbucketClientFactory clientFactory =
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);

@@ -11,6 +11,7 @@ import okio.Buffer;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URL;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
@@ -40,10 +41,9 @@ public class BitbucketDeploymentClientImplTest {
         String deploymentsUrl = format(DEPLOYMENTS_URL, BITBUCKET_BASE_URL, projectKey, repoSlug, revisionSha);
         fakeRemoteHttpServer.mapPostRequestToResult(deploymentsUrl, requestBody, response);
 
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .type(BitbucketDeploymentEnvironmentType.DEVELOPMENT)
-                .url("http://url.to.env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env",
+                BitbucketDeploymentEnvironmentType.DEVELOPMENT, new URL("http://url.to.env"));
+
         BitbucketDeployment deployment = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
                 "my-key", DeploymentState.FAILED, "http://url.to.job");
         client.post(deployment);

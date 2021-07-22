@@ -4,10 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.deployments.Messages;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.CheckForNull;
-import java.util.Arrays;
-import java.util.Optional;
-
-import static java.util.Optional.empty;
+import java.util.Locale;
 
 /**
  * The types of environments available via the Bitbucket Server API.
@@ -29,13 +26,16 @@ public enum BitbucketDeploymentEnvironmentType {
         this.weight = weight;
     }
 
-    public static Optional<BitbucketDeploymentEnvironmentType> fromName(@CheckForNull String name) {
+    @CheckForNull
+    public static BitbucketDeploymentEnvironmentType fromName(@CheckForNull String name) {
         if (StringUtils.isBlank(name)) {
-            return empty();
+            return null;
         }
-        return Arrays.stream(values())
-                .filter(value -> value.name().equalsIgnoreCase(name))
-                .findFirst();
+        try {
+            return BitbucketDeploymentEnvironmentType.valueOf(name.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public String getDisplayName() {
