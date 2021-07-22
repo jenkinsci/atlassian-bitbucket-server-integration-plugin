@@ -116,7 +116,7 @@ public class DeploymentPosterImplTest {
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
-        verify(taskListener).error(format("The global admin credentials for the Bitbucket Server instance %s are invalid or insufficient to post deployment information: %s",
+        verify(taskListener).error(format("The personal access token for the Bitbucket Server instance %s is invalid or insufficient to post deployment information: %s",
                 SERVER_NAME, "An auth error"));
     }
 

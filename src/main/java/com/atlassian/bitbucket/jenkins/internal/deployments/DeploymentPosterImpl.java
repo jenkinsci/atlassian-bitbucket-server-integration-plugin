@@ -68,7 +68,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
             taskListener.getLogger().println(format("Successfully sent notification of %s deployment to %s on commit %s",
                     deployment.getState().name(), server.getServerName(), revisionSha));
         } catch (AuthorizationException e) {
-            taskListener.error(format("The global admin credentials for the Bitbucket Server instance %s are invalid or insufficient to post deployment information: %s",
+            taskListener.error(format("The personal access token for the Bitbucket Server instance %s is invalid or insufficient to post deployment information: %s",
                     server.getServerName(), e.getMessage()));
         } catch (BitbucketClientException e) {
             // There was a problem sending the deployment to Bitbucket
