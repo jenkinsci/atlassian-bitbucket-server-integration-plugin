@@ -40,8 +40,7 @@ import static org.mockito.Mockito.*;
 public class DeploymentPosterImplTest {
 
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
-    private static final BitbucketDeploymentEnvironment ENVIRONMENT =
-            new BitbucketDeploymentEnvironment.Builder("ENV-KEY", "Env name").build();
+    private static final BitbucketDeploymentEnvironment ENVIRONMENT = new BitbucketDeploymentEnvironment("ENV-KEY", "Env name");
     private static final BitbucketDeployment DEPLOYMENT = new BitbucketDeployment(1, "desc", "name",
             ENVIRONMENT, "key", DeploymentState.FAILED, "url");
     private static final String PROJECT_KEY = "projectKey";
@@ -102,7 +101,7 @@ public class DeploymentPosterImplTest {
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA))
                 .post(DEPLOYMENT);
-        verify(printStream).println(format("Successfully sent notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sent notification of %s deployment to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
     }
 

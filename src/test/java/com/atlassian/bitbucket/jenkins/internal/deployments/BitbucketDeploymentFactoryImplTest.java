@@ -41,8 +41,7 @@ public class BitbucketDeploymentFactoryImplTest {
 
     @Test
     public void testCreateDeploymentFailed() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env");
         BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name failed to deploy to My-env.",
                 "my-display-name", environment, "my-key", DeploymentState.FAILED, RUN_URL);
         Result result = Result.FAILURE;
@@ -55,8 +54,7 @@ public class BitbucketDeploymentFactoryImplTest {
 
     @Test
     public void testCreateDeploymentInProgress() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env");
         BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name is deploying to My-env.",
                 "my-display-name", environment, "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
         Result result = null;
@@ -69,8 +67,7 @@ public class BitbucketDeploymentFactoryImplTest {
 
     @Test
     public void testCreateDeploymentSuccessful() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env");
         BitbucketDeployment expected = new BitbucketDeployment(42, "my display name successfully deployed to My-env",
                 "my display name", environment, "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
         Result result = Result.SUCCESS;
@@ -83,8 +80,7 @@ public class BitbucketDeploymentFactoryImplTest {
 
     @Test
     public void testCreateDeploymentUnstable() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env");
         BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name successfully deployed to My-env",
                 "my-display-name", environment, "my-key", DeploymentState.SUCCESSFUL, RUN_URL);
         Result result = Result.UNSTABLE;
@@ -97,8 +93,7 @@ public class BitbucketDeploymentFactoryImplTest {
 
     @Test
     public void testCreateDeploymentWithSpecificState() {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env");
         BitbucketDeployment expected = new BitbucketDeployment(42, "my-display-name is deploying to My-env.",
                 "my-display-name", environment, "my-key", DeploymentState.IN_PROGRESS, RUN_URL);
         Result result = Result.SUCCESS; // Something different to expected to make sure we're using that instead

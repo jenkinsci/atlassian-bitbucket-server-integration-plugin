@@ -6,12 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.net.URI;
 import java.util.Objects;
-
-import static java.util.Objects.requireNonNull;
-import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 /**
  * The details of an environment that was deployed to.
@@ -29,22 +25,22 @@ public class BitbucketDeploymentEnvironment {
 
     private final String key;
     private final String name;
-    private final String type;
-    private final String url;
-
-    private BitbucketDeploymentEnvironment(Builder builder) {
-        this(builder.key, builder.name, builder.type == null ? null : builder.type.name(), builder.url);
-    }
+    private final BitbucketDeploymentEnvironmentType type;
+    private final URI url;
 
     @JsonCreator
     public BitbucketDeploymentEnvironment(@JsonProperty(KEY) String key,
                                           @JsonProperty(DISPLAY_NAME) String name,
-                                          @CheckForNull @JsonProperty(TYPE) String type,
-                                          @CheckForNull @JsonProperty(URL) String url) {
+                                          @CheckForNull @JsonProperty(TYPE) BitbucketDeploymentEnvironmentType type,
+                                          @CheckForNull @JsonProperty(URL) URI url) {
         this.key = key;
         this.name = name;
         this.type = type;
         this.url = url;
+    }
+
+    public BitbucketDeploymentEnvironment(String key, String name) {
+        this(key, name, null, null);
     }
 
     @Override
@@ -81,7 +77,7 @@ public class BitbucketDeploymentEnvironment {
      */
     @JsonProperty(TYPE)
     @CheckForNull
-    public String getType() {
+    public BitbucketDeploymentEnvironmentType getType() {
         return type;
     }
 
@@ -90,7 +86,7 @@ public class BitbucketDeploymentEnvironment {
      */
     @JsonProperty(URL)
     @CheckForNull
-    public String getUrl() {
+    public URI getUrl() {
         return url;
     }
 
@@ -107,38 +103,5 @@ public class BitbucketDeploymentEnvironment {
                ", type='" + type + '\'' +
                ", url='" + url + '\'' +
                '}';
-    }
-
-    public static class Builder {
-
-        private final String key;
-        private final String name;
-
-        private BitbucketDeploymentEnvironmentType type;
-        private String url;
-
-        public Builder(@Nonnull String key, @Nonnull String name) {
-            this.key = requireNonNull(stripToNull(key), "key");
-            this.name = requireNonNull(stripToNull(name), "name");
-        }
-
-        @Nonnull
-        public BitbucketDeploymentEnvironment build() {
-            return new BitbucketDeploymentEnvironment(this);
-        }
-
-        @Nonnull
-        public Builder type(@Nullable BitbucketDeploymentEnvironmentType value) {
-            type = value;
-
-            return this;
-        }
-
-        @Nonnull
-        public Builder url(@Nullable String value) {
-            url = stripToNull(value);
-
-            return this;
-        }
     }
 }

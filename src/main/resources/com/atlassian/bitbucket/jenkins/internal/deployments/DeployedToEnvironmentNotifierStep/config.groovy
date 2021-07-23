@@ -11,13 +11,13 @@ f.section() {
         p()
     }
 
+    f.entry(title: _("bitbucket.deployments.env.type.title"), field: "environmentType") {
+        f.select(checkMethod: "post")
+    }
+
     f.entry(title: _("bitbucket.deployments.env.name.title"), field: "environmentName") {
         f.textbox(context: app, checkMethod: "post",
                 placeholder: _("bitbucket.deployments.env.name.placeholder"))
-    }
-
-    f.entry(title: _("bitbucket.deployments.env.type.title"), field: "environmentType") {
-        f.select(checkMethod: "post")
     }
 
     f.entry(title: _("bitbucket.deployments.env.url.title"), field: "environmentUrl") {

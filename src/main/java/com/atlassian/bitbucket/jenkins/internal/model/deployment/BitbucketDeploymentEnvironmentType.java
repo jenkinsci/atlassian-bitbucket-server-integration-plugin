@@ -1,13 +1,18 @@
 package com.atlassian.bitbucket.jenkins.internal.model.deployment;
 
 import com.atlassian.bitbucket.jenkins.internal.deployments.Messages;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.CheckForNull;
-import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * The types of environments available via the Bitbucket Server API.
@@ -21,6 +26,9 @@ public enum BitbucketDeploymentEnvironmentType {
     STAGING(Messages.BitbucketDeploymentEnvironmentType_STAGING(), 1),
     TESTING(Messages.BitbucketDeploymentEnvironmentType_TESTING(), 2);
 
+    private static final Map<String, BitbucketDeploymentEnvironmentType> types =
+            Stream.of(values()).collect(toMap(t -> t.name().toUpperCase(Locale.US), identity()));
+
     private final String displayName;
     private final int weight;
 
@@ -30,12 +38,10 @@ public enum BitbucketDeploymentEnvironmentType {
     }
 
     public static Optional<BitbucketDeploymentEnvironmentType> fromName(@CheckForNull String name) {
-        if (StringUtils.isBlank(name)) {
+        if (isBlank(name)) {
             return empty();
         }
-        return Arrays.stream(values())
-                .filter(value -> value.name().equalsIgnoreCase(name))
-                .findFirst();
+        return ofNullable(types.get(name.toUpperCase(Locale.US)));
     }
 
     public String getDisplayName() {

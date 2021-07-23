@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
@@ -46,8 +45,9 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         }
 
         BitbucketServerConfiguration server = maybeServer.get();
-        GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
-        Credentials globalAdminCredentials = globalCredentialsProvider.getGlobalAdminCredentials().orElse(null);
+        Credentials globalAdminCredentials = server.getGlobalCredentialsProvider(run.getParent())
+                .getGlobalAdminCredentials()
+                .orElse(null);
         BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials);
         BitbucketClientFactory clientFactory =
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
@@ -65,7 +65,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
                     .getRepositoryClient(repositorySlug)
                     .getDeploymentClient(revisionSha)
                     .post(deployment);
-            taskListener.getLogger().println(format("Successfully sent notification of %s deployment to %s on commit %s",
+            taskListener.getLogger().println(format("Sent notification of %s deployment to %s on commit %s",
                     deployment.getState().name(), server.getServerName(), revisionSha));
         } catch (AuthorizationException e) {
             taskListener.error(format("The personal access token for the Bitbucket Server instance %s is invalid or insufficient to post deployment information: %s",

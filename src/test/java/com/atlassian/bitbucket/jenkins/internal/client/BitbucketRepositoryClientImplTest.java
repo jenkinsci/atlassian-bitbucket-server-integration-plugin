@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.interfaces.RSAPrivateKey;
 
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
@@ -120,10 +121,8 @@ public class BitbucketRepositoryClientImplTest {
 
     @Test
     public void testPostDeployment() throws IOException {
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder("MY-ENV", "My-env")
-                .type(BitbucketDeploymentEnvironmentType.DEVELOPMENT)
-                .url("http://url.to.env")
-                .build();
+        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment("MY-ENV", "My-env",
+                BitbucketDeploymentEnvironmentType.DEVELOPMENT, URI.create("http://url.to.env"));
         BitbucketDeployment deployment = new BitbucketDeployment(42, "my-description", "my-display-name", environment,
                 "my-key", DeploymentState.FAILED, "http://url.to.job");
 

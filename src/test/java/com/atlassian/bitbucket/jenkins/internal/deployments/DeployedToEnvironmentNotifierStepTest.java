@@ -11,17 +11,17 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.annotation.CheckForNull;
 import java.io.IOException;
+import java.net.URI;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -32,38 +32,25 @@ public class DeployedToEnvironmentNotifierStepTest {
     private static final String ENV_TYPE = "PRODUCTION";
     private static final String ENV_URL = "http://my-url";
 
+    private static final BitbucketDeploymentEnvironment ENVIRONMENT = new BitbucketDeploymentEnvironment(ENV_KEY,
+            ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), URI.create(ENV_URL));
+
     @Mock
     private BitbucketDeploymentFactory bitbucketDeploymentFactory;
     @Mock
     private DeploymentPoster deploymentPoster;
     @Mock
     private JenkinsProvider jenkinsProvider;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private TaskListener listener;
 
     @Test
     public void testCreateStepAllowsCustomEnvironmentKey() {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
+        DeployedToEnvironmentNotifierStep step = createStep();
         assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
         assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
-    }
-
-    @Test
-    public void testCreateStepAllowsNullEnvironmentType() {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, null, ENV_URL);
-        assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
-        assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
-        assertThat(step.getEnvironmentType(), nullValue());
-        assertThat(step.getEnvironmentUrl(), equalTo(ENV_URL));
-    }
-
-    @Test
-    public void testCreateStepAllowsNullEnvironmentUrl() {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, null);
-        assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
-        assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
-        assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
-        assertThat(step.getEnvironmentUrl(), nullValue());
     }
 
     @Test
@@ -85,42 +72,10 @@ public class DeployedToEnvironmentNotifierStepTest {
     }
 
     @Test
-    public void testCreateStepValidatesBlankEnvironmentName() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, " ", ENV_TYPE, ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment name is required."));
-    }
-
-    @Test
-    public void testCreateStepValidatesInvalidEnvironmentType() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, ENV_NAME, "NOT_AN_ENV_TYPE", ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING."));
-    }
-
-    @Test
-    public void testCreateStepValidatesInvalidEnvironmentUrl() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, ENV_NAME, ENV_TYPE, "not a valid url!"));
-        assertThat(exception.getMessage(), equalTo("The environment URL must be a valid URL."));
-    }
-
-    @Test
-    public void testCreateStepValidatesNullEnvironmentName() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> createStep(ENV_KEY, null, ENV_TYPE, ENV_URL));
-        assertThat(exception.getMessage(), equalTo("The environment name is required."));
-    }
-
-    @Test
     public void testPerformCallsDeploymentPoster() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
-                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
-                .url(ENV_URL)
-                .build();
+        DeployedToEnvironmentNotifierStep step = createStep();
         String serverId = "myServerId";
-        BitbucketDeployment deployment = createDeployment(environment);
+        BitbucketDeployment deployment = createDeployment();
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
@@ -133,43 +88,156 @@ public class DeployedToEnvironmentNotifierStepTest {
         String commit = "myCommit";
         when(revisionAction.getRevisionSha1()).thenReturn(commit);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
-        TaskListener listener = mock(TaskListener.class);
-        when(bitbucketDeploymentFactory.createDeployment(run, environment)).thenReturn(deployment);
+
+        when(bitbucketDeploymentFactory.createDeployment(run, ENVIRONMENT)).thenReturn(deployment);
 
         step.perform(run, null, null, listener);
 
         verifyZeroInteractions(listener);
-        verify(bitbucketDeploymentFactory).createDeployment(run, environment);
+        verify(bitbucketDeploymentFactory).createDeployment(run, ENVIRONMENT);
+        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+    }
+
+    @Test
+    public void testPerformDefaultsNullEnvNameToEnvType() throws IOException, InterruptedException {
+        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, null, ENV_TYPE, ENV_URL);
+        BitbucketDeploymentEnvironmentType type = BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE);
+        BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
+                type.getDisplayName(), type, URI.create(ENV_URL));
+        String serverId = "myServerId";
+        BitbucketDeployment deployment = createDeployment();
+        Run<?, ?> run = mock(Run.class);
+        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
+        BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
+        when(repo.getServerId()).thenReturn(serverId);
+        String projectKey = "myProj";
+        when(repo.getProjectKey()).thenReturn(projectKey);
+        String repoSlug = "myRepo";
+        when(repo.getRepositorySlug()).thenReturn(repoSlug);
+        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
+        String commit = "myCommit";
+        when(revisionAction.getRevisionSha1()).thenReturn(commit);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+
+        when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
+
+        step.perform(run, null, null, listener);
+
+        verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Production' as the environment name since it was not correctly configured. Please configure an environment name.");
+        verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
+        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+    }
+
+    @Test
+    public void testPerformDefaultsNullEnvNameToJobName() throws IOException, InterruptedException {
+        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, null, null, ENV_URL);
+        String parentName = "Deploy to production";
+        BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
+                parentName, null, URI.create(ENV_URL));
+        String serverId = "myServerId";
+        BitbucketDeployment deployment = createDeployment();
+        Run<?, ?> run = mock(Run.class, Answers.RETURNS_DEEP_STUBS);
+        when(run.getParent().getDisplayName()).thenReturn(parentName);
+        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
+        BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
+        when(repo.getServerId()).thenReturn(serverId);
+        String projectKey = "myProj";
+        when(repo.getProjectKey()).thenReturn(projectKey);
+        String repoSlug = "myRepo";
+        when(repo.getRepositorySlug()).thenReturn(repoSlug);
+        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
+        String commit = "myCommit";
+        when(revisionAction.getRevisionSha1()).thenReturn(commit);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+
+        when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
+
+        step.perform(run, null, null, listener);
+
+        verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Deploy to production' as the environment name since it was not correctly configured. Please configure an environment name.");
+        verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
+        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+    }
+
+    @Test
+    public void testPerformLogsWhenInvalidEnvType() throws IOException, InterruptedException {
+        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, "NOT_A_VALID_TYPE", ENV_URL);
+        BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
+                ENV_NAME, null, URI.create(ENV_URL));
+        String serverId = "myServerId";
+        BitbucketDeployment deployment = createDeployment();
+        Run<?, ?> run = mock(Run.class);
+        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
+        BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
+        when(repo.getServerId()).thenReturn(serverId);
+        String projectKey = "myProj";
+        when(repo.getProjectKey()).thenReturn(projectKey);
+        String repoSlug = "myRepo";
+        when(repo.getRepositorySlug()).thenReturn(repoSlug);
+        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
+        String commit = "myCommit";
+        when(revisionAction.getRevisionSha1()).thenReturn(commit);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+
+        when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
+
+        step.perform(run, null, null, listener);
+
+        verify(listener.getLogger()).println("DeployedToEnvironmentNotifierStep: Invalid environment type 'NOT_A_VALID_TYPE'. Posting deployment without environment type.");
+        verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
+        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+    }
+
+    @Test
+    public void testPerformLogsWhenInvalidEnvUrl() throws IOException, InterruptedException {
+        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, "Not a URL!");
+        BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
+                ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), null);
+        String serverId = "myServerId";
+        BitbucketDeployment deployment = createDeployment();
+        Run<?, ?> run = mock(Run.class);
+        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
+        BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
+        when(repo.getServerId()).thenReturn(serverId);
+        String projectKey = "myProj";
+        when(repo.getProjectKey()).thenReturn(projectKey);
+        String repoSlug = "myRepo";
+        when(repo.getRepositorySlug()).thenReturn(repoSlug);
+        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
+        String commit = "myCommit";
+        when(revisionAction.getRevisionSha1()).thenReturn(commit);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+        when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
+
+        step.perform(run, null, null, listener);
+
+        verify(listener.getLogger()).println("DeployedToEnvironmentNotifierStep: Invalid environment URL 'Not a URL!'. Posting deployment without a URL instead.");
+        verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
     }
 
     @Test
     public void testPerformWhenExceptionDoesNotThrow() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
-        BitbucketDeploymentEnvironment environment = new BitbucketDeploymentEnvironment.Builder(ENV_KEY, ENV_NAME)
-                .type(BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE))
-                .url(ENV_URL)
-                .build();
+        DeployedToEnvironmentNotifierStep step = createStep();
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
-        TaskListener listener = mock(TaskListener.class);
-        when(bitbucketDeploymentFactory.createDeployment(run, environment))
+
+        when(bitbucketDeploymentFactory.createDeployment(run, ENVIRONMENT))
                 .thenThrow(new RuntimeException("Some exception"));
 
         step.perform(run, null, null, listener);
 
         verify(listener).error("An error occurred when trying to post the deployment to Bitbucket Server: Some exception");
         verifyNoMoreInteractions(listener);
-        verify(bitbucketDeploymentFactory).createDeployment(run, environment);
+        verify(bitbucketDeploymentFactory).createDeployment(run, ENVIRONMENT);
         verifyZeroInteractions(deploymentPoster);
     }
 
     @Test
     public void testPerformWhenNoBitbucketRevisionAction() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
+        DeployedToEnvironmentNotifierStep step = createStep();
         Run<?, ?> run = mock(Run.class);
-        TaskListener listener = mock(TaskListener.class);
 
         step.perform(run, null, null, listener);
 
@@ -179,8 +247,45 @@ public class DeployedToEnvironmentNotifierStepTest {
         verifyZeroInteractions(deploymentPoster);
     }
 
+    @Test
+    public void testPerformWithBlankEnvironmentUrlCallsDeploymentPoster() throws IOException, InterruptedException {
+        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, null);
+        BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
+                ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), null);
+        String serverId = "myServerId";
+        BitbucketDeployment deployment = createDeployment();
+        Run<?, ?> run = mock(Run.class);
+        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
+        BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
+        when(repo.getServerId()).thenReturn(serverId);
+        String projectKey = "myProj";
+        when(repo.getProjectKey()).thenReturn(projectKey);
+        String repoSlug = "myRepo";
+        when(repo.getRepositorySlug()).thenReturn(repoSlug);
+        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
+        String commit = "myCommit";
+        when(revisionAction.getRevisionSha1()).thenReturn(commit);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+
+        when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
+
+        step.perform(run, null, null, listener);
+
+        verifyZeroInteractions(listener);
+        verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
+        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+    }
+
+    private BitbucketDeployment createDeployment() {
+        return createDeployment(ENVIRONMENT);
+    }
+
     private BitbucketDeployment createDeployment(BitbucketDeploymentEnvironment environment) {
         return new BitbucketDeployment(1, "desc", "name", environment, "key", DeploymentState.FAILED, "url");
+    }
+
+    private DeployedToEnvironmentNotifierStep createStep() {
+        return createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
     }
 
     private DeployedToEnvironmentNotifierStep createStep(String environmentKey, String environmentName,
