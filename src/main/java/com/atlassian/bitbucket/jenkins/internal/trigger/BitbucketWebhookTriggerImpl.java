@@ -44,12 +44,12 @@ import static java.util.Objects.requireNonNull;
 import static jenkins.triggers.SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-public class BitbucketWebhookScmTrigger extends Trigger<Job<?, ?>>
+public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
     //the version (of this class) where the PR trigger was introduced. Version is 0 based.
     private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
-    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookScmTrigger.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
 
     private final boolean pullRequestTrigger;
     private final boolean refTrigger;
@@ -62,7 +62,7 @@ public class BitbucketWebhookScmTrigger extends Trigger<Job<?, ?>>
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
-    public BitbucketWebhookScmTrigger(boolean pullRequestTrigger, boolean refTrigger) {
+    public BitbucketWebhookTriggerImpl(boolean pullRequestTrigger, boolean refTrigger) {
         version = BUILD_ON_PULL_REQUEST_VERSION;
         this.pullRequestTrigger = pullRequestTrigger;
         this.refTrigger = refTrigger;
@@ -301,7 +301,7 @@ public class BitbucketWebhookScmTrigger extends Trigger<Job<?, ?>>
             return job.getTriggers()
                     .values()
                     .stream()
-                    .anyMatch(v -> v instanceof BitbucketWebhookScmTrigger);
+                    .anyMatch(v -> v instanceof BitbucketWebhookTriggerImpl);
         }
 
         private boolean isExistingWebhookOnRepo(BitbucketSCM scm, BitbucketSCMRepository repository) {

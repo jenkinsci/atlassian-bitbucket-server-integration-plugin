@@ -2,7 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookScmTrigger;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent;
 import hudson.model.FreeStyleProject;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
@@ -89,7 +89,7 @@ public class TriggerWebhookCreationTest {
     @Test
     public void testRegisterNewWebhookPullRequestUpdated() throws Exception {
         FreeStyleProject fsp = projectHandler.createFreeStyleProject(projectKey, repoSlug, "");
-        BitbucketWebhookScmTrigger trigger = new BitbucketWebhookScmTrigger(true, false);
+        BitbucketWebhookTriggerImpl trigger = new BitbucketWebhookTriggerImpl(true, false);
         fsp.addTrigger(trigger);
         trigger.start(fsp, true);
         Set<String> expectedEvents = PR_EVENTS_PRE_7_6;
@@ -121,7 +121,7 @@ public class TriggerWebhookCreationTest {
     @Test
     public void testRegisterNewWebhookRefsChanged() throws Exception {
         FreeStyleProject fsp = projectHandler.createFreeStyleProject(projectKey, repoSlug, "");
-        BitbucketWebhookScmTrigger trigger = new BitbucketWebhookScmTrigger(false, true);
+        BitbucketWebhookTriggerImpl trigger = new BitbucketWebhookTriggerImpl(false, true);
         fsp.addTrigger(trigger);
         trigger.start(fsp, true);
         assertThat(testClient.getRepositoryClient(projectKey, repoSlug).getWebhookClient().getWebhooks()
