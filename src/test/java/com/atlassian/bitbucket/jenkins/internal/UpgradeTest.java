@@ -3,11 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal;
 import hudson.model.UpdateSite;
 import org.apache.commons.io.FileUtils;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +34,7 @@ public class UpgradeTest {
     @ClassRule
     public static final JenkinsRule jenkins = new JenkinsRule();
 
-    @Ignore("This test is experimental and should really not be run right now unless you're working on it")
+    //@Ignore("This test is experimental and should really not be run right now unless you're working on it")
     @Test
     public void testName() throws ExecutionException, InterruptedException, IOException, ClassNotFoundException {
         //TODO this test will be quite slow to run, so it should have some logging (System.out is probably enough)
@@ -70,6 +73,12 @@ public class UpgradeTest {
         //TODO We need to add Jenkins jars in as well, or we can't load classes that extend or rely on Jenkins classes
 
         ClassLoader releasedPluginClassloader = new URLClassLoader(files.toArray(new URL[files.size()]), new RejectingParent(this.getClass().getClassLoader()));
+        Reflections reflections = new Reflections(new ConfigurationBuilder().addClassLoader(releasedPluginClassloader)
+                .addUrls(files).filterInputsBy(new FilterBuilder().includePackage("com.atlassian")).setScanners(new SubTypesScanner(false)));
+
+        if (true) {
+            return;
+        }
 
         //some dummy playing around
         try {
