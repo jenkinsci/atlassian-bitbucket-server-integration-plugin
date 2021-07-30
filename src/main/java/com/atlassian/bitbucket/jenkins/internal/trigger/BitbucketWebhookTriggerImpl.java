@@ -187,7 +187,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         return !newInstance && !(project instanceof WorkflowJob);
     }
 
-    @Symbol("BitbucketWebhookScmTrigger")
+    @Symbol("BitbucketWebhookTriggerImpl")
     @Extension
     public static class BitbucketWebhookTriggerDescriptor extends TriggerDescriptor {
 
@@ -220,7 +220,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         @Override
         public String getDisplayName() {
-            return Messages.BitbucketWebhookScmTrigger_displayname();
+            return Messages.BitbucketWebhookTrigger_displayname();
         }
 
         @Override
