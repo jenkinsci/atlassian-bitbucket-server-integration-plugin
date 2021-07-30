@@ -133,7 +133,7 @@ public class BitbucketWebhookConsumer {
     }
 
     private static Optional<TriggerDetails> toTriggerDetails(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
-        BitbucketWebhookScmTrigger trigger = triggerFrom(job);
+        BitbucketWebhookTriggerImpl trigger = triggerFrom(job);
         if (trigger != null) {
             return of(new TriggerDetails(job, trigger));
         }
@@ -141,11 +141,11 @@ public class BitbucketWebhookConsumer {
     }
 
     @Nullable
-    private static BitbucketWebhookScmTrigger triggerFrom(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
+    private static BitbucketWebhookTriggerImpl triggerFrom(ParameterizedJobMixIn.ParameterizedJob<?, ?> job) {
         Map<TriggerDescriptor, Trigger<?>> triggers = job.getTriggers();
         for (Trigger<?> candidate : triggers.values()) {
-            if (candidate instanceof BitbucketWebhookScmTrigger) {
-                return (BitbucketWebhookScmTrigger) candidate;
+            if (candidate instanceof BitbucketWebhookTriggerImpl) {
+                return (BitbucketWebhookTriggerImpl) candidate;
             }
         }
         return null;

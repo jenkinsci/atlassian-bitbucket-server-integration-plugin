@@ -174,7 +174,7 @@ public class BitbucketSCMIT {
     }
 
     private BitbucketSCM createSCMWithSshCredentials() {
-        return createScm(bbJenkinsRule, true, "rep_1", singletonList(new BranchSpec("*/master")));
+        return createScm(bbJenkinsRule, true, "PROJECT_1", "rep_1", singletonList(new BranchSpec("*/master")));
     }
 
     private BitbucketSCM createScmWithSpecs(String... refs) {
@@ -185,6 +185,6 @@ public class BitbucketSCMIT {
     }
 
     private BitbucketSCM createSCMWithCustomRepo(String repoSlug) {
-        return createScm(bbJenkinsRule, repoSlug, singletonList(new BranchSpec("*/master")));
+        return createScm(bbJenkinsRule, "PROJECT_1", repoSlug, singletonList(new BranchSpec("*/master")));
     }
 }

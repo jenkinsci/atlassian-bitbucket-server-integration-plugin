@@ -4,7 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketUser;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookScmTrigger;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookTriggerRequest;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import hudson.FilePath;
@@ -38,10 +38,10 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BitbucketWebhookScmTriggerTest {
+public class BitbucketWebhookTriggerImplTest {
 
     protected static final Logger LOGGER =
-            Logger.getLogger(BitbucketWebhookScmTriggerTest.class.getName());
+            Logger.getLogger(BitbucketWebhookTriggerImplTest.class.getName());
     protected static final JenkinsRule jenkinsRule = new JenkinsRule();
     @ClassRule
     public static TestRule chain =
@@ -49,14 +49,14 @@ public class BitbucketWebhookScmTriggerTest {
 
     protected Job project;
     protected TestScm scm;
-    protected BitbucketWebhookScmTrigger trigger;
+    protected BitbucketWebhookTriggerImpl trigger;
 
     @Before
     public void setup() throws Exception {
         project = jenkinsRule.createFreeStyleProject();
         scm = new TestScm();
         ((FreeStyleProject) project).setScm(scm);
-        trigger = new BitbucketWebhookScmTrigger(false, true);
+        trigger = new BitbucketWebhookTriggerImpl(false, true);
         trigger.start(project, true);
     }
 
@@ -67,7 +67,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForAllEvents() {
-        trigger = new BitbucketWebhookScmTrigger(true, true);
+        trigger = new BitbucketWebhookTriggerImpl(true, true);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to PR open event",
@@ -77,7 +77,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForPullrequestDeclineEvent() {
-        trigger = new BitbucketWebhookScmTrigger(true, false);
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.DECLINED);
         assertFalse("Trigger should not be applicable to PR declined event",
@@ -87,7 +87,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForPullrequestDeleteEvent() {
-        trigger = new BitbucketWebhookScmTrigger(true, false);
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.DELETED);
         assertFalse("Trigger should not be applicable to PR deleted event",
@@ -97,7 +97,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForPullrequestMergeEvent() {
-        trigger = new BitbucketWebhookScmTrigger(true, false);
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.MERGED);
         assertFalse("Trigger should not be applicable to PR merge event",
@@ -107,7 +107,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForPullrequestOpenEvent() {
-        trigger = new BitbucketWebhookScmTrigger(true, false);
+        trigger = new BitbucketWebhookTriggerImpl(true, false);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to PR open event",
@@ -117,7 +117,7 @@ public class BitbucketWebhookScmTriggerTest {
 
     @Test
     public void testIsApplicableForRefChangeEvent() {
-        trigger = new BitbucketWebhookScmTrigger(false, true);
+        trigger = new BitbucketWebhookTriggerImpl(false, true);
         RefsChangedWebhookEvent event = getRefChangedEvent();
         PullRequestWebhookEvent prEvent = getPullRequestEvent(BitbucketPullRequestState.OPEN);
         assertTrue("Trigger should be applicable to ref change event",

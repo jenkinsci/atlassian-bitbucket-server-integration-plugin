@@ -25,16 +25,16 @@ public final class ScmUtils {
     }
 
     public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule, List<BranchSpec> branchSpecs) {
-        return createScm(bbJenkinsRule, REPO_SLUG, branchSpecs);
+        return createScm(bbJenkinsRule, PROJECT_KEY, REPO_SLUG, branchSpecs);
     }
 
     public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule,
-                                         String repoSlug, List<BranchSpec> branchSpecs) {
-        return createScm(bbJenkinsRule, false, repoSlug, branchSpecs);
+                                         String projectKey, String repoSlug, List<BranchSpec> branchSpecs) {
+        return createScm(bbJenkinsRule, false, projectKey, repoSlug, branchSpecs);
     }
 
     public static BitbucketSCM createScm(BitbucketJenkinsRule bbJenkinsRule, boolean usesSshCredentials,
-                                         String repoSlug, List<BranchSpec> branchSpecs) {
+                                         String projectKey, String repoSlug, List<BranchSpec> branchSpecs) {
         BitbucketServerConfiguration serverConfiguration = bbJenkinsRule.getBitbucketServerConfiguration();
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider =
                 new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
@@ -43,7 +43,7 @@ public final class ScmUtils {
                         getCredentials(bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(), null).orElse(null));
         BitbucketRepository repository =
                 bitbucketClientFactoryProvider.getClient(serverConfiguration.getBaseUrl(), credentials)
-                        .getProjectClient(PROJECT_KEY)
+                        .getProjectClient(projectKey)
                         .getRepositoryClient(repoSlug)
                         .getRepository();
         return new BitbucketSCM(
