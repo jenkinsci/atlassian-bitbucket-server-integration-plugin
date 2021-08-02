@@ -1,6 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal;
 
 import hudson.model.UpdateSite;
+import hudson.scm.SCM;
+import hudson.triggers.Trigger;
 import org.apache.commons.io.FileUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -9,8 +11,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ConfigurationBuilder;
-import org.reflections.util.FilterBuilder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -42,20 +45,25 @@ public class UpgradeTest {
         //do progress while it is downloading.
 
         //hardcoded path for now, we must fix this, stick it in target or something
+        //we can use the "surefire.test.class.path" sys prop and then use a temp dir rule
         File destination = new File("/tmp/jenkins/lastReleased.hpi");
         //when working locally no need to go and get the file every time
         if (!destination.exists()) {
+            System.out.println("Updating the update center");
             //update the update center, so we know of latest versions
             jenkins.jenkins.getUpdateCenter().updateAllSites();
             //get our plugin, this is the latest released version (compatible withe the version of Jenkins we run in the test
             UpdateSite.Plugin plugin = jenkins.jenkins.getUpdateCenter().getPlugin("atlassian-bitbucket-server-integration");
             System.out.println(plugin.url);
-            //use Commons.io to download the HPI file
-            FileUtils.copyURLToFile(new URL(plugin.url), destination);
+            System.out.println("Downloading hpi file");
+            //use Commons.io to download the HPI file, wait 10s for connection and 10s for data transfer to start
+            FileUtils.copyURLToFile(new URL(plugin.url), destination, 10_000, 10_1000);
             //the HPI is just a war file, so we need to unzip it.
             //this unzip code is stolen from the internet, and is unsafe, it is good enough for a proof of concept
+            System.out.println("Unzip hpi file");
             UnzipFile.unzip(destination, new File("/tmp/jenkins/allFiles"));
         }
+
         //convert the files in the WEB-INF/lib directory to a List of URLs for later use
         List<URL> files = Files.list(Paths.get("/tmp/jenkins/allFiles/WEB-INF/lib"))
                 .filter(Files::isRegularFile)
@@ -70,11 +78,13 @@ public class UpgradeTest {
                 .collect(Collectors.toList());
         //create a new Classloader, using the core classloader as parent. This means we can load all our classes from the hpi file,
         //but it is unaware of changed files in the version checked out.
-        //TODO We need to add Jenkins jars in as well, or we can't load classes that extend or rely on Jenkins classes
 
         ClassLoader releasedPluginClassloader = new URLClassLoader(files.toArray(new URL[files.size()]), new RejectingParent(this.getClass().getClassLoader()));
+        //this config of the reflections lib, does not find BitbucketSCM which is confusing, and also breaking the test
         Reflections reflections = new Reflections(new ConfigurationBuilder().addClassLoader(releasedPluginClassloader)
-                .addUrls(files).filterInputsBy(new FilterBuilder().includePackage("com.atlassian")).setScanners(new SubTypesScanner(false)));
+                .addUrls(files).setScanners(new SubTypesScanner(false), new TypeAnnotationsScanner()));
+        Set<Class> interestingClasses = loadAtlassianClasses(releasedPluginClassloader, reflections);
+        Set<Class> directlyUpgradeAffectedClasses = findDirectlyUpgradeClasses(interestingClasses);
 
         if (true) {
             return;
@@ -93,6 +103,24 @@ public class UpgradeTest {
         //see note above, create this class as a test to ensure that the classloader releasedPluginClassloader above is
         //not polluted
         getClass().getClassLoader().loadClass("com.atlassian.bitbucket.jenkins.internal.client.Dummy");
+    }
+
+    private Set<Class> findDirectlyUpgradeClasses(Set<Class> allAtlassianClasses) {
+        //this is overly simple at the moment but it gets us going
+
+        return allAtlassianClasses.stream().filter(type ->
+                SCM.class.isAssignableFrom(type) || Trigger.class.isAssignableFrom(type))
+                .collect(Collectors.toSet());
+    }
+
+    private Set<Class> loadAtlassianClasses(ClassLoader releasedPluginClassloader, Reflections reflections) {
+        return reflections.getAllTypes().stream().filter(type -> type.startsWith("com.atlassian")).filter(type -> !type.endsWith("package-info")).map(type -> {
+            try {
+                return releasedPluginClassloader.loadClass(type);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toSet());
     }
 
     public static class UnzipFile {
