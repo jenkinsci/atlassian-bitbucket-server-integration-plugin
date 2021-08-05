@@ -57,8 +57,10 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
             if (isPullRequestTrigger()) {
                 return event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent;
             }
+        } else if (event instanceof RefsChangedWebhookEvent) {
+            return isRefTrigger();
         }
-        return event instanceof RefsChangedWebhookEvent && isRefTrigger();
+        return false; // No other events are applicable for triggers
     }
 
     public boolean isPullRequestTrigger() {
