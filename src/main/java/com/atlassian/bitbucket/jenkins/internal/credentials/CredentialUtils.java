@@ -5,7 +5,6 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import hudson.model.Item;
 import hudson.security.ACL;
-import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
@@ -26,17 +25,10 @@ public final class CredentialUtils {
                 CredentialUtils.class.getName() + " should not be instantiated");
     }
 
+    // If the context is null, then the Jenkins context will be used.
     public static Optional<Credentials> getCredentials(@Nullable String credentialsId, @Nullable Item context) {
         return CREDENTIAL_TYPES.stream().map(type -> firstOrNull(
                 lookupCredentials(type, context, ACL.SYSTEM, Collections.emptyList()),
-                withId(trimToEmpty(credentialsId))))
-                .filter(Objects::nonNull)
-                .findAny();
-    }
-
-    public static Optional<Credentials> getCredentials(@Nullable String credentialsId) {
-        return CREDENTIAL_TYPES.stream().map(type -> firstOrNull(
-                lookupCredentials(type, Jenkins.get(), ACL.SYSTEM, Collections.emptyList()),
                 withId(trimToEmpty(credentialsId))))
                 .filter(Objects::nonNull)
                 .findAny();

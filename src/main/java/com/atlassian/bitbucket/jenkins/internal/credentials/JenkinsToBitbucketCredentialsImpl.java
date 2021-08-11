@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.credentials;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import hudson.model.Item;
 import org.apache.commons.codec.Charsets;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
@@ -17,7 +18,12 @@ public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCred
 
     @Override
     public BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId) {
-        return CredentialUtils.getCredentials(credentialId)
+        return toBitbucketCredentials(credentialId, null);
+    }
+
+    @Override
+    public BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId, @Nullable Item context) {
+        return CredentialUtils.getCredentials(credentialId, context)
                 .map(this::toBitbucketCredentials).orElse(ANONYMOUS_CREDENTIALS);
     }
 

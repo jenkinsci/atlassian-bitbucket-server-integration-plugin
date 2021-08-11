@@ -214,6 +214,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 - A number of dependencies upgrades
 - Fix for JENKINS-63071, we are now setting the repository browser also for multibranch projects. Existing projects will
   need to be opened and saved again to fix this issue. New projects will work without any additional steps.
+- Fix issue JENKINS-65541  
 
 ### 2.1.3 (19 February 2021)
 - Fix issue JENKINS-63009 (Jobs now work with folder credentials)
