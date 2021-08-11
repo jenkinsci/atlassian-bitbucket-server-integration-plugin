@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.trigger;
+package com.atlassian.bitbucket.jenkins.internal.trigger.events;
 
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.fasterxml.jackson.annotation.JsonCreator;

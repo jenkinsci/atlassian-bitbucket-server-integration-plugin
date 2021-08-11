@@ -36,9 +36,9 @@ public class JenkinsProjectHandler {
         this.bbJenkinsRule = bbJenkinsRule;
     }
 
-    public FreeStyleProject createFreeStyleProject(String repoSlug, String branchPattern) throws Exception {
+    public FreeStyleProject createFreeStyleProject(String projectKey, String repoSlug, String branchPattern) throws Exception {
         FreeStyleProject project = bbJenkinsRule.createFreeStyleProject();
-        project.setScm(createScmWithSpecs(repoSlug, branchPattern));
+        project.setScm(createScmWithSpecs(projectKey, repoSlug, branchPattern));
         project.save();
         items.add(project);
         return project;
@@ -51,10 +51,10 @@ public class JenkinsProjectHandler {
         return wfj;
     }
 
-    public WorkflowJob createPipelineJobWithBitbucketScm(String name, String repoSlug,
+    public WorkflowJob createPipelineJobWithBitbucketScm(String name, String projectKey, String repoSlug,
                                                          String branchPattern) throws Exception {
         WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, "wf");
-        BitbucketSCM scm = createScmWithSpecs(repoSlug, branchPattern);
+        BitbucketSCM scm = createScmWithSpecs(projectKey, repoSlug, branchPattern);
         wfj.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
         items.add(wfj);
         return wfj;
@@ -139,10 +139,10 @@ public class JenkinsProjectHandler {
         }
     }
 
-    private BitbucketSCM createScmWithSpecs(String repoSlug, String... refs) {
+    private BitbucketSCM createScmWithSpecs(String projectKey, String repoSlug, String... refs) {
         List<BranchSpec> branchSpecs = Arrays.stream(refs)
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
-        return createScm(bbJenkinsRule, repoSlug, branchSpecs);
+        return createScm(bbJenkinsRule, projectKey, repoSlug, branchSpecs);
     }
 }

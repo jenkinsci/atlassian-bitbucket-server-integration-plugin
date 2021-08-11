@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
@@ -84,7 +85,7 @@ public class RetryingWebhookHandlerTest {
                 .thenReturn(t);
 
         BitbucketWebhook r =
-                retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository());
+                retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository(), false, true);
 
         assertThat(r, is(t));
         InOrder inOrder = Mockito.inOrder(provider);
@@ -95,7 +96,7 @@ public class RetryingWebhookHandlerTest {
     @Test(expected = WebhookRegistrationFailed.class)
     public void testFailures() {
         when(bitbucketWebhookClient.registerWebhook(any(BitbucketWebhookRequest.class))).thenThrow(AuthorizationException.class);
-        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository());
+        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, createSCMRepository(), false, true);
     }
 
     @Test
@@ -104,7 +105,7 @@ public class RetryingWebhookHandlerTest {
         BitbucketSCMRepository bitbucketSCMRepository = createSCMRepository();
         when(bitbucketWebhookClient.registerWebhook(any(BitbucketWebhookRequest.class))).thenReturn(t);
 
-        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository);
+        retryingWebhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, false, true);
 
         verify(bitbucketWebhookClient).registerWebhook(argThat((BitbucketWebhookRequest request) -> request.getName().equals(WEBHOOK_NAME)));
     }
@@ -117,6 +118,8 @@ public class RetryingWebhookHandlerTest {
         BitbucketWebhookClient bitbucketWebhookClient = mock(BitbucketWebhookClient.class);
         BitbucketProjectClient projectClient = mock(BitbucketProjectClient.class);
         BitbucketCapabilitiesClient client = mock(BitbucketCapabilitiesClient.class);
+        BitbucketWebhookSupportedEvents supportedEvents = new BitbucketWebhookSupportedEvents(emptySet());
+        when(client.getWebhookSupportedEvents()).thenReturn(supportedEvents);
         when(clientFactory.getCapabilityClient()).thenReturn(client);
         when(clientFactory.getProjectClient(PROJECT)).thenReturn(projectClient);
         BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);

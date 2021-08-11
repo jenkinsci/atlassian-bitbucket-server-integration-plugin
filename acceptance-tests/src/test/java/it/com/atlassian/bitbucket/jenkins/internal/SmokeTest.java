@@ -9,8 +9,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.client.JenkinsA
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.*;
 import it.com.atlassian.bitbucket.jenkins.internal.test.acceptance.ProjectBasedMatrixSecurityHelper;
-import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
-import net.sf.json.JSONArray;
+import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import net.sf.json.JSONObject;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jgit.api.Git;
@@ -27,6 +26,7 @@ import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshPrivateKeyCreden
 import org.jenkinsci.test.acceptance.po.*;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
+import org.openqa.selenium.By;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -228,6 +229,21 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
+    public void testFullBuildFlowWithFreeStyleJobPRTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFreeStyleTriggerTest(false, true, 1);
+    }
+
+    @Test
+    public void testFullBuildFlowWithFreeStyleJobRefTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFreeStyleTriggerTest(true, false, 1);
+    }
+
+    @Test
+    public void testFullBuildFlowWithFreeStyleJobRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFreeStyleTriggerTest(true, true, 2);
+    }
+
+    @Test
     public void testFullBuildFlowWithMultiBranchJobAndManualReIndexing() throws IOException, GitAPIException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
@@ -291,7 +307,7 @@ public class SmokeTest extends AbstractJUnitTest {
                 .serverId(serverId)
                 .projectName(forkRepo.getProject().getKey())
                 .repositoryName(forkRepo.getSlug());
-        multiBranchJob.enableBitbucketWebhookTrigger();
+        multiBranchJob.enableBitbucketWebhookTrigger(true, false);
         multiBranchJob.save();
 
         // Clone (fork) repo
@@ -343,6 +359,21 @@ public class SmokeTest extends AbstractJUnitTest {
         // Fetch and verify build status is posted for the new commit
         fetchBuildStatusesFromBitbucket(newFileCommitId).forEach(status ->
                 assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+    }
+
+    @Test
+    public void testFullBuildFlowWithMultibranchPRTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(false, true);
+    }
+
+    @Test
+    public void testFullBuildFlowWithMultibranchRefTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, false);
+    }
+
+    @Test
+    public void testFullBuildFlowWitMultibranchRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, true);
     }
 
     @Test
@@ -422,6 +453,49 @@ public class SmokeTest extends AbstractJUnitTest {
                 .filter(queryParam -> queryParam.getName().equals("oauth_token"))
                 .findFirst().get().getValue();
     }
+    private void runFreeStyleTriggerTest(boolean triggerOnRefChange, boolean triggerOnPullRequest, int expectedBuilds) throws IOException, GitAPIException, InterruptedException {
+        FreeStyleJob freeStyleJob = jenkins.jobs.create();
+        BitbucketScmConfig bitbucketScm = freeStyleJob.useScm(BitbucketScmConfig.class);
+        bitbucketScm
+                .credentialsId(bbsAdminCredsId)
+                .serverId(serverId)
+                .projectName(forkRepo.getProject().getKey())
+                .repositoryName(forkRepo.getSlug())
+                .anyBranch();
+        BitbucketWebhookTrigger trigger = freeStyleJob.addTrigger(BitbucketWebhookTrigger.class);
+        trigger.check(trigger.getElement(By.name("_.refTrigger")), triggerOnRefChange);
+        trigger.check(trigger.getElement(By.name("_.pullRequestTrigger")), triggerOnPullRequest);
+
+        freeStyleJob.save();
+        //triggering a build to ensure that all branch detection etc is done before we start our actual test
+        freeStyleJob.scheduleBuild();
+        verifySuccessfulBuild(freeStyleJob.getLastBuild());
+
+        // Clone (fork) repo and push new file
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
+
+        final String branchName = "smoke/test";
+        gitRepo.branchCreate().setName(branchName).call();
+        //this should not trigger a build as the trigger is only for PR.
+        RevCommit commit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
+                        ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
+
+        //Build should not have triggered, so next build should be the first one after the PR is created.
+        int lastBuildNumber = freeStyleJob.getLastBuild().getNumber();
+        createPullRequest(PROJECT_KEY, forkRepo.getSlug(), branchName);
+        //this is terrible but we must give Jenkins a chance to react to the webhook and schedule a build
+        Thread.sleep(Duration.ofSeconds(5).toMillis());
+        // Verify build was triggered
+        verifySuccessfulBuild(freeStyleJob.getLastBuild());
+
+        int newBuildNumber = freeStyleJob.getLastBuild().getNumber();
+        // Verify BB has received build status
+        fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
+                assertThat(status, successfulBuildWithKey(getBuildKey(freeStyleJob))));
+        assertThat("Wrong number of builds performed", newBuildNumber, is(lastBuildNumber+expectedBuilds));
+    }
 
     private void runFullBuildFlow(BitbucketScmWorkflowJob workflowJob) throws IOException, GitAPIException {
         // Clone (fork) repo and push new file
@@ -440,6 +514,81 @@ public class SmokeTest extends AbstractJUnitTest {
         // Verify BB has received build status
         fetchBuildStatusesFromBitbucket(commit.getId().getName()).forEach(status ->
                 assertThat(status, successfulBuildWithKey(getBuildKey(workflowJob))));
+    }
+
+    private void runFullFlowMultiBranch(boolean triggerOnRefChange, boolean triggerOnPullRequest) throws IOException, GitAPIException, InterruptedException {
+        BitbucketScmWorkflowMultiBranchJob multiBranchJob =
+                jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
+        BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
+        bitbucketBranchSource
+                .credentialsId(bbsAdminCredsId)
+                .serverId(serverId)
+                .projectName(forkRepo.getProject().getKey())
+                .repositoryName(forkRepo.getSlug());
+        multiBranchJob.enableBitbucketWebhookTrigger(triggerOnRefChange, triggerOnPullRequest);
+        multiBranchJob.save();
+
+        // Clone (fork) repo
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
+
+        // Push new Jenkinsfile to master
+        RevCommit masterCommit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
+        String masterCommitId = masterCommit.getId().getName();
+
+        //trigger scanning so we get no surprise builds on other branches later
+        multiBranchJob.reIndex();
+        multiBranchJob.waitForBranchIndexingFinished(30);
+
+        // Push Jenkinsfile to feature branch
+        final String featureBranchName = "test-feature";
+        gitRepo.branchCreate().setName(featureBranchName).call();
+        RevCommit featureBranchCommit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
+        String featureBranchCommitId = featureBranchCommit.getId().getName();
+
+        //wait for indexing to complete
+        multiBranchJob.waitForBranchIndexingFinished(30);
+        //this is terrible but we must give Jenkins a chance to react to the trigger and schedule a build
+        Thread.sleep(Duration.ofSeconds(10).toMillis());
+
+        Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
+        if (triggerOnRefChange) {
+            assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
+        }
+        if (!triggerOnRefChange && triggerOnPullRequest) {
+            assertThat("Wrong started state of build after ref change", build.hasStarted(), is(false));
+        }
+
+        BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
+        multiBranchJob.waitForBranchIndexingFinished(30);
+
+        //if any trigger is configured we should now have a build for the feature branch
+        String encodedBranchName = URLEncoder.encode(featureBranchName, UTF_8.name());
+        WorkflowJob featureBranchJob = multiBranchJob.getJob(encodedBranchName);
+        Build lastFeatureBranchBuild = featureBranchJob.getLastBuild();
+        assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
+
+        String featureBranchBuildName = multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name;
+        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+
+        // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
+        RevCommit newFileCommit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir, "new-file",
+                        "I'm a new file".getBytes(UTF_8));
+        String newFileCommitId = newFileCommit.getId().getName();
+
+        multiBranchJob.waitForBranchIndexingFinished(30);
+
+        //a trigger is bound to have triggered the build, so here we are satisfied to check that a new build was triggered
+
+        // Fetch and verify build status is posted for the new commit
+        fetchBuildStatusesFromBitbucket(newFileCommitId).forEach(status ->
+                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
     }
 
     private Response getBuildOperations(String commitId) {

@@ -3,35 +3,30 @@ package com.atlassian.bitbucket.jenkins.internal.trigger.register;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCapabilitiesClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketWebhookClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketMissingCapabilityException;
-import com.atlassian.bitbucket.jenkins.internal.client.exception.WebhookNotSupportedException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhook;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
-import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEndpoint.BIBUCKET_WEBHOOK_URL;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.MIRROR_SYNCHRONIZED_EVENT;
-import static com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookEvent.REPO_REF_CHANGE;
+import static com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent.*;
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
 /**
  * The following assumptions is made while handling webhooks,
- * 1. Separate webhooks will be added for repo ref and mirror sync events
- * 2. Input name is unique across all jenkins instance and will not shared by any system. Wrong URL with the given name
- * will be corrected.
- * 3. The callback URL is unique to this instance. Wrong name for given callback will be corrected.
+ * 1. A single webhook will be used for all events
+ * 2. Input name and url is unique across all jenkins instance and will not shared by any system. Difference in URL only
+ * is treated as a separate webook and will not be updated nor deleted.
  *
  * Webhook handling is done in following ways,
  *
  * 1. If there are no webhooks in the system, a new webhook is registered
- * 2. Existing webhooks are modified to reflect correct properties of webhooks.
+ * 2. Existing webhook is modified to reflect correct properties of webhooks.
  */
 public class BitbucketWebhookHandler implements WebhookHandler {
 
@@ -49,20 +44,29 @@ public class BitbucketWebhookHandler implements WebhookHandler {
     }
 
     @Override
+    @Nullable
     public BitbucketWebhook register(WebhookRegisterRequest request) {
-        BitbucketWebhookEvent event = getEvent(request);
-        return process(request, event);
+        Collection<BitbucketWebhookEvent> events = getEvents(request);
+        //If wanted webhook has no events, do nothing
+        if (events.isEmpty()) {
+            return null;
+        }
+        return process(request, events);
     }
 
     private String constructCallbackUrl(WebhookRegisterRequest request) {
         String jenkinsUrl = request.getJenkinsUrl();
         StringBuilder url = new StringBuilder(request.getJenkinsUrl());
-        url = jenkinsUrl.endsWith("/") ? url : url.append("/");
+        if (!jenkinsUrl.endsWith("/")) {
+            url.append("/");
+        }
         return url.append(CALLBACK_URL_SUFFIX).toString();
     }
 
-    private BitbucketWebhookRequest createRequest(WebhookRegisterRequest request, BitbucketWebhookEvent event) {
-        return BitbucketWebhookRequest.Builder.aRequestFor(event.getEventId())
+    private BitbucketWebhookRequest createRequest(WebhookRegisterRequest request,
+                                                  Collection<BitbucketWebhookEvent> events) {
+        return new BitbucketWebhookRequest.Builder(events.stream().map(BitbucketWebhookEvent::getEventId)
+                .collect(Collectors.toSet()))
                 .withCallbackTo(constructCallbackUrl(request))
                 .name(request.getName())
                 .build();
@@ -75,112 +79,118 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                 .forEach(webhookClient::deleteWebhook);
     }
 
-    private Optional<BitbucketWebhook> findSame(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
-                                                BitbucketWebhookEvent toSubscribe) {
-        String callback = constructCallbackUrl(request);
-        return webhooks
-                .stream()
-                .filter(hook -> hook.getName().equals(request.getName()))
-                .filter(hook -> hook.getUrl().equals(callback))
-                .filter(BitbucketWebhookRequest::isActive)
-                .filter(hook -> hook.getEvents().size() == 1)
-                .filter(hook -> hook.getEvents().contains(toSubscribe.getEventId()))
-                .peek(hook -> LOGGER.info("Found an existing webhook - " + hook))
-                .findFirst();
-    }
-
     /**
-     * Returns the correct webhook event to subscribe to.
-     *
+     * Returns the webhook events to subscribe to.
      * For Mirror sync event, the input request should point to mirror.
-     * For Repo ref event,
-     * 1. Input request does not point to mirrors
-     * 2. If webhook capability does not contains mirror sync, we still subscribe to repo ref.
-     *
-     * If the webhook capability is not there, we still subscribe to repo ref event.
+     * If the webhook capability does not contain mirror sync, this version with webhooks at least supports ref change,
+     * since this version supports webhooks, it will definitely support pull requests and ref changes
+     * We subscribe to events depending on if we want to only listen for ref changes, only pull request events or both
+     * If we subscribe to pull request events, we subscribe to all of these: pull requests are opened,
+     * closed, deleted or merged.
      *
      * @param request the input request
      * @return the correct webhook event
      */
-    private BitbucketWebhookEvent getEvent(WebhookRegisterRequest request) {
-        if (request.isMirror()) {
-            try {
-                BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
-                Set<String> hooks = events.getApplicationWebHooks();
-                if (hooks.contains(MIRROR_SYNCHRONIZED_EVENT.getEventId())) {
-                    return MIRROR_SYNCHRONIZED_EVENT;
-                } else if (hooks.contains(REPO_REF_CHANGE.getEventId())) {
-                    return REPO_REF_CHANGE;
-                } else {
-                    throw new WebhookNotSupportedException("Remote server does not support the required events.");
-                }
-            } catch (BitbucketMissingCapabilityException exception) {
-                return REPO_REF_CHANGE;
-            }
+    private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
+        Set<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
+        Set<BitbucketWebhookEvent> forbiddenEvents = new HashSet<>();
+        Set<String> hooks = new HashSet<>();
+        try {
+            BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
+            hooks.addAll(events.getApplicationWebHooks());
+        } catch (BitbucketMissingCapabilityException e) {
+            forbiddenEvents.add(MIRROR_SYNCHRONIZED);
+            forbiddenEvents.add(PULL_REQUEST_FROM_REF_UPDATED);
         }
-        return REPO_REF_CHANGE;
+
+        if (request.isMirror() && hooks.contains(MIRROR_SYNCHRONIZED.getEventId())) {
+            supportedEvents.add(MIRROR_SYNCHRONIZED);
+        } else if (request.isTriggerOnRefChange()) {
+            supportedEvents.add(REPO_REF_CHANGE);
+        }
+        if (request.isTriggerOnPullRequest()) {
+            supportedEvents.add(PULL_REQUEST_DECLINED);
+            supportedEvents.add(PULL_REQUEST_DELETED);
+            if (!forbiddenEvents.contains(PULL_REQUEST_FROM_REF_UPDATED) && !request.isMirror()) {
+                supportedEvents.add(PULL_REQUEST_FROM_REF_UPDATED);
+            }
+            supportedEvents.add(PULL_REQUEST_MERGED);
+            supportedEvents.add(PULL_REQUEST_OPENED);
+        }
+
+        return supportedEvents;
     }
 
+    /**
+     * Returns the Bitbucket webhook we have just registered/updated.
+     * There should only be one webhook for each Jenkins to Bitbucket connection.
+     * Possible webhook configurations: mirror sync, ref change, pull request events, ref change.
+     * The following is a summary of what this method does:
+     * 1. Registering new webhooks: This only happens when there is no webhook
+     * 2. Updating existing webhooks:
+     * The events on the existing webhook will be retained and any new events are added to it.
+     * It will not *remove* existing events from the webhook, only add new ones.
+     *
+     * @param request the input request
+     * @param events
+     * @return the registered/updated bitbucket webhook
+     */
     private BitbucketWebhook process(WebhookRegisterRequest request,
-                                     BitbucketWebhookEvent event) {
+                                     Collection<BitbucketWebhookEvent> events) {
         String callback = constructCallbackUrl(request);
-        List<BitbucketWebhook> ownedHooks =
-                webhookClient.getWebhooks(REPO_REF_CHANGE.getEventId(), MIRROR_SYNCHRONIZED_EVENT.getEventId())
-                        .filter(hook -> hook.getName().equals(request.getName()) || hook.getUrl().equals(callback))
-                        .collect(toList());
-        List<BitbucketWebhook> webhookWithMirrorSync = ownedHooks.stream()
-                .filter(hook -> hook.getEvents().contains(MIRROR_SYNCHRONIZED_EVENT.getEventId()))
-                .collect(toList());
-        List<BitbucketWebhook> webhookWithRepoRefChange = ownedHooks
-                .stream()
-                .filter(hook -> hook.getEvents().contains(REPO_REF_CHANGE.getEventId()))
-                .collect(toList());
+        List<BitbucketWebhook> webhooks = webhookClient.getWebhooks().collect(Collectors.toList());
+        Set<BitbucketWebhook> serverSideWebhooks =
+                webhooks.stream()
+                        .filter(hook -> hook.getName().equals(request.getName()) && hook.getUrl().equals(callback))
+                        .collect(Collectors.toSet());
 
-        if (ownedHooks.size() == 0 ||
-            (webhookWithMirrorSync.size() == 0 && event == MIRROR_SYNCHRONIZED_EVENT) ||
-            (webhookWithRepoRefChange.size() == 0 && event == REPO_REF_CHANGE)) {
-            BitbucketWebhookRequest webhook = createRequest(request, event);
+        Set<BitbucketWebhookEvent> desiredEvents = new HashSet<>(events);
+        Set<BitbucketWebhookEvent> serverSideWebhookEvents = serverSideWebhooks.stream().flatMap(event ->
+                event.getEvents().stream().map(BitbucketWebhookEvent::findByEventId)).collect(Collectors.toSet());
+        desiredEvents.addAll(serverSideWebhookEvents);
+
+        if (serverSideWebhookEvents.containsAll(desiredEvents) &&
+                serverSideWebhookEvents.size() == desiredEvents.size()) {
+            //check that the webhooks are actually active and not just registered by disabled.
+            Optional<BitbucketWebhook> foundWebook = serverSideWebhooks.stream().filter(event -> event.isActive() &&
+                    callback.equalsIgnoreCase(event.getUrl()))
+                    .findFirst();
+            if (foundWebook.isPresent()) {
+                return foundWebook.get();
+            }
+        }
+
+        //Determining whether to create a new webhook
+        //We will handle mirror syncs separate from all other events.
+        // If no webhook with wanted events exist, we register a new one.
+        if (serverSideWebhooks.isEmpty()) {
+            BitbucketWebhookRequest webhook = createRequest(request, desiredEvents);
             BitbucketWebhook result = webhookClient.registerWebhook(webhook);
             LOGGER.info("New Webhook registered - " + result);
             return result;
         }
 
-        BitbucketWebhook mirrorSyncResult =
-                handleExistingWebhook(request, webhookWithMirrorSync, MIRROR_SYNCHRONIZED_EVENT);
-
-        BitbucketWebhook repoRefResult = handleExistingWebhook(request, webhookWithRepoRefChange, REPO_REF_CHANGE);
-
-        if (mirrorSyncResult != null && mirrorSyncResult.getEvents().contains(event.getEventId())) {
-            return mirrorSyncResult;
-        } else {
-            return repoRefResult;
-        }
-    }
-
-    @Nullable
-    private BitbucketWebhook handleExistingWebhook(WebhookRegisterRequest request,
-                                                   List<BitbucketWebhook> existingWebhooks,
-                                                   BitbucketWebhookEvent toSubscribe) {
-        BitbucketWebhook result = null;
-        if (existingWebhooks.size() > 0) {
-            result = update(existingWebhooks, request, toSubscribe);
-            existingWebhooks.remove(result);
-            deleteWebhooks(existingWebhooks);
-        }
-        return result;
+        return update(webhooks, request, desiredEvents);
     }
 
     private BitbucketWebhook update(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
-                                    BitbucketWebhookEvent toSubscribe) {
-        return findSame(webhooks, request, toSubscribe)
-                .orElseGet(() -> updateRemoteWebhook(webhooks.get(0), request, toSubscribe));
+                                    Collection<BitbucketWebhookEvent> toSubscribe) {
+        if (!webhooks.isEmpty()) {
+            BitbucketWebhook webhook = updateRemoteWebhook(webhooks.get(0), request, toSubscribe);
+            // We remove all other matching webhooks other than the first, so there are no duplicates
+            if (webhooks.size() > 1) {
+                deleteWebhooks(webhooks.subList(1, webhooks.size()));
+            }
+            return webhook;
+        }
+        throw new IllegalArgumentException("Empty list of webhooks provided, need at least one to update");
     }
 
     private BitbucketWebhook updateRemoteWebhook(BitbucketWebhook existing, WebhookRegisterRequest request,
-                                                 BitbucketWebhookEvent toSubscribe) {
+                                                 Collection<BitbucketWebhookEvent> toSubscribe) {
         BitbucketWebhookRequest r = createRequest(request, toSubscribe);
         BitbucketWebhook updated = webhookClient.updateWebhook(existing.getId(), r);
-        LOGGER.info(format("Exising webhook updtated - %s with new webhook %s", existing, r));
+        LOGGER.info(format("Existing webhook updated - %s with new webhook %s", existing, r));
         return updated;
     }
 }

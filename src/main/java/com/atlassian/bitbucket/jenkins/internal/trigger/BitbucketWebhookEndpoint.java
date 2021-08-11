@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Extension;
 import hudson.model.UnprotectedRootAction;
@@ -31,18 +32,29 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
     private BitbucketWebhookConsumer webhookConsumer;
 
     @POST
+    @SuppressWarnings("unused")
     public HttpResponse doTrigger(StaplerRequest request, StaplerResponse response) {
         validateContentType(request);
 
         String eventKey = getEventKey(request);
 
         switch (BitbucketWebhookEvent.findByEventId(eventKey)) {
-            case DIAGNOSTICS_PING_EVENT:
+            case DIAGNOSTICS_PING:
                 return org.kohsuke.stapler.HttpResponses.ok();
             case REPO_REF_CHANGE:
-                return processRefChangedEvent(request);
-            case MIRROR_SYNCHRONIZED_EVENT:
-                return processMirrorSynchronizedEvent(request);
+                return processEvent(request, RefsChangedWebhookEvent.class);
+            case MIRROR_SYNCHRONIZED:
+                return processEvent(request, MirrorSynchronizedWebhookEvent.class);
+            case PULL_REQUEST_DECLINED:
+                return processEvent(request, PullRequestDeclinedWebhookEvent.class);
+            case PULL_REQUEST_DELETED:
+                return processEvent(request, PullRequestDeletedWebhookEvent.class);
+            case PULL_REQUEST_FROM_REF_UPDATED:
+                return processEvent(request, PullRequestFromRefUpdatedWebhookEvent.class);
+            case PULL_REQUEST_MERGED:
+                return processEvent(request, PullRequestMergedWebhookEvent.class);
+            case PULL_REQUEST_OPENED:
+                return processEvent(request, PullRequestOpenedWebhookEvent.class);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("Event is not supported: " + eventKey);
@@ -88,14 +100,8 @@ public class BitbucketWebhookEndpoint implements UnprotectedRootAction {
         }
     }
 
-    private HttpResponse processMirrorSynchronizedEvent(StaplerRequest request) {
-        MirrorSynchronizedWebhookEvent event = parse(request, MirrorSynchronizedWebhookEvent.class);
-        webhookConsumer.process(event);
-        return org.kohsuke.stapler.HttpResponses.ok();
-    }
-
-    private HttpResponse processRefChangedEvent(StaplerRequest request) {
-        RefsChangedWebhookEvent event = parse(request, RefsChangedWebhookEvent.class);
+    private <T extends AbstractWebhookEvent> HttpResponse processEvent(StaplerRequest request, Class<T> eventType) {
+        T event = parse(request, eventType);
         webhookConsumer.process(event);
         return org.kohsuke.stapler.HttpResponses.ok();
     }

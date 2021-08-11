@@ -8,7 +8,9 @@ import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProviderModule;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.google.inject.Guice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.CauseAction;
 import hudson.model.Item;
@@ -45,11 +47,25 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
+    //the version (of this class) where the PR trigger was introduced. Version is 0 based.
+    private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
+
+    private final boolean pullRequestTrigger;
+    private final boolean refTrigger;
+    /**
+     * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
+     * classes will serialise the actual value that was stored. Because the constructor is not run during de-serialisation
+     * we can safely set the value in the constructor to indicate which version this class is.
+     */
+    private final int version;
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler
     @DataBoundConstructor
-    public BitbucketWebhookTriggerImpl() {
+    public BitbucketWebhookTriggerImpl(boolean pullRequestTrigger, boolean refTrigger) {
+        version = BUILD_ON_PULL_REQUEST_VERSION;
+        this.pullRequestTrigger = pullRequestTrigger;
+        this.refTrigger = refTrigger;
     }
 
     @Override
@@ -58,10 +74,30 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
     }
 
     @Override
-    public void trigger(BitbucketWebhookTriggerRequest triggerRequest) {
-        SCMTriggerItem triggerItem = asSCMTriggerItem(job);
-        if (triggerItem != null) {
-            getDescriptor().schedule(job, triggerItem, triggerRequest);
+    public boolean isApplicableForEvent(AbstractWebhookEvent event) {
+        if (event instanceof PullRequestWebhookEvent) {
+            if (isPullRequestTrigger()) {
+                return event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent;
+            }
+        } else if (event instanceof RefsChangedWebhookEvent) {
+            return isRefTrigger();
+        }
+        return false; // No other events are applicable for triggers
+    }
+
+    public boolean isPullRequestTrigger() {
+        return pullRequestTrigger;
+    }
+
+    public boolean isRefTrigger() {
+        /*
+         * If it is an old version we should return true as that is the old default.
+         * If it is a new version we should use the value that was set.
+         */
+        if (version < BUILD_ON_PULL_REQUEST_VERSION) {
+            return true;
+        } else {
+            return refTrigger;
         }
     }
 
@@ -77,7 +113,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             Optional<SCM> maybeScm = fetchWorkflowSCM(triggerItem);
             maybeScm.ifPresent(scm -> {
                 if (scm instanceof BitbucketSCM) {
-                    boolean isAdded = descriptor.addTrigger(project, (BitbucketSCM) scm);
+                    boolean isAdded = descriptor.addTrigger(project, (BitbucketSCM) scm, pullRequestTrigger, refTrigger);
                     ((BitbucketSCM) scm).setWebhookRegistered(isAdded);
                 }
             });
@@ -90,29 +126,17 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                     .filter(scm -> !scm.isWebhookRegistered())
                     .filter(scm -> !checkTriggerExists(descriptor, scm))
                     .forEach(scm -> {
-                        boolean isAdded = descriptor.addTrigger(project, scm);
+                        boolean isAdded = descriptor.addTrigger(project, scm, pullRequestTrigger, refTrigger);
                         scm.setWebhookRegistered(isAdded);
                     });
         }
     }
 
-    private boolean checkTriggerExists(BitbucketWebhookTriggerDescriptor descriptor,
-                                       BitbucketSCM scm) {
-        boolean isExists = descriptor.webhookExists(job, scm);
-        if (isExists) {
-            scm.setWebhookRegistered(true);
+    public void trigger(BitbucketWebhookTriggerRequest triggerRequest) {
+        SCMTriggerItem triggerItem = asSCMTriggerItem(job);
+        if (triggerItem != null) {
+            getDescriptor().schedule(job, triggerItem, triggerRequest);
         }
-        return isExists;
-    }
-
-    /**
-     * Returns true if a the item is an instance of a {@link WorkflowJob}.
-     *
-     * @param triggerItem the item to test
-     * @return true if the item is a {@link WorkflowJob}, false otherwise
-     */
-    boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
-        return triggerItem instanceof WorkflowJob;
     }
 
     /**
@@ -130,11 +154,21 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
     }
 
     /**
+     * Returns true if a the item is an instance of a {@link WorkflowJob}.
+     *
+     * @param triggerItem the item to test
+     * @return true if the item is a {@link WorkflowJob}, false otherwise
+     */
+    boolean isWorkflowJob(@Nullable SCMTriggerItem triggerItem) {
+        return triggerItem instanceof WorkflowJob;
+    }
+
+    /**
      * Returns true if the registration should be skipped. The entire point of skipping registration is to avoid
      * excessive remote calls to bitbucket server every time some configuration is changed.
-     *
+     * <p>
      * For pipeline job, this is invoked every time a build is run.
-     *
+     * <p>
      * We can't always continue registration check if newInstance is false since during Jenkin startup, this is invoked
      * for every job. Making remote call to Bitbucket server would make the startup slow.
      *
@@ -146,21 +180,28 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         return !newInstance && !(project instanceof WorkflowJob);
     }
 
+    private boolean checkTriggerExists(BitbucketWebhookTriggerDescriptor descriptor,
+                                       BitbucketSCM scm) {
+        boolean isExists = descriptor.webhookExists(job, scm);
+        if (isExists) {
+            scm.setWebhookRegistered(true);
+        }
+        return isExists;
+    }
+
     @Symbol("BitbucketWebhookTriggerImpl")
     @Extension
     public static class BitbucketWebhookTriggerDescriptor extends TriggerDescriptor {
 
         // For now, the max threads is just a constant. In the future this may become configurable.
         private static final int MAX_THREADS = 10;
-
-        @Inject
-        private RetryingWebhookHandler retryingWebhookHandler;
+        @SuppressWarnings("TransientFieldInNonSerializableClass")
+        private final transient SequentialExecutionQueue queue;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         private transient JenkinsProvider jenkinsProvider;
-
-        @SuppressWarnings("TransientFieldInNonSerializableClass")
-        private final transient SequentialExecutionQueue queue;
+        @Inject
+        private RetryingWebhookHandler retryingWebhookHandler;
 
         @SuppressWarnings("unused")
         public BitbucketWebhookTriggerDescriptor() {
@@ -192,11 +233,6 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             return super.newInstance(req, formData);
         }
 
-        @Inject
-        public void setJenkinsProvider(JenkinsProvider jenkinsProvider) {
-            this.jenkinsProvider = jenkinsProvider;
-        }
-
         public void schedule(
                 @Nullable Job<?, ?> job,
                 SCMTriggerItem triggerItem,
@@ -205,14 +241,9 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             queue.execute(new BitbucketTriggerWorker(job, triggerItem, causeAction, triggerRequest.getAdditionalActions()));
         }
 
-        private boolean addTrigger(Item item, BitbucketSCM scm) {
-            try {
-                scm.getRepositories().forEach(repo -> registerWebhook(item, repo));
-                return true;
-            } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
-                throw ex;
-            }
+        @Inject
+        public void setJenkinsProvider(JenkinsProvider jenkinsProvider) {
+            this.jenkinsProvider = jenkinsProvider;
         }
 
         private static SequentialExecutionQueue createSequentialQueue() {
@@ -222,17 +253,55 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                             new NamingThreadFactory(Executors.defaultThreadFactory(), "BitbucketWebhookTrigger")));
         }
 
-        private void registerWebhook(Item item, BitbucketSCMRepository repository) {
+        private static boolean isTriggerEnabled(ParameterizedJobMixIn.ParameterizedJob job) {
+            return job.getTriggers()
+                    .values()
+                    .stream()
+                    .anyMatch(v -> v instanceof BitbucketWebhookTriggerImpl);
+        }
+
+        private boolean addTrigger(Item item, BitbucketSCM scm, boolean pullRequest, boolean refChange) {
+            try {
+                scm.getRepositories().forEach(repo -> registerWebhook(item, repo, pullRequest, refChange));
+                return true;
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "There was a problem while trying to add webhook", ex);
+                throw ex;
+            }
+        }
+
+        private BitbucketServerConfiguration getServer(String serverId) {
+            return bitbucketPluginConfiguration
+                    .getServerById(serverId)
+                    .orElseThrow(() -> new BitbucketClientException(
+                            "Server config not found for input server id" + serverId));
+        }
+
+        private boolean isExistingWebhookOnRepo(BitbucketSCM scm, BitbucketSCMRepository repository) {
+            return scm.isWebhookRegistered() &&
+                    scm.getRepositories().stream().allMatch(r -> r.getServerId().equals(repository.getServerId()) &&
+                            r.getProjectKey().equals(repository.getProjectKey()) &&
+                            r.getRepositorySlug().equals(repository.getRepositorySlug()) &&
+                            !isMirrorConfigurationDifferent(r));
+        }
+
+        private boolean isMirrorConfigurationDifferent(BitbucketSCMRepository r) {
+            return isEmpty(r.getMirrorName()) ^ isEmpty(r.getMirrorName());
+        }
+
+        private void registerWebhook(Item item, BitbucketSCMRepository repository,
+                                     boolean pullRequest, boolean refChange) {
             requireNonNull(repository.getServerId());
             BitbucketServerConfiguration bitbucketServerConfiguration = getServer(repository.getServerId());
 
             BitbucketWebhook webhook = retryingWebhookHandler.register(
                     bitbucketServerConfiguration.getBaseUrl(),
                     bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
-                    repository);
+                    repository, pullRequest, refChange);
             LOGGER.info("Webhook returned -" + webhook);
         }
 
+        @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "If jenkinsProvider is null we inject one, this is a false positive")
         private boolean webhookExists(Job<?, ?> project, BitbucketSCM input) {
             try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 if (jenkinsProvider == null) {
@@ -252,32 +321,6 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
                         .flatMap(Collection::stream)
                         .anyMatch(scm -> isExistingWebhookOnRepo(input, scm));
             }
-        }
-
-        private static boolean isTriggerEnabled(ParameterizedJobMixIn.ParameterizedJob job) {
-            return job.getTriggers()
-                    .values()
-                    .stream()
-                    .anyMatch(v -> v instanceof BitbucketWebhookTriggerImpl);
-        }
-
-        private boolean isExistingWebhookOnRepo(BitbucketSCM scm, BitbucketSCMRepository repository) {
-            return scm.isWebhookRegistered() &&
-                   scm.getRepositories().stream().allMatch(r -> r.getServerId().equals(repository.getServerId()) &&
-                                                                r.getProjectKey().equals(repository.getProjectKey()) &&
-                                                                r.getRepositorySlug().equals(repository.getRepositorySlug()) &&
-                                                                !isMirrorConfigurationDifferent(r));
-        }
-
-        private boolean isMirrorConfigurationDifferent(BitbucketSCMRepository r) {
-            return isEmpty(r.getMirrorName()) ^ isEmpty(r.getMirrorName());
-        }
-
-        private BitbucketServerConfiguration getServer(String serverId) {
-            return bitbucketPluginConfiguration
-                    .getServerById(serverId)
-                    .orElseThrow(() -> new BitbucketClientException(
-                            "Server config not found for input server id" + serverId));
         }
     }
 }
