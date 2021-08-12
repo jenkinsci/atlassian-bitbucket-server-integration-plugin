@@ -9,6 +9,7 @@ import org.reflections.scanners.FieldAnnotationsScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ConfigurationBuilder;
 import upgrade.com.atlassian.bitbucket.jenkins.internal.FailureCollector;
+import upgrade.com.atlassian.bitbucket.jenkins.internal.SafeRemovedClassList;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -46,6 +47,13 @@ public class StaleAnnotationTest {
                 errorCollector.addAnnotationRemovalFailure(unreleasedVersion, field);
             }
         });
+    }
+
+    @Test
+    public void testSafeClassRemovalFileIsCorreclyFormatted() {
+        //it will throw if the file is in the wrong format, so just loading it up is enough
+        //contents is dynamic and may contain or not contain information so we can't really assert anything
+        SafeRemovedClassList.loadSafeList();
     }
 
     /**

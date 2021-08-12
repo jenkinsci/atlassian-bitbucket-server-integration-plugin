@@ -30,22 +30,11 @@ import static java.lang.String.format;
  */
 public class BitbucketWebhookHandler implements WebhookHandler {
 
-    private static final Collection<BitbucketWebhookEvent> ALL_PULL_REQUEST_EVENTS =
-            Arrays.asList(PULL_REQUEST_DECLINED,
-                    PULL_REQUEST_DELETED, PULL_REQUEST_FROM_REF_UPDATED, PULL_REQUEST_MERGED, PULL_REQUEST_OPENED);
-    private static final Collection<String> ALL_PULL_REQUEST_EVENT_IDS = new HashSet<>();
     private static final String CALLBACK_URL_SUFFIX = BIBUCKET_WEBHOOK_URL + "/trigger";
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookHandler.class.getName());
-    private static final Set<String> refAndPREventIds = new HashSet<>();
+
     private final BitbucketCapabilitiesClient serverCapabilities;
     private final BitbucketWebhookClient webhookClient;
-
-    static {
-        ALL_PULL_REQUEST_EVENT_IDS.addAll(ALL_PULL_REQUEST_EVENTS.stream().map(BitbucketWebhookEvent::getEventId).collect(Collectors.toList()));
-        refAndPREventIds.add(REPO_REF_CHANGE.getEventId());
-        refAndPREventIds.add(PULL_REQUEST_OPENED.getEventId());
-        refAndPREventIds.add(PULL_REQUEST_FROM_REF_UPDATED.getEventId());
-    }
 
     public BitbucketWebhookHandler(
             BitbucketCapabilitiesClient serverCapabilities,
@@ -161,10 +150,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         desiredEvents.addAll(serverSideWebhookEvents);
 
         if (serverSideWebhookEvents.containsAll(desiredEvents) &&
-            serverSideWebhookEvents.size() == desiredEvents.size()) {
+                serverSideWebhookEvents.size() == desiredEvents.size()) {
             //check that the webhooks are actually active and not just registered by disabled.
             Optional<BitbucketWebhook> foundWebook = serverSideWebhooks.stream().filter(event -> event.isActive() &&
-                                                                                                 callback.equalsIgnoreCase(event.getUrl()))
+                    callback.equalsIgnoreCase(event.getUrl()))
                     .findFirst();
             if (foundWebook.isPresent()) {
                 return foundWebook.get();

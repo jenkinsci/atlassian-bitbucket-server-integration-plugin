@@ -62,7 +62,7 @@ public class BitbucketWebhookConsumerTest {
     @Mock
     private BitbucketPullRequest pullRequest;
     @Mock
-    private BitbucketWebhookScmTrigger bitbucketTrigger;
+    private BitbucketWebhookTriggerImpl bitbucketTrigger;
     @InjectMocks
     private BitbucketWebhookConsumer consumer;
     private FreeStyleProject freeStyleProject;
@@ -70,9 +70,9 @@ public class BitbucketWebhookConsumerTest {
     @Mock
     private GitSCM gitSCM;
     @Mock
-    private BitbucketWebhookScmTrigger gitTrigger;
+    private BitbucketWebhookTriggerImpl gitTrigger;
     @Mock
-    private BitbucketWebhookScmTrigger nullBitbucketTrigger;
+    private BitbucketWebhookTriggerImpl nullBitbucketTrigger;
     private FreeStyleProject nullProject;
     private PullRequestClosedWebhookEvent pullRequestClosedEvent;
     private PullRequestOpenedWebhookEvent pullRequestOpenedEvent;
@@ -81,7 +81,7 @@ public class BitbucketWebhookConsumerTest {
     @Mock
     private BitbucketSCM workflowSCM;
     @Mock
-    private BitbucketWebhookScmTrigger workflowTrigger;
+    private BitbucketWebhookTriggerImpl workflowTrigger;
 
     @Before
     public void setup() throws Exception {
