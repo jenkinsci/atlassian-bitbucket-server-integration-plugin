@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 
+import com.atlassian.bitbucket.jenkins.internal.annotations.NotUpgradeSensitive;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthConsumerEntry.OAuthConsumerEntryDescriptor;
@@ -19,6 +20,7 @@ import java.net.URISyntaxException;
 import static com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthGlobalConfiguration.RELATIVE_PATH;
 import static java.util.Objects.requireNonNull;
 
+@NotUpgradeSensitive
 public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthConsumerCreateAction> implements Action {
 
     private final ServiceProviderConsumerStore store;

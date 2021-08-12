@@ -22,7 +22,7 @@
         <jenkins.version>2.222.4</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
-        <surefireTestExclusions>nothing-to-exclude</surefireTestExclusions>
+        <surefireTestExclusions>upgrade/**</surefireTestExclusions>
     </properties>
     <name>Bitbucket Server Integration</name>
     <description>This Jenkins plugin streamlines configuring Jenkins jobs to clone/fetch from Bitbucket Server.
@@ -240,7 +240,7 @@
             <version>1.2</version>
             <scope>runtime</scope>
         </dependency>
-<!--        Test dependencies -->
+        <!--        Test dependencies -->
         <!--to mock Bitbucket Server-->
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
@@ -297,6 +297,12 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.9.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
             <version>${hamcrest.version}</version>
@@ -341,6 +347,7 @@
                          exclude integration tests here. -->
                     <excludes>
                         <exclude>it/**/*.java</exclude>
+                        <exclude>upgrade/**/*.java</exclude>
                         <exclude>${surefireTestExclusions}</exclude>
                     </excludes>
                 </configuration>
@@ -539,6 +546,22 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>upgradeTest</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>it/**</exclude>
+                            </excludes>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

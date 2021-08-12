@@ -1,0 +1,6 @@
+#Contains a list of classes that were *safely* removed. Safe removal involves doing an upgrade test to see that
+#the class can be removed without breaking any jobs or other functionality.
+#Very few classes should be listed in here, and once a release is made the class should be removed from here (or the test fails)
+#Format is semi-colon separated string, one class per line
+#fullClassName;reason why it is safe to remove
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource$CustomGitSCMSource;Class has no fields, it was moved and upgrade testing proves it can be hydrated using the new type without issue. Xml file contains no reference to the *type*, only to the variable name and fields.
