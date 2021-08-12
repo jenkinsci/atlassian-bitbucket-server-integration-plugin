@@ -8,6 +8,7 @@ import static java.lang.annotation.ElementType.FIELD;
 
 /**
  * Indicates that the field in question has been evaluated and the change is safe for upgrade.
+ * @since 3.0.0
  */
 @Target({FIELD})
 @Retention(RetentionPolicy.RUNTIME)
