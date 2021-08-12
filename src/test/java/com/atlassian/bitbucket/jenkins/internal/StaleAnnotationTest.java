@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal;
 
 import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -31,7 +32,7 @@ public class StaleAnnotationTest {
      */
     @Test
     public void testAnnotationsAreAllStillRelevant() {
-
+        Assume.assumeTrue("This test in the current form only works in java 8 or earlier", isJavaVersion8orLower());
         Reflections r = new Reflections(ConfigurationBuilder.build().setScanners(new TypeAnnotationsScanner(), new FieldAnnotationsScanner()));
         Set<Field> annotatedFields = r.getFieldsAnnotatedWith(UpgradeHandled.class);
         //this is the current version of the pom.xml including the "-SNAPSHOT"
@@ -88,5 +89,12 @@ public class StaleAnnotationTest {
         }
         //if we got here, all fields are equal
         return true;
+    }
+
+    private boolean isJavaVersion8orLower() {
+        String[] versionParts = System.getProperty("java.version", "100.100.100").split("\\.");
+        //java 8 is expressed as 1.8.0_202 whereas java 9 and later is expressed as 9.0.1
+        //this we can simply check first digit and call it a day.
+        return Integer.parseInt(versionParts[0]) == 1;
     }
 }
