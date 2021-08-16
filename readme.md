@@ -215,7 +215,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 - Fix for JENKINS-63071, we are now setting the repository browser also for multibranch projects. Existing projects will
   need to be opened and saved again to fix this issue. New projects will work without any additional steps.
 - JENKINS-60342 added support for Pull Request triggers
-- Fix issue JENKINS-65541
+- Fix issue JENKINS-65541 (use the folder credentials if they exist for multibranch scans)
 
 ### 2.1.3 (19 February 2021)
 - Fix issue JENKINS-63009 (Jobs now work with folder credentials)

@@ -26,6 +26,7 @@ public interface JenkinsToBitbucketCredentials {
      * @param credentialId the credentials id
      * @param context      the {@link Item context} to retrieve the credentials from
      * @return Bitbucket credentials
+     * @since 3.0.0
      */
     BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId, @Nullable Item context);
 
