@@ -22,6 +22,7 @@
         <jenkins.version>2.222.4</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
+        <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
         <surefireTestExclusions>upgrade/**</surefireTestExclusions>
     </properties>
     <name>Bitbucket Server Integration</name>
@@ -347,7 +348,6 @@
                          exclude integration tests here. -->
                     <excludes>
                         <exclude>it/**/*.java</exclude>
-                        <exclude>upgrade/**/*.java</exclude>
                         <exclude>${surefireTestExclusions}</exclude>
                     </excludes>
                 </configuration>
