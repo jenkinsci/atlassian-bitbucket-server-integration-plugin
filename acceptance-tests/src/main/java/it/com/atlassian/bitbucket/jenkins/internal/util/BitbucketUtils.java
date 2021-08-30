@@ -8,6 +8,8 @@ import io.restassured.response.ResponseBody;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.BitbucketScmConfig;
 import okhttp3.HttpUrl;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.jenkinsci.test.acceptance.SshKeyPair;
 import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
 import org.jenkinsci.test.acceptance.po.Jenkins;
@@ -15,11 +17,19 @@ import org.jenkinsci.test.acceptance.po.Job;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.*;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.GitUtils.ADMIN_CREDENTIALS_PROVIDER;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.ECHO_ONLY_JENKINS_FILE_CONTENT;
+import static it.com.atlassian.bitbucket.jenkins.internal.util.TestData.JENKINS_FILE_NAME;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Copied from {@code it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils} in the main module (under
@@ -118,17 +128,18 @@ public class BitbucketUtils {
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
     }
 
-    public static Job createJobWithBitbucketScm(Jenkins jenkins, String bbsAdminCredsId, BitbucketSshKeyPair bbsSshCreds,
+    public static Job provideJobWithBitbucketScm(Job job, String bbsAdminCredsId, @Nullable BitbucketSshKeyPair bbsSshCreds,
                                                 String serverId, BitbucketRepository repository) {
-        Job job = jenkins.jobs.create();
         BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
         bitbucketScm
                 .credentialsId(bbsAdminCredsId)
-                .sshCredentialsId(bbsSshCreds.getId())
                 .serverId(serverId)
                 .projectName(repository.getProject().getKey())
                 .repositoryName(repository.getSlug())
                 .anyBranch();
+        if (bbsSshCreds != null) {
+            bitbucketScm.sshCredentialsId(bbsSshCreds.getId());
+        }
         job.save();
 
         return job;

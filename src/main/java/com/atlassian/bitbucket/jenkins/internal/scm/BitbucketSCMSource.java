@@ -259,6 +259,8 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
+        // The git scm needs an owner set to resolve non-global credentials
+        getGitSCMSource().setOwner(getOwner());
         if (getOwner() instanceof ComputedFolder && event != null) {
             ComputedFolder<?> owner = (ComputedFolder<?>) getOwner();
             Object payload = event.getPayload();
@@ -275,7 +277,6 @@ public class BitbucketSCMSource extends SCMSource {
                 return;
             }
         }
-        //
         getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
     }
 
