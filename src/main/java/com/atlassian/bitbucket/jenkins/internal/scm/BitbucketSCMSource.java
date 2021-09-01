@@ -155,6 +155,9 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     public void afterSave() {
         super.afterSave();
+        // The git scm needs an owner set to resolve non-global credentials
+        getGitSCMSource().setOwner(getOwner());
+
         if (!webhookRegistered && isValid()) {
             SCMSourceOwner owner = getOwner();
             if (owner instanceof ComputedFolder) {
@@ -259,8 +262,6 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        // The git scm needs an owner set to resolve non-global credentials
-        getGitSCMSource().setOwner(getOwner());
         if (getOwner() instanceof ComputedFolder && event != null) {
             ComputedFolder<?> owner = (ComputedFolder<?>) getOwner();
             Object payload = event.getPayload();
