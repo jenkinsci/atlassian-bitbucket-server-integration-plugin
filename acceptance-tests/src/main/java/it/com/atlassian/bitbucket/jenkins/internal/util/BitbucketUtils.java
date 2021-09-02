@@ -10,11 +10,11 @@ import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.BitbucketScmConfi
 import okhttp3.HttpUrl;
 import org.jenkinsci.test.acceptance.SshKeyPair;
 import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
-import org.jenkinsci.test.acceptance.po.Jenkins;
 import org.jenkinsci.test.acceptance.po.Job;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -118,17 +118,18 @@ public class BitbucketUtils {
         return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
     }
 
-    public static Job createJobWithBitbucketScm(Jenkins jenkins, String bbsAdminCredsId, BitbucketSshKeyPair bbsSshCreds,
+    public static Job provideJobWithBitbucketScm(Job job, String bbsAdminCredsId, @Nullable BitbucketSshKeyPair bbsSshCreds,
                                                 String serverId, BitbucketRepository repository) {
-        Job job = jenkins.jobs.create();
         BitbucketScmConfig bitbucketScm = job.useScm(BitbucketScmConfig.class);
         bitbucketScm
                 .credentialsId(bbsAdminCredsId)
-                .sshCredentialsId(bbsSshCreds.getId())
                 .serverId(serverId)
                 .projectName(repository.getProject().getKey())
                 .repositoryName(repository.getSlug())
                 .anyBranch();
+        if (bbsSshCreds != null) {
+            bitbucketScm.sshCredentialsId(bbsSshCreds.getId());
+        }
         job.save();
 
         return job;

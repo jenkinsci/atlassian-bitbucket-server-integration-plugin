@@ -141,6 +141,79 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
+    public void testRunFolderCredentialsFreestyle() {
+        Folder folder = jenkins.jobs.create(Folder.class, "TestFolder");
+
+        CredentialsPage credentials = new CredentialsPage(folder, DEFAULT_DOMAIN);
+        credentials.open();
+        UserPwdCredential folderCreds = credentials.add(UserPwdCredential.class);
+        bbsAdminCredsId = "admin-" + randomUUID();
+        folderCreds.setId(bbsAdminCredsId);
+        folderCreds.username.set(BITBUCKET_ADMIN_USERNAME);
+        folderCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
+        credentials.create();
+
+        job = folder.getJobs().create();
+        provideJobWithBitbucketScm(job, bbsAdminCredsId, null, serverId, forkRepo);
+        job.scheduleBuild();
+
+        verifySuccessfulBuild(job.getLastBuild());
+    }
+
+    @Test
+    public void testRunFolderCredentialsMultibranch() throws Exception {
+        Folder folder = jenkins.jobs.create(Folder.class, "TestFolder");
+
+        CredentialsPage credentials = new CredentialsPage(folder, DEFAULT_DOMAIN);
+        credentials.open();
+        UserPwdCredential folderCreds = credentials.add(UserPwdCredential.class);
+        bbsAdminCredsId = "admin-" + randomUUID();
+        folderCreds.setId(bbsAdminCredsId);
+        folderCreds.username.set(BITBUCKET_ADMIN_USERNAME);
+        folderCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
+        folderCreds.description.set("Folder Creds");
+        credentials.create();
+
+        BitbucketScmWorkflowMultiBranchJob multiBranchJob =
+                folder.getJobs().create(BitbucketScmWorkflowMultiBranchJob.class);
+
+        BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
+        bitbucketBranchSource
+                .credentialsId(bbsAdminCredsId)
+                .serverId(serverId)
+                .projectName(forkRepo.getProject().getKey())
+                .repositoryName(forkRepo.getSlug());
+        multiBranchJob.save();
+
+        // Clone (fork) repo
+        File checkoutDir = tempFolder.newFolder(REPOSITORY_CHECKOUT_DIR_NAME);
+        Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
+
+        // Push new Jenkinsfile to master
+        RevCommit masterCommit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
+                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
+        String masterCommitId = masterCommit.getId().getName();
+
+        // Push Jenkinsfile to feature branch
+        final String branchName = "feature/test-feature";
+        gitRepo.branchCreate().setName(branchName).call();
+        RevCommit featureBranchCommit =
+                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
+                        ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
+        String featureBranchCommitId = featureBranchCommit.getId().getName();
+
+        multiBranchJob.open();
+        multiBranchJob.reIndex();
+        multiBranchJob.waitForBranchIndexingFinished(30);
+
+        WorkflowJob masterJob = multiBranchJob.getJob(MASTER_BRANCH_NAME);
+        masterJob.scheduleBuild();
+
+        verifySuccessfulBuild(masterJob.getLastBuild());
+    }
+
+    @Test
     public void testRunBuildActionWtihFreestlyeJob() throws Exception {
         // Log into Bitbucket
         LoginPage loginPage = new LoginPage(jenkins, BITBUCKET_BASE_URL);
@@ -155,7 +228,8 @@ public class SmokeTest extends AbstractJUnitTest {
         ));
 
         // Configure job and give user permissions to run a build
-        job = createJobWithBitbucketScm(jenkins, bbsAdminCredsId, bbsSshCreds, serverId, forkRepo);
+        job = jenkins.jobs.create();
+        provideJobWithBitbucketScm(job, bbsAdminCredsId, bbsSshCreds, serverId, forkRepo);
         security.addProjectPermissions(job, ImmutableMap.of(
                 user, perms -> perms.on(ITEM_BUILD, ITEM_READ)
         ));
