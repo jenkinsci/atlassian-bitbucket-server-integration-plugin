@@ -242,7 +242,10 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
                 return FORM_VALIDATION_OK;
             }
             try {
-                new URI(environmentUrl); // Try to coerce it into a URL
+                URI uri = new URI(environmentUrl);// Try to coerce it into a URL
+                if (!uri.isAbsolute()) {
+                    return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_UriAbsolute());
+                }
                 return FORM_VALIDATION_OK;
             } catch (URISyntaxException e) {
                 return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentUrlInvalid());

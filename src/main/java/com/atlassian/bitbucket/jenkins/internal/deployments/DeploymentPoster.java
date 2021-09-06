@@ -7,6 +7,7 @@ import hudson.model.TaskListener;
 
 /**
  * Send a deployment notification to Bitbucket Server
+ *
  * @since deployments
  */
 @ImplementedBy(DeploymentPosterImpl.class)
@@ -24,6 +25,5 @@ public interface DeploymentPoster {
      * @param taskListener   the task listener for the run, in order to write messages to the run's console
      */
     void postDeployment(String bbsServerId, String projectKey, String repositorySlug, String revisionSha,
-                        BitbucketDeployment deployment, Run<?, ?> run,
-                        TaskListener taskListener);
+                        BitbucketDeployment deployment, Run<?, ?> run, TaskListener taskListener);
 }
