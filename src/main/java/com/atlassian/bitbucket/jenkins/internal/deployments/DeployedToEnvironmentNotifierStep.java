@@ -189,7 +189,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         }
         String generatedEnvironmentName;
         if (environmentType != null) {
-            // Default the to the environment type display name if there is a configured environment type
+            // Default to the environment type display name if there is a configured environment type
             generatedEnvironmentName = environmentType.getDisplayName();
         } else {
             // Otherwise default to the project's display name
