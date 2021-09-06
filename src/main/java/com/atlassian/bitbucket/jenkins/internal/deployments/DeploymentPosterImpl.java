@@ -27,12 +27,18 @@ public class DeploymentPosterImpl implements DeploymentPoster {
 
     protected static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
+    private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    private final BitbucketPluginConfiguration pluginConfiguration;
+
     @Inject
-    private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    @Inject
-    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
-    @Inject
-    private BitbucketPluginConfiguration pluginConfiguration;
+    public DeploymentPosterImpl(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
+                                BitbucketPluginConfiguration pluginConfiguration) {
+        this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
+        this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
+        this.pluginConfiguration = pluginConfiguration;
+    }
 
     @Override
     public void postDeployment(String bbsServerId, String projectKey, String repositorySlug, String revisionSha,

@@ -41,22 +41,28 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
 
+/**
+ * Step for configuring deployment notification in freestyle jobs.
+ *
+ * @since deployments
+ */
 public class DeployedToEnvironmentNotifierStep extends Notifier implements SimpleBuildStep {
 
     private static final Logger LOGGER = Logger.getLogger(DeployedToEnvironmentNotifierStep.class.getName());
 
     private final String environmentKey;
     private final String environmentName;
-    private final String environmentType;
+    private final BitbucketDeploymentEnvironmentType environmentType;
     private final String environmentUrl;
 
     @DataBoundConstructor
-    public DeployedToEnvironmentNotifierStep(String environmentKey, String environmentName,
+    public DeployedToEnvironmentNotifierStep(@CheckForNull String environmentKey,
+                                             @CheckForNull String environmentName,
                                              @CheckForNull String environmentType,
                                              @CheckForNull String environmentUrl) {
         this.environmentKey = getOrGenerateEnvironmentKey(environmentKey);
         this.environmentName = stripToNull(environmentName);
-        this.environmentType = stripToNull(environmentType);
+        this.environmentType = getEnvironmentType(environmentType);
         this.environmentUrl = stripToNull(environmentUrl);
     }
 
@@ -64,20 +70,40 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
+    /**
+     * Used to populate the {@code environmentKey} field in the UI
+     *
+     * @return the configured or generated environment key
+     */
     public String getEnvironmentKey() {
         return environmentKey;
     }
 
+    /**
+     * Used to populate the {@code environmentName} field in the UI
+     *
+     * @return the configured environment name or {@code null} if not configured
+     */
     @CheckForNull
     public String getEnvironmentName() {
         return environmentName;
     }
 
+    /**
+     * Used to populate the {@code environmentType} field in the UI
+     *
+     * @return the configured {@link BitbucketDeploymentEnvironmentType#name()} or {@code null} if not configured
+     */
     @CheckForNull
     public String getEnvironmentType() {
-        return environmentType;
+        return environmentType == null ? null : environmentType.name();
     }
 
+    /**
+     * Used to populate the {@code environmentUrl} field in the UI
+     *
+     * @return the configured environment url or {@code null} if not configured
+     */
     @CheckForNull
     public String getEnvironmentUrl() {
         return environmentUrl;
@@ -120,18 +146,18 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
     private BitbucketDeploymentEnvironment getEnvironment(Run<?, ?> run, TaskListener listener) {
         return new BitbucketDeploymentEnvironment(environmentKey,
                 getOrGenerateEnvironmentName(environmentName, run, listener),
-                getEnvironmentType(environmentType, listener),
+                environmentType,
                 getEnvironmentUri(environmentUrl, listener));
     }
 
     @CheckForNull
-    private BitbucketDeploymentEnvironmentType getEnvironmentType(String environmentType, TaskListener listener) {
+    private BitbucketDeploymentEnvironmentType getEnvironmentType(@CheckForNull String environmentType) {
         if (isBlank(environmentType)) {
             return null;
         }
         return BitbucketDeploymentEnvironmentType.fromName(environmentType)
                 .orElseGet(() -> {
-                    listener.getLogger().println(format("DeployedToEnvironmentNotifierStep: Invalid environment type '%s'. Posting deployment without environment type.", environmentType));
+                    LOGGER.warning(format("DeployedToEnvironmentNotifierStep: Invalid environment type '%s'. Saving step without environment type.", environmentType));
                     return null;
                 });
     }
@@ -161,11 +187,14 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         if (!isBlank(environmentName)) {
             return environmentName;
         }
-        String generatedEnvironmentName = BitbucketDeploymentEnvironmentType.fromName(environmentType)
-                // Default the to the environment type display name if there is a configured environment type
-                .map(BitbucketDeploymentEnvironmentType::getDisplayName)
-                // Otherwise default to the project's display name
-                .orElseGet(() -> run.getParent().getDisplayName());
+        String generatedEnvironmentName;
+        if (environmentType != null) {
+            // Default the to the environment type display name if there is a configured environment type
+            generatedEnvironmentName = environmentType.getDisplayName();
+        } else {
+            // Otherwise default to the project's display name
+            generatedEnvironmentName = run.getParent().getDisplayName();
+        }
         listener.getLogger().println(format("Bitbucket Deployment Notifier: Using '%s' as the environment name since it was not correctly configured. Please configure an environment name.", generatedEnvironmentName));
         return generatedEnvironmentName;
     }

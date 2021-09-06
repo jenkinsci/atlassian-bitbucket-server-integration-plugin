@@ -160,7 +160,7 @@ public class DeployedToEnvironmentNotifierStepTest {
     }
 
     @Test
-    public void testPerformLogsWhenInvalidEnvType() throws IOException, InterruptedException {
+    public void testPerformWhenInvalidEnvType() throws IOException, InterruptedException {
         DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, "NOT_A_VALID_TYPE", ENV_URL);
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 ENV_NAME, null, URI.create(ENV_URL));
@@ -183,7 +183,6 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         step.perform(run, null, null, listener);
 
-        verify(listener.getLogger()).println("DeployedToEnvironmentNotifierStep: Invalid environment type 'NOT_A_VALID_TYPE'. Posting deployment without environment type.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
     }
