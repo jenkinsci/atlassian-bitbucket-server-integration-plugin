@@ -30,10 +30,6 @@ public class FailureCollector implements TestRule {
         errors.add(format("Could not load '%s' this will cause an upgrade error", e.getMessage()));
     }
 
-    public void addFieldDifference(Field field) {
-        errors.add(format("Field '%s' in '%s' has been changed, this will cause an upgrade error", field.getName(), field.getDeclaringClass().getName()));
-    }
-
     public void addStaleSafeListEntry(String staleEntry) {
         errors.add(format("safeRemovedClass.txt contains a stale entry that needs to be removed: '%s'", staleEntry));
     }
