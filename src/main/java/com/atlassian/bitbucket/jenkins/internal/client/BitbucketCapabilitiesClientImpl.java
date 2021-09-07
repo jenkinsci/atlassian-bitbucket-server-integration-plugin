@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.*;
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static okhttp3.HttpUrl.parse;
 
@@ -61,7 +60,7 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
         if (events == null) {
             throw new BitbucketMissingCapabilityException(
                     "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                    "Bitbucket server supports webhooks or correct version of it is installed.");
+                            "Bitbucket server supports webhooks or correct version of it is installed.");
         }
         return events;
     }
