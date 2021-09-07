@@ -206,6 +206,22 @@ public class BitbucketWebhookHandlerTest {
     }
 
     @Test
+    public void testNotModifyingUnrelatedEventsWhileModifyOne() {
+        BitbucketWebhook event =
+                new BitbucketWebhook(-1234, "a custom webhook", singleton(REPO_REF_CHANGE.getEventId()), EXPECTED_URL, true);
+        BitbucketWebhook event2 =
+                new BitbucketWebhook(1, WEBHOOK_NAME, singleton(PULL_REQUEST_DECLINED.getEventId()), EXPECTED_URL, true);
+        mockGetExistingWebhooks(event, event2);
+
+        BitbucketWebhook result = handler.register(getRequestBuilder().isMirror(true).shouldTriggerOnRefChange(true).build());
+
+        assertThat(result.getEvents(), hasItems(MIRROR_SYNCHRONIZED.getEventId(), PULL_REQUEST_DECLINED.getEventId()));
+        assertThat(result.getId(), is(not(equalTo(event.getId()))));
+        verify(webhookClient).updateWebhook(eq(1), any());
+        verify(webhookClient, never()).deleteWebhook(eq(-1234));
+    }
+
+    @Test
     public void testDoNotUpdateExistingWebhookWithCorrectCallback() {
         String wrongCallback = JENKINS_URL;
         BitbucketWebhook event1 =

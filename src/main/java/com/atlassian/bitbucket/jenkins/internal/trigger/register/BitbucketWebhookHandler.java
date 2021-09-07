@@ -139,10 +139,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
                                      Collection<BitbucketWebhookEvent> events) {
         String callback = constructCallbackUrl(request);
         List<BitbucketWebhook> webhooks = webhookClient.getWebhooks().collect(Collectors.toList());
-        Set<BitbucketWebhook> serverSideWebhooks =
+        List<BitbucketWebhook> serverSideWebhooks =
                 webhooks.stream()
                         .filter(hook -> hook.getName().equals(request.getName()) && hook.getUrl().equals(callback))
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toList());
 
         Set<BitbucketWebhookEvent> desiredEvents = new HashSet<>(events);
         Set<BitbucketWebhookEvent> serverSideWebhookEvents = serverSideWebhooks.stream().flatMap(event ->
@@ -170,7 +170,7 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             return result;
         }
 
-        return update(webhooks, request, desiredEvents);
+        return update(serverSideWebhooks, request, desiredEvents);
     }
 
     private BitbucketWebhook update(List<BitbucketWebhook> webhooks, WebhookRegisterRequest request,
