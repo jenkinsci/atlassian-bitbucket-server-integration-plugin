@@ -58,7 +58,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         BitbucketClientFactory clientFactory =
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
         BitbucketCDCapabilities cdCapabilities = clientFactory.getCapabilityClient().getCDCapabilities();
-        if (!cdCapabilities.supportsDeployments()) {
+        if (cdCapabilities == null) {
             // Bitbucket doesn't have deployments
             taskListener.error(format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", server.getServerName()));
             return;

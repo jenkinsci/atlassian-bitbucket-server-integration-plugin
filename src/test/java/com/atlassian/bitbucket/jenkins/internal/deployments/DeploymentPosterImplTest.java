@@ -30,8 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.PrintStream;
 
 import static java.lang.String.format;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
+import static java.util.Collections.*;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.mockito.Mockito.*;
@@ -86,7 +85,7 @@ public class DeploymentPosterImplTest {
         when(server.getBaseUrl()).thenReturn(BASE_URL);
         when(clientFactoryProvider.getClient(BASE_URL, bitbucketCredentials)).thenReturn(clientFactory);
         when(clientFactory.getCapabilityClient().getCDCapabilities())
-                .thenReturn(new BitbucketCDCapabilities(singleton("deployments")));
+                .thenReturn(new BitbucketCDCapabilities(emptyMap()));
         when(server.getServerName()).thenReturn(SERVER_NAME);
         when(taskListener.getLogger()).thenReturn(printStream);
     }
@@ -136,7 +135,7 @@ public class DeploymentPosterImplTest {
     @Test
     public void testPostDeploymentWithDeploymentsNotSupported() {
         when(clientFactory.getCapabilityClient().getCDCapabilities())
-                .thenReturn(new BitbucketCDCapabilities(emptySet()));
+                .thenReturn(null);
 
         poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
 

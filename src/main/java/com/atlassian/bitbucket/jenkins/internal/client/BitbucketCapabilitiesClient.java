@@ -6,6 +6,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 
+import javax.annotation.CheckForNull;
+
 /**
  * Client to get capabilities from the remote server.
  */
@@ -24,6 +26,7 @@ public interface BitbucketCapabilitiesClient {
      * @throws BitbucketClientException   for all errors not already captured
      * @since deployments
      */
+    @CheckForNull
     BitbucketCDCapabilities getCDCapabilities();
 
     /**

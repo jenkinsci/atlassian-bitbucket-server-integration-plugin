@@ -10,11 +10,13 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import okhttp3.HttpUrl;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.*;
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static okhttp3.HttpUrl.parse;
 
@@ -33,13 +35,10 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
         capabilitiesCache = Suppliers.memoizeWithExpiration(supplier, CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS);
     }
 
+    @CheckForNull
     @Override
     public BitbucketCDCapabilities getCDCapabilities() {
-        BitbucketCDCapabilities capabilities = getCapabilitiesForKey(DEPLOYMENTS_CAPABILITY_KEY, BitbucketCDCapabilities.class);
-        if (capabilities == null) {
-            return new BitbucketCDCapabilities(emptySet());
-        }
-        return capabilities;
+        return getCapabilitiesForKey(DEPLOYMENTS_CAPABILITY_KEY, BitbucketCDCapabilities.class);
     }
 
     @Override
