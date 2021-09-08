@@ -138,17 +138,15 @@ public class DeployedToEnvironmentNotifierStepTest {
         BitbucketDeployment deployment = createDeployment();
         Run<?, ?> run = mock(Run.class, Answers.RETURNS_DEEP_STUBS);
         when(run.getParent().getDisplayName()).thenReturn(parentName);
-        BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         BitbucketSCMRepository repo = mock(BitbucketSCMRepository.class);
         when(repo.getServerId()).thenReturn(serverId);
         String projectKey = "myProj";
         when(repo.getProjectKey()).thenReturn(projectKey);
         String repoSlug = "myRepo";
         when(repo.getRepositorySlug()).thenReturn(repoSlug);
-        when(revisionAction.getBitbucketSCMRepo()).thenReturn(repo);
         String commit = "myCommit";
-        when(revisionAction.getRevisionSha1()).thenReturn(commit);
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+        when(run.getAction(argThat(actionClass -> actionClass.equals(BitbucketRevisionAction.class))))
+                .thenReturn(new BitbucketRevisionAction(repo, "my-branch", commit));
 
         when(bitbucketDeploymentFactory.createDeployment(run, expectedEnvironment)).thenReturn(deployment);
 
