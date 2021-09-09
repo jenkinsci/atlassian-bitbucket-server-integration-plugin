@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentPoster;
 import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
@@ -32,8 +33,8 @@ public class LocalSCMListener extends SCMListener {
     }
 
     @Inject
-    LocalSCMListener(BuildStatusPoster buildStatusPoster) {
-        this.checkoutListeners = Arrays.asList(buildStatusPoster);
+    LocalSCMListener(BuildStatusPoster buildStatusPoster, DeploymentPoster deploymentPoster) {
+        this.checkoutListeners = Arrays.asList(buildStatusPoster, deploymentPoster);
     }
 
     @Override

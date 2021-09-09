@@ -10,6 +10,8 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -25,7 +27,7 @@ import static java.lang.String.format;
 @Singleton
 public class DeploymentPosterImpl implements DeploymentPoster {
 
-    protected static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
@@ -41,9 +43,31 @@ public class DeploymentPosterImpl implements DeploymentPoster {
     }
 
     @Override
-    public void postDeployment(String bbsServerId, String projectKey, String repositorySlug, String revisionSha,
-                               BitbucketDeployment deployment, Run<?, ?> run,
+    public void onCheckout(Run<?, ?> build, TaskListener listener) {
+        try {
+            BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+            if (revisionAction == null) {
+                // Not a Bitbucket checkout
+                return;
+            }
+            // TODO: Get deployment info off the run
+            postDeployment(revisionAction, null, build, listener);
+        } catch (RuntimeException e) {
+            // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,
+            // we don't want to throw anything and potentially stop other steps from being executed
+            String errorMsg = format("An error occurred when trying to post the in-progress deployment to Bitbucket Server: %s", e.getMessage());
+            listener.error(errorMsg);
+            LOGGER.info(errorMsg);
+            LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
+        }
+    }
+
+    @Override
+    public void postDeployment(BitbucketRevisionAction revisionAction, BitbucketDeployment deployment, Run<?, ?> run,
                                TaskListener taskListener) {
+        BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
+        String bbsServerId = bitbucketSCMRepo.getServerId();
+        String revisionSha = revisionAction.getRevisionSha1();
         Optional<BitbucketServerConfiguration> maybeServer = pluginConfiguration.getServerById(bbsServerId);
         if (!maybeServer.isPresent()) {
             taskListener.error(format("Could not send deployment notification to Bitbucket Server: Unknown serverId %s", bbsServerId));
@@ -67,8 +91,8 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         taskListener.getLogger().println(format("Sending notification of %s to %s on commit %s",
                 deployment.getState().name(), server.getServerName(), revisionSha));
         try {
-            clientFactory.getProjectClient(projectKey)
-                    .getRepositoryClient(repositorySlug)
+            clientFactory.getProjectClient(bitbucketSCMRepo.getProjectKey())
+                    .getRepositoryClient(bitbucketSCMRepo.getRepositorySlug())
                     .getDeploymentClient(revisionSha)
                     .post(deployment);
             taskListener.getLogger().println(format("Sent notification of %s deployment to %s on commit %s",

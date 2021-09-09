@@ -15,6 +15,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapa
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.Run;
@@ -30,7 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.PrintStream;
 
 import static java.lang.String.format;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.mockito.Mockito.*;
@@ -59,6 +61,8 @@ public class DeploymentPosterImplTest {
     public TaskListener taskListener;
     @Mock
     private BitbucketCredentials bitbucketCredentials;
+    @Mock
+    private BitbucketSCMRepository repo;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private BitbucketClientFactory clientFactory;
     @Mock
@@ -71,6 +75,7 @@ public class DeploymentPosterImplTest {
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private PrintStream printStream;
+    private BitbucketRevisionAction revisionAction;
     @Mock
     private BitbucketServerConfiguration server;
 
@@ -88,11 +93,15 @@ public class DeploymentPosterImplTest {
                 .thenReturn(new BitbucketCDCapabilities(emptyMap()));
         when(server.getServerName()).thenReturn(SERVER_NAME);
         when(taskListener.getLogger()).thenReturn(printStream);
+        when(repo.getProjectKey()).thenReturn(PROJECT_KEY);
+        when(repo.getRepositorySlug()).thenReturn(REPO_SLUG);
+        when(repo.getServerId()).thenReturn(SERVER_ID);
+        revisionAction = new BitbucketRevisionAction(repo, "branch-name", REVISION_SHA);
     }
 
     @Test
     public void testPostDeployment() {
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(revisionAction, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -110,7 +119,7 @@ public class DeploymentPosterImplTest {
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA);
         doThrow(new AuthorizationException("An auth error", 400, "")).when(deploymentClient).post(DEPLOYMENT);
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(revisionAction, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -124,7 +133,7 @@ public class DeploymentPosterImplTest {
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA);
         doThrow(new BitbucketClientException("A Bitbucket error", 500, "")).when(deploymentClient).post(DEPLOYMENT);
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(revisionAction, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -137,7 +146,7 @@ public class DeploymentPosterImplTest {
         when(clientFactory.getCapabilityClient().getCDCapabilities())
                 .thenReturn(null);
 
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(revisionAction, DEPLOYMENT, run, taskListener);
 
         verify(taskListener).error(
                 format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", SERVER_NAME));
@@ -148,7 +157,7 @@ public class DeploymentPosterImplTest {
     public void testPostDeploymentWithUnknownServerId() {
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(empty());
 
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(revisionAction, DEPLOYMENT, run, taskListener);
 
         verify(pluginConfiguration).getServerById(SERVER_ID);
         verify(taskListener).error(

@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import hudson.Extension;
 import hudson.FilePath;
@@ -126,17 +125,12 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
             BitbucketDeployment deployment = descriptor()
                     .getBitbucketDeploymentFactory()
                     .createDeployment(run, environment);
-
-            BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
-            String revisionSha = revisionAction.getRevisionSha1();
-            descriptor().getDeploymentPoster().postDeployment(bitbucketSCMRepo.getServerId(),
-                    bitbucketSCMRepo.getProjectKey(), bitbucketSCMRepo.getRepositorySlug(), revisionSha, deployment,
-                    run, listener);
+            descriptor().getDeploymentPoster().postDeployment(revisionAction, deployment, run, listener);
         } catch (RuntimeException e) {
             // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,
             // we don't want to throw anything and potentially stop other steps from being executed
             String errorMsg =
-                    format("An error occurred when trying to post the deployment to Bitbucket Server: %s", e.getMessage());
+                    format("An error occurred when trying to post the final deployment status to Bitbucket Server: %s", e.getMessage());
             listener.error(errorMsg);
             LOGGER.info(errorMsg);
             LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
