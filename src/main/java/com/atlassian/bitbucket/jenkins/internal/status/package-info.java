@@ -44,9 +44,9 @@
  *
  * Overall workflow of sending build status is as follows:
  * <ol>
- *     <li>We add SCM Listener {@link com.atlassian.bitbucket.jenkins.internal.status.LocalSCMListener} which listens for checkouts</li>
+ *     <li>We add SCM Listener {@link com.atlassian.bitbucket.jenkins.internal.scm.LocalSCMListener} which listens for checkouts</li>
  *     <li>On a checkout completion, we check association with {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM} or {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource}</li>
- *     <li>We attach a {@link com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction} for storing the checkout context.</li>
+ *     <li>We attach a {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction} for storing the checkout context.</li>
  *     <li>We send an In progress build status</li>
  *     <li>We add a Run listener {@link com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster} which listens for builds</li>
  *     <li>On Build completion, we retrieve the {@code BitbucketRevisionAction} and send build status to Bitbucket.</li>

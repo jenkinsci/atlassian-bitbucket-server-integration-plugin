@@ -1,8 +1,6 @@
-package com.atlassian.bitbucket.jenkins.internal.status;
+package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
@@ -22,21 +20,20 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Extension
 public class LocalSCMListener extends SCMListener {
 
-    @Inject
-    private BuildStatusPoster buildStatusPoster;
+    private final List<BitbucketSCMCheckoutListener> checkoutListeners;
 
     public LocalSCMListener() {
+        checkoutListeners = Collections.emptyList();
     }
 
+    @Inject
     LocalSCMListener(BuildStatusPoster buildStatusPoster) {
-        this.buildStatusPoster = buildStatusPoster;
+        this.checkoutListeners = Arrays.asList(buildStatusPoster);
     }
 
     @Override
@@ -49,11 +46,8 @@ public class LocalSCMListener extends SCMListener {
 
         //case 1 - bb_checkout step in the script (pipeline or groovy)
         if (scm instanceof BitbucketSCM) {
-            handleBitbucketSCMCheckout(build, (BitbucketSCM) scm, listener);
-            return;
-        }
-
-        if (isWorkflowRun(build)) {
+            handleBitbucketSCMCheckout(build, (BitbucketSCM) scm);
+        } else if (isWorkflowRun(build)) {
             // Case 2 - Script does not have explicit checkout statement. Proceed to inspect SCM on item
             Job<?, ?> job = build.getParent();
             GitSCM gitScm = (GitSCM) scm;
@@ -70,7 +64,7 @@ public class LocalSCMListener extends SCMListener {
                                 filterSource(gitScm, bbsSource))
                         .findFirst()
                         .ifPresent(scmSource ->
-                                handleCheckout(scmSource.getBitbucketSCMRepository(), gitScm, build, listener));
+                                handleCheckout(scmSource.getBitbucketSCMRepository(), gitScm, build));
             } else { // Case 2.2 - Part of pipeline run
                 // Handle only SCM jobs.
                 if (job instanceof SCMTriggerItem) {
@@ -85,10 +79,12 @@ public class LocalSCMListener extends SCMListener {
                                        Objects.equals(bGitScm.getKey(), scm.getKey());
                             })
                             .findFirst()
-                            .ifPresent(bScm -> handleCheckout(bScm, gitScm, build, listener));
+                            .ifPresent(bScm -> handleCheckout(bScm, gitScm, build));
                 }
             }
         }
+
+        checkoutListeners.forEach(checkoutListener -> checkoutListener.onCheckout(build, listener));
     }
 
     @VisibleForTesting
@@ -113,26 +109,24 @@ public class LocalSCMListener extends SCMListener {
                         Objects.equals(userRemoteConfig.getUrl(), bbsSource.getRemote()));
     }
 
-    private void handleBitbucketSCMCheckout(Run<?, ?> build, BitbucketSCM scm, TaskListener listener) {
+    private void handleBitbucketSCMCheckout(Run<?, ?> build, BitbucketSCM scm) {
         if (scm.getServerId() != null) {
             GitSCM gitSCM = scm.getGitSCM();
             if (gitSCM != null) {
-                handleCheckout(scm, gitSCM, build, listener);
+                handleCheckout(scm, gitSCM, build);
             }
         }
     }
 
     private void handleCheckout(BitbucketSCM bitbucketScm,
                                 GitSCM underlyingScm,
-                                Run<?, ?> build,
-                                TaskListener listener) {
-        handleCheckout(bitbucketScm.getBitbucketSCMRepository(), underlyingScm, build, listener);
+                                Run<?, ?> build) {
+        handleCheckout(bitbucketScm.getBitbucketSCMRepository(), underlyingScm, build);
     }
 
     private void handleCheckout(BitbucketSCMRepository bitbucketSCMRepository,
                                 GitSCM underlyingScm,
-                                Run<?, ?> build,
-                                TaskListener listener) {
+                                Run<?, ?> build) {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
@@ -141,6 +135,5 @@ public class LocalSCMListener extends SCMListener {
         BitbucketRevisionAction revisionAction =
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
-        buildStatusPoster.postBuildStatus(revisionAction, build, listener);
     }
 }

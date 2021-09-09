@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;

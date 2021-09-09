@@ -2,7 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import hudson.model.*;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;

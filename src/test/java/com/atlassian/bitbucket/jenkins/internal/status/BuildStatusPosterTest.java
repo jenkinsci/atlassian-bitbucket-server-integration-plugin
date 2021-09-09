@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSe
 import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.TestBitbucketClientFactoryHandler;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;

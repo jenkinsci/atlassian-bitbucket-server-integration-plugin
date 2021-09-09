@@ -1,6 +1,5 @@
-package com.atlassian.bitbucket.jenkins.internal.status;
+package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.Action;
 
 import javax.annotation.CheckForNull;

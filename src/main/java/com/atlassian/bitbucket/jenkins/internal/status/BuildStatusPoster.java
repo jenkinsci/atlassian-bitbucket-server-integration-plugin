@@ -8,6 +8,8 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMCheckoutListener;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
@@ -23,7 +25,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Extension
-public class BuildStatusPoster extends RunListener<Run<?, ?>> {
+public class BuildStatusPoster extends RunListener<Run<?, ?>> implements BitbucketSCMCheckoutListener {
 
     private static final String BUILD_STATUS_ERROR_MSG = "Failed to post build status, additional information:";
     private static final String BUILD_STATUS_FORMAT =
@@ -53,6 +55,16 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         this.pluginConfiguration = pluginConfiguration;
         this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.bitbucketBuildStatusFactory = bitbucketBuildStatusFactory;
+    }
+
+    @Override
+    public void onCheckout(Run<?, ?> build, TaskListener listener) {
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+        if (revisionAction == null) {
+            // Not a Bitbucket checkout
+            return;
+        }
+        postBuildStatus(revisionAction, build, listener);
     }
 
     @Override

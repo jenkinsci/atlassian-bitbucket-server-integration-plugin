@@ -1,8 +1,6 @@
-package com.atlassian.bitbucket.jenkins.internal.status;
+package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
 import hudson.model.*;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
@@ -81,10 +79,7 @@ public class LocalSCMListenerTest {
 
         listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
 
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(build), eq(taskListener));
+        verify(buildStatusPoster).onCheckout(eq(build), eq(taskListener));
     }
 
     @Test
@@ -100,10 +95,7 @@ public class LocalSCMListenerTest {
 
         listener.onCheckout(run, gitSCM, null, taskListener, null, null);
 
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(run), eq(taskListener));
+        verify(buildStatusPoster).onCheckout(eq(run), eq(taskListener));
     }
 
     @Test
@@ -126,10 +118,7 @@ public class LocalSCMListenerTest {
 
         listener.onCheckout(run, gitSCM, null, taskListener, null, null);
 
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(run), eq(taskListener));
+        verify(buildStatusPoster).onCheckout(eq(run), eq(taskListener));
     }
 
     @Test
