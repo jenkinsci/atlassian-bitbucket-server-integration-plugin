@@ -63,7 +63,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
             FreeStyleBuild freeStyleBuild = (FreeStyleBuild) build;
             DeployedToEnvironmentNotifierStep.DescriptorImpl deploymentPublisherDescriptor = Jenkins.get()
                     .getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
-            Publisher publisher = freeStyleBuild.getProject().getPublisher(deploymentPublisherDescriptor);
+            Publisher publisher = freeStyleBuild.getParent().getPublisher(deploymentPublisherDescriptor);
             if (!(publisher instanceof DeployedToEnvironmentNotifierStep)) {
                 // Not a deployment
                 return;

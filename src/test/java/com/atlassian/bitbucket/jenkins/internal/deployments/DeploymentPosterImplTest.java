@@ -17,10 +17,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import hudson.model.FreeStyleProject;
-import hudson.model.Item;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,9 +53,11 @@ public class DeploymentPosterImplTest {
     @InjectMocks
     public DeploymentPosterImpl poster;
     @Mock
-    public Run<FreeStyleProject, ?> run;
+    public FreeStyleBuild run;
     @Mock
     public TaskListener taskListener;
+    @Mock
+    FreeStyleProject parent;
     @Mock
     private BitbucketCredentials bitbucketCredentials;
     @Mock
@@ -81,7 +80,6 @@ public class DeploymentPosterImplTest {
 
     @Before
     public void setup() {
-        FreeStyleProject parent = mock(FreeStyleProject.class);
         when(run.getParent()).thenReturn(parent);
         when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(of(globalAdminCredentials));
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(of(server));
@@ -97,6 +95,56 @@ public class DeploymentPosterImplTest {
         when(repo.getRepositorySlug()).thenReturn(REPO_SLUG);
         when(repo.getServerId()).thenReturn(SERVER_ID);
         revisionAction = new BitbucketRevisionAction(repo, "branch-name", REVISION_SHA);
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+    }
+
+    @Test
+    public void testOnCheckoutWhenNoRevisionAction() {
+        when(run.getAction(any())).thenReturn(null);
+
+        poster.onCheckout(run, taskListener);
+
+        verify(clientFactory.getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getDeploymentClient(REVISION_SHA), never())
+                .post(any());
+    }
+
+    @Test
+    public void testOnCheckoutWhenNotFreestyle() {
+        Run run = mock(Run.class);
+        poster.onCheckout(run, taskListener);
+
+        verify(clientFactory.getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getDeploymentClient(REVISION_SHA), never())
+                .post(any());
+    }
+
+    @Test
+    public void testOnCheckoutWhenNoPublisher() {
+        // parent.getPublisher has no mocking so it will return null
+
+        poster.onCheckout(run, taskListener);
+
+        verify(clientFactory.getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getDeploymentClient(REVISION_SHA), never())
+                .post(any());
+    }
+
+    @Test
+    public void testOnCheckout() {
+        DeployedToEnvironmentNotifierStep publisher = mock(DeployedToEnvironmentNotifierStep.class);
+        when(parent.getPublisher(any())).thenReturn(publisher);
+        when(publisher.getBitbucketDeployment(run, taskListener)).thenReturn(DEPLOYMENT);
+
+        poster.onCheckout(run, taskListener);
+
+        verify(clientFactory.getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getDeploymentClient(REVISION_SHA))
+                .post(any());
     }
 
     @Test
