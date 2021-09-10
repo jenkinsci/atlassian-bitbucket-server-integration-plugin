@@ -70,6 +70,20 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
     }
 
     /**
+     * Get the configured {@link BitbucketDeployment} for the given run.
+     *
+     * @param run      the run that deployed to the environment
+     * @param listener the task listener for the run, in order to write messages to the run's console
+     * @return the configured {@link BitbucketDeployment}
+     */
+    public BitbucketDeployment getBitbucketDeployment(Run<?, ?> run, TaskListener listener) {
+        BitbucketDeploymentEnvironment environment = getEnvironment(run, listener);
+        return descriptor()
+                .getBitbucketDeploymentFactory()
+                .createDeployment(run, environment);
+    }
+
+    /**
      * Used to populate the {@code environmentKey} field in the UI
      *
      * @return the configured or generated environment key
@@ -121,10 +135,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
 
             // We use the default call to the bitbucketDeploymentFactory to get the state of the deployment based
             // on the run.
-            BitbucketDeploymentEnvironment environment = getEnvironment(run, listener);
-            BitbucketDeployment deployment = descriptor()
-                    .getBitbucketDeploymentFactory()
-                    .createDeployment(run, environment);
+            BitbucketDeployment deployment = getBitbucketDeployment(run, listener);
             descriptor().getDeploymentPoster().postDeployment(revisionAction, deployment, run, listener);
         } catch (RuntimeException e) {
             // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,

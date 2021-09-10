@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentPoster;
 import com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster;
 import hudson.model.*;
 import hudson.plugins.git.GitSCM;
@@ -34,6 +35,8 @@ public class LocalSCMListenerTest {
     @Mock
     private BuildStatusPoster buildStatusPoster;
     @Mock
+    private DeploymentPoster deploymentPoster;
+    @Mock
     private AbstractBuild run;
     @Mock
     private TaskListener taskListener;
@@ -59,7 +62,7 @@ public class LocalSCMListenerTest {
         when(scmRepository.getRepositorySlug()).thenReturn("repo1");
         when(bitbucketSCM.getServerId()).thenReturn("ServerId");
         when(bitbucketSCM.getBitbucketSCMRepository()).thenReturn(scmRepository);
-        listener = spy(new LocalSCMListener(buildStatusPoster));
+        listener = spy(new LocalSCMListener(buildStatusPoster, deploymentPoster));
     }
 
     @Test
@@ -68,7 +71,8 @@ public class LocalSCMListenerTest {
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
+        verifyZeroInteractions(deploymentPoster);
     }
 
     @Test
@@ -80,11 +84,11 @@ public class LocalSCMListenerTest {
         listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).onCheckout(eq(build), eq(taskListener));
+        verify(deploymentPoster).onCheckout(eq(build), eq(taskListener));
     }
 
     @Test
     public void testOnCheckoutPipelineWithBitbucketSCM() {
-
         //Can't mock WorkFlow classes so using Project instead.
         Run<?, ?> run = mock(Run.class);
         doReturn(true).when(listener).isWorkflowRun(run);
@@ -96,11 +100,11 @@ public class LocalSCMListenerTest {
         listener.onCheckout(run, gitSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).onCheckout(eq(run), eq(taskListener));
+        verify(deploymentPoster).onCheckout(eq(run), eq(taskListener));
     }
 
     @Test
     public void testOnCheckoutMultiBranchProjectWithBitbucketSCM() {
-
         //Can't mock WorkFlow classes so using Job instead.
         Run<?, ?> run = mock(Run.class);
         doReturn(true).when(listener).isWorkflowRun(run);
@@ -119,6 +123,7 @@ public class LocalSCMListenerTest {
         listener.onCheckout(run, gitSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).onCheckout(eq(run), eq(taskListener));
+        verify(deploymentPoster).onCheckout(eq(run), eq(taskListener));
     }
 
     @Test

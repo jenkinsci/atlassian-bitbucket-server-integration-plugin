@@ -13,8 +13,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.model.FreeStyleBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.tasks.Publisher;
+import jenkins.model.Jenkins;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -30,14 +33,17 @@ public class DeploymentPosterImpl implements DeploymentPoster {
     private static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private final BitbucketDeploymentFactory deploymentFactory;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final BitbucketPluginConfiguration pluginConfiguration;
 
     @Inject
     public DeploymentPosterImpl(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                                BitbucketDeploymentFactory deploymentFactory,
                                 JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
                                 BitbucketPluginConfiguration pluginConfiguration) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
+        this.deploymentFactory = deploymentFactory;
         this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.pluginConfiguration = pluginConfiguration;
     }
@@ -50,8 +56,21 @@ public class DeploymentPosterImpl implements DeploymentPoster {
                 // Not a Bitbucket checkout
                 return;
             }
-            // TODO: Get deployment info off the run
-            postDeployment(revisionAction, null, build, listener);
+            if (!(build instanceof FreeStyleBuild)) {
+                // Not a freestyle build so we can't get the publisher off it
+                return;
+            }
+            FreeStyleBuild freeStyleBuild = (FreeStyleBuild) build;
+            DeployedToEnvironmentNotifierStep.DescriptorImpl deploymentPublisherDescriptor = Jenkins.get()
+                    .getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
+            Publisher publisher = freeStyleBuild.getProject().getPublisher(deploymentPublisherDescriptor);
+            if (!(publisher instanceof DeployedToEnvironmentNotifierStep)) {
+                // Not a deployment
+                return;
+            }
+            DeployedToEnvironmentNotifierStep deploymentPublisher = (DeployedToEnvironmentNotifierStep) publisher;
+            BitbucketDeployment deployment = deploymentPublisher.getBitbucketDeployment(build, listener);
+            postDeployment(revisionAction, deployment, build, listener);
         } catch (RuntimeException e) {
             // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,
             // we don't want to throw anything and potentially stop other steps from being executed
