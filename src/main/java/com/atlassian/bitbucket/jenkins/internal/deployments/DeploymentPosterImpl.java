@@ -10,6 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
@@ -17,7 +18,6 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.Publisher;
-import jenkins.model.Jenkins;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,17 +33,17 @@ public class DeploymentPosterImpl implements DeploymentPoster {
     private static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    private final BitbucketDeploymentFactory deploymentFactory;
+    private final JenkinsProvider jenkinsProvider;
     private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     private final BitbucketPluginConfiguration pluginConfiguration;
 
     @Inject
     public DeploymentPosterImpl(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
-                                BitbucketDeploymentFactory deploymentFactory,
+                                JenkinsProvider jenkinsProvider,
                                 JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
                                 BitbucketPluginConfiguration pluginConfiguration) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
-        this.deploymentFactory = deploymentFactory;
+        this.jenkinsProvider = jenkinsProvider;
         this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.pluginConfiguration = pluginConfiguration;
     }
@@ -61,7 +61,7 @@ public class DeploymentPosterImpl implements DeploymentPoster {
                 return;
             }
             FreeStyleBuild freeStyleBuild = (FreeStyleBuild) build;
-            DeployedToEnvironmentNotifierStep.DescriptorImpl deploymentPublisherDescriptor = Jenkins.get()
+            DeployedToEnvironmentNotifierStep.DescriptorImpl deploymentPublisherDescriptor = jenkinsProvider.get()
                     .getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
             Publisher publisher = freeStyleBuild.getParent().getPublisher(deploymentPublisherDescriptor);
             if (!(publisher instanceof DeployedToEnvironmentNotifierStep)) {

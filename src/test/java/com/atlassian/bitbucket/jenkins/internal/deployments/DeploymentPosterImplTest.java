@@ -15,9 +15,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapa
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.*;
+import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,6 +71,10 @@ public class DeploymentPosterImplTest {
     @Mock
     private GlobalCredentialsProvider globalCredentialsProvider;
     @Mock
+    private Jenkins jenkins;
+    @Mock
+    private JenkinsProvider jenkinsProvider;
+    @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
@@ -96,6 +102,7 @@ public class DeploymentPosterImplTest {
         when(repo.getServerId()).thenReturn(SERVER_ID);
         revisionAction = new BitbucketRevisionAction(repo, "branch-name", REVISION_SHA);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
+        when(jenkinsProvider.get()).thenReturn(jenkins);
     }
 
     @Test
@@ -135,8 +142,10 @@ public class DeploymentPosterImplTest {
 
     @Test
     public void testOnCheckout() {
+        DeployedToEnvironmentNotifierStep.DescriptorImpl descriptor = mock(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
+        when(jenkins.getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class)).thenReturn(descriptor);
         DeployedToEnvironmentNotifierStep publisher = mock(DeployedToEnvironmentNotifierStep.class);
-        when(parent.getPublisher(any())).thenReturn(publisher);
+        when(parent.getPublisher(descriptor)).thenReturn(publisher);
         when(publisher.getBitbucketDeployment(run, taskListener)).thenReturn(DEPLOYMENT);
 
         poster.onCheckout(run, taskListener);
