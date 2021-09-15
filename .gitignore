@@ -11,7 +11,7 @@
 *.iws
 out/
 .home*/
-work/
+work*/
 # maven stuff
 .mvn/maven.config
 target
