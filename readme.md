@@ -210,12 +210,15 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 
 ### 3.0.0 (XX XXX 2021)
-- The minimum version of Jenkins changed to be **2.204.4**
-- A number of dependencies upgrades
+- The minimum version of Jenkins changed to be **2.204.6**
+- JENKINS-60342 added support for Pull Request triggers
+- JENKINS-63033 added support for lightweight checkout with pipeline and mutlibranch pipeline jobs
+- JENKINS-63070 added multibranch project bitbucket links
 - Fix for JENKINS-63071, we are now setting the repository browser also for multibranch projects. Existing projects will
   need to be opened and saved again to fix this issue. New projects will work without any additional steps.
-- JENKINS-60342 added support for Pull Request triggers
 - Fix issue JENKINS-65541 (use the folder credentials if they exist for multibranch scans)
+- A number of dependencies upgrades
+- Other small minor fixes & improvements
 
 ### 2.1.3 (19 February 2021)
 - Fix issue JENKINS-63009 (Jobs now work with folder credentials)
