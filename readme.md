@@ -26,7 +26,7 @@ The plugin streamlines the entire configuration process and removes the need for
 
 ## Requirements
 
-- Jenkins 2.222.4+
+- Jenkins 2.235.5+
 - Bitbucket Server 7.4+
 
 Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.4+ you can set up an Application Link to have access to all plugin features.
@@ -210,7 +210,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 
 ### 3.0.0 (XX XXX 2021)
-- The minimum version of Jenkins changed to be **2.204.6**
+- The minimum version of Jenkins changed to be **2.235.5**
 - JENKINS-60342 added support for Pull Request triggers
 - JENKINS-63033 added support for lightweight checkout with pipeline and mutlibranch pipeline jobs
 - JENKINS-63070 added multibranch project bitbucket links
