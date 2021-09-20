@@ -6,6 +6,10 @@ import hudson.model.Action;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
+/**
+ * @deprecated in 3.1.0 please use{@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction} instead.
+ */
+@Deprecated
 public class BitbucketRevisionAction implements Action {
 
     public static final String REF_PREFIX = "refs/heads/";

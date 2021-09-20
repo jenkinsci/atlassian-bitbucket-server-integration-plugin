@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -29,7 +30,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(Silent.class)
-public class LocalSCMListenerTest {
+public class LegacySCMListenerTest {
 
     @Mock
     private GitSCM gitSCM;
@@ -43,7 +44,7 @@ public class LocalSCMListenerTest {
     private BitbucketSCM bitbucketSCM;
     @Mock
     private BitbucketSCMRepository scmRepository;
-    private LocalSCMListener listener;
+    private LegacySCMListener listener;
     private Map<String, String> buildMap = new HashMap<>();
 
     @Before
@@ -61,7 +62,7 @@ public class LocalSCMListenerTest {
         when(scmRepository.getRepositorySlug()).thenReturn("repo1");
         when(bitbucketSCM.getServerId()).thenReturn("ServerId");
         when(bitbucketSCM.getBitbucketSCMRepository()).thenReturn(scmRepository);
-        listener = spy(new LocalSCMListener(buildStatusPoster));
+        listener = spy(new LegacySCMListener(buildStatusPoster));
     }
 
     @Test
@@ -71,6 +72,18 @@ public class LocalSCMListenerTest {
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verify(run, never()).addAction(any());
+    }
+
+    @Test
+    public void testOnCheckoutWithUpdatedBuildDoesNotPostBuildStatus() {
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getAction(BitbucketSCMRevisionAction.class)).thenReturn(mock(BitbucketSCMRevisionAction.class));
+
+        listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verify(run, never()).addAction(any());
     }
 
     @Test
@@ -85,11 +98,12 @@ public class LocalSCMListenerTest {
                 argThat(revision ->
                         scmRepository.equals(revision.getBitbucketSCMRepo())),
                 eq(build), eq(taskListener));
+        verify(build).addAction(argThat(action -> action instanceof BitbucketSCMRevisionAction &&
+                scmRepository.equals(((BitbucketSCMRevisionAction) action).getBitbucketSCMRepo())));
     }
 
     @Test
     public void testOnCheckoutPipelineWithBitbucketSCM() {
-
         //Can't mock WorkFlow classes so using Project instead.
         Run<?, ?> run = mock(Run.class);
         doReturn(true).when(listener).isWorkflowRun(run);
@@ -104,11 +118,12 @@ public class LocalSCMListenerTest {
                 argThat(revision ->
                         scmRepository.equals(revision.getBitbucketSCMRepo())),
                 eq(run), eq(taskListener));
+        verify(run).addAction(argThat(action -> action instanceof BitbucketSCMRevisionAction &&
+                scmRepository.equals(((BitbucketSCMRevisionAction) action).getBitbucketSCMRepo())));
     }
 
     @Test
     public void testOnCheckoutMultiBranchProjectWithBitbucketSCM() {
-
         //Can't mock WorkFlow classes so using Job instead.
         Run<?, ?> run = mock(Run.class);
         doReturn(true).when(listener).isWorkflowRun(run);
@@ -130,6 +145,8 @@ public class LocalSCMListenerTest {
                 argThat(revision ->
                         scmRepository.equals(revision.getBitbucketSCMRepo())),
                 eq(run), eq(taskListener));
+        verify(run).addAction(argThat(action -> action instanceof BitbucketSCMRevisionAction &&
+                scmRepository.equals(((BitbucketSCMRevisionAction) action).getBitbucketSCMRepo())));
     }
 
     @Test

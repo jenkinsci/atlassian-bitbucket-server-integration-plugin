@@ -48,11 +48,11 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static java.lang.Math.max;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -243,7 +243,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     @Override
     public List<SCMSourceTrait> getTraits() {
-        return traits;
+        return traits.stream().filter(t -> !(t instanceof InternalBitbucketRepositoryTrait)).collect(toList());
     }
 
     public boolean isWebhookRegistered() {
@@ -258,7 +258,7 @@ public class BitbucketSCMSource extends SCMSource {
         return owner.getTriggers().values().stream()
                 .filter(BitbucketWebhookMultibranchTrigger.class::isInstance)
                 .map(BitbucketWebhookMultibranchTrigger.class::cast)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @Override
@@ -300,6 +300,10 @@ public class BitbucketSCMSource extends SCMSource {
         UserRemoteConfig remoteConfig =
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
+        // Remove any old instances of InternalBitbucketRepositoryTrait so we can add an updated one
+        traits.removeIf(t -> t instanceof InternalBitbucketRepositoryTrait);
+        // Add the repository information to the trait list
+        this.traits.add(new InternalBitbucketRepositoryTrait(new InternalBitbucketRepositoryExtension(repository)));
         getGitSCMSource().setTraits(traits);
         getGitSCMSource().setCredentialsId(credentialsId);
     }
@@ -511,6 +515,7 @@ public class BitbucketSCMSource extends SCMSource {
             return false;
         }
 
+        @Override
         public List<SCMSourceTrait> getTraitsDefaults() {
             return gitScmSourceDescriptor.getTraitsDefaults();
         }

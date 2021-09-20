@@ -44,12 +44,24 @@
  *
  * Overall workflow of sending build status is as follows:
  * <ol>
- *     <li>We add SCM Listener {@link com.atlassian.bitbucket.jenkins.internal.status.LocalSCMListener} which listens for checkouts</li>
- *     <li>On a checkout completion, we check association with {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM} or {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource}</li>
- *     <li>We attach a {@link com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction} for storing the checkout context.</li>
- *     <li>We send an In progress build status</li>
- *     <li>We add a Run listener {@link com.atlassian.bitbucket.jenkins.internal.status.BuildStatusPoster} which listens for builds</li>
- *     <li>On Build completion, we retrieve the {@code BitbucketRevisionAction} and send build status to Bitbucket.</li>
+ *     <li>
+ *         We associate the {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository} through
+ *         {@link com.atlassian.bitbucket.jenkins.internal.scm.InternalBitbucketRepositoryExtension}
+ *         (for users of {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM}), or
+ *         {@link com.atlassian.bitbucket.jenkins.internal.scm.InternalBitbucketRepositoryTrait} for users of
+ *         {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource}
+ *     </li>
+ *     <li>
+ *         In {@link com.atlassian.bitbucket.jenkins.internal.scm.InternalBitbucketRepositoryExtension#beforeCheckout(hudson.plugins.git.GitSCM, hudson.model.Run, org.jenkinsci.plugins.gitclient.GitClient, hudson.model.TaskListener)}
+ *         we add {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction} to the build for ease
+ *         of access to the {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository}
+ *     </li>
+ *     <li>
+ *         We send an in-progress build status in {@link com.atlassian.bitbucket.jenkins.internal.status.BuildStatusSCMListener}
+ *         and a completed build status in {@link com.atlassian.bitbucket.jenkins.internal.status.BuildStatusSCMListener#onCheckout(hudson.model.Run, hudson.scm.SCM, hudson.FilePath, hudson.model.TaskListener, java.io.File, hudson.scm.SCMRevisionState)}
+ *         both of which retrieves the {@link com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction}
+ *         and gets the Git commit and branch off the environment to send build status to Bitbucket
+ *     </li>
  * </ol>
  *
  *

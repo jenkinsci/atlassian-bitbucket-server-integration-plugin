@@ -2,7 +2,7 @@ package it.com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import hudson.model.*;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
@@ -247,7 +247,7 @@ public class BuildStatusPosterIT {
     private static RequestPatternBuilder requestBody(RequestPatternBuilder requestPatternBuilder, Run<?, ?> build,
                                                      URL jenkinsUrl, BuildState buildState, String refName) {
         Job<?, ?> job = build.getParent();
-        BitbucketRevisionAction bitbucketRevisionAction = build.getAction(BitbucketRevisionAction.class);
+        BitbucketSCMRevisionAction bitbucketRevisionAction = build.getAction(BitbucketSCMRevisionAction.class);
         assertNotNull(bitbucketRevisionAction);
         String jenkinsUrlAsString = jenkinsUrl.toExternalForm();
         ItemGroup<?> parentProject = job.getParent();

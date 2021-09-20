@@ -19,11 +19,7 @@ import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.plugins.git.BranchSpec;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.GitTool;
-import hudson.plugins.git.SubmoduleConfig;
-import hudson.plugins.git.UserRemoteConfig;
+import hudson.plugins.git.*;
 import hudson.plugins.git.browser.Stash;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
@@ -50,6 +46,7 @@ import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class BitbucketSCM extends SCM {
@@ -254,7 +251,9 @@ public class BitbucketSCM extends SCM {
     }
 
     public List<GitSCMExtension> getExtensions() {
-        return gitSCM.getExtensions();
+        return gitSCM.getExtensions().stream()
+                .filter(e -> !(e instanceof InternalBitbucketRepositoryExtension))
+                .collect(toList());
     }
 
     public String getId() {
@@ -334,6 +333,10 @@ public class BitbucketSCM extends SCM {
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
+        // Remove any old instances of BitbucketRevisionInformationExtension so we can add the updated one
+        extensions.removeIf(e -> e instanceof InternalBitbucketRepositoryExtension);
+        // Add the new BitbucketRevisionInformationExtension
+        extensions.add(new InternalBitbucketRepositoryExtension(bitbucketSCMRepository));
         gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
                 gitTool, extensions);
     }

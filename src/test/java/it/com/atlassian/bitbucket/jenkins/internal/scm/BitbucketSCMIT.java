@@ -1,7 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -98,7 +98,7 @@ public class BitbucketSCMIT {
                         .append("/repos/")
                         .append(BitbucketUtils.repoForkSlug)
                         .append("/commits?since=")
-                        .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
+                        .append(build.getAction(BitbucketSCMRevisionAction.class).getRevisionSha1())
                         .toString());
     }
 
@@ -158,7 +158,7 @@ public class BitbucketSCMIT {
         project.save();
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+        BitbucketSCMRevisionAction revisionAction = build.getAction(BitbucketSCMRevisionAction.class);
 
         RestAssured
                 .given()

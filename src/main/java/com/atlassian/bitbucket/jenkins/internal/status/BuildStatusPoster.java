@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsPro
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
@@ -56,13 +57,15 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
 
     @Override
     public void onCompleted(Run<?, ?> r, @Nonnull TaskListener listener) {
-        BitbucketRevisionAction bitbucketRevisionAction = r.getAction(BitbucketRevisionAction.class);
-        if (bitbucketRevisionAction != null) {
-            postBuildStatus(bitbucketRevisionAction, r, listener);
+        BitbucketSCMRevisionAction bitbucketRevisionAction = r.getAction(BitbucketSCMRevisionAction.class);
+        if (bitbucketRevisionAction == null) {
+            // Not a Bitbucket SCM
+            return;
         }
+        postBuildStatus(bitbucketRevisionAction, r, listener);
     }
 
-    public void postBuildStatus(BitbucketRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
+    public void postBuildStatus(BitbucketSCMRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
         Optional<BitbucketServerConfiguration> serverOptional =
                 pluginConfiguration.getServerById(revisionAction.getBitbucketSCMRepo().getServerId());
         if (serverOptional.isPresent()) {
@@ -72,7 +75,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         }
     }
 
-    private void postBuildStatus(BitbucketServerConfiguration server, BitbucketRevisionAction revisionAction,
+    private void postBuildStatus(BitbucketServerConfiguration server, BitbucketSCMRevisionAction revisionAction,
                                  Run<?, ?> run, TaskListener listener) {
         GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
         try {

@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.FilePath;
@@ -26,16 +24,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Jobs that have not been saved since updating to 3.1 will not have the new {@link BitbucketSCMRevisionAction} on them,
+ * so this class:
+ * <ul>
+ *     <li>
+ *         Extracts the information needed to create a {@link BitbucketSCMRevisionAction} and adds it to the job
+ *     </li>
+ *     <li>
+ *         Sends the in-progress build notification, since {@link BitbucketSCMRevisionAction} will not be on the build
+ *         at the time {@link BuildStatusSCMListener#onCheckout(Run, SCM, FilePath, TaskListener, File, SCMRevisionState)}
+ *         is called (for jobs that have not been updated).
+ *     </li>
+ * </ul>
+ *
+ * @deprecated in 3.1.0 for removal in 4.0.0
+ */
+@Deprecated
 @Extension
-public class LocalSCMListener extends SCMListener {
+public class LegacySCMListener extends SCMListener {
 
     @Inject
     private BuildStatusPoster buildStatusPoster;
 
-    public LocalSCMListener() {
+    public LegacySCMListener() {
     }
 
-    LocalSCMListener(BuildStatusPoster buildStatusPoster) {
+    LegacySCMListener(BuildStatusPoster buildStatusPoster) {
         this.buildStatusPoster = buildStatusPoster;
     }
 
@@ -43,6 +58,12 @@ public class LocalSCMListener extends SCMListener {
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
+        BitbucketSCMRevisionAction repoAction = build.getAction(BitbucketSCMRevisionAction.class);
+        if (repoAction != null) {
+            // Not a legacy build
+            return;
+        }
+
         if (!(scm instanceof GitSCM || scm instanceof BitbucketSCM)) {
             return;
         }
@@ -138,8 +159,7 @@ public class LocalSCMListener extends SCMListener {
 
         String branch = env.get(GitSCM.GIT_BRANCH);
         String refName = branch != null ? underlyingScm.deriveLocalBranchName(branch) : null;
-        BitbucketRevisionAction revisionAction =
-                new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
+        BitbucketSCMRevisionAction revisionAction = new BitbucketSCMRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
     }

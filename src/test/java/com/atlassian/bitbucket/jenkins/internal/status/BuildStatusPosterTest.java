@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.TestBitbucketClien
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
@@ -15,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner.Silent;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
 
@@ -32,8 +34,8 @@ public class BuildStatusPosterTest {
     private static final String SERVER_URL = "http://www.example.com";
     private static final BitbucketSCMRepository scmRepository =
             new BitbucketSCMRepository(null, null, PROJECT_NAME, PROJECT_NAME, REPO_SLUG, REPO_SLUG, SERVER_ID, "");
-    private static final BitbucketRevisionAction action =
-            new BitbucketRevisionAction(scmRepository, "master", REVISION_SHA1);
+    private static final BitbucketSCMRevisionAction action =
+            new BitbucketSCMRevisionAction(scmRepository, "master", REVISION_SHA1);
 
     @Mock
     private AbstractBuild run;
@@ -52,7 +54,7 @@ public class BuildStatusPosterTest {
     private BuildStatusPoster buildStatusPoster;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException, InterruptedException {
         jenkinsSetupMock = BitbucketJenkinsSetup.create().assignGlobalCredentialProviderToItem(project);
         clientFactoryMock =
                 TestBitbucketClientFactoryHandler.create(jenkinsSetupMock, jenkinsSetupMock.getBbAdminCredentials())
@@ -74,7 +76,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testBitbucketClientException() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(action);
         doThrow(BitbucketClientException.class).when(clientFactoryMock.getBuildStatusClient()).post(any(BitbucketBuildStatus.class));
         buildStatusPoster.onCompleted(run, listener);
         verify(clientFactoryMock.getBuildStatusClient()).post(any());
@@ -82,7 +84,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testNoBuildAction() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(null);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(null);
         buildStatusPoster.onCompleted(run, listener);
         verifyZeroInteractions(jenkinsSetupMock.getPluginConfiguration());
         verifyZeroInteractions(listener);
@@ -90,7 +92,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testNoMatchingServer() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(action);
         when(jenkinsSetupMock.getPluginConfiguration().getServerById(SERVER_ID)).thenReturn(Optional.empty());
         buildStatusPoster.onCompleted(run, listener);
         verify(listener).error(eq("Failed to post build status as the provided Bitbucket Server config does not exist"));
@@ -99,7 +101,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testSuccessfulPost() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(action);
 
         buildStatusPoster.onCompleted(run, listener);
 
@@ -109,7 +111,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testRichBuildStatusForSupportedCapabilities() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(action);
         when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
 
         buildStatusPoster.onCompleted(run, listener);
@@ -121,7 +123,7 @@ public class BuildStatusPosterTest {
     @Test
     public void testRichBuildStatusUseLegacyEnabled() {
         when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(true);
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getAction(BitbucketSCMRevisionAction.class)).thenReturn(action);
         when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
 
         buildStatusPoster.onCompleted(run, listener);

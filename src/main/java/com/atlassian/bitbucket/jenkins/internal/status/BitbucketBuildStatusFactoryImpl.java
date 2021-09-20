@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevisionAction;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
@@ -63,7 +64,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
 
         if (isRich) {
-            BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+            BitbucketSCMRevisionAction revisionAction = build.getAction(BitbucketSCMRevisionAction.class);
 
             bbs.setBuildNumber(build.getId())
                     .setTestResults(getTestResults(build))
