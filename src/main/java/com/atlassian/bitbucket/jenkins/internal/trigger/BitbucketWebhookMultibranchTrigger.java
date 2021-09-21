@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.google.common.annotations.VisibleForTesting;
@@ -18,13 +17,10 @@ import java.util.logging.Logger;
 public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProject<?, ?>> {
 
     //the version (of this class) where the PR trigger was introduced. Version is 0 based.
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Static field, part of upgrade task")
     private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookMultibranchTrigger.class.getName());
 
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented on field 'version'")
     private final boolean pullRequestTrigger;
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented on field 'version'")
     private final boolean refTrigger;
     /**
      * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
@@ -33,7 +29,6 @@ public class BitbucketWebhookMultibranchTrigger extends Trigger<MultiBranchProje
      *
      * @since 3.0.0
      */
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented on this field")
     private final int version;
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler

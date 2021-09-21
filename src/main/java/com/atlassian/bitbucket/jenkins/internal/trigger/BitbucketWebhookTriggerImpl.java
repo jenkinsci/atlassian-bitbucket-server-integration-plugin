@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.trigger;
 
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -49,20 +48,16 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         implements BitbucketWebhookTrigger {
 
     //the version (of this class) where the PR trigger was introduced. Version is 0 based.
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Static field, assigned at classloading time")
     private static final int BUILD_ON_PULL_REQUEST_VERSION = 1;
     private static final Logger LOGGER = Logger.getLogger(BitbucketWebhookTriggerImpl.class.getName());
 
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented on field 'version'")
     private final boolean pullRequestTrigger;
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented on field 'version'")
     private final boolean refTrigger;
     /**
      * This exists as a simple upgrade task. Old classes will de-serialise this to default value (of 0). New
      * classes will serialise the actual value that was stored. Because the constructor is not run during de-serialisation
      * we can safely set the value in the constructor to indicate which version this class is.
      */
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Basic upgrade task as documented here'")
     private final int version;
 
     @SuppressWarnings("RedundantNoArgConstructor") // Required for Stapler

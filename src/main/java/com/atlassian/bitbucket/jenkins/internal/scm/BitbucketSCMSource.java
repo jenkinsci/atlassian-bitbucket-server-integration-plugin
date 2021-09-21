@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -60,7 +59,6 @@ public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
     private final List<SCMSourceTrait> traits;
-    @UpgradeHandled(removeAnnotationInVersion = "3.0.1", handledBy = "Type changed, fields has not, upgrade testing shows jobs still work")
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
     private volatile boolean webhookRegistered;
