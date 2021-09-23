@@ -95,7 +95,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         verifyZeroInteractions(listener);
         verify(bitbucketDeploymentFactory).createDeployment(run, ENVIRONMENT);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
@@ -125,7 +125,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Production' as the environment name since it was not correctly configured. Please configure an environment name.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Deploy to production' as the environment name since it was not correctly configured. Please configure an environment name.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
@@ -182,7 +182,7 @@ public class DeployedToEnvironmentNotifierStepTest {
         step.perform(run, null, null, listener);
 
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         verify(listener.getLogger()).println("DeployedToEnvironmentNotifierStep: Invalid environment URL 'Not a URL!'. Posting deployment without a URL instead.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
@@ -270,7 +270,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         verifyZeroInteractions(listener);
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
-        verify(deploymentPoster).postDeployment(serverId, projectKey, repoSlug, commit, deployment, run, listener);
+        verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     private BitbucketDeployment createDeployment() {

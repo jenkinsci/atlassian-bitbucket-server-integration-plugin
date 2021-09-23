@@ -10,43 +10,105 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.model.FreeStyleBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.listeners.SCMListener;
+import hudson.plugins.git.GitSCM;
+import hudson.scm.SCM;
+import hudson.scm.SCMRevisionState;
+import hudson.tasks.Publisher;
 
+import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
+@Extension
 @Singleton
-public class DeploymentPosterImpl implements DeploymentPoster {
+public class DeploymentPosterImpl extends SCMListener implements DeploymentPoster {
 
     protected static final Logger LOGGER = Logger.getLogger(DeploymentPosterImpl.class.getName());
 
-    private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
-    private final JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
-    private final BitbucketPluginConfiguration pluginConfiguration;
+    private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+    private BitbucketDeploymentFactory bitbucketDeploymentFactory;
+    private JenkinsProvider jenkinsProvider;
+    private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+    private BitbucketPluginConfiguration pluginConfiguration;
+    private BitbucketSCMRepositoryHelper scmRunHelper;
+
+    public DeploymentPosterImpl() {
+
+    }
 
     @Inject
     public DeploymentPosterImpl(BitbucketClientFactoryProvider bitbucketClientFactoryProvider,
+                                BitbucketDeploymentFactory bitbucketDeploymentFactory, JenkinsProvider jenkinsProvider,
                                 JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials,
-                                BitbucketPluginConfiguration pluginConfiguration) {
+                                BitbucketPluginConfiguration pluginConfiguration,
+                                BitbucketSCMRepositoryHelper scmRunHelper) {
         this.bitbucketClientFactoryProvider = bitbucketClientFactoryProvider;
+        this.bitbucketDeploymentFactory = bitbucketDeploymentFactory;
+        this.jenkinsProvider = jenkinsProvider;
         this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
         this.pluginConfiguration = pluginConfiguration;
+        this.scmRunHelper = scmRunHelper;
     }
 
     @Override
-    public void postDeployment(String bbsServerId, String projectKey, String repositorySlug, String revisionSha,
-                               BitbucketDeployment deployment, Run<?, ?> run,
-                               TaskListener taskListener) {
-        Optional<BitbucketServerConfiguration> maybeServer = pluginConfiguration.getServerById(bbsServerId);
+    public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
+                           @CheckForNull File changelogFile,
+                           @CheckForNull SCMRevisionState pollingBaseline) {
+        DeployedToEnvironmentNotifierStep deploymentPublisher = getDeploymentPublisher(build);
+        if (deploymentPublisher == null) {
+            return;
+        }
+        BitbucketDeploymentEnvironment environment = deploymentPublisher.getEnvironment(build, listener);
+        BitbucketDeployment deployment = bitbucketDeploymentFactory.createDeployment(build, environment);
+
+        // Get the repository off the SCM
+        BitbucketSCMRepository repo = scmRunHelper.getRepository(build, scm);
+        // If there's no repo in the environment, then we don't know where to send the build status to
+        if (repo == null) {
+            listener.getLogger().println("DeploymentPosterImpl: BitbucketSCMRepository information not present on the SCM");
+            return;
+        }
+
+        // Get the commit off the environment
+        String revisionSha1;
+        try {
+            revisionSha1 = build.getEnvironment(listener).get(GitSCM.GIT_COMMIT);
+        } catch (IOException | InterruptedException e) {
+            listener.getLogger().println("DeploymentPosterImpl: Error reading the environment variables");
+            return;
+        }
+        if (isBlank(revisionSha1)) {
+            listener.getLogger().println("DeploymentPosterImpl: Git commit information not present in the environment variables");
+            return;
+        }
+
+        postDeployment(repo, revisionSha1, deployment, build, listener);
+    }
+
+    @Override
+    public void postDeployment(BitbucketSCMRepository repository, String revisionSha, BitbucketDeployment deployment, Run<?, ?> run, TaskListener taskListener) {
+        Optional<BitbucketServerConfiguration> maybeServer = pluginConfiguration.getServerById(repository.getServerId());
         if (!maybeServer.isPresent()) {
-            taskListener.error(format("Could not send deployment notification to Bitbucket Server: Unknown serverId %s", bbsServerId));
+            taskListener.error(format("Could not send deployment notification to Bitbucket Server: Unknown serverId %s", repository.getServerId()));
             return;
         }
 
@@ -67,8 +129,8 @@ public class DeploymentPosterImpl implements DeploymentPoster {
         taskListener.getLogger().println(format("Sending notification of %s to %s on commit %s",
                 deployment.getState().name(), server.getServerName(), revisionSha));
         try {
-            clientFactory.getProjectClient(projectKey)
-                    .getRepositoryClient(repositorySlug)
+            clientFactory.getProjectClient(repository.getProjectKey())
+                    .getRepositoryClient(repository.getRepositorySlug())
                     .getDeploymentClient(revisionSha)
                     .post(deployment);
             taskListener.getLogger().println(format("Sent notification of %s deployment to %s on commit %s",
@@ -84,5 +146,22 @@ public class DeploymentPosterImpl implements DeploymentPoster {
             // This is typically not an error that the user running the job is able to fix, so
             LOGGER.log(Level.FINE, "Stacktrace from deployment post failure", e);
         }
+    }
+
+    @CheckForNull
+    private DeployedToEnvironmentNotifierStep getDeploymentPublisher(Run<?, ?> build) {
+        if (!(build instanceof FreeStyleBuild)) {
+            // For now we only support freestyle builds
+            return null;
+        }
+        FreeStyleBuild freeStyleBuild = (FreeStyleBuild) build;
+        DeployedToEnvironmentNotifierStep.DescriptorImpl publisherDescriptor = jenkinsProvider.get()
+                .getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
+        Publisher publisher = freeStyleBuild.getParent().getPublisher(publisherDescriptor);
+        if (!(publisher instanceof DeployedToEnvironmentNotifierStep)) {
+            // Not a deployment
+            return null;
+        }
+        return (DeployedToEnvironmentNotifierStep) publisher;
     }
 }

@@ -129,9 +129,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
 
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
             String revisionSha = revisionAction.getRevisionSha1();
-            descriptor().getDeploymentPoster().postDeployment(bitbucketSCMRepo.getServerId(),
-                    bitbucketSCMRepo.getProjectKey(), bitbucketSCMRepo.getRepositorySlug(), revisionSha, deployment,
-                    run, listener);
+            descriptor().getDeploymentPoster().postDeployment(bitbucketSCMRepo, revisionSha, deployment, run, listener);
         } catch (RuntimeException e) {
             // This shouldn't happen because deploymentPoster.postDeployment doesn't throw anything. But just in case,
             // we don't want to throw anything and potentially stop other steps from being executed
@@ -143,7 +141,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         }
     }
 
-    private BitbucketDeploymentEnvironment getEnvironment(Run<?, ?> run, TaskListener listener) {
+    public BitbucketDeploymentEnvironment getEnvironment(Run<?, ?> run, TaskListener listener) {
         return new BitbucketDeploymentEnvironment(environmentKey,
                 getOrGenerateEnvironmentName(environmentName, run, listener),
                 environmentType,

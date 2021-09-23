@@ -2,13 +2,13 @@ package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
-import hudson.model.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
+import hudson.model.AbstractBuild;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.SCM;
-import jenkins.branch.BranchSource;
-import jenkins.branch.MultiBranchProject;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.junit.Before;
@@ -19,12 +19,9 @@ import org.mockito.junit.MockitoJUnitRunner.Silent;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -43,6 +40,8 @@ public class LocalSCMListenerTest {
     private BitbucketSCM bitbucketSCM;
     @Mock
     private BitbucketSCMRepository scmRepository;
+    @Mock
+    private BitbucketSCMRepositoryHelper repositoryHelper;
     private LocalSCMListener listener;
     private Map<String, String> buildMap = new HashMap<>();
 
@@ -61,11 +60,23 @@ public class LocalSCMListenerTest {
         when(scmRepository.getRepositorySlug()).thenReturn("repo1");
         when(bitbucketSCM.getServerId()).thenReturn("ServerId");
         when(bitbucketSCM.getBitbucketSCMRepository()).thenReturn(scmRepository);
-        listener = spy(new LocalSCMListener(buildStatusPoster));
+        when(repositoryHelper.getRepository(any(), eq(bitbucketSCM))).thenReturn(scmRepository);
+        when(repositoryHelper.getRepository(any(), eq(gitSCM))).thenReturn(scmRepository);
+        listener = spy(new LocalSCMListener(buildStatusPoster, repositoryHelper));
     }
 
     @Test
     public void testOnCheckoutWithNonGitSCMDoesNotPostBuildStatus() {
+        SCM scm = mock(SCM.class);
+        when(repositoryHelper.getRepository(run, scm)).thenReturn(scmRepository);
+
+        listener.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+    }
+
+    @Test
+    public void testOnCheckoutWithNoRepositoryDoesNotPostBuildStatus() {
         SCM scm = mock(SCM.class);
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
@@ -74,7 +85,7 @@ public class LocalSCMListenerTest {
     }
 
     @Test
-    public void testOnCheckoutFreestyleProjectWithBitbucketSCM() {
+    public void testOnCheckoutWithBitbucketSCM() {
         FreeStyleProject project = mock(FreeStyleProject.class);
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);
@@ -88,74 +99,16 @@ public class LocalSCMListenerTest {
     }
 
     @Test
-    public void testOnCheckoutPipelineWithBitbucketSCM() {
+    public void testOnCheckoutWithGitSCM() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
 
-        //Can't mock WorkFlow classes so using Project instead.
-        Run<?, ?> run = mock(Run.class);
-        doReturn(true).when(listener).isWorkflowRun(run);
-        Project<?, ?> job = mock(Project.class);
-        doReturn(job).when(run).getParent();
-        doReturn(singletonList(bitbucketSCM)).when(job).getSCMs();
-        when(gitSCM.getKey()).thenReturn("repo-key");
-
-        listener.onCheckout(run, gitSCM, null, taskListener, null, null);
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).postBuildStatus(
                 argThat(revision ->
                         scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(run), eq(taskListener));
-    }
-
-    @Test
-    public void testOnCheckoutMultiBranchProjectWithBitbucketSCM() {
-
-        //Can't mock WorkFlow classes so using Job instead.
-        Run<?, ?> run = mock(Run.class);
-        doReturn(true).when(listener).isWorkflowRun(run);
-        Job<?, ?> job = mock(Job.class);
-        MultiBranchProject<?, ?> project = mock(MultiBranchProject.class);
-        doReturn(job).when(run).getParent();
-        doReturn(project).when(listener).getJobParent(job);
-        BranchSource branchSource = mock(BranchSource.class);
-        when(project.getSources()).thenReturn(singletonList(branchSource));
-        BitbucketSCMSource bbScmSource = mock(BitbucketSCMSource.class);
-        when(bbScmSource.getBitbucketSCMRepository()).thenReturn(scmRepository);
-        doReturn(true).when(listener).filterSource(gitSCM, bbScmSource);
-        when(branchSource.getSource()).thenReturn(bbScmSource);
-        when(gitSCM.getKey()).thenReturn("repo-key");
-
-        listener.onCheckout(run, gitSCM, null, taskListener, null, null);
-
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(run), eq(taskListener));
-    }
-
-    @Test
-    public void testFilterSourceRemoteURLsMatch() {
-        String remoteUrl = "ssh://some-git/remote.git";
-        BitbucketSCMSource bitbucketSCMSource = mock(BitbucketSCMSource.class);
-        UserRemoteConfig userRemote = mock(UserRemoteConfig.class);
-        when(userRemote.getUrl()).thenReturn(remoteUrl);
-        List<UserRemoteConfig> userRemotes = singletonList(userRemote);
-        when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemotes);
-        when(bitbucketSCMSource.getRemote()).thenReturn(remoteUrl);
-
-        assertThat(listener.filterSource(gitSCM, bitbucketSCMSource), is(true));
-    }
-
-    @Test
-    public void testFilterSourceRemoteURLsDoNotMatch() {
-        String gitRemoteUrl = "ssh://some-git/remote.git";
-        String bbRemoteUrl = "ssh://some-bb-instance/repo.git";
-        BitbucketSCMSource bitbucketSCMSource = mock(BitbucketSCMSource.class);
-        UserRemoteConfig userRemote = mock(UserRemoteConfig.class);
-        when(userRemote.getUrl()).thenReturn(gitRemoteUrl);
-        List<UserRemoteConfig> userRemotes = singletonList(userRemote);
-        when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemotes);
-        when(bitbucketSCMSource.getRemote()).thenReturn(bbRemoteUrl);
-
-        assertThat(listener.filterSource(gitSCM, bitbucketSCMSource), is(false));
+                eq(build), eq(taskListener));
     }
 }

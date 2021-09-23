@@ -15,10 +15,14 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapa
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
-import hudson.model.FreeStyleProject;
-import hudson.model.Item;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
+import hudson.EnvVars;
+import hudson.model.*;
+import hudson.plugins.git.GitSCM;
+import hudson.scm.SCM;
+import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,10 +31,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.IOException;
 import java.io.PrintStream;
 
 import static java.lang.String.format;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.mockito.Mockito.*;
@@ -54,11 +59,13 @@ public class DeploymentPosterImplTest {
     @InjectMocks
     public DeploymentPosterImpl poster;
     @Mock
-    public Run<FreeStyleProject, ?> run;
+    public FreeStyleBuild run;
     @Mock
     public TaskListener taskListener;
     @Mock
     private BitbucketCredentials bitbucketCredentials;
+    @Mock
+    private BitbucketDeploymentFactory bitbucketDeploymentFactory;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private BitbucketClientFactory clientFactory;
     @Mock
@@ -66,17 +73,31 @@ public class DeploymentPosterImplTest {
     @Mock
     private GlobalCredentialsProvider globalCredentialsProvider;
     @Mock
+    private JenkinsProvider jenkinsProvider;
+    @Mock
+    private Jenkins jenkins;
+    @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private PrintStream printStream;
     @Mock
+    private SCM scm;
+    @Mock
+    private FreeStyleProject parent;
+    @Mock
+    private DeployedToEnvironmentNotifierStep.DescriptorImpl publisherDescriptor;
+    @Mock
+    private DeployedToEnvironmentNotifierStep publisher;
+    @Mock
+    private BitbucketSCMRepositoryHelper scmRunHelper;
+    @Mock
     private BitbucketServerConfiguration server;
+    private BitbucketSCMRepository repository;
 
     @Before
-    public void setup() {
-        FreeStyleProject parent = mock(FreeStyleProject.class);
+    public void setup() throws Exception {
         when(run.getParent()).thenReturn(parent);
         when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(of(globalAdminCredentials));
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(of(server));
@@ -86,13 +107,95 @@ public class DeploymentPosterImplTest {
         when(clientFactoryProvider.getClient(BASE_URL, bitbucketCredentials)).thenReturn(clientFactory);
         when(clientFactory.getCapabilityClient().getCDCapabilities())
                 .thenReturn(new BitbucketCDCapabilities(emptyMap()));
+        when(jenkinsProvider.get()).thenReturn(jenkins);
         when(server.getServerName()).thenReturn(SERVER_NAME);
         when(taskListener.getLogger()).thenReturn(printStream);
+        repository = new BitbucketSCMRepository("credentialsId", null, "projectName", PROJECT_KEY, "repoName",
+                REPO_SLUG, SERVER_ID, null);
+        when(scmRunHelper.getRepository(run, scm)).thenReturn(repository);
+        EnvVars env = new EnvVars();
+        env.put(GitSCM.GIT_COMMIT, REVISION_SHA);
+        when(run.getEnvironment(taskListener)).thenReturn(env);
+        when(jenkins.getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class))
+                .thenReturn(publisherDescriptor);
+        when(publisher.getEnvironment(run, taskListener)).thenReturn(ENVIRONMENT);
+        when(parent.getPublisher(publisherDescriptor)).thenReturn(publisher);
+        when(bitbucketDeploymentFactory.createDeployment(run, ENVIRONMENT)).thenReturn(DEPLOYMENT);
+    }
+
+    @Test
+    public void testOnCheckoutNotFreestyleBuild() {
+        Run run = mock(Run.class);
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutNoDeploymentPublisher() {
+        when(parent.getPublisher(publisherDescriptor)).thenReturn(null);
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutNoRepositoryOnSCM() {
+        when(scmRunHelper.getRepository(run, scm)).thenReturn(null);
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutErrorReadingEnvironment() throws Exception {
+        when(run.getEnvironment(taskListener)).thenThrow(new IOException());
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutNoRevisionInEnvironment() throws Exception {
+        when(run.getEnvironment(taskListener)).thenReturn(new EnvVars());
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutRevisionIsBlank() throws Exception {
+        EnvVars env = new EnvVars();
+        env.put(GitSCM.GIT_COMMIT, "");
+        when(run.getEnvironment(taskListener)).thenReturn(env);
+
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(clientFactory, never()).getProjectClient(any());
+    }
+
+    @Test
+    public void testOnCheckoutPostDeployment() {
+        poster.onCheckout(run, scm, null, taskListener, null, null);
+
+        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
+        verify(clientFactory.getProjectClient(PROJECT_KEY)
+                .getRepositoryClient(REPO_SLUG)
+                .getDeploymentClient(REVISION_SHA))
+                .post(DEPLOYMENT);
+        verify(printStream).println(format("Sent notification of %s deployment to %s on commit %s",
+                DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
     }
 
     @Test
     public void testPostDeployment() {
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -110,7 +213,7 @@ public class DeploymentPosterImplTest {
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA);
         doThrow(new AuthorizationException("An auth error", 400, "")).when(deploymentClient).post(DEPLOYMENT);
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -124,7 +227,7 @@ public class DeploymentPosterImplTest {
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA);
         doThrow(new BitbucketClientException("A Bitbucket error", 500, "")).when(deploymentClient).post(DEPLOYMENT);
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(printStream).println(format("Sending notification of %s to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
@@ -137,7 +240,7 @@ public class DeploymentPosterImplTest {
         when(clientFactory.getCapabilityClient().getCDCapabilities())
                 .thenReturn(null);
 
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(taskListener).error(
                 format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", SERVER_NAME));
@@ -148,7 +251,7 @@ public class DeploymentPosterImplTest {
     public void testPostDeploymentWithUnknownServerId() {
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(empty());
 
-        poster.postDeployment(SERVER_ID, PROJECT_KEY, REPO_SLUG, REVISION_SHA, DEPLOYMENT, run, taskListener);
+        poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(pluginConfiguration).getServerById(SERVER_ID);
         verify(taskListener).error(
