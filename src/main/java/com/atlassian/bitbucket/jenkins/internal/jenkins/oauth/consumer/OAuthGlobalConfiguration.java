@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.AuthorizeConfirmationConfigDescriptor;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Describable;
@@ -59,6 +60,12 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     @SuppressWarnings("unused") // Stapler
     public Action getAuthorize(StaplerRequest req) throws FormException {
         return authorizeConfirmationConfigDescriptor.createInstance(req);
+    }
+
+    @NonNull
+    @Override
+    public Category getCategory() {
+        return Category.SECURITY;
     }
 
     @Override
