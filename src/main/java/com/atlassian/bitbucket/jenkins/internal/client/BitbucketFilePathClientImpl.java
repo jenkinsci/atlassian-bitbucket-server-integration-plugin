@@ -116,7 +116,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
             }
             return bitbucketRequestExecutor.makeGetRequest(
                     nextPageUrl(previous),
-                    new TypeReference<BitbucketPage<String>>() {}).getBody();
+                    new TypeReference<BitbucketFilePage>() {}).getBody();
         }
 
         private HttpUrl nextPageUrl(BitbucketPage<String> previous) {
