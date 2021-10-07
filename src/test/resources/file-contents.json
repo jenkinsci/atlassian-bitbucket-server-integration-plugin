@@ -1,0 +1,42 @@
+{
+  "lines": [
+    {
+      "text": "pipeline {"
+    },
+    {
+      "text": "    agent any"
+    },
+    {
+      "text": ""
+    },
+    {
+      "text": "    stages {"
+    },
+    {
+      "text": "        stage('Build') {"
+    },
+    {
+      "text": "            steps {"
+    },
+    {
+      "text": "                echo 'Building..'"
+    },
+    {
+      "text": "            }"
+    },
+    {
+      "text": "        }"
+    },
+    {
+      "text": "    }"
+    },
+    {
+      "text": "}"
+    }
+  ],
+  "start": 0,
+  "size": 11,
+  "isLastPage": true,
+  "limit": 500,
+  "nextPageStart": null
+}
