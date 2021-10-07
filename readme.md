@@ -29,7 +29,7 @@ The plugin streamlines the entire configuration process and removes the need for
 - Jenkins 2.235.5+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.4+ you can set up an Application Link to have access to all plugin features.
+Note: Bitbucket Server 5.6 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
 
 ## In this document
 1. [Install the plugin](#install-the-plugin)
@@ -140,7 +140,7 @@ Once you’ve added a Bitbucket Server instance to Jenkins, users will be able t
 To select a Bitbucket Server instance when creating a Freestyle job: 
 1. In Jenkins, go to **Jenkins** > **New item** and then follow the instructions to create a job.  
 2. Under **Source Code Management**, select **Bitbucket Server** and enter the details of the job.
-3. Under **Build Trigger**, select **Bitbucket Server Trigger build after push**.
+3. Under **Build Trigger**, select **Bitbucket webhook trigger**, and select either **All pushes** to build on every push, or **Pull request opened or source branch updated** to build whenever a pull request is opened, or a push is made to an open pull request.
 4. Under **Build**, add build steps. 
 5. Select **Save**.
 
