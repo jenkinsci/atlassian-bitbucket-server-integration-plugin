@@ -73,7 +73,7 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
-        DeployedToEnvironmentNotifierStep deploymentPublisher = getDeploymentPublisher(build);
+        DeploymentNotifier deploymentPublisher = getDeploymentPublisher(build);
         if (deploymentPublisher == null) {
             return;
         }
@@ -126,7 +126,7 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
             return;
         }
 
-        taskListener.getLogger().println(format("Sending notification of %s to %s on commit %s",
+        taskListener.getLogger().println(format("Sending notification of %s deployment to %s on commit %s",
                 deployment.getState().name(), server.getServerName(), revisionSha));
         try {
             clientFactory.getProjectClient(repository.getProjectKey())
@@ -149,19 +149,19 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
     }
 
     @CheckForNull
-    private DeployedToEnvironmentNotifierStep getDeploymentPublisher(Run<?, ?> build) {
+    private DeploymentNotifier getDeploymentPublisher(Run<?, ?> build) {
         if (!(build instanceof FreeStyleBuild)) {
             // For now we only support freestyle builds
             return null;
         }
         FreeStyleBuild freeStyleBuild = (FreeStyleBuild) build;
-        DeployedToEnvironmentNotifierStep.DescriptorImpl publisherDescriptor = jenkinsProvider.get()
-                .getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class);
+        DeploymentNotifier.DescriptorImpl publisherDescriptor = jenkinsProvider.get()
+                .getDescriptorByType(DeploymentNotifier.DescriptorImpl.class);
         Publisher publisher = freeStyleBuild.getParent().getPublisher(publisherDescriptor);
-        if (!(publisher instanceof DeployedToEnvironmentNotifierStep)) {
+        if (!(publisher instanceof DeploymentNotifier)) {
             // Not a deployment
             return null;
         }
-        return (DeployedToEnvironmentNotifierStep) publisher;
+        return (DeploymentNotifier) publisher;
     }
 }

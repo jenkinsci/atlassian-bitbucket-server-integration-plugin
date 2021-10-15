@@ -87,9 +87,9 @@ public class DeploymentPosterImplTest {
     @Mock
     private FreeStyleProject parent;
     @Mock
-    private DeployedToEnvironmentNotifierStep.DescriptorImpl publisherDescriptor;
+    private DeploymentNotifier.DescriptorImpl publisherDescriptor;
     @Mock
-    private DeployedToEnvironmentNotifierStep publisher;
+    private DeploymentNotifier publisher;
     @Mock
     private BitbucketSCMRepositoryHelper scmRunHelper;
     @Mock
@@ -116,7 +116,7 @@ public class DeploymentPosterImplTest {
         EnvVars env = new EnvVars();
         env.put(GitSCM.GIT_COMMIT, REVISION_SHA);
         when(run.getEnvironment(taskListener)).thenReturn(env);
-        when(jenkins.getDescriptorByType(DeployedToEnvironmentNotifierStep.DescriptorImpl.class))
+        when(jenkins.getDescriptorByType(DeploymentNotifier.DescriptorImpl.class))
                 .thenReturn(publisherDescriptor);
         when(publisher.getEnvironment(run, taskListener)).thenReturn(ENVIRONMENT);
         when(parent.getPublisher(publisherDescriptor)).thenReturn(publisher);
@@ -183,7 +183,7 @@ public class DeploymentPosterImplTest {
     public void testOnCheckoutPostDeployment() {
         poster.onCheckout(run, scm, null, taskListener, null, null);
 
-        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(clientFactory.getProjectClient(PROJECT_KEY)
                 .getRepositoryClient(REPO_SLUG)
@@ -197,7 +197,7 @@ public class DeploymentPosterImplTest {
     public void testPostDeployment() {
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(clientFactory.getProjectClient(PROJECT_KEY)
                 .getRepositoryClient(REPO_SLUG)
@@ -215,7 +215,7 @@ public class DeploymentPosterImplTest {
         doThrow(new AuthorizationException("An auth error", 400, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(taskListener).error(format("The personal access token for the Bitbucket Server instance %s is invalid or insufficient to post deployment information: %s",
                 SERVER_NAME, "An auth error"));
@@ -229,7 +229,7 @@ public class DeploymentPosterImplTest {
         doThrow(new BitbucketClientException("A Bitbucket error", 500, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s to %s on commit %s",
+        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(taskListener).error(format("Failed to send notification of deployment to %s due to an error: %s",
                 server.getServerName(), "A Bitbucket error"));

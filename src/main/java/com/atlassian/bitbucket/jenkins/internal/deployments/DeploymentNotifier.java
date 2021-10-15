@@ -23,6 +23,7 @@ import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
@@ -33,10 +34,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepUtils.getOrGenerateEnvironmentKey;
+import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepUtils.normalizeEnvironmentType;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
@@ -46,24 +48,19 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
  *
  * @since deployments
  */
-public class DeployedToEnvironmentNotifierStep extends Notifier implements SimpleBuildStep {
+public class DeploymentNotifier extends Notifier implements SimpleBuildStep, DeploymentStep {
 
-    private static final Logger LOGGER = Logger.getLogger(DeployedToEnvironmentNotifierStep.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DeploymentNotifier.class.getName());
 
-    private final String environmentKey;
     private final String environmentName;
-    private final BitbucketDeploymentEnvironmentType environmentType;
-    private final String environmentUrl;
+
+    private BitbucketDeploymentEnvironmentType environmentType;
+    private String environmentUrl;
+    private String environmentKey;
 
     @DataBoundConstructor
-    public DeployedToEnvironmentNotifierStep(@CheckForNull String environmentKey,
-                                             @CheckForNull String environmentName,
-                                             @CheckForNull String environmentType,
-                                             @CheckForNull String environmentUrl) {
-        this.environmentKey = getOrGenerateEnvironmentKey(environmentKey);
+    public DeploymentNotifier(@CheckForNull String environmentName) {
         this.environmentName = stripToNull(environmentName);
-        this.environmentType = getEnvironmentType(environmentType);
-        this.environmentUrl = stripToNull(environmentUrl);
     }
 
     public DescriptorImpl descriptor() {
@@ -75,16 +72,18 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
      *
      * @return the configured or generated environment key
      */
+    @Override
     public String getEnvironmentKey() {
         return environmentKey;
     }
 
-    /**
-     * Used to populate the {@code environmentName} field in the UI
-     *
-     * @return the configured environment name or {@code null} if not configured
-     */
+    @DataBoundSetter
+    public void setEnvironmentKey(@CheckForNull String environmentKey) {
+        this.environmentKey = getOrGenerateEnvironmentKey(environmentKey);
+    }
+
     @CheckForNull
+    @Override
     public String getEnvironmentName() {
         return environmentName;
     }
@@ -95,8 +94,14 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
      * @return the configured {@link BitbucketDeploymentEnvironmentType#name()} or {@code null} if not configured
      */
     @CheckForNull
+    @Override
     public String getEnvironmentType() {
         return environmentType == null ? null : environmentType.name();
+    }
+
+    @DataBoundSetter
+    public void setEnvironmentType(@CheckForNull String environmentType) {
+        this.environmentType = normalizeEnvironmentType(environmentType);
     }
 
     /**
@@ -105,8 +110,14 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
      * @return the configured environment url or {@code null} if not configured
      */
     @CheckForNull
+    @Override
     public String getEnvironmentUrl() {
         return environmentUrl;
+    }
+
+    @DataBoundSetter
+    public void setEnvironmentUrl(@CheckForNull String environmentUrl) {
+        this.environmentUrl = stripToNull(environmentUrl);
     }
 
     @Override
@@ -116,7 +127,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
             BitbucketRevisionAction revisionAction = run.getAction(BitbucketRevisionAction.class);
             if (revisionAction == null) {
                 // Not checked out with a Bitbucket SCM
-                listener.error("Could not send deployment notification: DeployedToEnvironmentNotifierStep only works when using the Bitbucket SCM for checkout.");
+                listener.error("Could not send deployment notification: DeploymentNotifier only works when using the Bitbucket SCM for checkout.");
                 return;
             }
 
@@ -141,60 +152,9 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         }
     }
 
+    @Override
     public BitbucketDeploymentEnvironment getEnvironment(Run<?, ?> run, TaskListener listener) {
-        return new BitbucketDeploymentEnvironment(environmentKey,
-                getOrGenerateEnvironmentName(environmentName, run, listener),
-                environmentType,
-                getEnvironmentUri(environmentUrl, listener));
-    }
-
-    @CheckForNull
-    private BitbucketDeploymentEnvironmentType getEnvironmentType(@CheckForNull String environmentType) {
-        if (isBlank(environmentType)) {
-            return null;
-        }
-        return BitbucketDeploymentEnvironmentType.fromName(environmentType)
-                .orElseGet(() -> {
-                    LOGGER.warning(format("DeployedToEnvironmentNotifierStep: Invalid environment type '%s'. Saving step without environment type.", environmentType));
-                    return null;
-                });
-    }
-
-    @CheckForNull
-    private URI getEnvironmentUri(String environmentUrl, TaskListener listener) {
-        if (isBlank(environmentUrl)) {
-            return null;
-        }
-        try {
-            return new URI(environmentUrl);
-        } catch (URISyntaxException x) {
-            listener.getLogger().println(format("DeployedToEnvironmentNotifierStep: Invalid environment URL '%s'. Posting deployment without a URL instead.", this.environmentUrl));
-            return null;
-        }
-    }
-
-    private String getOrGenerateEnvironmentKey(@CheckForNull String environmentKey) {
-        if (!isBlank(environmentKey)) {
-            return environmentKey;
-        }
-        return UUID.randomUUID().toString();
-    }
-
-    private String getOrGenerateEnvironmentName(@CheckForNull String environmentName, Run<?, ?> run,
-                                                TaskListener listener) {
-        if (!isBlank(environmentName)) {
-            return environmentName;
-        }
-        String generatedEnvironmentName;
-        if (environmentType != null) {
-            // Default to the environment type display name if there is a configured environment type
-            generatedEnvironmentName = environmentType.getDisplayName();
-        } else {
-            // Otherwise default to the project's display name
-            generatedEnvironmentName = run.getParent().getDisplayName();
-        }
-        listener.getLogger().println(format("Bitbucket Deployment Notifier: Using '%s' as the environment name since it was not correctly configured. Please configure an environment name.", generatedEnvironmentName));
-        return generatedEnvironmentName;
+        return DeploymentStepUtils.getEnvironment(this, run, listener);
     }
 
     @Extension
@@ -215,7 +175,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
                                                      @QueryParameter String environmentName) {
             checkPermissions(context);
             if (isBlank(environmentName)) {
-                return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentNameRequired());
+                return FormValidation.error(Messages.DeploymentNotifier_EnvironmentNameRequired());
             }
             return FORM_VALIDATION_OK;
         }
@@ -229,7 +189,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
             }
             return BitbucketDeploymentEnvironmentType.fromName(environmentType)
                     .map(validType -> FORM_VALIDATION_OK)
-                    .orElseGet(() -> FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentTypeInvalid()));
+                    .orElseGet(() -> FormValidation.error(Messages.DeploymentNotifier_EnvironmentTypeInvalid()));
         }
 
         @POST
@@ -242,11 +202,11 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
             try {
                 URI uri = new URI(environmentUrl); // Try to coerce it into a URL
                 if (!uri.isAbsolute()) {
-                    return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_UriAbsolute());
+                    return FormValidation.error(Messages.DeploymentNotifier_UriAbsolute());
                 }
                 return FORM_VALIDATION_OK;
             } catch (URISyntaxException e) {
-                return FormValidation.error(Messages.DeployedToEnvironmentNotifierStep_EnvironmentUrlInvalid());
+                return FormValidation.error(Messages.DeploymentNotifier_EnvironmentUrlInvalid());
             }
         }
 
@@ -254,7 +214,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
         public ListBoxModel doFillEnvironmentTypeItems(@AncestorInPath Item context) {
             checkPermissions(context);
             ListBoxModel options = new ListBoxModel();
-            options.add(Messages.DeployedToEnvironmentNotifierStep_EmptySelection(), "");
+            options.add(Messages.DeploymentNotifier_EmptySelection(), "");
             Arrays.stream(BitbucketDeploymentEnvironmentType.values())
                     .sorted(Comparator.comparingInt(BitbucketDeploymentEnvironmentType::getWeight))
                     .forEach(v -> options.add(v.getDisplayName(), v.name()));
@@ -271,7 +231,7 @@ public class DeployedToEnvironmentNotifierStep extends Notifier implements Simpl
 
         @Override
         public String getDisplayName() {
-            return Messages.DeployedToEnvironmentNotifierStep_DisplayName();
+            return Messages.DeploymentNotifier_DisplayName();
         }
 
         @Override

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.CheckForNull;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.Objects;
 
@@ -16,7 +17,7 @@ import java.util.Objects;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class BitbucketDeploymentEnvironment {
+public class BitbucketDeploymentEnvironment implements Serializable {
 
     private static final String DISPLAY_NAME = "displayName";
     private static final String KEY = "key";

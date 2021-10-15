@@ -7,11 +7,17 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
+import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -20,12 +26,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
+import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepImpl.DescriptorImpl.FORM_VALIDATION_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DeployedToEnvironmentNotifierStepTest {
+public class DeploymentNotifierTest {
 
     private static final String ENV_KEY = "ENV_KEY";
     private static final String ENV_NAME = "ENV_NAME";
@@ -40,13 +47,22 @@ public class DeployedToEnvironmentNotifierStepTest {
     @Mock
     private DeploymentPoster deploymentPoster;
     @Mock
+    private Jenkins jenkins;
+    @Mock
     private JenkinsProvider jenkinsProvider;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private TaskListener listener;
+    @InjectMocks
+    private DeploymentNotifier.DescriptorImpl descriptor;
+
+    @Before
+    public void setup() {
+        when(jenkinsProvider.get()).thenReturn(jenkins);
+    }
 
     @Test
     public void testCreateStepAllowsCustomEnvironmentKey() {
-        DeployedToEnvironmentNotifierStep step = createStep();
+        DeploymentNotifier step = createStep();
         assertThat(step.getEnvironmentKey(), equalTo(ENV_KEY));
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
@@ -55,7 +71,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testCreateStepGeneratesEnvironmentKeyWhenBlank() {
-        DeployedToEnvironmentNotifierStep step = createStep(" ", ENV_NAME, ENV_TYPE, ENV_URL);
+        DeploymentNotifier step = createStep(" ", ENV_NAME, ENV_TYPE, ENV_URL);
         UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
@@ -64,7 +80,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testCreateStepGeneratesEnvironmentKeyWhenNull() {
-        DeployedToEnvironmentNotifierStep step = createStep(null, ENV_NAME, ENV_TYPE, ENV_URL);
+        DeploymentNotifier step = createStep(null, ENV_NAME, ENV_TYPE, ENV_URL);
         UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID
         assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
         assertThat(step.getEnvironmentType(), equalTo(ENV_TYPE));
@@ -72,8 +88,152 @@ public class DeployedToEnvironmentNotifierStepTest {
     }
 
     @Test
+    public void testDescriptorDoCheckEnvironmentNameContextNull() {
+        String environmentName = "my env";
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentName(null, environmentName);
+
+        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentName() {
+        Item context = mock(Item.class);
+        String environmentName = "my env";
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentName(context, environmentName);
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentNameBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentName(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment name is required."));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentTypeContextNull() {
+        FormValidation formValidation = descriptor.doCheckEnvironmentType(null, "Production");
+
+        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentTypeBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentType() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, "PRODUCTION");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentTypeBadEnvironmentType() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, "not an environment type");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING."));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentUrlContextNull() {
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(null, "http://my-env");
+
+        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentUrlBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentUrlInvalid() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "not a url");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment URL must be a valid URL."));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentUrlNotAbsolute() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "/relative/url");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be absolute."));
+    }
+
+    @Test
+    public void testDoFillEnvironmentTypeItems() {
+        ListBoxModel options = descriptor.doFillEnvironmentTypeItems(null);
+
+        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
+        assertThat(options, hasSize(5));
+        assertThat(options.get(0).name, equalTo("- none -"));
+        assertThat(options.get(0).value, equalTo(""));
+        assertThat(options.get(1).name, equalTo("Production"));
+        assertThat(options.get(1).value, equalTo("PRODUCTION"));
+        assertThat(options.get(2).name, equalTo("Staging"));
+        assertThat(options.get(2).value, equalTo("STAGING"));
+        assertThat(options.get(3).name, equalTo("Testing"));
+        assertThat(options.get(3).value, equalTo("TESTING"));
+        assertThat(options.get(4).name, equalTo("Development"));
+        assertThat(options.get(4).value, equalTo("DEVELOPMENT"));
+    }
+
+    @Test
+    public void testDescriptorDoCheckEnvironmentUrl() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "http://my-env");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
     public void testPerformCallsDeploymentPoster() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep();
+        DeploymentNotifier step = createStep();
         BitbucketDeployment deployment = createDeployment();
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
@@ -94,7 +254,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testPerformDefaultsNullEnvNameToEnvType() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, null, ENV_TYPE, ENV_URL);
+        DeploymentNotifier step = createStep(ENV_KEY, null, ENV_TYPE, ENV_URL);
         BitbucketDeploymentEnvironmentType type = BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE);
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 type.getDisplayName(), type, URI.create(ENV_URL));
@@ -111,14 +271,14 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         step.perform(run, null, null, listener);
 
-        verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Production' as the environment name since it was not correctly configured. Please configure an environment name.");
+        verify(listener.getLogger()).println("Using 'Production' as the environment name since it was not correctly configured. Please configure an environment name.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
     public void testPerformDefaultsNullEnvNameToJobName() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, null, null, ENV_URL);
+        DeploymentNotifier step = createStep(ENV_KEY, null, null, ENV_URL);
         String parentName = "Deploy to production";
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 parentName, null, URI.create(ENV_URL));
@@ -134,14 +294,14 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         step.perform(run, null, null, listener);
 
-        verify(listener.getLogger()).println("Bitbucket Deployment Notifier: Using 'Deploy to production' as the environment name since it was not correctly configured. Please configure an environment name.");
+        verify(listener.getLogger()).println("Using 'Deploy to production' as the environment name since it was not correctly configured. Please configure an environment name.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
     public void testPerformWhenInvalidEnvType() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, "NOT_A_VALID_TYPE", ENV_URL);
+        DeploymentNotifier step = createStep(ENV_KEY, ENV_NAME, "NOT_A_VALID_TYPE", ENV_URL);
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 ENV_NAME, null, URI.create(ENV_URL));
         BitbucketDeployment deployment = createDeployment();
@@ -163,7 +323,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testPerformLogsWhenInvalidEnvUrl() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, "Not a URL!");
+        DeploymentNotifier step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, "Not a URL!");
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), null);
         BitbucketDeployment deployment = createDeployment();
@@ -178,14 +338,14 @@ public class DeployedToEnvironmentNotifierStepTest {
 
         step.perform(run, null, null, listener);
 
-        verify(listener.getLogger()).println("DeployedToEnvironmentNotifierStep: Invalid environment URL 'Not a URL!'. Posting deployment without a URL instead.");
+        verify(listener.getLogger()).println("Invalid environment URL 'Not a URL!'.");
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
 
     @Test
     public void testPerformWhenExceptionDoesNotThrow() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep();
+        DeploymentNotifier step = createStep();
         Run<?, ?> run = mock(Run.class);
         BitbucketRevisionAction revisionAction = mock(BitbucketRevisionAction.class);
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(revisionAction);
@@ -203,12 +363,12 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testPerformWhenNoBitbucketRevisionAction() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep();
+        DeploymentNotifier step = createStep();
         Run<?, ?> run = mock(Run.class);
 
         step.perform(run, null, null, listener);
 
-        verify(listener).error("Could not send deployment notification: DeployedToEnvironmentNotifierStep only works when using the Bitbucket SCM for checkout.");
+        verify(listener).error("Could not send deployment notification: DeploymentNotifier only works when using the Bitbucket SCM for checkout.");
         verifyNoMoreInteractions(listener);
         verifyZeroInteractions(bitbucketDeploymentFactory);
         verifyZeroInteractions(deploymentPoster);
@@ -216,7 +376,7 @@ public class DeployedToEnvironmentNotifierStepTest {
 
     @Test
     public void testPerformWithBlankEnvironmentUrlCallsDeploymentPoster() throws IOException, InterruptedException {
-        DeployedToEnvironmentNotifierStep step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, null);
+        DeploymentNotifier step = createStep(ENV_KEY, ENV_NAME, ENV_TYPE, null);
         BitbucketDeploymentEnvironment expectedEnvironment = new BitbucketDeploymentEnvironment(ENV_KEY,
                 ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), null);
         BitbucketDeployment deployment = createDeployment();
@@ -245,14 +405,14 @@ public class DeployedToEnvironmentNotifierStepTest {
         return new BitbucketDeployment(1, "desc", "name", environment, "key", DeploymentState.FAILED, "url");
     }
 
-    private DeployedToEnvironmentNotifierStep createStep() {
+    private DeploymentNotifier createStep() {
         return createStep(ENV_KEY, ENV_NAME, ENV_TYPE, ENV_URL);
     }
 
-    private DeployedToEnvironmentNotifierStep createStep(String environmentKey, String environmentName,
-                                                         @CheckForNull String environmentType,
-                                                         @CheckForNull String environmentUrl) {
-        return new DeployedToEnvironmentNotifierStep(environmentKey, environmentName, environmentType, environmentUrl) {
+    private DeploymentNotifier createStep(String environmentKey, String environmentName,
+                                          @CheckForNull String environmentType,
+                                          @CheckForNull String environmentUrl) {
+        DeploymentNotifier notifier = new DeploymentNotifier(environmentName) {
             @Override
             public DescriptorImpl descriptor() {
                 DescriptorImpl descriptor = mock(DescriptorImpl.class);
@@ -261,5 +421,9 @@ public class DeployedToEnvironmentNotifierStepTest {
                 return descriptor;
             }
         };
+        notifier.setEnvironmentKey(environmentKey);
+        notifier.setEnvironmentType(environmentType);
+        notifier.setEnvironmentUrl(environmentUrl);
+        return notifier;
     }
 }
