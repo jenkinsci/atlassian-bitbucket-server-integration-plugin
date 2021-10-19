@@ -42,7 +42,7 @@ public enum DeploymentState {
         this.formatString = formatString;
     }
 
-    public String getDescriptiveTest(String jobName, String environmentName) {
+    public String getDescriptiveText(String jobName, String environmentName) {
         return String.format(formatString, jobName, environmentName);
     }
 }

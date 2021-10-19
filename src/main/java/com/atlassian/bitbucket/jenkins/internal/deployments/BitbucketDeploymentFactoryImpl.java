@@ -42,7 +42,7 @@ public class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactor
         String key = job.getFullName();
         String name = getName(job);
         state = state == null ? getStateFromRun(run) : state;
-        String description = state.getDescriptiveTest(name, environment.getName());
+        String description = state.getDescriptiveText(name, environment.getName());
         String url = displayURLProvider.getRunURL(run);
 
         return new BitbucketDeployment(run.getNumber(), description, name, environment, key, state, url);

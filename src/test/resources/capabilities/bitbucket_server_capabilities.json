@@ -1,0 +1,26 @@
+{
+  "links": {
+    "self": "http://stash.local:7990/bitbucket/rest/capabilities"
+  },
+  "application": "stash",
+  "buildDate": "2021-09-30T05:01:58Z",
+  "capabilities": {
+    "dev-status-detail-repository": "http://stash.local:7990/bitbucket/rest/jira-dev/latest/detail/repository",
+    "dev-status-pull-changes": "http://stash.local:7990/bitbucket/rest/jira-dev/latest/updated-issues",
+    "atlassian-remote-event-diagnostics-v1": "http://stash.local:7990/bitbucket/rest/remote-event/1/status",
+    "bitbucket-remote-event-support": "http://stash.local:7990/bitbucket/rest/bitbucket-remote/latest/remote-event-support",
+    "dev-status-summary": "http://stash.local:7990/bitbucket/rest/remote-link-aggregation/latest/aggregation",
+    "dev-status-detail-pullrequest": "http://stash.local:7990/bitbucket/rest/jira-dev/latest/detail/pullrequest",
+    "remote-link-aggregation": "http://stash.local:7990/bitbucket/rest/remote-link-aggregation/1/capabilities",
+    "atlassian-remote-event-status": "http://stash.local:7990/bitbucket/rest/remote-event/1/status",
+    "navigation": "http://stash.local:7990/bitbucket/rest/capabilities/navigation",
+    "repository-mirroring": "http://stash.local:7990/bitbucket/rest/mirroring/latest/capabilities",
+    "webhooks": "http://stash.local:7990/bitbucket/rest/webhooks/latest/capabilities",
+    "build": "http://stash.local:7990/bitbucket/rest/api/latest/build/capabilities",
+    "code-insights": "http://stash.local:7990/bitbucket/rest/insights/latest/capabilities",
+    "smart-commit-producer": "http://stash.local:7990/bitbucket/rest/jira-dev/latest/smart-commit",
+    "atlassian-remote-event-consumer": "http://stash.local:7990/bitbucket/rest/remote-event-consumer/1/capabilities",
+    "deployment": "http://stash.local:7990/bitbucket/rest/api/latest/deployment/capabilities",
+    "atlassian-remote-event-producer": "http://stash.local:7990/bitbucket/rest/remote-event-producer/1/capabilities"
+  }
+}

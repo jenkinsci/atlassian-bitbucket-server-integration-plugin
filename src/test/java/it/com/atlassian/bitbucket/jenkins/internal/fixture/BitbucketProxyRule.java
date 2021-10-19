@@ -1,20 +1,18 @@
 package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
-import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runners.model.Statement;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.RICH_BUILDSTATUS_CAPABILITY_KEY;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.BITBUCKET_BASE_URL;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.marshall;
 
 public class BitbucketProxyRule {
 
@@ -50,25 +48,29 @@ public class BitbucketProxyRule {
     }
 
     private void fixCapabilities() {
+        // Base capabilities endpoint
         String atlassianCapabilityUrl = "/rest/capabilities";
-        Map<String, String> c = new HashMap<>();
-        c.put(RICH_BUILDSTATUS_CAPABILITY_KEY, wireMockRule.baseUrl() + "/rest/api/latest/build/capabilities");
-        AtlassianServerCapabilities ac = new AtlassianServerCapabilities("stash", c);
         wireMockRule.stubFor(get(
                 urlPathMatching(atlassianCapabilityUrl))
                 .willReturn(aResponse()
-                        .withBody(marshall(ac))));
+                        .withBody(getResourceAsString("capabilities/bitbucket_server_capabilities.json"))));
 
+        // build status capabilities endpoint
         String buildCapability = "/rest/api/latest/build/capabilities";
         wireMockRule.stubFor(get(
                 urlPathMatching(buildCapability))
                 .willReturn(
                         aResponse().withHeader("Content-Type", "application/json")
-                                .withBody("{\n" +
-                                          "    \"buildStatus\": [\n" +
-                                          "        \"richBuildStatus\"\n" +
-                                          "    ]\n" +
-                                          "}").withStatus(200)));
+                                .withBody(getResourceAsString("capabilities/build_status_capabilities.json"))
+                                .withStatus(200)));
+    }
+
+    private String getResourceAsString(String filename) {
+        try {
+            return IOUtils.toString(getClass().getClassLoader().getResourceAsStream(filename), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public WireMockServer getWireMock() {

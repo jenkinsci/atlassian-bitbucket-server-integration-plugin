@@ -37,8 +37,15 @@ public class JenkinsProjectHandler {
     }
 
     public FreeStyleProject createFreeStyleProject(String projectKey, String repoSlug, String branchPattern) throws Exception {
+        return createFreeStyleProject(projectKey, repoSlug, branchPattern, unsavedProject -> {
+        });
+    }
+
+    public FreeStyleProject createFreeStyleProject(String projectKey, String repoSlug, String branchPattern,
+                                                   Consumer<FreeStyleProject> settingsConfigurer) throws Exception {
         FreeStyleProject project = bbJenkinsRule.createFreeStyleProject();
         project.setScm(createScmWithSpecs(projectKey, repoSlug, branchPattern));
+        settingsConfigurer.accept(project);
         project.save();
         items.add(project);
         return project;
@@ -53,7 +60,7 @@ public class JenkinsProjectHandler {
 
     public WorkflowJob createPipelineJobWithBitbucketScm(String name, String projectKey, String repoSlug,
                                                          String branchPattern) throws Exception {
-        WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, "wf");
+        WorkflowJob wfj = bbJenkinsRule.createProject(WorkflowJob.class, name);
         BitbucketSCM scm = createScmWithSpecs(projectKey, repoSlug, branchPattern);
         wfj.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
         items.add(wfj);
@@ -91,6 +98,18 @@ public class JenkinsProjectHandler {
         }
     }
 
+    public void performBranchScanningAndWaitForBuild(WorkflowMultiBranchProject mbp, String branch) throws Exception {
+        WorkflowJob item = mbp.getItem(branch);
+        WorkflowRun lastSuccessfulBuild = item == null ? null : item.getLastSuccessfulBuild();
+
+        performBranchScanning(mbp);
+
+        while (mbp.getItem(branch) == null || mbp.getItem(branch).getLastSuccessfulBuild() == lastSuccessfulBuild) {
+            System.out.println("Waiting for workflow run after scan to finish");
+            Thread.sleep(DEFAULT_WAIT_TIME);
+        }
+    }
+
     public void runWorkflowJobForBranch(WorkflowMultiBranchProject mbp, String branch) throws Exception {
         runWorkflowJobForBranch(mbp, branch, build -> {
         });
@@ -98,11 +117,11 @@ public class JenkinsProjectHandler {
 
     public void runWorkflowJobForBranch(WorkflowMultiBranchProject mbp, String branch,
                                         Consumer<WorkflowRun> onBuildCompletion) throws Exception {
-        WorkflowJob master = mbp.getItem("master");
-        Future<WorkflowRun> startCondition = master.scheduleBuild2(0).getStartCondition();
+        WorkflowJob item = mbp.getItem(branch);
+        Future<WorkflowRun> startCondition = item.scheduleBuild2(0).getStartCondition();
         WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
 
-        while (!workflowRun.equals(master.getLastSuccessfulBuild())) {
+        while (!workflowRun.equals(item.getLastSuccessfulBuild())) {
             System.out.println("Waiting for workflow run to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
