@@ -18,7 +18,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <java.level>8</java.level>
         <jackson.version>2.11.2</jackson.version>
-        <jenkins.version>2.235.5</jenkins.version>
+        <jenkins.version>2.249.1</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
