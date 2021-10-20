@@ -28,6 +28,18 @@ public class DeploymentStepDescriptorHelper {
     @Inject
     private JenkinsProvider jenkinsProvider;
 
+    public FormValidation doCheckEnvironmentKey(@CheckForNull Item context,
+                                                @CheckForNull String environmentKey) {
+        checkPermissions(context);
+        if (isBlank(environmentKey)) {
+            return FORM_VALIDATION_OK;
+        }
+        if (environmentKey.length() > ENVIRONMENT_KEY_MAX) {
+            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_KeyTooLong());
+        }
+        return FORM_VALIDATION_OK;
+    }
+
     public FormValidation doCheckEnvironmentName(@CheckForNull Item context,
                                                  @CheckForNull String environmentName) {
         checkPermissions(context);
@@ -70,18 +82,6 @@ public class DeploymentStepDescriptorHelper {
         } catch (URISyntaxException e) {
             return FormValidation.error(Messages.DeploymentStepDescriptorHelper_EnvironmentUrlInvalid());
         }
-    }
-
-    public FormValidation doCheckEnvironmentKey(@CheckForNull Item context,
-                                                @CheckForNull String environmentKey) {
-        checkPermissions(context);
-        if (isBlank(environmentKey)) {
-            return FORM_VALIDATION_OK;
-        }
-        if (environmentKey.length() > ENVIRONMENT_KEY_MAX) {
-            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_KeyTooLong());
-        }
-        return FORM_VALIDATION_OK;
     }
 
     public ListBoxModel doFillEnvironmentTypeItems(@CheckForNull Item context) {

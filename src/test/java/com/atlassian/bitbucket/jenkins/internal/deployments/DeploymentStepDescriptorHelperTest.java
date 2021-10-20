@@ -5,6 +5,7 @@ import hudson.model.Item;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -34,7 +36,53 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentNameContextNull() {
+    public void testDoCheckEnvironmentKeyBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = helper.doCheckEnvironmentKey(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentKeyTooLong() {
+        Item context = mock(Item.class);
+        String environmentKey = StringUtils.repeat("a", 256);
+
+        FormValidation formValidation = helper.doCheckEnvironmentKey(context, environmentKey);
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment key must be shorter than 255 characters."));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentKey() {
+        Item context = mock(Item.class);
+        String environmentKey = "my key";
+
+        FormValidation formValidation = helper.doCheckEnvironmentKey(context, environmentKey);
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentNameBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = helper.doCheckEnvironmentName(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment name is required."));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentNameContextNull() {
         String environmentName = "my env";
 
         FormValidation formValidation = helper.doCheckEnvironmentName(null, environmentName);
@@ -44,7 +92,19 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentName() {
+    public void testDoCheckEnvironmentNameTooLong() {
+        Item context = mock(Item.class);
+        String environmentName = StringUtils.repeat("a", 256);
+
+        FormValidation formValidation = helper.doCheckEnvironmentName(context, environmentName);
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The environment name must be shorter than 255 characters."));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentName() {
         Item context = mock(Item.class);
         String environmentName = "my env";
 
@@ -56,48 +116,7 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentNameBlank() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = helper.doCheckEnvironmentName(context, " ");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment name is required."));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeContextNull() {
-        FormValidation formValidation = helper.doCheckEnvironmentType(null, "Production");
-
-        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeBlank() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = helper.doCheckEnvironmentType(context, " ");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentType() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = helper.doCheckEnvironmentType(context, "PRODUCTION");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeBadEnvironmentType() {
+    public void testDoCheckEnvironmentTypeBadEnvironmentType() {
         Item context = mock(Item.class);
 
         FormValidation formValidation = helper.doCheckEnvironmentType(context, "not an environment type");
@@ -108,15 +127,37 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentUrlContextNull() {
-        FormValidation formValidation = helper.doCheckEnvironmentUrl(null, "http://my-env");
+    public void testDoCheckEnvironmentTypeBlank() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = helper.doCheckEnvironmentType(context, " ");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentTypeContextNull() {
+        FormValidation formValidation = helper.doCheckEnvironmentType(null, "Production");
 
         verify(jenkins).checkPermission(Jenkins.ADMINISTER);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentUrlBlank() {
+    public void testDoCheckEnvironmentType() {
+        Item context = mock(Item.class);
+
+        FormValidation formValidation = helper.doCheckEnvironmentType(context, "PRODUCTION");
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentUrlBlank() {
         Item context = mock(Item.class);
 
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, " ");
@@ -127,7 +168,15 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentUrlInvalid() {
+    public void testDoCheckEnvironmentUrlContextNull() {
+        FormValidation formValidation = helper.doCheckEnvironmentUrl(null, "http://my-env");
+
+        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentUrlInvalid() {
         Item context = mock(Item.class);
 
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "not a url");
@@ -138,7 +187,7 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentUrlNotAbsolute() {
+    public void testDoCheckEnvironmentUrlNotAbsolute() {
         Item context = mock(Item.class);
 
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "/relative/url");
@@ -149,7 +198,19 @@ public class DeploymentStepDescriptorHelperTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentUrl() {
+    public void testDoCheckEnvironmentUrlTooLong() {
+        Item context = mock(Item.class);
+        String environmentUrl = format("http://%s", StringUtils.repeat("a", 1018));
+
+        FormValidation formValidation = helper.doCheckEnvironmentUrl(context, environmentUrl);
+
+        verify(context).checkPermission(Item.EXTENDED_READ);
+        verifyZeroInteractions(jenkins);
+        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be shorter than 1024 characters."));
+    }
+
+    @Test
+    public void testDoCheckEnvironmentUrl() {
         Item context = mock(Item.class);
 
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "http://my-env");

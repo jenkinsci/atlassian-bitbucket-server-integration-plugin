@@ -57,6 +57,18 @@ public class DeploymentStepImplTest {
     }
 
     @Test
+    public void testDescriptorDoCheckEnvironmentKey() {
+        Item context = mock(Item.class);
+        String environmentKey = "my key";
+        when(descriptorHelper.doCheckEnvironmentKey(context, environmentKey)).thenReturn(FORM_VALIDATION_OK);
+
+        FormValidation formValidation = descriptor.doCheckEnvironmentKey(context, environmentKey);
+
+        verify(descriptorHelper).doCheckEnvironmentKey(context, environmentKey);
+        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
     public void testDescriptorDoCheckEnvironmentName() {
         Item context = mock(Item.class);
         String environmentName = "my env";
