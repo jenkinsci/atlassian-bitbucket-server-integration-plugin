@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import hudson.model.Item;
@@ -12,8 +11,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
@@ -26,9 +23,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
-import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepImpl.DescriptorImpl.FORM_VALIDATION_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -38,6 +34,7 @@ public class DeploymentNotifierTest {
     private static final String ENV_NAME = "ENV_NAME";
     private static final String ENV_TYPE = "PRODUCTION";
     private static final String ENV_URL = "http://my-url";
+    private static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
 
     private static final BitbucketDeploymentEnvironment ENVIRONMENT = new BitbucketDeploymentEnvironment(ENV_KEY,
             ENV_NAME, BitbucketDeploymentEnvironmentType.valueOf(ENV_TYPE), URI.create(ENV_URL));
@@ -46,19 +43,12 @@ public class DeploymentNotifierTest {
     private BitbucketDeploymentFactory bitbucketDeploymentFactory;
     @Mock
     private DeploymentPoster deploymentPoster;
-    @Mock
-    private Jenkins jenkins;
-    @Mock
-    private JenkinsProvider jenkinsProvider;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private TaskListener listener;
     @InjectMocks
     private DeploymentNotifier.DescriptorImpl descriptor;
-
-    @Before
-    public void setup() {
-        when(jenkinsProvider.get()).thenReturn(jenkins);
-    }
+    @Mock
+    private DeploymentStepDescriptorHelper descriptorHelper;
 
     @Test
     public void testCreateStepAllowsCustomEnvironmentKey() {
@@ -88,147 +78,51 @@ public class DeploymentNotifierTest {
     }
 
     @Test
-    public void testDescriptorDoCheckEnvironmentNameContextNull() {
-        String environmentName = "my env";
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentName(null, environmentName);
-
-        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
     public void testDescriptorDoCheckEnvironmentName() {
         Item context = mock(Item.class);
         String environmentName = "my env";
+        when(descriptorHelper.doCheckEnvironmentName(context, environmentName)).thenReturn(FORM_VALIDATION_OK);
 
         FormValidation formValidation = descriptor.doCheckEnvironmentName(context, environmentName);
 
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentNameBlank() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentName(context, " ");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment name is required."));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeContextNull() {
-        FormValidation formValidation = descriptor.doCheckEnvironmentType(null, "Production");
-
-        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeBlank() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, " ");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verify(descriptorHelper).doCheckEnvironmentName(context, environmentName);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
     @Test
     public void testDescriptorDoCheckEnvironmentType() {
         Item context = mock(Item.class);
+        String environmentType = "PRODUCTION";
+        when(descriptorHelper.doCheckEnvironmentType(context, environmentType)).thenReturn(FORM_VALIDATION_OK);
 
-        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, "PRODUCTION");
+        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, environmentType);
 
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verify(descriptorHelper).doCheckEnvironmentType(context, environmentType);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentTypeBadEnvironmentType() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentType(context, "not an environment type");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING."));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentUrlContextNull() {
-        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(null, "http://my-env");
-
-        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentUrlBlank() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, " ");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentUrlInvalid() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "not a url");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment URL must be a valid URL."));
-    }
-
-    @Test
-    public void testDescriptorDoCheckEnvironmentUrlNotAbsolute() {
-        Item context = mock(Item.class);
-
-        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "/relative/url");
-
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be absolute."));
-    }
-
-    @Test
-    public void testDoFillEnvironmentTypeItems() {
-        ListBoxModel options = descriptor.doFillEnvironmentTypeItems(null);
-
-        verify(jenkins).checkPermission(Jenkins.ADMINISTER);
-        assertThat(options, hasSize(5));
-        assertThat(options.get(0).name, equalTo("- none -"));
-        assertThat(options.get(0).value, equalTo(""));
-        assertThat(options.get(1).name, equalTo("Production"));
-        assertThat(options.get(1).value, equalTo("PRODUCTION"));
-        assertThat(options.get(2).name, equalTo("Staging"));
-        assertThat(options.get(2).value, equalTo("STAGING"));
-        assertThat(options.get(3).name, equalTo("Testing"));
-        assertThat(options.get(3).value, equalTo("TESTING"));
-        assertThat(options.get(4).name, equalTo("Development"));
-        assertThat(options.get(4).value, equalTo("DEVELOPMENT"));
     }
 
     @Test
     public void testDescriptorDoCheckEnvironmentUrl() {
         Item context = mock(Item.class);
+        String environmentUrl = "http://my-env";
+        when(descriptorHelper.doCheckEnvironmentUrl(context, environmentUrl)).thenReturn(FORM_VALIDATION_OK);
 
-        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, "http://my-env");
+        FormValidation formValidation = descriptor.doCheckEnvironmentUrl(context, environmentUrl);
 
-        verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verify(descriptorHelper).doCheckEnvironmentUrl(context, environmentUrl);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
+    }
+
+    @Test
+    public void testDoFillEnvironmentTypeItems() {
+        Item context = mock(Item.class);
+        ListBoxModel listBoxModel = mock(ListBoxModel.class);
+        when(descriptorHelper.doFillEnvironmentTypeItems(context)).thenReturn(listBoxModel);
+
+        ListBoxModel options = descriptor.doFillEnvironmentTypeItems(context);
+
+        verify(descriptorHelper).doFillEnvironmentTypeItems(context);
+        assertThat(options, equalTo(listBoxModel));
     }
 
     @Test

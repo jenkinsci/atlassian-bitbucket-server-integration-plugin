@@ -2,8 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
-import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.Item;
@@ -11,7 +9,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
@@ -24,16 +21,12 @@ import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
 import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepUtils.getOrGenerateEnvironmentKey;
 import static com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentStepUtils.normalizeEnvironmentType;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 /**
@@ -119,65 +112,34 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
 
-        @VisibleForTesting
-        static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
-
         @Inject
         private BitbucketDeploymentFactory bitbucketDeploymentFactory;
         @Inject
         private DeploymentPoster deploymentPoster;
         @Inject
-        private JenkinsProvider jenkinsProvider;
+        private DeploymentStepDescriptorHelper descriptorHelper;
 
         @POST
         public FormValidation doCheckEnvironmentName(@AncestorInPath @CheckForNull Item context,
                                                      @QueryParameter @CheckForNull String environmentName) {
-            checkPermissions(context);
-            if (isBlank(environmentName)) {
-                return FormValidation.error(Messages.DeploymentNotifier_EnvironmentNameRequired());
-            }
-            return FORM_VALIDATION_OK;
+            return descriptorHelper.doCheckEnvironmentName(context, environmentName);
         }
 
         @POST
         public FormValidation doCheckEnvironmentType(@AncestorInPath @CheckForNull Item context,
                                                      @QueryParameter @CheckForNull String environmentType) {
-            checkPermissions(context);
-            if (isBlank(environmentType)) {
-                return FORM_VALIDATION_OK;
-            }
-            return BitbucketDeploymentEnvironmentType.fromName(environmentType)
-                    .map(validType -> FORM_VALIDATION_OK)
-                    .orElseGet(() -> FormValidation.error(Messages.DeploymentNotifier_EnvironmentTypeInvalid()));
+            return descriptorHelper.doCheckEnvironmentType(context, environmentType);
         }
 
         @POST
         public FormValidation doCheckEnvironmentUrl(@AncestorInPath @CheckForNull Item context,
                                                     @QueryParameter @CheckForNull String environmentUrl) {
-            checkPermissions(context);
-            if (isBlank(environmentUrl)) {
-                return FORM_VALIDATION_OK;
-            }
-            try {
-                URI uri = new URI(environmentUrl); // Try to coerce it into a URL
-                if (!uri.isAbsolute()) {
-                    return FormValidation.error(Messages.DeploymentNotifier_UriAbsolute());
-                }
-                return FORM_VALIDATION_OK;
-            } catch (URISyntaxException e) {
-                return FormValidation.error(Messages.DeploymentNotifier_EnvironmentUrlInvalid());
-            }
+            return descriptorHelper.doCheckEnvironmentUrl(context, environmentUrl);
         }
 
         @POST
         public ListBoxModel doFillEnvironmentTypeItems(@AncestorInPath @CheckForNull Item context) {
-            checkPermissions(context);
-            ListBoxModel options = new ListBoxModel();
-            options.add(Messages.DeploymentNotifier_EmptySelection(), "");
-            Arrays.stream(BitbucketDeploymentEnvironmentType.values())
-                    .sorted(Comparator.comparingInt(BitbucketDeploymentEnvironmentType::getWeight))
-                    .forEach(v -> options.add(v.getDisplayName(), v.name()));
-            return options;
+            return descriptorHelper.doFillEnvironmentTypeItems(context);
         }
 
         public BitbucketDeploymentFactory getBitbucketDeploymentFactory() {
@@ -206,14 +168,6 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
         @Override
         public boolean takesImplicitBlockArgument() {
             return true;
-        }
-
-        private void checkPermissions(@CheckForNull Item context) {
-            if (context != null) {
-                context.checkPermission(Item.EXTENDED_READ);
-            } else {
-                jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
-            }
         }
     }
 
