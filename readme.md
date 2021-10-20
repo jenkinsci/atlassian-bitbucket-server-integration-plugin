@@ -209,6 +209,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.0.2 (XX 2021)
+- The minimum version of Jenkins changed to be **2.249.1**
+- Fix issue JENKINS-66789 (incoming webhooks unexpectedly disabling pipeline branches)
+
 ### 3.0.1 (8 October 2021)
 - Fix issue JENKINS-66802 (Builds failing with Jenkinsfiles longer than 500 lines)
 - OAuth consumer settings category set to Security
