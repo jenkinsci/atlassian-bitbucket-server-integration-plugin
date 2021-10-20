@@ -20,7 +20,10 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Singleton
 public class DeploymentStepDescriptorHelper {
 
-    static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
+    private static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();
+    private static final int ENVIRONMENT_NAME_MAX = 255;
+    private static final int ENVIRONMENT_URL_MAX = 1024;
+    private static final int ENVIRONMENT_KEY_MAX = 255;
 
     @Inject
     private JenkinsProvider jenkinsProvider;
@@ -29,7 +32,11 @@ public class DeploymentStepDescriptorHelper {
                                                  @CheckForNull String environmentName) {
         checkPermissions(context);
         if (isBlank(environmentName)) {
-            return FormValidation.error(Messages.DeploymentNotifier_EnvironmentNameRequired());
+            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_EnvironmentNameRequired());
+        }
+        if (environmentName.length() > ENVIRONMENT_NAME_MAX) {
+            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_EnvironmentNameTooLong());
+
         }
         return FORM_VALIDATION_OK;
     }
@@ -42,7 +49,7 @@ public class DeploymentStepDescriptorHelper {
         }
         return BitbucketDeploymentEnvironmentType.fromName(environmentType)
                 .map(validType -> FORM_VALIDATION_OK)
-                .orElseGet(() -> FormValidation.error(Messages.DeploymentNotifier_EnvironmentTypeInvalid()));
+                .orElseGet(() -> FormValidation.error(Messages.DeploymentStepDescriptorHelper_EnvironmentTypeInvalid()));
     }
 
     public FormValidation doCheckEnvironmentUrl(@CheckForNull Item context,
@@ -54,18 +61,33 @@ public class DeploymentStepDescriptorHelper {
         try {
             URI uri = new URI(environmentUrl); // Try to coerce it into a URL
             if (!uri.isAbsolute()) {
-                return FormValidation.error(Messages.DeploymentNotifier_UriAbsolute());
+                return FormValidation.error(Messages.DeploymentStepDescriptorHelper_UriAbsolute());
+            }
+            if (environmentUrl.length() > ENVIRONMENT_URL_MAX) {
+                return FormValidation.error(Messages.DeploymentStepDescriptorHelper_UriTooLong());
             }
             return FORM_VALIDATION_OK;
         } catch (URISyntaxException e) {
-            return FormValidation.error(Messages.DeploymentNotifier_EnvironmentUrlInvalid());
+            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_EnvironmentUrlInvalid());
         }
+    }
+
+    public FormValidation doCheckEnvironmentKey(@CheckForNull Item context,
+                                                @CheckForNull String environmentKey) {
+        checkPermissions(context);
+        if (isBlank(environmentKey)) {
+            return FORM_VALIDATION_OK;
+        }
+        if (environmentKey.length() > ENVIRONMENT_KEY_MAX) {
+            return FormValidation.error(Messages.DeploymentStepDescriptorHelper_KeyTooLong());
+        }
+        return FORM_VALIDATION_OK;
     }
 
     public ListBoxModel doFillEnvironmentTypeItems(@CheckForNull Item context) {
         checkPermissions(context);
         ListBoxModel options = new ListBoxModel();
-        options.add(Messages.DeploymentNotifier_EmptySelection(), "");
+        options.add(Messages.DeploymentStepDescriptorHelper_EmptySelection(), "");
         Arrays.stream(BitbucketDeploymentEnvironmentType.values())
                 .sorted(Comparator.comparingInt(BitbucketDeploymentEnvironmentType::getWeight))
                 .forEach(v -> options.add(v.getDisplayName(), v.name()));

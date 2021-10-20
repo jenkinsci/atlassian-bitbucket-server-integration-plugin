@@ -163,6 +163,12 @@ public class DeploymentNotifier extends Notifier implements SimpleBuildStep, Dep
         private DeploymentStepDescriptorHelper descriptorHelper;
 
         @POST
+        public FormValidation doCheckEnvironmentKey(@AncestorInPath @CheckForNull Item context,
+                                                    @QueryParameter @CheckForNull String environmentKey) {
+            return descriptorHelper.doCheckEnvironmentKey(context, environmentKey);
+        }
+
+        @POST
         public FormValidation doCheckEnvironmentName(@AncestorInPath Item context,
                                                      @QueryParameter String environmentName) {
             return descriptorHelper.doCheckEnvironmentName(context, environmentName);

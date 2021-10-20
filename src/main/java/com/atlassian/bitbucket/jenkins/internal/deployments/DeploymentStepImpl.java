@@ -120,6 +120,12 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
         private DeploymentStepDescriptorHelper descriptorHelper;
 
         @POST
+        public FormValidation doCheckEnvironmentKey(@AncestorInPath @CheckForNull Item context,
+                                                    @QueryParameter @CheckForNull String environmentKey) {
+            return descriptorHelper.doCheckEnvironmentKey(context, environmentKey);
+        }
+
+        @POST
         public FormValidation doCheckEnvironmentName(@AncestorInPath @CheckForNull Item context,
                                                      @QueryParameter @CheckForNull String environmentName) {
             return descriptorHelper.doCheckEnvironmentName(context, environmentName);
@@ -132,14 +138,14 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
         }
 
         @POST
-        public FormValidation doCheckEnvironmentUrl(@AncestorInPath @CheckForNull Item context,
-                                                    @QueryParameter @CheckForNull String environmentUrl) {
-            return descriptorHelper.doCheckEnvironmentUrl(context, environmentUrl);
+        public ListBoxModel doFillEnvironmentTypeItems(@AncestorInPath @CheckForNull Item context) {
+            return descriptorHelper.doFillEnvironmentTypeItems(context);
         }
 
         @POST
-        public ListBoxModel doFillEnvironmentTypeItems(@AncestorInPath @CheckForNull Item context) {
-            return descriptorHelper.doFillEnvironmentTypeItems(context);
+        public FormValidation doCheckEnvironmentUrl(@AncestorInPath @CheckForNull Item context,
+                                                    @QueryParameter @CheckForNull String environmentUrl) {
+            return descriptorHelper.doCheckEnvironmentUrl(context, environmentUrl);
         }
 
         public BitbucketDeploymentFactory getBitbucketDeploymentFactory() {
