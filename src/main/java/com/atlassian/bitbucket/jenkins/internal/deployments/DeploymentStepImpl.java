@@ -190,7 +190,7 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
 
         @Override
         public String getDisplayName() {
-            return "Steps in the body perform a deployment. This step notifies Bitbucket Server source of the deployment.";
+            return "Wrapper step to notify Bitbucket Server of the deployment status.";
         }
 
         @Override

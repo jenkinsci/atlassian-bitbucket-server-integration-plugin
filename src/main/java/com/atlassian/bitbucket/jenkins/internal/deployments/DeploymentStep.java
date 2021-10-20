@@ -7,6 +7,9 @@ import hudson.model.TaskListener;
 
 import javax.annotation.CheckForNull;
 
+/**
+ * @since deployments
+ */
 public interface DeploymentStep {
 
     /**

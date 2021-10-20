@@ -20,7 +20,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -158,7 +157,6 @@ public class DeploymentNotifier extends Notifier implements SimpleBuildStep, Dep
     }
 
     @Extension
-    @Symbol("DeployedToEnvironmentNotifierStep")
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private static final FormValidation FORM_VALIDATION_OK = FormValidation.ok();

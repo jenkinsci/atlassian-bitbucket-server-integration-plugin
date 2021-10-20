@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 
 import static java.lang.String.format;
 
-@VisibleForTesting
 public class DeploymentStepExecutionCallback extends BodyExecutionCallback {
 
     private static final Logger LOGGER = Logger.getLogger(DeploymentStepExecutionCallback.class.getName());

@@ -15,14 +15,13 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapa
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
-import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
 import hudson.EnvVars;
 import hudson.model.*;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
-import jenkins.model.Jenkins;
+import hudson.util.DescribableList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,10 +72,6 @@ public class DeploymentPosterImplTest {
     @Mock
     private GlobalCredentialsProvider globalCredentialsProvider;
     @Mock
-    private JenkinsProvider jenkinsProvider;
-    @Mock
-    private Jenkins jenkins;
-    @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
     @Mock
     private BitbucketPluginConfiguration pluginConfiguration;
@@ -86,8 +81,6 @@ public class DeploymentPosterImplTest {
     private SCM scm;
     @Mock
     private FreeStyleProject parent;
-    @Mock
-    private DeploymentNotifier.DescriptorImpl publisherDescriptor;
     @Mock
     private DeploymentNotifier publisher;
     @Mock
@@ -99,6 +92,9 @@ public class DeploymentPosterImplTest {
     @Before
     public void setup() throws Exception {
         when(run.getParent()).thenReturn(parent);
+        DescribableList publisherList = mock(DescribableList.class);
+        when(publisherList.get(DeploymentNotifier.class)).thenReturn(publisher);
+        when(parent.getPublishersList()).thenReturn(publisherList);
         when(globalCredentialsProvider.getGlobalAdminCredentials()).thenReturn(of(globalAdminCredentials));
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(of(server));
         when(jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials)).thenReturn(bitbucketCredentials);
@@ -107,7 +103,6 @@ public class DeploymentPosterImplTest {
         when(clientFactoryProvider.getClient(BASE_URL, bitbucketCredentials)).thenReturn(clientFactory);
         when(clientFactory.getCapabilityClient().getCDCapabilities())
                 .thenReturn(new BitbucketCDCapabilities(emptyMap()));
-        when(jenkinsProvider.get()).thenReturn(jenkins);
         when(server.getServerName()).thenReturn(SERVER_NAME);
         when(taskListener.getLogger()).thenReturn(printStream);
         repository = new BitbucketSCMRepository("credentialsId", null, "projectName", PROJECT_KEY, "repoName",
@@ -116,10 +111,7 @@ public class DeploymentPosterImplTest {
         EnvVars env = new EnvVars();
         env.put(GitSCM.GIT_COMMIT, REVISION_SHA);
         when(run.getEnvironment(taskListener)).thenReturn(env);
-        when(jenkins.getDescriptorByType(DeploymentNotifier.DescriptorImpl.class))
-                .thenReturn(publisherDescriptor);
         when(publisher.getEnvironment(run, taskListener)).thenReturn(ENVIRONMENT);
-        when(parent.getPublisher(publisherDescriptor)).thenReturn(publisher);
         when(bitbucketDeploymentFactory.createDeployment(run, ENVIRONMENT)).thenReturn(DEPLOYMENT);
     }
 
@@ -134,7 +126,8 @@ public class DeploymentPosterImplTest {
 
     @Test
     public void testOnCheckoutNoDeploymentPublisher() {
-        when(parent.getPublisher(publisherDescriptor)).thenReturn(null);
+        DescribableList publisherList = mock(DescribableList.class);
+        when(parent.getPublishersList()).thenReturn(publisherList);
 
         poster.onCheckout(run, scm, null, taskListener, null, null);
 
