@@ -18,6 +18,8 @@ public class BitbucketProxyRule {
 
     public static final String BITBUCKET_BASE_URL_SYSTEM_PROPERTY = "bitbucket.baseurl";
 
+    private static final String BASE_URL_PLACEHOLDER = "http://localhost:7990/bitbucket";
+
     private final BitbucketJenkinsRule bitbucketJenkinsRule;
     private final WireMockRule wireMockRule =
             new WireMockRule(wireMockConfig().dynamicPort());
@@ -47,33 +49,36 @@ public class BitbucketProxyRule {
                 .around(wireMockRule);
     }
 
+    public WireMockServer getWireMock() {
+        return wireMockRule;
+    }
+
     private void fixCapabilities() {
         // Base capabilities endpoint
         String atlassianCapabilityUrl = "/rest/capabilities";
+        String capabilityResponse = readResponse("capabilities/bitbucket_server_capabilities.json");
         wireMockRule.stubFor(get(
                 urlPathMatching(atlassianCapabilityUrl))
                 .willReturn(aResponse()
-                        .withBody(getResourceAsString("capabilities/bitbucket_server_capabilities.json"))));
+                        .withBody(capabilityResponse)));
 
         // build status capabilities endpoint
         String buildCapability = "/rest/api/latest/build/capabilities";
+        String buildStatusCapabilityResponse = readResponse("capabilities/build_status_capabilities.json");
         wireMockRule.stubFor(get(
                 urlPathMatching(buildCapability))
                 .willReturn(
                         aResponse().withHeader("Content-Type", "application/json")
-                                .withBody(getResourceAsString("capabilities/build_status_capabilities.json"))
+                                .withBody(buildStatusCapabilityResponse)
                                 .withStatus(200)));
     }
 
-    private String getResourceAsString(String filename) {
+    private String readResponse(String filename) {
         try {
-            return IOUtils.toString(getClass().getClassLoader().getResourceAsStream(filename), StandardCharsets.UTF_8);
+            return IOUtils.toString(getClass().getClassLoader().getResourceAsStream(filename), StandardCharsets.UTF_8)
+                    .replace(BASE_URL_PLACEHOLDER, getWireMock().baseUrl());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public WireMockServer getWireMock() {
-        return wireMockRule;
     }
 }
