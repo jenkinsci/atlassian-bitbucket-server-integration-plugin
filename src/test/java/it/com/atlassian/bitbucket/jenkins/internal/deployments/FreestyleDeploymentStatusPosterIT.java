@@ -58,7 +58,7 @@ public class FreestyleDeploymentStatusPosterIT extends AbstractDeploymentStatusP
 
         String environment = format("{" +
                 "   \"displayName\":\"%s\"," +
-                "   \"type\" : \"%s\"" +
+                "   \"type\":\"%s\"," +
                 "   \"key\":\"%s\"" +
                 "}", environmentName, environmentType.name(), notifier.getEnvironmentKey());
         verify(requestBody(postRequestedFor(urlPathMatching(url)), build, IN_PROGRESS, environmentName, environment));
