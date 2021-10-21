@@ -8,6 +8,7 @@ import wiremock.org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState.SUCCESSFUL;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -21,20 +22,23 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
     public void testPipelineWithBitbucketSCM() throws Exception {
         WorkflowJob job = jenkinsProjectHandler.createPipelineJobWithBitbucketScm("wfj", PROJECT_KEY, repoSlug, MASTER_BRANCH_PATTERN);
         String environmentName = "Prod";
-        String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", "bbs_deploy(environmentName: '" + environmentName + "')");
+        String environmentKey = UUID.randomUUID().toString();
+        String deployStep = format("bbs_deploy(environmentKey: '%s', environmentName: '%s')", environmentKey, environmentName);
+        String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", deployStep);
+        String environmentPayload = format("{" +
+                "   \"displayName\":\"%s\"," +
+                "   \"key\":\"%s\"" +
+                "}", environmentKey, environmentName);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
-        String environment = format("{" +
-                "   \"displayName\":\"%s\"" +
-                "}", environmentName);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName, environment));
+                        build, SUCCESSFUL, environmentName, environmentPayload));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -43,13 +47,14 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
 
     @Test
     public void testPipelineWithCheckoutInJenkinsfile() throws Exception {
+        String environmentKey = UUID.randomUUID().toString();
         String environmentName = "prod";
         String jenkinsfile = format(IOUtils.toString(getClass().getClassLoader().getResourceAsStream("deployments/DeploymentJenkinsfileWithCheckout"), StandardCharsets.UTF_8),
                 bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                 PROJECT_KEY,
                 repoSlug,
                 bbJenkinsRule.getBitbucketServerConfiguration().getId(),
-                environmentName);
+                environmentKey, environmentName);
         WorkflowJob job = jenkinsProjectHandler.createPipelineJob("workflow", jenkinsfile);
 
         String url = getDeploymentUrl(gitHelper.getLatestCommit());
@@ -57,13 +62,14 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
-        String environment = format("{" +
+        String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
-                "}", environmentName);
+                "   \"key\":\"%s\"" +
+                "}", environmentKey, environmentName);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName, environment));
+                        build, SUCCESSFUL, environmentName, environmentPayload));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -77,10 +83,13 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.performBranchScanning(mbp);
 
         String environmentName = "Prod";
-        String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", "bbs_deploy(environmentName: '" + environmentName + "')");
-        String environment = format("{" +
+        String environmentKey = UUID.randomUUID().toString();
+        String deployStep = format("bbs_deploy(environmentKey: '%s', environmentName: '%s')", environmentKey, environmentName);
+        String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", deployStep);
+        String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
-                "}", environmentName);
+                "   \"key\":\"%s\"" +
+                "}", environmentKey, environmentName);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
@@ -91,7 +100,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master", build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName, environment));
+                        build, SUCCESSFUL, environmentName, environmentPayload));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -105,15 +114,17 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.performBranchScanning(mbp);
 
         String environmentName = "Prod";
-        String environment = format("{" +
+        String environmentKey = UUID.randomUUID().toString();
+        String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
-                "}", environmentName);
+                "   \"key\":\"%s\"" +
+                "}", environmentKey, environmentName);
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfileWithCheckout",
                 bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                 PROJECT_KEY,
                 repoSlug,
                 bbJenkinsRule.getBitbucketServerConfiguration().getId(),
-                environmentName);
+                environmentKey, environmentName);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
@@ -124,7 +135,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master", build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName, environment));
+                        build, SUCCESSFUL, environmentName, environmentPayload));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

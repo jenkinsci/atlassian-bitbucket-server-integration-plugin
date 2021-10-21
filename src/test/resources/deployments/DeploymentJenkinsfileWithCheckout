@@ -19,7 +19,7 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-				bbs_deploy(environmentName: '%s') {
+				bbs_deploy(environmentKey: '%', environmentName: '%s') {
 					echo 'Deploying....'
 				}
             }
