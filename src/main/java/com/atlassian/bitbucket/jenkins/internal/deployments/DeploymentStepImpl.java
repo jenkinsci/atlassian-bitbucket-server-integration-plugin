@@ -44,6 +44,10 @@ public class DeploymentStepImpl extends Step implements DeploymentStep {
 
     @DataBoundConstructor
     public DeploymentStepImpl(@CheckForNull String environmentName) {
+        // We need to create this now because the environment key is required and if setEnvironmentKey is never called
+        // we need an environment key that remains stable. We don't make it a required field in the constructor because
+        // that way it can be generated when using the snippet generator.
+        this.environmentKey = getOrGenerateEnvironmentKey();
         this.environmentName = stripToNull(environmentName);
     }
 

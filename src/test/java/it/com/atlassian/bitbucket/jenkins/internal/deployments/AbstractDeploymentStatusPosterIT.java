@@ -78,14 +78,6 @@ public abstract class AbstractDeploymentStatusPosterIT {
     }
 
     protected RequestPatternBuilder requestBody(RequestPatternBuilder requestPatternBuilder, Run<?, ?> build,
-                                                DeploymentState deploymentState, String environmentName) throws IOException {
-        String environment = format("{" +
-                "   \"displayName\":\"%s\"" +
-                "}", environmentName);
-        return requestBody(requestPatternBuilder, build, deploymentState, environmentName, environment);
-    }
-
-    protected RequestPatternBuilder requestBody(RequestPatternBuilder requestPatternBuilder, Run<?, ?> build,
                                                 DeploymentState deploymentState, String environmentName, String environment) throws IOException {
         Job<?, ?> job = build.getParent();
         BitbucketRevisionAction bitbucketRevisionAction = build.getAction(BitbucketRevisionAction.class);

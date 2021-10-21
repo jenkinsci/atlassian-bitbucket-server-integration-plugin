@@ -28,10 +28,13 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
+        String environment = format("{" +
+                "   \"displayName\":\"%s\"" +
+                "}", environmentName);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName));
+                        build, SUCCESSFUL, environmentName, environment));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -54,10 +57,13 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
                 urlPathMatching(url))
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
+        String environment = format("{" +
+                "   \"displayName\":\"%s\"" +
+                "}", environmentName);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName));
+                        build, SUCCESSFUL, environmentName, environment));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -72,6 +78,9 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
 
         String environmentName = "Prod";
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", "bbs_deploy(environmentName: '" + environmentName + "')");
+        String environment = format("{" +
+                "   \"displayName\":\"%s\"" +
+                "}", environmentName);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
@@ -82,7 +91,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master", build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName));
+                        build, SUCCESSFUL, environmentName, environment));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -96,6 +105,9 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.performBranchScanning(mbp);
 
         String environmentName = "Prod";
+        String environment = format("{" +
+                "   \"displayName\":\"%s\"" +
+                "}", environmentName);
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfileWithCheckout",
                 bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                 PROJECT_KEY,
@@ -112,7 +124,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         jenkinsProjectHandler.runWorkflowJobForBranch(mbp, "master", build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
-                        build, SUCCESSFUL, environmentName));
+                        build, SUCCESSFUL, environmentName, environment));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

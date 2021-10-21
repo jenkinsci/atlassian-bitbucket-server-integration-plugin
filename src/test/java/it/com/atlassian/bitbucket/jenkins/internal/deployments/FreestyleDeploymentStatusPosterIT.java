@@ -31,8 +31,12 @@ public class FreestyleDeploymentStatusPosterIT extends AbstractDeploymentStatusP
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
 
-        verify(requestBody(postRequestedFor(urlPathMatching(url)), build, IN_PROGRESS, environmentName));
-        verify(requestBody(postRequestedFor(urlPathMatching(url)), build, SUCCESSFUL, environmentName));
+        String environment = format("{" +
+                "   \"displayName\":\"%s\"," +
+                "   \"key\":\"%s\"" +
+                "}", environmentName, notifier.getEnvironmentKey());
+        verify(requestBody(postRequestedFor(urlPathMatching(url)), build, IN_PROGRESS, environmentName, environment));
+        verify(requestBody(postRequestedFor(urlPathMatching(url)), build, SUCCESSFUL, environmentName, environment));
     }
 
     @Test
@@ -55,7 +59,8 @@ public class FreestyleDeploymentStatusPosterIT extends AbstractDeploymentStatusP
         String environment = format("{" +
                 "   \"displayName\":\"%s\"," +
                 "   \"type\" : \"%s\"" +
-                "}", environmentName, environmentType.name());
+                "   \"key\":\"%s\"" +
+                "}", environmentName, environmentType.name(), notifier.getEnvironmentKey());
         verify(requestBody(postRequestedFor(urlPathMatching(url)), build, IN_PROGRESS, environmentName, environment));
         verify(requestBody(postRequestedFor(urlPathMatching(url)), build, SUCCESSFUL, environmentName, environment));
     }
@@ -79,8 +84,9 @@ public class FreestyleDeploymentStatusPosterIT extends AbstractDeploymentStatusP
 
         String environment = format("{" +
                 "   \"displayName\":\"%s\"," +
-                "   \"url\" : \"%s\"" +
-                "}", environmentName, environmentUrl);
+                "   \"url\":\"%s\"," +
+                "   \"key\":\"%s\"" +
+                "}", environmentName, environmentUrl, notifier.getEnvironmentKey());
         verify(requestBody(postRequestedFor(urlPathMatching(url)), build, IN_PROGRESS, environmentName, environment));
         verify(requestBody(postRequestedFor(urlPathMatching(url)), build, SUCCESSFUL, environmentName, environment));
     }

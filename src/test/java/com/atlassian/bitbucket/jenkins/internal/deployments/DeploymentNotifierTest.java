@@ -60,6 +60,22 @@ public class DeploymentNotifierTest {
     }
 
     @Test
+    public void testCreateStepGeneratesEnvironmentKeyWhenNotSet() {
+        // We don't call createStep here because it will call setEnvironmentKey
+        DeploymentNotifier step = new DeploymentNotifier(ENV_NAME) {
+            @Override
+            public DescriptorImpl descriptor() {
+                DescriptorImpl descriptor = mock(DescriptorImpl.class);
+                when(descriptor.getBitbucketDeploymentFactory()).thenReturn(bitbucketDeploymentFactory);
+                when(descriptor.getDeploymentPoster()).thenReturn(deploymentPoster);
+                return descriptor;
+            }
+        };
+        UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID
+        assertThat(step.getEnvironmentName(), equalTo(ENV_NAME));
+    }
+
+    @Test
     public void testCreateStepGeneratesEnvironmentKeyWhenBlank() {
         DeploymentNotifier step = createStep(" ", ENV_NAME, ENV_TYPE, ENV_URL);
         UUID.fromString(step.getEnvironmentKey()); // This will throw if it's not a UUID

@@ -22,6 +22,15 @@ public class DeploymentStepUtils {
     private static final Logger LOGGER = Logger.getLogger(DeploymentStepUtils.class.getName());
 
     /**
+     * Generates a random UUID to be used as an environment key
+     *
+     * @return the generated {@code environmentKey}, or a generated one if the provided one is blank
+     */
+    public static String getOrGenerateEnvironmentKey() {
+        return getOrGenerateEnvironmentKey(null);
+    }
+
+    /**
      * Gets the provided {@code environmentKey}, stripping away whitespace, or generates a random UUID if a blank
      * {@code environmentKey} was provided.
      *

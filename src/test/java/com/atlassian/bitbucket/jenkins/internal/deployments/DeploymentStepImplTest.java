@@ -57,6 +57,12 @@ public class DeploymentStepImplTest {
     }
 
     @Test
+    public void testCreateDeploymentStepWithoutKey() {
+        deploymentStep = new DeploymentStepImpl("my name");
+        assertThat(deploymentStep.getEnvironmentKey(), not(nullValue()));
+    }
+
+    @Test
     public void testDescriptorDoCheckEnvironmentKey() {
         Item context = mock(Item.class);
         String environmentKey = "my key";

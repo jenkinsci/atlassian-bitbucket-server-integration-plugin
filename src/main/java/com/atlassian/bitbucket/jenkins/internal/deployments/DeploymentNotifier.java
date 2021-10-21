@@ -47,12 +47,15 @@ public class DeploymentNotifier extends Notifier implements SimpleBuildStep, Dep
 
     private final String environmentName;
 
+    private String environmentKey;
     private BitbucketDeploymentEnvironmentType environmentType;
     private String environmentUrl;
-    private String environmentKey;
 
     @DataBoundConstructor
     public DeploymentNotifier(@CheckForNull String environmentName) {
+        // We need to create this now because the environment key is required and if setEnvironmentKey is never called
+        // we need an environment key that remains stable.
+        this.environmentKey = getOrGenerateEnvironmentKey();
         this.environmentName = stripToNull(environmentName);
     }
 
