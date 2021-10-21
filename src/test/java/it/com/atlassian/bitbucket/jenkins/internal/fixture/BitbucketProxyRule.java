@@ -71,6 +71,16 @@ public class BitbucketProxyRule {
                         aResponse().withHeader("Content-Type", "application/json")
                                 .withBody(buildStatusCapabilityResponse)
                                 .withStatus(200)));
+
+        // deployment status capabilities endpoint
+        String deploymentCapability = "/rest/api/latest/deployment/capabilities";
+        String deploymentCapabilityResponse = readResponse("capabilities/deployment_capabilities.json");
+        wireMockRule.stubFor(get(
+                urlPathMatching(deploymentCapability))
+                .willReturn(
+                        aResponse().withHeader("Content-Type", "application/json")
+                                .withBody(deploymentCapabilityResponse)
+                                .withStatus(200)));
     }
 
     private String readResponse(String filename) {
