@@ -28,7 +28,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"," +
                 "   \"key\":\"%s\"" +
-                "}", environmentKey, environmentName);
+                "}", environmentName, environmentKey);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
@@ -65,7 +65,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
                 "   \"key\":\"%s\"" +
-                "}", environmentKey, environmentName);
+                "}", environmentName, environmentKey);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
             try {
                 verify(requestBody(postRequestedFor(urlPathMatching(url)),
@@ -89,7 +89,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
                 "   \"key\":\"%s\"" +
-                "}", environmentKey, environmentName);
+                "}", environmentName, environmentKey);
 
         String url = getDeploymentUrl(latestCommit);
         bitbucketProxyRule.getWireMock().stubFor(post(
@@ -118,7 +118,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String environmentPayload = format("{" +
                 "   \"displayName\":\"%s\"" +
                 "   \"key\":\"%s\"" +
-                "}", environmentKey, environmentName);
+                "}", environmentName, environmentKey);
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfileWithCheckout",
                 bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId(),
                 PROJECT_KEY,
