@@ -63,7 +63,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
                 .willReturn(aResponse().withStatus(HttpStatus.SC_NO_CONTENT)));
 
         String environmentPayload = format("{" +
-                "   \"displayName\":\"%s\"" +
+                "   \"displayName\":\"%s\"," +
                 "   \"key\":\"%s\"" +
                 "}", environmentName, environmentKey);
         jenkinsProjectHandler.runPipelineJob(job, build -> {
@@ -87,7 +87,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String deployStep = format("bbs_deploy(environmentKey: '%s', environmentName: '%s')", environmentKey, environmentName);
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfile", deployStep);
         String environmentPayload = format("{" +
-                "   \"displayName\":\"%s\"" +
+                "   \"displayName\":\"%s\"," +
                 "   \"key\":\"%s\"" +
                 "}", environmentName, environmentKey);
 
@@ -116,7 +116,7 @@ public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPo
         String environmentName = "Prod";
         String environmentKey = UUID.randomUUID().toString();
         String environmentPayload = format("{" +
-                "   \"displayName\":\"%s\"" +
+                "   \"displayName\":\"%s\"," +
                 "   \"key\":\"%s\"" +
                 "}", environmentName, environmentKey);
         String latestCommit = checkInJenkinsFile("deployments/DeploymentJenkinsfileWithCheckout",
