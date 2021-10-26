@@ -17,7 +17,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 /**
  * The types of environments available via the Bitbucket Server API.
  *
- * @since deployments
+ * @since 3.1.0
  */
 public enum BitbucketDeploymentEnvironmentType {
 

@@ -11,7 +11,7 @@ import javax.annotation.CheckForNull;
 /**
  * A factory for creating instances of {@link BitbucketDeployment} from job information.
  *
- * @since deployments
+ * @since 3.1.0
  */
 @ImplementedBy(BitbucketDeploymentFactoryImpl.class)
 public interface BitbucketDeploymentFactory {

@@ -3,7 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.model.deployment;
 /**
  * The possible states of a deployment.
  *
- * @since deployments
+ * @since 3.1.0
  */
 public enum DeploymentState {
 

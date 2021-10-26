@@ -6,7 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 /**
  * Client for interacting with Bitbucket Server's deployments API.
  *
- * @since deployments
+ * @since 3.1.0
  */
 public interface BitbucketDeploymentClient {
 

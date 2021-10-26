@@ -12,7 +12,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * The details of a deployment.
  *
- * @since deployments
+ * @since 3.1.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)

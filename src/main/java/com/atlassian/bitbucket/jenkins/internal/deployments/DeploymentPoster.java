@@ -9,7 +9,7 @@ import hudson.model.TaskListener;
 /**
  * Send a deployment notification to Bitbucket Server
  *
- * @since deployments
+ * @since 3.1.0
  */
 @ImplementedBy(DeploymentPosterImpl.class)
 public interface DeploymentPoster {

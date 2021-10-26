@@ -32,7 +32,7 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 /**
  * Step for configuring deployment notifications.
  *
- * @since deployments
+ * @since 3.1.0
  */
 public class DeploymentStepImpl extends Step implements DeploymentStep {
 

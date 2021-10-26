@@ -49,7 +49,7 @@ public interface BitbucketRepositoryClient {
      * @param revisionSha      the revision for the build status
      * @param ciCapabilities   CI capabilities of the remote server
      * @return a client that can post a build status
-     * @since deployments
+     * @since 3.1.0
      */
     BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketCICapabilities ciCapabilities);
 
@@ -58,7 +58,7 @@ public interface BitbucketRepositoryClient {
      *
      * @param revisionSha      the revision for the deployment
      * @return a client that can post deployment information
-     * @since deployments
+     * @since 3.1.0
      */
     BitbucketDeploymentClient getDeploymentClient(String revisionSha);
 

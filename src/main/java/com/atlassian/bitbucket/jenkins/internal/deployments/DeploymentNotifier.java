@@ -39,7 +39,7 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 /**
  * Step for configuring deployment notification in freestyle jobs.
  *
- * @since deployments
+ * @since 3.1.0
  */
 public class DeploymentNotifier extends Notifier implements SimpleBuildStep, DeploymentStep {
 
