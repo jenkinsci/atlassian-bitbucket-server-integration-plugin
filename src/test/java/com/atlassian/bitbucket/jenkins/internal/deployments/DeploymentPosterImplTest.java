@@ -176,13 +176,13 @@ public class DeploymentPosterImplTest {
     public void testOnCheckoutPostDeployment() {
         poster.onCheckout(run, scm, null, taskListener, null, null);
 
-        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sending notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(clientFactory.getProjectClient(PROJECT_KEY)
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA))
                 .post(DEPLOYMENT);
-        verify(printStream).println(format("Sent notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sent notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
     }
 
@@ -190,13 +190,13 @@ public class DeploymentPosterImplTest {
     public void testPostDeployment() {
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sending notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
         verify(clientFactory.getProjectClient(PROJECT_KEY)
                 .getRepositoryClient(REPO_SLUG)
                 .getDeploymentClient(REVISION_SHA))
                 .post(DEPLOYMENT);
-        verify(printStream).println(format("Sent notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sent notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
     }
 
@@ -208,9 +208,9 @@ public class DeploymentPosterImplTest {
         doThrow(new AuthorizationException("An auth error", 400, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sending notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
-        verify(taskListener).error(format("The personal access token for the Bitbucket Server instance %s is invalid or insufficient to post deployment information: %s",
+        verify(taskListener).error(format("The personal access token for the Bitbucket Server instance '%s' is invalid or insufficient to post deployment information: %s",
                 SERVER_NAME, "An auth error"));
     }
 
@@ -222,9 +222,9 @@ public class DeploymentPosterImplTest {
         doThrow(new BitbucketClientException("A Bitbucket error", 500, "")).when(deploymentClient).post(DEPLOYMENT);
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
-        verify(printStream).println(format("Sending notification of %s deployment to %s on commit %s",
+        verify(printStream).println(format("Sending notification of '%s' deployment to '%s' on commit '%s'",
                 DEPLOYMENT.getState().name(), SERVER_NAME, REVISION_SHA));
-        verify(taskListener).error(format("Failed to send notification of deployment to %s due to an error: %s",
+        verify(taskListener).error(format("Failed to send notification of deployment to '%s' due to an error: %s",
                 server.getServerName(), "A Bitbucket error"));
     }
 
@@ -236,7 +236,7 @@ public class DeploymentPosterImplTest {
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
         verify(taskListener).error(
-                format("Could not send deployment notification to %s: The Bitbucket version does not support deployments", SERVER_NAME));
+                format("Could not send deployment notification to '%s': The Bitbucket version does not support deployments", SERVER_NAME));
         verify(clientFactory, never()).getProjectClient(any());
     }
 
@@ -248,7 +248,7 @@ public class DeploymentPosterImplTest {
 
         verify(pluginConfiguration).getServerById(SERVER_ID);
         verify(taskListener).error(
-                "Could not send deployment notification to Bitbucket Server: Unknown serverId " + SERVER_ID);
+                "Could not send deployment notification to Bitbucket Server: Unknown serverId '" + SERVER_ID + "'");
         verifyZeroInteractions(clientFactoryProvider);
         verifyZeroInteractions(jenkinsToBitbucketCredentials);
     }

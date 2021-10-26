@@ -119,7 +119,7 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
         BitbucketCDCapabilities cdCapabilities = clientFactory.getCapabilityClient().getCDCapabilities();
         if (cdCapabilities == null) {
             // Bitbucket doesn't have deployments
-           taskListener.error(format("Could not send deployment notification to '%s': The Bitbucket version does not " +
+            taskListener.error(format("Could not send deployment notification to '%s': The Bitbucket version does not " +
                     "support deployments", server.getServerName()));
             return;
         }
@@ -131,11 +131,11 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
                     .getRepositoryClient(repository.getRepositorySlug())
                     .getDeploymentClient(revisionSha)
                     .post(deployment);
-            taskListener.getLogger().println(format("Sent notification of '%s' deployment to '%s' on commit %s",
+            taskListener.getLogger().println(format("Sent notification of '%s' deployment to '%s' on commit '%s'",
                     deployment.getState().name(), server.getServerName(), revisionSha));
         } catch (AuthorizationException e) {
             taskListener.error(format("The personal access token for the Bitbucket Server instance '%s' is invalid or " +
-                            "insufficient to post deployment information: %s", server.getServerName(), e.getMessage()));
+                    "insufficient to post deployment information: %s", server.getServerName(), e.getMessage()));
         } catch (BitbucketClientException e) {
             // There was a problem sending the deployment to Bitbucket
             String errorMsg = format("Failed to send notification of deployment to '%s' due to an error: %s",
