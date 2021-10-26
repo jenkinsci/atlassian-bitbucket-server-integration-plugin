@@ -21,6 +21,7 @@ public class BitbucketDeploymentEnvironment implements Serializable {
 
     private static final String DISPLAY_NAME = "displayName";
     private static final String KEY = "key";
+    private static final long serialVersionUID = 1L;
     private static final String TYPE = "type";
     private static final String URL = "url";
 

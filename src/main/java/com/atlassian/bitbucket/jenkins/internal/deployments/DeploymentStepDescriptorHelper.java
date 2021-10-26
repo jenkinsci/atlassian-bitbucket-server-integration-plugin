@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
-import com.google.inject.Singleton;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -10,6 +9,7 @@ import jenkins.model.Jenkins;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;

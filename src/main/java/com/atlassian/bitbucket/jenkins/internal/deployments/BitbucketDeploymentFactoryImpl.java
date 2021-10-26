@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.deployments;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
-import com.google.common.annotations.VisibleForTesting;
 import hudson.model.Job;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -24,7 +23,6 @@ public class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactor
         this(DisplayURLProvider.get());
     }
 
-    @VisibleForTesting
     BitbucketDeploymentFactoryImpl(DisplayURLProvider displayURLProvider) {
         this.displayURLProvider = displayURLProvider;
     }

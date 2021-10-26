@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
-import com.google.common.annotations.VisibleForTesting;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
@@ -44,12 +43,10 @@ public class DeploymentStepExecutionCallback extends BodyExecutionCallback {
         context.onFailure(t);
     }
 
-    @VisibleForTesting
     BitbucketDeploymentEnvironment getEnvironment() {
         return environment;
     }
 
-    @VisibleForTesting
     DeploymentStepImpl.DescriptorImpl getStepDescriptor() {
         DeploymentStepImpl.DescriptorImpl stepDescriptor = Jenkins.get().getDescriptorByType(DeploymentStepImpl.DescriptorImpl.class);
         if (stepDescriptor == null) {

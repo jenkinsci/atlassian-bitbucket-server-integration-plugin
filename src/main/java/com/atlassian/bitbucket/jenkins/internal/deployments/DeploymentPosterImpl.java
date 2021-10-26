@@ -49,7 +49,9 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
     private BitbucketSCMRepositoryHelper scmRunHelper;
 
     public DeploymentPosterImpl() {
-
+        // @Extension annotated classes must have a public no-argument constructor.
+        // However, we don't want this constructor to be explicitly called.
+        throw new IllegalStateException("DeploymentPosterImpl no-arg constructor should not be called explicitly");
     }
 
     @Inject
@@ -101,7 +103,8 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
     }
 
     @Override
-    public void postDeployment(BitbucketSCMRepository repository, String revisionSha, BitbucketDeployment deployment, Run<?, ?> run, TaskListener taskListener) {
+    public void postDeployment(BitbucketSCMRepository repository, String revisionSha, BitbucketDeployment deployment,
+                               Run<?, ?> run, TaskListener taskListener) {
         Optional<BitbucketServerConfiguration> maybeServer = pluginConfiguration.getServerById(repository.getServerId());
         if (!maybeServer.isPresent()) {
             taskListener.error(format("Could not send deployment notification to Bitbucket Server: Unknown serverId '%s'", 

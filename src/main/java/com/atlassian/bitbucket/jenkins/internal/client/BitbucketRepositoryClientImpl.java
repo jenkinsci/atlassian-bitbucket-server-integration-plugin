@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.google.common.annotations.VisibleForTesting;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
@@ -34,7 +33,6 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         this.repositorySlug = requireNonNull(stripToNull(repositorySlug), "repositorySlug");
     }
 
-    @VisibleForTesting
     public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
                                                            BitbucketSCMRepository bitbucketSCMRepo,
                                                            BitbucketCICapabilities ciCapabilities,
