@@ -79,11 +79,12 @@ public class DeploymentStepExecutionCallback extends BodyExecutionCallback {
             BitbucketRevisionAction revisionAction = run.getAction(BitbucketRevisionAction.class);
             if (revisionAction == null) {
                 // Not checked out with a Bitbucket SCM
-                listener.error(getErrorMessage("The Run is not using Bitbucket SCM for checkout."));
+                listener.error(getErrorMessage("The Run is not using Bitbucket SCM for checkout"));
                 return;
             }
 
-            BitbucketDeployment deployment = getStepDescriptor().getBitbucketDeploymentFactory().createDeployment(run, environment, state);
+            BitbucketDeployment deployment = getStepDescriptor().getBitbucketDeploymentFactory().createDeployment(run, 
+            environment, state);
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
             String revisionSha = revisionAction.getRevisionSha1();
 

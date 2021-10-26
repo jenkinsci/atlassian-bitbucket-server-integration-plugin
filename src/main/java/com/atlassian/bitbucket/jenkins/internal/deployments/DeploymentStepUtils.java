@@ -22,7 +22,7 @@ public class DeploymentStepUtils {
     private static final Logger LOGGER = Logger.getLogger(DeploymentStepUtils.class.getName());
 
     /**
-     * Generates a random UUID to be used as an environment key
+     * Generates a random UUID to be used as an environment key.
      *
      * @return the generated {@code environmentKey}, or a generated one if the provided one is blank
      */
@@ -45,7 +45,7 @@ public class DeploymentStepUtils {
     }
 
     /**
-     * Converts an environment type String to a {@link BitbucketDeploymentEnvironmentType}
+     * Converts an environment type String to a {@link BitbucketDeploymentEnvironmentType}.
      *
      * @param environmentType the {@link BitbucketDeploymentEnvironmentType#name()}
      * @return the associated {@link BitbucketDeploymentEnvironmentType} or {@code null} if there is none that match
@@ -57,13 +57,13 @@ public class DeploymentStepUtils {
         }
         return BitbucketDeploymentEnvironmentType.fromName(environmentType)
                 .orElseGet(() -> {
-                    LOGGER.warning(format("Invalid environment type '%s'.", environmentType));
+                    LOGGER.fine(format("Invalid environment type '%s'.", environmentType));
                     return null;
                 });
     }
 
     /**
-     * Create a {@link BitbucketDeploymentEnvironment}
+     * Create a {@link BitbucketDeploymentEnvironment}.
      *
      * @param step     the {@link DeploymentStep} being executed
      * @param run      the {@link Run}
@@ -90,7 +90,8 @@ public class DeploymentStepUtils {
         }
     }
 
-    private static String getOrGenerateEnvironmentName(@CheckForNull String environmentName, @CheckForNull BitbucketDeploymentEnvironmentType environmentType,
+    private static String getOrGenerateEnvironmentName(@CheckForNull String environmentName, 
+                                                       @CheckForNull BitbucketDeploymentEnvironmentType environmentType,
                                                        Run<?, ?> run, TaskListener listener) {
         if (!isBlank(environmentName)) {
             return environmentName;
@@ -103,7 +104,8 @@ public class DeploymentStepUtils {
             // Otherwise default to the project's display name
             generatedEnvironmentName = run.getParent().getDisplayName();
         }
-        listener.getLogger().println(format("Using '%s' as the environment name since it was not correctly configured. Please configure an environment name.", generatedEnvironmentName));
+        listener.getLogger().println(format("Using '%s' as the environment name since it was not correctly configured. " +
+                "Please configure an environment name.", generatedEnvironmentName));
         return generatedEnvironmentName;
     }
 }

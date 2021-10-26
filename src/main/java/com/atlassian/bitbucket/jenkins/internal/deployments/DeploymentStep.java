@@ -22,14 +22,14 @@ public interface DeploymentStep {
     BitbucketDeploymentEnvironment getEnvironment(Run<?, ?> run, TaskListener listener);
 
     /**
-     * Used to populate the {@code environmentKey} field in the UI
+     * Used to populate the {@code environmentKey} field in the UI.
      *
      * @return the configured or generated environment key
      */
     String getEnvironmentKey();
 
     /**
-     * Used to populate the {@code environmentName} field in the UI
+     * Used to populate the {@code environmentName} field in the UI.
      *
      * @return the configured environment name or {@code null} if not configured
      */
@@ -37,7 +37,7 @@ public interface DeploymentStep {
     String getEnvironmentName();
 
     /**
-     * Used to populate the {@code environmentType} field in the UI
+     * Used to populate the {@code environmentType} field in the UI.
      *
      * @return the configured {@link BitbucketDeploymentEnvironmentType#name()} or {@code null} if not configured
      */
@@ -45,7 +45,7 @@ public interface DeploymentStep {
     String getEnvironmentType();
 
     /**
-     * Used to populate the {@code environmentUrl} field in the UI
+     * Used to populate the {@code environmentUrl} field in the UI.
      *
      * @return the configured environment url or {@code null} if not configured
      */

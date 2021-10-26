@@ -11,7 +11,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploy
 public interface BitbucketDeploymentClient {
 
     /**
-     * Send notification of a deployment to Bitbucket Server
+     * Send notification of a deployment to Bitbucket Server.
      *
      * @param deployment the deployment to send
      * @throws AuthorizationException     if the credentials did not allow access to the given url
