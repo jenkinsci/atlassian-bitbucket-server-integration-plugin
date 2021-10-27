@@ -15,6 +15,7 @@ import java.util.Collection;
 
 public class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactory {
 
+    private static final Collection<Result> canceledResults = Arrays.asList(Result.ABORTED, Result.NOT_BUILT);
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
 
     private final DisplayURLProvider displayURLProvider;
@@ -54,9 +55,15 @@ public class BitbucketDeploymentFactoryImpl implements BitbucketDeploymentFactor
     }
 
     private DeploymentState getStateFromRun(Run<?, ?> run) {
+        if (run.hasntStartedYet()) {
+            return DeploymentState.PENDING;
+        }
         Result result = run.getResult();
         if (result == null) {
             return DeploymentState.IN_PROGRESS;
+        }
+        if (canceledResults.contains(result)) {
+            return DeploymentState.CANCELLED;
         }
         if (successfulResults.contains(result)) {
             return DeploymentState.SUCCESSFUL;
