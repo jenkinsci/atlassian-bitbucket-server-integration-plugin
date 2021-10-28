@@ -82,8 +82,7 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     
     private HttpUrl.Builder getDefaultBranchyUrl() {
         return getRepositoryUrl()
-                .addPathSegment("branches")
-                .addPathSegment("default");
+                .addPathSegment("default-branch");
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketPullRequest> {
