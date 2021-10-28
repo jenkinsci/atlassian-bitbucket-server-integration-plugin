@@ -80,8 +80,8 @@ public class DeploymentStepExecutionCallback extends BodyExecutionCallback {
                 return;
             }
 
-            BitbucketDeployment deployment = getStepDescriptor().getBitbucketDeploymentFactory().createDeployment(run, 
-            environment, state);
+            BitbucketDeployment deployment = getStepDescriptor().getBitbucketDeploymentFactory()
+                    .createDeployment(run, environment, state);
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
             String revisionSha = revisionAction.getRevisionSha1();
 

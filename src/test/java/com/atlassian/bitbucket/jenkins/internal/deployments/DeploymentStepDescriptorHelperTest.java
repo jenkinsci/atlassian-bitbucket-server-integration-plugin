@@ -55,7 +55,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment key must be shorter than 255 characters."));
+        assertThat(formValidation.getMessage(), equalTo("The environment key must be shorter than 255 characters"));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment name is required."));
+        assertThat(formValidation.getMessage(), equalTo("The environment name is required"));
     }
 
     @Test
@@ -100,7 +100,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment name must be shorter than 255 characters."));
+        assertThat(formValidation.getMessage(), equalTo("The environment name must be shorter than 255 characters"));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING."));
+        assertThat(formValidation.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING"));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The environment URL must be a valid URL."));
+        assertThat(formValidation.getMessage(), equalTo("The environment URL must be a valid URL"));
     }
 
     @Test
@@ -194,7 +194,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be absolute."));
+        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be absolute"));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class DeploymentStepDescriptorHelperTest {
 
         verify(context).checkPermission(Item.EXTENDED_READ);
         verifyZeroInteractions(jenkins);
-        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be shorter than 1024 characters."));
+        assertThat(formValidation.getMessage(), equalTo("The deployment URI must be shorter than 1024 characters"));
     }
 
     @Test

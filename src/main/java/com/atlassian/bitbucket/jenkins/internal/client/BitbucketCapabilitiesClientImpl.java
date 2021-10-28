@@ -64,7 +64,7 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
         if (events == null) {
             throw new BitbucketMissingCapabilityException(
                     "Remote Bitbucket Server does not support Webhooks. Make sure " +
-                            "Bitbucket server supports webhooks or correct version of it is installed.");
+                    "Bitbucket server supports webhooks or correct version of it is installed.");
         }
         return events;
     }

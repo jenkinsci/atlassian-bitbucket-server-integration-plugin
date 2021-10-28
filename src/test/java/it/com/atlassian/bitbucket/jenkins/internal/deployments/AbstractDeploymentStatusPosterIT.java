@@ -86,24 +86,18 @@ public abstract class AbstractDeploymentStatusPosterIT {
         ItemGroup<?> parentProject = job.getParent();
         boolean isMultibranch = parentProject instanceof MultiBranchProject;
         String name = isMultibranch ? parentProject.getDisplayName() + " » " + job.getDisplayName() : job.getDisplayName();
-
-        return requestPatternBuilder
-                .withRequestBody(
-                        equalToJson(
-                                format("{" +
-                                                "\"deploymentSequenceNumber\":%d," +
-                                                "\"description\":\"%s\"," +
-                                                "\"displayName\":\"%s\"," +
-                                                "\"environment\":%s," +
-                                                "\"key\":\"%s\"," +
-                                                "\"state\":\"%s\"," +
-                                                "\"url\":\"%s%sdisplay/redirect\"" +
-                                                "}",
-                                        build.getNumber(),
-                                        deploymentState.getDescriptiveText(name, environmentName),
-                                        name, environment, job.getFullName(),
-                                        deploymentState, jenkinsUrlAsString, build.getUrl())
-                        )
-                );
+        String requestPattern = "{" +
+                "\"deploymentSequenceNumber\":%d," +
+                "\"description\":\"%s\"," +
+                "\"displayName\":\"%s\"," +
+                "\"environment\":%s," +
+                "\"key\":\"%s\"," +
+                "\"state\":\"%s\"," +
+                "\"url\":\"%s%sdisplay/redirect\"" +
+                "}";
+        String jsonString = format(requestPattern, build.getNumber(), deploymentState.getDescriptiveText(name,
+                environmentName), name, environment, job.getFullName(), deploymentState, jenkinsUrlAsString,
+                build.getUrl());
+        return requestPatternBuilder.withRequestBody(equalToJson(jsonString));
     }
 }
