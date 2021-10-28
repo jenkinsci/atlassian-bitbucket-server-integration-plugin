@@ -6,8 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentCapabilities;
 
-import javax.annotation.CheckForNull;
-
 /**
  * Client to get capabilities from the remote server.
  */

@@ -10,7 +10,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import okhttp3.HttpUrl;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
