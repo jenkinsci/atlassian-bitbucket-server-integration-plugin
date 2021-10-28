@@ -8,7 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -119,8 +119,9 @@ public class DeploymentPosterImpl extends SCMListener implements DeploymentPoste
         BitbucketCredentials credentials = jenkinsToBitbucketCredentials.toBitbucketCredentials(globalAdminCredentials);
         BitbucketClientFactory clientFactory =
                 bitbucketClientFactoryProvider.getClient(server.getBaseUrl(), credentials);
-        BitbucketCDCapabilities cdCapabilities = clientFactory.getCapabilityClient().getCDCapabilities();
-        if (cdCapabilities == null) {
+        BitbucketDeploymentCapabilities deploymentCapabilities =
+                clientFactory.getCapabilityClient().getDeploymentCapabilities();
+        if (!deploymentCapabilities.isDeploymentsSupported()) {
             // Bitbucket doesn't have deployments
             taskListener.error(format("Could not send deployment notification to '%s': The Bitbucket version does not " +
                     "support deployments", server.getServerName()));

@@ -11,8 +11,8 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketCDCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import static java.lang.String.format;
-import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.mockito.Mockito.*;
@@ -101,8 +100,8 @@ public class DeploymentPosterImplTest {
         when(server.getGlobalCredentialsProvider(any(Item.class))).thenReturn(globalCredentialsProvider);
         when(server.getBaseUrl()).thenReturn(BASE_URL);
         when(clientFactoryProvider.getClient(BASE_URL, bitbucketCredentials)).thenReturn(clientFactory);
-        when(clientFactory.getCapabilityClient().getCDCapabilities())
-                .thenReturn(new BitbucketCDCapabilities(emptyMap()));
+        when(clientFactory.getCapabilityClient().getDeploymentCapabilities())
+                .thenReturn(new BitbucketDeploymentCapabilities(true));
         when(server.getServerName()).thenReturn(SERVER_NAME);
         when(taskListener.getLogger()).thenReturn(printStream);
         repository = new BitbucketSCMRepository("credentialsId", null, "projectName", PROJECT_KEY, "repoName",
@@ -230,8 +229,8 @@ public class DeploymentPosterImplTest {
 
     @Test
     public void testPostDeploymentWithDeploymentsNotSupported() {
-        when(clientFactory.getCapabilityClient().getCDCapabilities())
-                .thenReturn(null);
+        when(clientFactory.getCapabilityClient().getDeploymentCapabilities())
+                .thenReturn(new BitbucketDeploymentCapabilities(false));
 
         poster.postDeployment(repository, REVISION_SHA, DEPLOYMENT, run, taskListener);
 
