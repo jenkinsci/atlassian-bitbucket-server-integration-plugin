@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
@@ -57,5 +58,29 @@ public class BitbucketScmHelper {
                     e.getMessage());
             return new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName), repositoryName, RepositoryState.AVAILABLE);
         }
+    }
+    
+    public BitbucketDefaultBranch getDefaultBranch(String projectName, String repositoryName) {
+        if (isBlank(projectName) || isBlank(repositoryName)) {
+            LOGGER.info("Error creating the Bitbucket SCM: The projectName and repositoryName must not be blank");
+            return new BitbucketDefaultBranch("", "", "", "", "", false);
+        }
+        BitbucketRepository repository = getRepository(projectName, repositoryName);
+        try {
+            return clientFactory
+                        .getProjectClient(repository.getProject().getKey())
+                        .getRepositoryClient(repository.getSlug())
+                        .getDefaultBranch();
+        } catch (NotFoundException e) {
+            LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
+                    + repositoryName);
+            return new BitbucketDefaultBranch("", "", "", "", "", false);
+        } catch (BitbucketClientException e) {
+            // Something went wrong with the request to Bitbucket
+            LOGGER.info(
+                    "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: "
+                            + e.getMessage());
+            return new BitbucketDefaultBranch("", "", "", "", "", false);
+        }   
     }
 }

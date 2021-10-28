@@ -7,6 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -15,8 +16,11 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
@@ -28,11 +32,14 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
+import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
+
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -61,6 +68,7 @@ public class BitbucketSCMSource extends SCMSource {
     private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private BitbucketScmHelper scmHelper;
     private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
@@ -93,7 +101,7 @@ public class BitbucketSCMSource extends SCMSource {
                         projectName,
                         repositoryName,
                         mirrorName));
-        BitbucketScmHelper scmHelper =
+        scmHelper =
                 descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
                         globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
         if (isBlank(projectName)) {
@@ -151,6 +159,19 @@ public class BitbucketSCMSource extends SCMSource {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
         return getGitSCMSource().build(head, revision);
+    }
+
+    @NonNull
+    @Override
+    protected List<Action> retrieveActions(@NonNull SCMHead head, @CheckForNull SCMHeadEvent event,
+            @NonNull TaskListener listener) throws IOException, InterruptedException {       
+        List<Action> result = new ArrayList<>();
+        BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName() , repository.getRepositoryName());
+        
+        if (StringUtils.equals(head.getName(), defaultBranch.getDisplayId())) {
+            result.add(new PrimaryInstanceMetadataAction());
+        }
+        return result;
     }
 
     @Override
