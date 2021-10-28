@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironment;
-import com.google.common.annotations.VisibleForTesting;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
@@ -25,7 +24,6 @@ public class DeploymentStepExecution extends AbstractStepExecutionImpl {
         return false;
     }
 
-    @VisibleForTesting
     BitbucketDeploymentEnvironment getEnvironment() {
         return environment;
     }

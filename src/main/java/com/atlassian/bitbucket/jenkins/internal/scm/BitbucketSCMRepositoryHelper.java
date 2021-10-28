@@ -1,7 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.inject.Singleton;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
@@ -13,6 +11,7 @@ import jenkins.triggers.SCMTriggerItem;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
 import javax.annotation.CheckForNull;
+import javax.inject.Singleton;
 import java.util.Objects;
 
 /**
@@ -71,12 +70,10 @@ public class BitbucketSCMRepositoryHelper {
         return null;
     }
 
-    @VisibleForTesting
     ItemGroup<?> getJobParent(Job<?, ?> job) {
         return job.getParent();
     }
 
-    @VisibleForTesting
     boolean isWorkflowRun(Run<?, ?> build) {
         return build instanceof WorkflowRun;
     }
@@ -85,7 +82,6 @@ public class BitbucketSCMRepositoryHelper {
      * The assumption is the remote URL specified in GitSCM should be same as remote URL specified in
      * Bitbucket Source.
      */
-    @VisibleForTesting
     boolean filterSource(GitSCM gitScm, BitbucketSCMSource bbsSource) {
         return gitScm.getUserRemoteConfigs()
                 .stream()
