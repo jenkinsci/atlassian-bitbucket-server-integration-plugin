@@ -20,11 +20,6 @@ f.section() {
                 placeholder: _("bitbucket.deployments.env.name.placeholder"))
     }
 
-    f.entry(title: _("bitbucket.deployments.env.url.title"), field: "environmentUrl") {
-        f.textbox(context: app, checkMethod: "post",
-                placeholder: _("bitbucket.deployments.env.url.placeholder"))
-    }
-
     f.entry(title: _("bitbucket.deployments.env.key.title"), field: "environmentKey") {
         f.textbox(context: app, checkMethod: "post",
                 placeholder: _("bitbucket.deployments.env.key.placeholder"))
