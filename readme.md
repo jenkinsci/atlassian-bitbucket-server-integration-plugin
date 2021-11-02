@@ -150,7 +150,11 @@ To select a Bitbucket Server instance when creating a Freestyle job:
 
 To use a different Jenkinsfile for different branches of your Bitbucket Server project, you need to create a Multibranch Pipeline and add the Jenkinsfile to the repo of each branch you want to build. Jenkins will then automatically find, manage, and execute these Pipelines.
 
-Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline). 
+Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline).
+
+### Additional documentation
+
+* [Sending deployment notifications](./docs/deployment_notifications.md)
 
 ---
 

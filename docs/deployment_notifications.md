@@ -8,7 +8,7 @@ third-party integrations to send through deployment information so that the depl
 Data Center on commits or pull requests.
 
 As of version 3.1.0 of this plugin, you can configure deployment-related jobs to send notifications to this API. This
-feature supports freestyle, pipeline, and multipipeline jobs.
+feature supports freestyle, pipeline, and multibranch pipeline jobs.
 
 ## Configuration
 
