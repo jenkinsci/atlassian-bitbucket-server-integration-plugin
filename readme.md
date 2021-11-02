@@ -209,6 +209,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.1.0 (XX 2021)
+
+- Sending notifications to Bitbucket Data Center's deployment status API are now supported. For Freestyle jobs, this is
+  implemented as a post-build action. For Pipeline and Multibranch Pipeline jobs, this is implemented using
+  the `bbs_deploy` wrapper step.
+
 ### 3.0.2 (19 October 2021)
 - The minimum version of Jenkins changed to be **2.249.1**
 - Fix issue JENKINS-66789 (incoming webhooks unexpectedly disabling pipeline branches)
