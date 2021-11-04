@@ -168,7 +168,7 @@ public class BitbucketSCMSource extends SCMSource {
         List<Action> result = new ArrayList<>();
         BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName());
         
-        if (StringUtils.equals(head.getName(), defaultBranch.getDisplayId())) {
+        if (defaultBranch != null && StringUtils.equals(head.getName(), defaultBranch.getDisplayId())) {
             result.add(new PrimaryInstanceMetadataAction());
         }
         return result;

@@ -10,6 +10,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
@@ -60,10 +62,11 @@ public class BitbucketScmHelper {
         }
     }
     
+    @Nullable
     public BitbucketDefaultBranch getDefaultBranch(String projectName, String repositoryName) {
         if (isBlank(projectName) || isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The projectName and repositoryName must not be blank");
-            return new BitbucketDefaultBranch("", "", "", "", "", false);
+            return null;
         }
         BitbucketRepository repository = getRepository(projectName, repositoryName);
         try {
@@ -74,13 +77,13 @@ public class BitbucketScmHelper {
         } catch (NotFoundException e) {
             LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
                     + repositoryName);
-            return new BitbucketDefaultBranch("", "", "", "", "", false);
+            return null;
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket
             LOGGER.info(
                     "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: "
                             + e.getMessage());
-            return new BitbucketDefaultBranch("", "", "", "", "", false);
+            return null;
         }   
     }
 }
