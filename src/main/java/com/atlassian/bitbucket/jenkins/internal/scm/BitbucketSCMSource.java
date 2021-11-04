@@ -166,7 +166,7 @@ public class BitbucketSCMSource extends SCMSource {
     protected List<Action> retrieveActions(@NonNull SCMHead head, @CheckForNull SCMHeadEvent event,
             @NonNull TaskListener listener) throws IOException, InterruptedException {       
         List<Action> result = new ArrayList<>();
-        BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName() , repository.getRepositoryName());
+        BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName());
         
         if (StringUtils.equals(head.getName(), defaultBranch.getDisplayId())) {
             result.add(new PrimaryInstanceMetadataAction());

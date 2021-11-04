@@ -7,46 +7,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class BitbucketDefaultBranch {
+public class BitbucketDefaultBranch extends BitbucketRef {
 
-    private final String id;
-    private final String displayId;
-    private final String type;
     private final String latestCommit;
     private final String latestChangeset;
     private final boolean isDefault;
 
     @JsonCreator
     public BitbucketDefaultBranch(@JsonProperty("id") String id, @JsonProperty("displayId") String displayId,
-            @JsonProperty("type") String type, @JsonProperty("latestCommit") String latestCommit,
-            @JsonProperty("latestChangeset") String latestChangeset, @JsonProperty("isDefault") boolean isDefault) {
-        this.id = id;
-        this.displayId = displayId;
-        this.type = type;
+            @JsonProperty("type") BitbucketRefType type, @JsonProperty("latestCommit") String latestCommit,
+            @JsonProperty("latestChangeset") String latestChangeset, @JsonProperty("isDefault") boolean isDefault)  {
+        super(id, displayId, type);
         this.latestCommit = latestCommit;
         this.latestChangeset = latestChangeset;
         this.isDefault = isDefault;
-    }
-
-    /**
-     * @return the id
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * @return the displayId
-     */
-    public String getDisplayId() {
-        return displayId;
-    }
-
-    /**
-     * @return the type
-     */
-    public String getType() {
-        return type;
     }
 
     /**
@@ -79,14 +53,14 @@ public class BitbucketDefaultBranch {
             return false;
         }
         BitbucketDefaultBranch that = (BitbucketDefaultBranch) o;
-        return Objects.equals(id, that.id) && Objects.equals(displayId, that.displayId)
-                && Objects.equals(type, that.type) && Objects.equals(latestCommit, that.latestCommit)
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getDisplayId(), that.getDisplayId())
+                && Objects.equals(getType(), that.getType()) && Objects.equals(latestCommit, that.latestCommit)
                 && Objects.equals(latestChangeset, that.latestChangeset) && Objects.equals(isDefault, that.isDefault);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, displayId, type, latestCommit, latestChangeset, isDefault);
+        return Objects.hash(getId(), getDisplayId(), getType(), latestCommit, latestChangeset, isDefault);
     }
 
 }
