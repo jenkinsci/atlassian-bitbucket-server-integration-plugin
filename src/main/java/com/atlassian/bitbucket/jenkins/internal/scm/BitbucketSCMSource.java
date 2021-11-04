@@ -70,7 +70,6 @@ public class BitbucketSCMSource extends SCMSource {
     private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
-    private BitbucketScmHelper scmHelper;
     private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
@@ -103,7 +102,7 @@ public class BitbucketSCMSource extends SCMSource {
                         projectName,
                         repositoryName,
                         mirrorName));
-        scmHelper =
+        BitbucketScmHelper scmHelper =
                 descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
                         globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
         if (isBlank(projectName)) {
@@ -167,6 +166,22 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     protected List<Action> retrieveActions(SCMSourceEvent event,
                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(getServerId());
+        if (!mayBeServerConf.isPresent()) {
+            LOGGER.info("No Bitbucket Server configuration for serverId " + getServerId());
+            return Collections.emptyList();
+        }
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
+                format("Bitbucket SCM: Query Bitbucket for project [%s] repo [%s] mirror[%s]",
+                        getProjectName(),
+                        getRepositoryName(),
+                        getMirrorName()));
+        BitbucketScmHelper scmHelper =
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));        
+        
         BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName());
         return Collections.singletonList(new BitbucketRepositoryMetadataAction(repository, defaultBranch));
     }

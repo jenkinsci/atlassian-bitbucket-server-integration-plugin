@@ -250,7 +250,6 @@ public class BitbucketSCMSourceTest {
                 
         SCMSourceEvent<RefsChangedWebhookEvent> mockEvent = mock(SCMSourceEvent.class);        
         List<Action> result = bitbucketSCMsource.retrieveActions(mockEvent, null);
-        
         assertThat(result.size(), equalTo(1));
         
         Action action = result.get(0);
@@ -289,7 +288,6 @@ public class BitbucketSCMSourceTest {
         when(head.getName()).thenReturn("master");
         
         result = bitbucketSCMsource.retrieveActions(head, mockEvent, null);
-        
         assertThat(result.size(), equalTo(1));
         
         Action action = result.get(0);
