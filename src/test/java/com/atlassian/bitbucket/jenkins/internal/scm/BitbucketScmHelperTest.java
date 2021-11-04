@@ -2,6 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
@@ -9,8 +11,10 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundExcepti
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketMockJenkinsRule;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 import org.junit.Before;
@@ -24,6 +28,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -40,11 +45,17 @@ public class BitbucketScmHelperTest {
     @Mock
     private BitbucketSearchClient searchClient;
     @Mock
+    private BitbucketProjectClient projectClient;
+    @Mock
+    private BitbucketRepositoryClient repositoryClient;
+    @Mock
     private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
     @Before
     public void setup() {
         when(clientFactory.getSearchClient(any())).thenReturn(searchClient);
+        when(clientFactory.getProjectClient(any())).thenReturn(projectClient);
+        when(clientFactory.getProjectClient(any()).getRepositoryClient(any())).thenReturn(repositoryClient);
         when(searchClient.findProjects()).thenReturn(new BitbucketPage<>());
         when(searchClient.findRepositories(any())).thenReturn(new BitbucketPage<>());
         // Clear the latestProject & latestRepositories cache
@@ -146,5 +157,81 @@ public class BitbucketScmHelperTest {
         assertThat(repo.getSlug(), equalTo("my repo"));
         assertThat(repo.getProject().getKey(), equalTo("myProject"));
         assertThat(repo.getProject().getName(), equalTo("my project"));
+    }
+    
+    @Test
+    public void testGetDefaultBranch() {
+        BitbucketPage<BitbucketProject> projectPage = new BitbucketPage<>();
+        BitbucketProject expectedProject = new BitbucketProject("myProject", null, "my project");
+        projectPage.setValues(singletonList(expectedProject));
+        when(searchClient.findProjects()).thenReturn(projectPage);
+        BitbucketPage<BitbucketRepository> repositoryPage = new BitbucketPage<>();
+        BitbucketRepository expectedRepo =
+                new BitbucketRepository(0, "my repo", null, expectedProject, "myRepo", RepositoryState.AVAILABLE);
+        repositoryPage.setValues(singletonList(expectedRepo));
+        when(searchClient.findRepositories("my repo")).thenReturn(repositoryPage);
+        BitbucketDefaultBranch expectedBranch =
+                new BitbucketDefaultBranch("ref/head/master", "master", BitbucketRefType.BRANCH, "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", true);
+        when(repositoryClient.getDefaultBranch()).thenReturn(expectedBranch);
+
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertThat(branch.getId(), equalTo("ref/head/master"));
+        assertThat(branch.getDisplayId(), equalTo("master"));
+        assertThat(branch.getType(), equalTo(BitbucketRefType.BRANCH));
+        assertThat(branch.getLatestCommit(), equalTo("1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0"));
+        assertThat(branch.getLatestChangeset(), equalTo("1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0"));
+        assertThat(branch.isDefault(), equalTo(true));
+    }
+    
+    @Test
+    public void testGetDefaultBranchWhenProjectBitbucketClientException() {
+        when(searchClient.findProjects()).thenThrow(new BitbucketClientException("some error", 500, "an error"));
+        
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertNull(branch);
+    }
+
+    @Test
+    public void testGetDefaultBranchWhenProjectNameIsBlank() {
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("", "repo");
+        assertNull(branch);
+    }
+
+    @Test
+    public void testGetDefaultBranchWhenProjectNotFound() {
+        when(searchClient.findProjects()).thenThrow(new NotFoundException("my message", "my body"));
+        
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertNull(branch);
+    }
+
+    @Test
+    public void testGetDefaultBranchWhenRepositoryBitbucketClientException() {
+        BitbucketPage<BitbucketProject> projectPage = new BitbucketPage<>();
+        BitbucketProject expectedProject = new BitbucketProject("myProject", null, "my project");
+        projectPage.setValues(singletonList(expectedProject));
+        when(searchClient.findProjects()).thenReturn(projectPage);
+        when(searchClient.findRepositories("my repo")).thenThrow(new BitbucketClientException("", 500, ""));
+        
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertNull(branch);
+    }
+
+    @Test
+    public void testGetDefaultBranchWhenRepositoryNameIsBlank() {
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("project", "");
+        assertNull(branch);
+    }
+
+    @Test
+    public void testGetDefaultBranchWhenRepositoryNotFound() {
+        BitbucketPage<BitbucketProject> projectPage = new BitbucketPage<>();
+        BitbucketProject expectedProject = new BitbucketProject("myProject", null, "my project");
+        projectPage.setValues(singletonList(expectedProject));
+        when(searchClient.findProjects()).thenReturn(projectPage);
+        when(searchClient.findRepositories("my repo")).thenThrow(new NotFoundException("", ""));
+
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertNull(branch);
     }
 }

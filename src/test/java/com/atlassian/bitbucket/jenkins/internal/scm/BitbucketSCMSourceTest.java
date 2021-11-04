@@ -3,22 +3,35 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestClosedWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhookEvent;
+
+import hudson.model.Action;
+import hudson.model.Actionable;
 import jenkins.branch.MultiBranchProject;
+import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSourceDescriptor;
+import jenkins.scm.api.SCMSourceEvent;
+import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
+
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static java.util.Collections.*;
@@ -216,6 +229,72 @@ public class BitbucketSCMSourceTest {
 
         assertThat(bitbucketSCMsource.isEventApplicable(null), equalTo(false));
     }
+    
+    
+    @Test
+    public void testRetrieveActionsSourceEvent() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String projectName = "proj1";
+        
+        BitbucketDefaultBranch branch = new BitbucketDefaultBranch("ref/head/master", 
+                                                                    "master", 
+                                                                    BitbucketRefType.BRANCH, 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    true);
+        
+        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId, projectName);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+                
+        SCMSourceEvent<RefsChangedWebhookEvent> mockEvent = mock(SCMSourceEvent.class);        
+        List<Action> result = bitbucketSCMsource.retrieveActions(mockEvent, null);
+        
+        assertThat(result.size(), equalTo(1));
+        
+        Action action = result.get(0);
+        assertThat(action.getClass(), equalTo(BitbucketRepositoryMetadataAction.class));
+        
+        BitbucketRepositoryMetadataAction metaAction = (BitbucketRepositoryMetadataAction) action;
+        assertThat(metaAction.getBitbucketSCMRepository(), equalTo(bitbucketSCMsource.getBitbucketSCMRepository()));
+        assertThat(metaAction.getBitbucketDefaultBranch(), equalTo(branch));
+    }
+    
+    @Test
+    public void testRetrieveActionsHeadEvent() throws IOException, InterruptedException {
+        String credentialsId = "valid-credentials";
+        String serverId = "serverId1";
+        String projectName = "proj1";
+        
+        BitbucketDefaultBranch branch = new BitbucketDefaultBranch("ref/head/master", 
+                                                                    "master", 
+                                                                    BitbucketRefType.BRANCH, 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    true);
+        
+        BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId, projectName);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+            
+        SCMHead head = mock(SCMHead.class); 
+        SCMHeadEvent<RefsChangedWebhookEvent> mockEvent = mock(SCMHeadEvent.class);        
+        List<Action> result = bitbucketSCMsource.retrieveActions(head, mockEvent, null);
+        
+        assertThat(result.isEmpty(), equalTo(true));
+        
+        BitbucketRepositoryMetadataAction mockAction = new BitbucketRepositoryMetadataAction(bitbucketSCMsource.getBitbucketSCMRepository(), branch);        
+        when(((Actionable) bitbucketSCMsource.getOwner()).getActions(BitbucketRepositoryMetadataAction.class)).thenReturn(Collections.singletonList(mockAction));
+        when(head.getName()).thenReturn("master");
+        
+        result = bitbucketSCMsource.retrieveActions(head, mockEvent, null);
+        
+        assertThat(result.size(), equalTo(1));
+        
+        Action action = result.get(0);
+        assertThat(action.getClass(), equalTo(PrimaryInstanceMetadataAction.class));
+    }
 
     private BitbucketSCMSource createInstance(String credentialId) {
         return createInstance(credentialId, null);
@@ -273,6 +352,13 @@ public class BitbucketSCMSourceTest {
                             .thenReturn(scmHelper);
                     when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
+                    when(scmHelper.getDefaultBranch(nullable(String.class), nullable(String.class)))
+                            .thenReturn(new BitbucketDefaultBranch("ref/head/master", 
+                                                                    "master", 
+                                                                    BitbucketRefType.BRANCH, 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
+                                                                    true));
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                     when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
                     when(repository.getSelfLink()).thenReturn("");

@@ -20,6 +20,7 @@ import static org.junit.Assert.*;
 
 public class BitbucketRepositoryClientImplTest {
 
+    private static final String DEFAULT_BRANCH_URL = "%s/rest/api/1.0/projects/%s/repos/%s/default-branch";
     private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?withAttributes=false&withProperties=false&state=OPEN";
     private static final String projectKey = "PROJECT_1";
     private static final String repoSlug = "rep_1";
@@ -83,5 +84,16 @@ public class BitbucketRepositoryClientImplTest {
         page.setLastPage(true);
 
         fetcher.next(page);
+    }
+    
+    @Test
+    public void testFetchDefaultBranch() {
+        String response = readFileToString("/default-branch.json");
+        String url = format(DEFAULT_BRANCH_URL, BITBUCKET_BASE_URL, projectKey, repoSlug);
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        BitbucketDefaultBranch defaultBranch = client.getDefaultBranch();
+
+        assertNotNull(defaultBranch);
     }
 }

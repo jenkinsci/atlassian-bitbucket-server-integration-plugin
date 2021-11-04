@@ -68,22 +68,34 @@ public class BitbucketScmHelper {
             LOGGER.info("Error creating the Bitbucket SCM: The projectName and repositoryName must not be blank");
             return null;
         }
-        BitbucketRepository repository = getRepository(projectName, repositoryName);
         try {
-            return clientFactory
-                        .getProjectClient(repository.getProject().getKey())
-                        .getRepositoryClient(repository.getSlug())
-                        .getDefaultBranch();
+            BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
+            try {
+                BitbucketRepository repository = getRepositoryByNameOrSlug(project.getName(), repositoryName, clientFactory);
+                return clientFactory
+                            .getProjectClient(project.getKey())
+                            .getRepositoryClient(repository.getSlug())
+                            .getDefaultBranch();
+            } catch (NotFoundException e) {
+                LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
+                        + repositoryName);
+                return null;
+            } catch (BitbucketClientException e) {
+                // Something went wrong with the request to Bitbucket
+                LOGGER.info(
+                        "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: "
+                                + e.getMessage());
+                return null;
+            }   
         } catch (NotFoundException e) {
-            LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
-                    + repositoryName);
+            LOGGER.info("Error creating the Bitbucket SCM: Cannot find the project " + projectName);
             return null;
         } catch (BitbucketClientException e) {
             // Something went wrong with the request to Bitbucket
             LOGGER.info(
-                    "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: "
-                            + e.getMessage());
+                    "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: " +
+                    e.getMessage());
             return null;
-        }   
+        }
     }
 }
