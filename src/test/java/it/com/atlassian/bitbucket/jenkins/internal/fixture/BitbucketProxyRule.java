@@ -1,24 +1,24 @@
 package it.com.atlassian.bitbucket.jenkins.internal.fixture;
 
-import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runners.model.Statement;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.RICH_BUILDSTATUS_CAPABILITY_KEY;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.BITBUCKET_BASE_URL;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.marshall;
 
 public class BitbucketProxyRule {
 
     public static final String BITBUCKET_BASE_URL_SYSTEM_PROPERTY = "bitbucket.baseurl";
+
+    private static final String BASE_URL_PLACEHOLDER = "http://localhost:7990/bitbucket";
 
     private final BitbucketJenkinsRule bitbucketJenkinsRule;
     private final WireMockRule wireMockRule =
@@ -49,29 +49,46 @@ public class BitbucketProxyRule {
                 .around(wireMockRule);
     }
 
+    public WireMockServer getWireMock() {
+        return wireMockRule;
+    }
+
     private void fixCapabilities() {
+        // Base capabilities endpoint
         String atlassianCapabilityUrl = "/rest/capabilities";
-        Map<String, String> c = new HashMap<>();
-        c.put(RICH_BUILDSTATUS_CAPABILITY_KEY, wireMockRule.baseUrl() + "/rest/api/latest/build/capabilities");
-        AtlassianServerCapabilities ac = new AtlassianServerCapabilities("stash", c);
+        String capabilityResponse = readResponse("capabilities/bitbucket_server_capabilities.json");
         wireMockRule.stubFor(get(
                 urlPathMatching(atlassianCapabilityUrl))
                 .willReturn(aResponse()
-                        .withBody(marshall(ac))));
+                        .withBody(capabilityResponse)));
 
+        // build status capabilities endpoint
         String buildCapability = "/rest/api/latest/build/capabilities";
+        String buildStatusCapabilityResponse = readResponse("capabilities/build_status_capabilities.json");
         wireMockRule.stubFor(get(
                 urlPathMatching(buildCapability))
                 .willReturn(
                         aResponse().withHeader("Content-Type", "application/json")
-                                .withBody("{\n" +
-                                          "    \"buildStatus\": [\n" +
-                                          "        \"richBuildStatus\"\n" +
-                                          "    ]\n" +
-                                          "}").withStatus(200)));
+                                .withBody(buildStatusCapabilityResponse)
+                                .withStatus(200)));
+
+        // deployment status capabilities endpoint
+        String deploymentCapability = "/rest/api/latest/deployment/capabilities";
+        String deploymentCapabilityResponse = readResponse("capabilities/deployment_capabilities.json");
+        wireMockRule.stubFor(get(
+                urlPathMatching(deploymentCapability))
+                .willReturn(
+                        aResponse().withHeader("Content-Type", "application/json")
+                                .withBody(deploymentCapabilityResponse)
+                                .withStatus(200)));
     }
 
-    public WireMockServer getWireMock() {
-        return wireMockRule;
+    private String readResponse(String filename) {
+        try {
+            return IOUtils.toString(getClass().getClassLoader().getResourceAsStream(filename), StandardCharsets.UTF_8)
+                    .replace(BASE_URL_PLACEHOLDER, getWireMock().baseUrl());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

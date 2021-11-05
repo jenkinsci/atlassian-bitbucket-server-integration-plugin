@@ -1,7 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -42,6 +44,25 @@ public interface BitbucketRepositoryClient {
      * @return a client that is ready to use
      */
     BitbucketWebhookClient getWebhookClient();
+
+    /**
+     * Return a client that can post the current status of a build to Bitbucket.
+     *
+     * @param revisionSha      the revision for the build status
+     * @param ciCapabilities   CI capabilities of the remote server
+     * @return a client that can post a build status
+     * @since 3.1.0
+     */
+    BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketCICapabilities ciCapabilities);
+
+    /**
+     * Return a client that can post deployment information to Bitbucket.
+     *
+     * @param revisionSha      the revision for the deployment
+     * @return a client that can post deployment information
+     * @since 3.1.0
+     */
+    BitbucketDeploymentClient getDeploymentClient(String revisionSha);
 
     /**
      * Gets all pull requests of the given state for the repository. The returned stream will make paged calls to

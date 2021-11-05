@@ -11,7 +11,9 @@ import jenkins.model.GlobalConfiguration;
 import jenkins.scm.api.SCMSource;
 import net.lingala.zip4j.ZipFile;
 import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.Step;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -237,6 +239,8 @@ public class UpgradeTest {
         sensitiveClasses.addAll(getAtlassianSubtypesOf(reflections, Step.class));
         sensitiveClasses.addAll(getAtlassianSubtypesOf(reflections, GlobalConfiguration.class));
         sensitiveClasses.addAll(getAtlassianSubtypesOf(reflections, AbstractDescribableImpl.class));
+        sensitiveClasses.addAll(getAtlassianSubtypesOf(reflections, BodyExecutionCallback.class));
+        sensitiveClasses.addAll(getAtlassianSubtypesOf(reflections, StepExecution.class));
         return sensitiveClasses;
     }
 

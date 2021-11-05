@@ -1,0 +1,28 @@
+pipeline {
+    agent any
+
+    stages {
+		stage('Checkout') {
+			steps {
+				bbs_checkout branches: [[name: '*/master']], credentialsId: '%s', projectName: '%s', repositoryName: '%s', serverId: '%s'
+			}
+		}
+        stage('Build') {
+            steps {
+                echo 'Building..'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing..'
+            }
+        }
+        stage('Deploy') {
+            steps {
+				bbs_deploy(environmentKey: '%s', environmentName: '%s') {
+					echo 'Deploying....'
+				}
+            }
+        }
+    }
+}

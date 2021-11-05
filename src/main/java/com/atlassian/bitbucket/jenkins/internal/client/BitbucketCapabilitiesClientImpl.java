@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.supply.BitbucketCapabilit
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
+import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentCapabilities;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import okhttp3.HttpUrl;
@@ -12,8 +13,7 @@ import okhttp3.HttpUrl;
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.RICH_BUILDSTATUS_CAPABILITY_KEY;
-import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.WEBHOOK_CAPABILITY_KEY;
+import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.*;
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static java.util.Collections.emptySet;
 import static okhttp3.HttpUrl.parse;
@@ -40,6 +40,16 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
             return new BitbucketCICapabilities(emptySet());
         }
         return ciCapabilities;
+    }
+
+    @Override
+    public BitbucketDeploymentCapabilities getDeploymentCapabilities() {
+        BitbucketDeploymentCapabilities deploymentCapabilities = getCapabilitiesForKey(DEPLOYMENTS_CAPABILITY_KEY,
+                BitbucketDeploymentCapabilities.class);
+        if (deploymentCapabilities == null) {
+            return new BitbucketDeploymentCapabilities(false);
+        }
+        return deploymentCapabilities;
     }
 
     @Override

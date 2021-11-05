@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
@@ -7,8 +8,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -28,6 +32,37 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repositorySlug = requireNonNull(stripToNull(repositorySlug), "repositorySlug");
+    }
+
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha,
+                                                           BitbucketSCMRepository bitbucketSCMRepo,
+                                                           BitbucketCICapabilities ciCapabilities,
+                                                           InstanceKeyPairProvider instanceKeyPairProvider,
+                                                           DisplayURLProvider displayURLProvider) {
+        if (ciCapabilities.supportsRichBuildStatus()) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
+                    bitbucketSCMRepo.getRepositorySlug(), revisionSha, instanceKeyPairProvider, displayURLProvider);
+        }
+        return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
+    }
+
+    @Override
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketCICapabilities ciCapabilities) {
+        if (ciCapabilities.supportsRichBuildStatus()) {
+            return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug,
+                    revisionSha);
+        }
+        return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
+    }
+
+    @Override
+    public BitbucketDeploymentClient getDeploymentClient(String revisionSha) {
+        return new BitbucketDeploymentClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, revisionSha);
+    }
+
+    @Override
+    public BitbucketFilePathClient getFilePathClient() {
+        return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
     }
 
     @Override
@@ -109,9 +144,5 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         private HttpUrl nextPageUrl(BitbucketPage<BitbucketPullRequest> previous) {
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
         }
-    }
-
-    public BitbucketFilePathClient getFilePathClient() {
-        return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
     }
 }

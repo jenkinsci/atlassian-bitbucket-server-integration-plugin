@@ -150,7 +150,11 @@ To select a Bitbucket Server instance when creating a Freestyle job:
 
 To use a different Jenkinsfile for different branches of your Bitbucket Server project, you need to create a Multibranch Pipeline and add the Jenkinsfile to the repo of each branch you want to build. Jenkins will then automatically find, manage, and execute these Pipelines.
 
-Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline). 
+Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline).
+
+### Additional documentation
+
+* [Sending deployment notifications](./docs/deployment_notifications.md)
 
 ---
 
@@ -201,13 +205,18 @@ This will start Bitbucket Server on [http://localhost:7990/bitbucket](http://loc
 
 ### Running tests
 
-Unit tests are run with the Surefire plugin using `mvn verify`. They can be skipped using ``-DskipTests`.
+Unit tests are run with the Surefire plugin using `mvn verify`. They can be skipped using `-DskipTests`.
 
 Integration tests are run under the `it` profile with the Failsafe plugin using `mvn verify -Pit`. The tests will start Bitbucket Server on [http://localhost:7990/bitbucket](http://localhost:7990/bitbucket) and stop it after they are complete.
 
 ---
 
 ## Changelog
+
+### 3.1.0 (XX 2021)
+- [Sending notifications to Bitbucket Data Center's deployment status API](./docs/deployment_notifications.md) are now
+  supported. For Freestyle jobs, this is implemented as a post-build action. For Pipeline and Multibranch Pipeline jobs,
+  this is implemented using the `bbs_deploy` wrapper step.
 
 ### 3.0.2 (19 October 2021)
 - The minimum version of Jenkins changed to be **2.249.1**

@@ -1,0 +1,14 @@
+{
+  "deploymentSequenceNumber": 42,
+  "description": "my-description",
+  "displayName": "my-display-name",
+  "environment": {
+    "key": "MY-ENV",
+    "displayName": "My-env",
+    "type": "DEVELOPMENT",
+    "url": "http://url.to.env"
+  },
+  "key": "my-key",
+  "state": "FAILED",
+  "url": "http://url.to.job"
+}

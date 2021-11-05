@@ -1,0 +1,80 @@
+{
+  "deploymentSequenceNumber": 42,
+  "description": "my-description",
+  "displayName": "my-display-name",
+  "environment": {
+    "displayName": "MY-ENV",
+    "key": "My-env",
+    "type": "DEVELOPMENT",
+    "url": "http://url.to.env"
+  },
+  "fromCommit": null,
+  "key": "my-key",
+  "lastUpdated": 1626321456781,
+  "repository": {
+    "slug": "rep_1",
+    "id": 1,
+    "name": "rep_1",
+    "hierarchyId": "a5e17facbaafeb5b908d",
+    "scmId": "git",
+    "state": "AVAILABLE",
+    "statusMessage": "Available",
+    "forkable": true,
+    "project": {
+      "key": "PROJECT_1",
+      "id": 1,
+      "name": "Project 1",
+      "description": "Default configuration project #1",
+      "public": false,
+      "type": "NORMAL",
+      "links": {
+        "self": [
+          {
+            "href": "http://localhost:7990/bitbucket/projects/PROJECT_1"
+          }
+        ]
+      }
+    },
+    "public": true,
+    "links": {
+      "clone": [
+        {
+          "href": "http://localhost:7990/bitbucket/scm/project_1/rep_1.git",
+          "name": "http"
+        },
+        {
+          "href": "ssh://git@localhost:7999/project_1/rep_1.git",
+          "name": "ssh"
+        }
+      ],
+      "self": [
+        {
+          "href": "http://localhost:7990/bitbucket/projects/PROJECT_1/repos/rep_1/browse"
+        }
+      ]
+    }
+  },
+  "state": "FAILED",
+  "toCommit": {
+    "id": "3004c112867819fc8d40d850e01ddd160496a6ba",
+    "displayId": "3004c112867",
+    "author": {
+      "name": "Administrator",
+      "emailAddress": "admin@example.com"
+    },
+    "authorTimestamp": 1626320844000,
+    "committer": {
+      "name": "Administrator",
+      "emailAddress": "admin@example.com"
+    },
+    "committerTimestamp": 1626320844000,
+    "message": null,
+    "parents": [
+      {
+        "id": "9d05a60df06da81b332daa63f35bbee43a5b7c12",
+        "displayId": "9d05a60df06"
+      }
+    ]
+  },
+  "url": "http://url.to.job"
+}
