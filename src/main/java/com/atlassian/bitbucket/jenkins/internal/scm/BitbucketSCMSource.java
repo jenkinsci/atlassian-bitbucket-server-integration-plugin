@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
@@ -166,6 +165,7 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     protected List<Action> retrieveActions(SCMSourceEvent event,
                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
+        List<Action> result = new ArrayList<>();
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(getServerId());
         if (!mayBeServerConf.isPresent()) {
@@ -182,8 +182,9 @@ public class BitbucketSCMSource extends SCMSource {
                 descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
                         globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));        
         
-        BitbucketDefaultBranch defaultBranch = scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName());
-        return Collections.singletonList(new BitbucketRepositoryMetadataAction(repository, defaultBranch));
+        scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName())
+                .ifPresent(defaultBranch -> result.add(new BitbucketRepositoryMetadataAction(repository, defaultBranch)));
+        return result;
     }
 
     @NonNull
@@ -197,7 +198,6 @@ public class BitbucketSCMSource extends SCMSource {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
                 .filter(
                         action -> action.getBitbucketSCMRepository().equals(repository) && 
-                        action.getBitbucketDefaultBranch() != null && 
                         StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
                 .findAny()
                 .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));

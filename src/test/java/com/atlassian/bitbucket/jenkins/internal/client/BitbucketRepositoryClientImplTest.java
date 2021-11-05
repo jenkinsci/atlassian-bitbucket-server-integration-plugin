@@ -124,7 +124,7 @@ public class BitbucketRepositoryClientImplTest {
     @Test
     public void testFetchDefaultBranch() {
         String response = readFileToString("/default-branch.json");
-        String url = format(DEFAULT_BRANCH_URL, BITBUCKET_BASE_URL, projectKey, repoSlug);
+        String url = format(DEFAULT_BRANCH_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
         BitbucketDefaultBranch defaultBranch = client.getDefaultBranch();

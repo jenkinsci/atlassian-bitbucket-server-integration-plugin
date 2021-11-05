@@ -24,11 +24,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Optional;
+
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -174,7 +175,7 @@ public class BitbucketScmHelperTest {
                 new BitbucketDefaultBranch("ref/head/master", "master", BitbucketRefType.BRANCH, "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", true);
         when(repositoryClient.getDefaultBranch()).thenReturn(expectedBranch);
 
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo").get();
         assertThat(branch.getId(), equalTo("ref/head/master"));
         assertThat(branch.getDisplayId(), equalTo("master"));
         assertThat(branch.getType(), equalTo(BitbucketRefType.BRANCH));
@@ -187,22 +188,22 @@ public class BitbucketScmHelperTest {
     public void testGetDefaultBranchWhenProjectBitbucketClientException() {
         when(searchClient.findProjects()).thenThrow(new BitbucketClientException("some error", 500, "an error"));
         
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
-        assertNull(branch);
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 
     @Test
     public void testGetDefaultBranchWhenProjectNameIsBlank() {
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("", "repo");
-        assertNull(branch);
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("", "repo");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 
     @Test
     public void testGetDefaultBranchWhenProjectNotFound() {
         when(searchClient.findProjects()).thenThrow(new NotFoundException("my message", "my body"));
-        
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
-        assertNull(branch);
+
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 
     @Test
@@ -212,15 +213,15 @@ public class BitbucketScmHelperTest {
         projectPage.setValues(singletonList(expectedProject));
         when(searchClient.findProjects()).thenReturn(projectPage);
         when(searchClient.findRepositories("my repo")).thenThrow(new BitbucketClientException("", 500, ""));
-        
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
-        assertNull(branch);
+
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 
     @Test
     public void testGetDefaultBranchWhenRepositoryNameIsBlank() {
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("project", "");
-        assertNull(branch);
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("project", "");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 
     @Test
@@ -231,7 +232,7 @@ public class BitbucketScmHelperTest {
         when(searchClient.findProjects()).thenReturn(projectPage);
         when(searchClient.findRepositories("my repo")).thenThrow(new NotFoundException("", ""));
 
-        BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
-        assertNull(branch);
+        Optional<BitbucketDefaultBranch> branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo");
+        assertThat(branch, equalTo(Optional.empty()));
     }
 }

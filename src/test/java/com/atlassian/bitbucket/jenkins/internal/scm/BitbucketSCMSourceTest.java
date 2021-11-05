@@ -350,12 +350,12 @@ public class BitbucketSCMSourceTest {
                     when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                     when(scmHelper.getDefaultBranch(nullable(String.class), nullable(String.class)))
-                            .thenReturn(new BitbucketDefaultBranch("ref/head/master", 
+                            .thenReturn(Optional.of(new BitbucketDefaultBranch("ref/head/master", 
                                                                     "master", 
                                                                     BitbucketRefType.BRANCH, 
                                                                     "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
                                                                     "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
-                                                                    true));
+                                                                    true)));
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
                     when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
                     when(repository.getSelfLink()).thenReturn("");
