@@ -197,7 +197,7 @@ public class BitbucketSCMSource extends SCMSource {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
                 .filter(
                         action -> action.getBitbucketSCMRepository().equals(repository) && 
-                        action.getBitbucketDefaultBranch() != null  && 
+                        action.getBitbucketDefaultBranch() != null && 
                         StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
                 .findAny()
                 .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));

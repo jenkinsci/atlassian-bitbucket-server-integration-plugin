@@ -230,7 +230,6 @@ public class BitbucketSCMSourceTest {
         assertThat(bitbucketSCMsource.isEventApplicable(null), equalTo(false));
     }
     
-    
     @Test
     public void testRetrieveActionsSourceEvent() throws IOException, InterruptedException {
         String credentialsId = "valid-credentials";
