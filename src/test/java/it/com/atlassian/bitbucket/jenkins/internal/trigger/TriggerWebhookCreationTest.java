@@ -52,8 +52,7 @@ public class TriggerWebhookCreationTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        String repoName = REPO_NAME + "-fork";
-        BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG, repoName);
+        BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG);
         repoSlug = repository.getSlug();
         projectKey = repository.getProject().getKey();
         cloneUrl =

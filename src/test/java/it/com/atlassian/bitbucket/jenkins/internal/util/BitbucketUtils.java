@@ -11,7 +11,8 @@ import io.restassured.response.ResponseBody;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+
+import static java.util.UUID.randomUUID;
 
 @SuppressWarnings("unchecked")
 public class BitbucketUtils {
@@ -55,7 +56,7 @@ public class BitbucketUtils {
 
     public static PersonalToken createPersonalToken(String... permissions) {
         HashMap<String, Object> createTokenRequest = new HashMap<>();
-        createTokenRequest.put("name", "BitbucketJenkinsRule-" + UUID.randomUUID());
+        createTokenRequest.put("name", "BitbucketJenkinsRule-" + randomUUID());
         createTokenRequest.put("permissions", permissions);
         ResponseBody<Response> tokenResponse =
                 RestAssured.given()
@@ -77,7 +78,7 @@ public class BitbucketUtils {
     public static void createRepoFork() {
         HashMap<String, Object> createForkRequest = new HashMap<>();
         HashMap<String, Object> projectProperties = new HashMap<>();
-        repoForkName = repoForkSlug = UUID.randomUUID().toString();
+        repoForkName = repoForkSlug = randomUUID().toString();
 
         projectProperties.put("key", PROJECT_KEY);
         createForkRequest.put("name", repoForkSlug);
@@ -181,6 +182,10 @@ public class BitbucketUtils {
                     .delete(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug +
                         "/webhooks/" + webhookId)
                 .getBody();
+    }
+
+    public static BitbucketRepository forkRepository(String projectKey, String repoSlug) throws IOException {
+        return forkRepository(projectKey, repoSlug, repoSlug + "-fork-" + randomUUID());
     }
 
     public static BitbucketRepository forkRepository(String projectKey, String repoSlug, String forkName) throws IOException {

@@ -51,8 +51,7 @@ public abstract class AbstractDeploymentStatusPosterIT {
 
     @Before
     public void setUp() throws Exception {
-        String repoName = REPO_NAME + "-deployments-fork";
-        BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG, repoName);
+        BitbucketRepository repository = forkRepository(PROJECT_KEY, REPO_SLUG);
         repoSlug = repository.getSlug();
         String cloneUrl =
                 repository.getCloneUrls()
