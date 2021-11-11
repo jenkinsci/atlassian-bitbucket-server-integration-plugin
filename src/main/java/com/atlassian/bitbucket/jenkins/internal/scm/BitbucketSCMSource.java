@@ -331,15 +331,9 @@ public class BitbucketSCMSource extends SCMSource {
     protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        if (!isEventApplicable(event) && event != null) {
-            SCMSourceOwner owner = getOwner();
-            String projectName = owner == null ? "" : owner.getFullName();
-            String eventType = event.getPayload() instanceof AbstractWebhookEvent ?
-                    ((AbstractWebhookEvent) event.getPayload()).getEventKey() : "";
-            LOGGER.info(format("Performing retrieve for project %s with no relevant trigger for %s event",
-                    projectName, eventType));
+        if (event == null || isEventApplicable(event)) {
+            getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
         }
-        getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
     }
 
     private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
