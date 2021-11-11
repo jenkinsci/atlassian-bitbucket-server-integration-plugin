@@ -24,7 +24,7 @@ import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.SubmoduleConfig;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.browser.Stash;
+import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.*;
@@ -334,7 +334,7 @@ public class BitbucketSCM extends SCM {
                 new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
         // self-link include /browse which needs to be trimmed
         String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
-        gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new Stash(repositoryUrl),
+        gitSCM = new GitSCM(singletonList(remoteConfig), branches, false, emptyList(), new BitbucketServer(repositoryUrl),
                 gitTool, extensions);
     }
 
@@ -397,7 +397,7 @@ public class BitbucketSCM extends SCM {
         private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         public DescriptorImpl() {
-            super(Stash.class);
+            super(BitbucketServer.class);
             gitScmDescriptor = new GitSCM.DescriptorImpl();
             load();
         }

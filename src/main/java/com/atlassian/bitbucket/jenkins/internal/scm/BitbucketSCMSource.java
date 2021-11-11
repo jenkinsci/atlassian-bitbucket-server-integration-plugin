@@ -25,7 +25,7 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.browser.Stash;
+import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -138,7 +138,7 @@ public class BitbucketSCMSource extends SCMSource {
         }
         //self link contains `/browse` which we must trim off.
         String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
-        gitSCMSource.setBrowser(new Stash(repositoryUrl));
+        gitSCMSource.setBrowser(new BitbucketServer(repositoryUrl));
         gitSCMSource.setId(getId() + "-git-scm");
     }
 
