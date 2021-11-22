@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.HudsonResponse;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsMirrorListBox;
@@ -207,9 +208,15 @@ public class BitbucketSCMDescriptorIT {
                 });
         assertThat(response.getStatus(), equalTo("ok"));
         List<JenkinsBitbucketRepository> values = response.getData();
-        assertThat(values.size(), equalTo(1));
-        JenkinsBitbucketRepository repo = values.get(0);
-        assertThat(repo.getSlug(), equalTo("rep_1"));
+        JenkinsBitbucketRepository repo = values.stream()
+                // Flakey tests can sometimes cause other repos to show up here. Instead of failing when this happens,
+                // lets filter the list down to the repo we expect and do the assertions on that.
+                .filter(r -> "rep_1".equals(r.getSlug()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        String.format("No repository with slug 'rep_1'. Available options: [%s]", values.stream()
+                                        .map(JenkinsBitbucketRepository::getSlug)
+                                        .collect(Collectors.joining(", ")))));
         assertThat(repo.getName(), equalTo("rep_1"));
         assertThat(repo.getCloneUrls().size(), equalTo(2));
         BitbucketNamedLink httpCloneUrl = repo.getCloneUrls().stream().filter(url -> "http".equals(url.getName()))
