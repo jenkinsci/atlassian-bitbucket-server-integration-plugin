@@ -23,36 +23,47 @@ public class BitbucketScmConfig extends Scm {
     }
 
     public BitbucketScmConfig credentialsId(String credentialsId) {
+        scrollIntoView(this.credentialsId);
         new Select(this.credentialsId.resolve()).selectByValue(credentialsId);
         return this;
     }
 
     public BitbucketScmConfig sshCredentialsId(String sshCredentialsId) {
+        this.scrollIntoView(this.sshCredentialsId);
         new Select(this.sshCredentialsId.resolve()).selectByValue(sshCredentialsId);
         return this;
     }
 
     public BitbucketScmConfig serverId(String serverId) {
+        scrollIntoView(this.serverId);
         new Select(this.serverId.resolve()).selectByVisibleText(serverId);
         return this;
     }
 
     public BitbucketScmConfig projectName(String projectName) {
-        this.projectName.set(projectName);
-        return this;
+        return scrollIntoViewAndSet(projectName, this.projectName);
     }
 
     public BitbucketScmConfig repositoryName(String repositoryName) {
-        this.repositoryName.set(repositoryName);
-        return this;
+        return scrollIntoViewAndSet(repositoryName, this.repositoryName);
     }
 
     public BitbucketScmConfig branchName(String branchName) {
-        this.branchName.set(branchName);
-        return this;
+        return scrollIntoViewAndSet(branchName, this.branchName);
     }
 
     public BitbucketScmConfig anyBranch() {
         return branchName("");
+    }
+
+    private BitbucketScmConfig scrollIntoViewAndSet(String repositoryName, Control element) {
+        scrollIntoView(element);
+        element.set(repositoryName);
+        return this;
+    }
+
+    private Object scrollIntoView(Control element) {
+        // Scrolls the element to the top of the page, and then scrolls back down by 150px to offset the breadcrumbs
+        return element.executeScript("arguments[0].scrollIntoView(true);window.scrollBy(0, -150);", element.resolve());
     }
 }

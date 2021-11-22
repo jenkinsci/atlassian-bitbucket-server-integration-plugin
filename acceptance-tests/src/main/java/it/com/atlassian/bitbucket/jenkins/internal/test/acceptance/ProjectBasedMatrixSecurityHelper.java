@@ -109,7 +109,11 @@ public class ProjectBasedMatrixSecurityHelper {
         if (Objects.equals(user, jenkins.getCurrentUser())) {
             return;
         }
-        assertThat(new LoginPage(jenkins).load().login(user), isSuccessfulLogin());
+        LoginPage.LoginResult loginResult = new LoginPage(jenkins).load().login(user);
+        // For some reason, for non-admin users, the login page redirects to /me/api/json after successful login.
+        // This makes sure we're on the home page before proceeding.
+        jenkins.visit("/");
+        assertThat(loginResult, isSuccessfulLogin());
     }
 
     public void cleanUp() {
