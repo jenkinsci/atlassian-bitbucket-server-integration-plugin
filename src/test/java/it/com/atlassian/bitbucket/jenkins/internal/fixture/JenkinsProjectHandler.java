@@ -16,15 +16,20 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
+import static java.lang.String.format;
 
 public class JenkinsProjectHandler {
+
+    private static final Logger log = Logger.getLogger(JenkinsProjectHandler.class.getName());
 
     public static final String MASTER_BRANCH_PATTERN = "**/master";
     public static final int DEFAULT_WAIT_TIME = 100;
@@ -93,7 +98,7 @@ public class JenkinsProjectHandler {
         }
         PseudoRun<WorkflowJob> lastSuccessfulBuild = mbp.getLastSuccessfulBuild();
         while (lastSuccessfulBuild.equals(mbp.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for branch detection to run");
+            log.info("Waiting for branch detection to run");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
     }
@@ -104,10 +109,11 @@ public class JenkinsProjectHandler {
 
         performBranchScanning(mbp);
 
-        while (mbp.getItem(branch) == null || mbp.getItem(branch).getLastSuccessfulBuild() == lastSuccessfulBuild) {
-            System.out.println("Waiting for workflow run after scan to finish");
+        while (mbp.getItem(branch) == null || mbp.getItem(branch).getLastCompletedBuild() == lastSuccessfulBuild) {
+            log.info("Waiting for workflow run after scan to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
+        checkLatestRunIsSuccessful(mbp.getItem(branch));
     }
 
     public void runWorkflowJobForBranch(WorkflowMultiBranchProject mbp, String branch) throws Exception {
@@ -121,10 +127,11 @@ public class JenkinsProjectHandler {
         Future<WorkflowRun> startCondition = item.scheduleBuild2(0).getStartCondition();
         WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
 
-        while (!workflowRun.equals(item.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for workflow run to finish");
+        while (!workflowRun.equals(item.getLastCompletedBuild())) {
+            log.info("Waiting for workflow run to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
+        checkLatestRunIsSuccessful(item);
 
         onBuildCompletion.accept(workflowRun);
     }
@@ -138,10 +145,11 @@ public class JenkinsProjectHandler {
         Future<WorkflowRun> startCondition = workflowJob.scheduleBuild2(0).getStartCondition();
         WorkflowRun workflowRun = startCondition.get(1, TimeUnit.MINUTES);
 
-        while (!workflowRun.equals(workflowJob.getLastSuccessfulBuild())) {
-            System.out.println("Waiting for workflow run to finish");
+        while (!workflowRun.equals(workflowJob.getLastCompletedBuild())) {
+            log.info("Waiting for workflow run to finish");
             Thread.sleep(DEFAULT_WAIT_TIME);
         }
+        checkLatestRunIsSuccessful(workflowJob);
 
         onBuildCompletion.accept(workflowRun);
     }
@@ -150,11 +158,11 @@ public class JenkinsProjectHandler {
         items.stream().forEach(this::deleteQuietly);
     }
 
-    private void deleteQuietly(Item item) {
-        try {
-            item.delete();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    private void checkLatestRunIsSuccessful(WorkflowJob item) throws IOException {
+        if (item.getLastCompletedBuild() != item.getLastSuccessfulBuild()) {
+            // The build completed, but it wasn't successful
+            log.severe(format("Build completed unsuccessfully: %s", item.getLastCompletedBuild().getLog()));
+            throw new AssertionError("Expected the build to pass, but it didn't.");
         }
     }
 
@@ -163,5 +171,13 @@ public class JenkinsProjectHandler {
                 .map(BranchSpec::new)
                 .collect(Collectors.toList());
         return createScm(bbJenkinsRule, projectKey, repoSlug, branchSpecs);
+    }
+
+    private void deleteQuietly(Item item) {
+        try {
+            item.delete();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
