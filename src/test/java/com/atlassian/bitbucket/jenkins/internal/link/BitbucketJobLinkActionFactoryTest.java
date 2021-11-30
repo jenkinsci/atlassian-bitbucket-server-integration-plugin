@@ -49,6 +49,7 @@ public class BitbucketJobLinkActionFactoryTest {
     @Mock
     private FreeStyleProject freeStyleProject;
     private WorkflowJob workflowJob;
+    private WorkflowJob workflowJobWithScmStep;
     private WorkflowJob multibranchJob;
     private WorkflowJob multibranchJobFromSource;
     @Mock
@@ -65,6 +66,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
         workflowJob = jenkins.createProject(WorkflowJob.class);
         workflowJob.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
+        workflowJobWithScmStep = jenkins.createProject(WorkflowJob.class, "workflow-job-with-scm-step");
         multibranchJob = jenkins.createProject(WorkflowJob.class, "branch1");
         multibranchJobFromSource = jenkins.createProject(WorkflowJob.class, "branch2");
 
@@ -91,6 +93,15 @@ public class BitbucketJobLinkActionFactoryTest {
     @Test
     public void testCreateWorkflow() {
         Collection<? extends Action> actions = actionFactory.createFor(workflowJob);
+
+        assertThat(actions.size(), equalTo(1));
+        BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
+        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo"));
+    }
+
+    @Test
+    public void testCreateWorkflowCustomStep() {
+        Collection<? extends Action> actions = actionFactory.createFor(workflowJobWithScmStep);
 
         assertThat(actions.size(), equalTo(1));
         BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
@@ -152,7 +163,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
             @Override
             Collection<? extends SCM> getWorkflowSCMs(WorkflowJob job) {
-                if (Objects.equals(job, multibranchJob)) {
+                if (Objects.equals(job, multibranchJob) || Objects.equals(job, workflowJobWithScmStep)) {
                     return Collections.singleton(scm);
                 }
                 return Collections.emptySet();
@@ -160,7 +171,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
             @Override
             ItemGroup getWorkflowParent(WorkflowJob job) {
-                if (Objects.equals(job, multibranchJobFromSource)) {
+                if (Objects.equals(job, multibranchJobFromSource) || Objects.equals(job, multibranchJob)) {
                     return multibranchProject;
                 }
                 return jenkins.jenkins;

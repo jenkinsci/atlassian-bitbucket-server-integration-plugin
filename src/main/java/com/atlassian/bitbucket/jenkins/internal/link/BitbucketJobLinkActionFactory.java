@@ -18,6 +18,7 @@ import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.*;
+import java.util.stream.Stream;
 
 @Extension
 public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
@@ -44,7 +45,7 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                         .orElse(Collections.emptyList());
             }
         } else if (target instanceof WorkflowJob) {
-            // Pipeline Job
+            // Pipeline Job from SCM
             WorkflowJob workflowJob = (WorkflowJob) target;
             if (workflowJob.getDefinition() instanceof CpsScmFlowDefinition) {
                 CpsScmFlowDefinition definition = (CpsScmFlowDefinition) workflowJob.getDefinition();
@@ -55,25 +56,21 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                             .orElse(Collections.emptyList());
                 }
             }
-            // Multibranch Pipeline Job built with an SCMStep
-            if (getWorkflowSCMs(workflowJob).stream().anyMatch(scm -> scm instanceof BitbucketSCM)) {
-                Optional<BitbucketSCMRepository> maybeRepository = getWorkflowSCMs(workflowJob)
-                        .stream()
-                        .filter(scm -> scm instanceof BitbucketSCM)
-                        .map(scm -> ((BitbucketSCM) scm).getBitbucketSCMRepository())
-                        .findFirst();
-                return maybeRepository.flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, target.getName()))
+            // Multibranch Pipeline Job
+            if (getWorkflowParent(workflowJob) instanceof WorkflowMultiBranchProject) {
+                // Multibranch Pipeline Job from SCM Source, or if there is none, try and get it from an SCMStep
+                return Stream.of(getScmSource(workflowJob), getScmStep(workflowJob))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .findFirst()
+                        .flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, target.getName()))
                         .map(Arrays::asList)
                         .orElse(Collections.emptyList());
             }
-            // Multibranch Pipeline Job built with the SCM Source
-            if (getWorkflowParent(workflowJob) instanceof WorkflowMultiBranchProject) {
-                Optional<BitbucketSCMRepository> maybeRepository = ((WorkflowMultiBranchProject) getWorkflowParent(workflowJob))
-                        .getSCMSources().stream()
-                        .filter(scmSource -> scmSource instanceof BitbucketSCMSource)
-                        .map(scmSource -> ((BitbucketSCMSource) scmSource).getBitbucketSCMRepository())
-                        .findFirst();
-                return maybeRepository.flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, target.getName()))
+            // Pipeline Job built with an SCMStep
+            if (getWorkflowSCMs(workflowJob).stream().anyMatch(scm -> scm instanceof BitbucketSCM)) {
+                return getScmStep(workflowJob)
+                        .flatMap(scmRepository -> externalLinkUtils.createRepoLink(scmRepository))
                         .map(Arrays::asList)
                         .orElse(Collections.emptyList());
             }
@@ -95,5 +92,21 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
     @VisibleForTesting
     Collection<? extends SCM> getWorkflowSCMs(WorkflowJob job) {
         return job.getSCMs();
+    }
+
+    private Optional<BitbucketSCMRepository> getScmStep(WorkflowJob workflowJob) {
+        return getWorkflowSCMs(workflowJob)
+                .stream()
+                .filter(scm -> scm instanceof BitbucketSCM)
+                .map(scm -> ((BitbucketSCM) scm).getBitbucketSCMRepository())
+                .findFirst();
+    }
+
+    private Optional<BitbucketSCMRepository> getScmSource(WorkflowJob workflowJob) {
+        return ((WorkflowMultiBranchProject) getWorkflowParent(workflowJob))
+                .getSCMSources().stream()
+                .filter(scmSource -> scmSource instanceof BitbucketSCMSource)
+                .map(scmSource -> ((BitbucketSCMSource) scmSource).getBitbucketSCMRepository())
+                .findFirst();
     }
 }
