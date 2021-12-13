@@ -1,0 +1,5 @@
+#Contains a list of fields that were *safely* removed. Safe removal involves doing an upgrade test to see that
+#the class can be removed without breaking any jobs or other functionality.
+#Very few fields should be listed in here, and once a release is made the field should be removed from here (or the test fails)
+#Format is semi-colon separated string, with fully-justified field name
+#fullClassName.fieldName;reason why it is safe to remove

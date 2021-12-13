@@ -67,10 +67,11 @@ public class UpgradeTest {
      * how the upgrade is handled, as well as what version the annotation should be removed in.
      */
     @Test
-    public void staticUpgradeAnalysis() throws ExecutionException, InterruptedException, IOException, ClassNotFoundException {
+    public void staticUpgradeAnalysis() throws ExecutionException, InterruptedException, IOException {
         //download, if needed, the HPI and extract it and return all jar files
         List<URL> files = fetchHpiAndExtract();
-        Map<String, String> safelyRemovedClasses = SafeRemovedClassList.loadSafeList();
+        Map<String, String> safelyRemovedClasses = UpgradeTestUtils.loadSafelyRemovedClassList();
+        Map<String, String> safelyRemovedFields = UpgradeTestUtils.loadSafelyRemovedFieldList();
         //scan the downloaded files for later use
         Reflections reflections = setupReflectionsLibrary(files);
         //add all classes we know are upgrade sensitive right away, such as SCM files and Triggers and the like
@@ -90,7 +91,7 @@ public class UpgradeTest {
         Map<String, Class<?>> unreleasedClasses = loadUnreleasedClasses(releaseSensitiveClasses, safelyRemovedClasses);
 
         //compare the fields found
-        compareFields(releaseSensitiveClasses, unreleasedClasses);
+        compareFields(releaseSensitiveClasses, unreleasedClasses, safelyRemovedFields);
 
         safelyRemovedClasses.keySet().forEach(staleEntry -> errorCollector.addStaleSafeListEntry(staleEntry));
     }
@@ -98,7 +99,7 @@ public class UpgradeTest {
     /**
      * Iterate over all released classes and compare all the fields with the fields in the same unreleased class
      */
-    private void compareFields(Set<Class<?>> releasedClasses, Map<String, Class<?>> unreleasedClasses) {
+    private void compareFields(Set<Class<?>> releasedClasses, Map<String, Class<?>> unreleasedClasses, Map<String, String> safelyRemovedFields) {
         for (Class<?> releasedClass : releasedClasses) {
             if (!unreleasedClasses.containsKey(releasedClass.getName())) {
                 //while this is a breaking change, it was detected when we loaded classes, so we can skip it now
@@ -115,7 +116,12 @@ public class UpgradeTest {
                 Field releasedField = entry.getValue();
                 Field unreleasedField = unreleasedFields.get(entry.getKey());
                 if (unreleasedField == null) {
-                    //field was removed, this should be ok
+                    String fullFieldName = releasedField.getDeclaringClass().getName() + '.' + releasedField.getName();
+                    if (safelyRemovedFields.containsKey(fullFieldName)) {
+                        // field has been marked as safely removed, so we can resolved
+                        i.remove();
+                    }
+                    // error message will display later
                     continue;
                 }
 
