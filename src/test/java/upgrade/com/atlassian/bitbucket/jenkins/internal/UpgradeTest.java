@@ -117,7 +117,7 @@ public class UpgradeTest {
                 Field releasedField = entry.getValue();
                 Field unreleasedField = unreleasedFields.get(entry.getKey());
                 if (unreleasedField == null) {
-                    String fullFieldName = releasedField.getDeclaringClass().getName() + '.' + releasedField.getName();
+                    String fullFieldName = releasedField.getDeclaringClass().getName() + '#' + releasedField.getName();
                     if (safelyRemovedFields.containsKey(fullFieldName)) {
                         // field has been marked as safely removed, so we can resolved
                         safelyRemovedFields.remove(fullFieldName);
