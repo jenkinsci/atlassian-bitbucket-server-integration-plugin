@@ -94,6 +94,7 @@ public class UpgradeTest {
         compareFields(releaseSensitiveClasses, unreleasedClasses, safelyRemovedFields);
 
         safelyRemovedClasses.keySet().forEach(staleEntry -> errorCollector.addStaleSafeListEntry(staleEntry));
+        safelyRemovedFields.keySet().forEach(staleEntry -> errorCollector.addStaleSafeListEntry(staleEntry));
     }
 
     /**
@@ -119,6 +120,7 @@ public class UpgradeTest {
                     String fullFieldName = releasedField.getDeclaringClass().getName() + '.' + releasedField.getName();
                     if (safelyRemovedFields.containsKey(fullFieldName)) {
                         // field has been marked as safely removed, so we can resolved
+                        safelyRemovedFields.remove(fullFieldName);
                         i.remove();
                     }
                     // error message will display later

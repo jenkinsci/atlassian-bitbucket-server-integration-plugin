@@ -43,10 +43,11 @@ public class UpgradeTestUtils {
                     }
                     // Checking for syntax correctness (we don't use the split of class name and field name)
                     String[] definitionCommentParts = line.split(";");
-                    if (definitionCommentParts.length != 2) {
-                        throw new RuntimeException("Invalid format of safeRemovedFields.txt, format is 'FullyQualifiedClassName.FieldName;Reason'");
+                    if (definitionCommentParts.length == 2 && definitionCommentParts[1].split("#").length == 2) {
+                        safeFields.put(definitionCommentParts[0], definitionCommentParts[1]);
+                    } else {
+                        throw new RuntimeException("Invalid format of safeRemovedFields.txt, format is 'FullyQualifiedClassName#FieldName;Reason'");
                     }
-                    safeFields.put(definitionCommentParts[0], definitionCommentParts[1]);
                 }
             }
         } catch (IOException e) {

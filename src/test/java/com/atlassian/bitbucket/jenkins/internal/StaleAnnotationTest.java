@@ -55,6 +55,7 @@ public class StaleAnnotationTest {
         //it will throw if the file is in the wrong format, so just loading it up is enough
         //contents is dynamic and may contain or not contain information so we can't really assert anything
         UpgradeTestUtils.loadSafelyRemovedClassList();
+        UpgradeTestUtils.loadSafelyRemovedFieldList();
     }
 
     /**
