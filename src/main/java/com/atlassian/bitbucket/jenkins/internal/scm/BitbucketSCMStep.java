@@ -20,7 +20,6 @@ import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
@@ -122,7 +121,6 @@ public class BitbucketSCMStep extends SCMStep {
         return serverId;
     }
 
-    @Nonnull
     @Override
     protected SCM createSCM() {
         return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, projectName, repositoryName, serverId, mirrorName);

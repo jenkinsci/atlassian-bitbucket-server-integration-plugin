@@ -77,9 +77,9 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
         BitbucketWebhook result1 =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, false, true);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, null, false, true);
         BitbucketWebhook result2 =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, false, true);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, null, false, true);
 
         assertThat(result1.getId(), is(equalTo(result2.getId())));
     }
@@ -89,7 +89,7 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(nonAdminCredentials, nonAdminCredentials, adminCredentials);
 
         BitbucketWebhook result =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, false, true);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, null, false, true);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));
@@ -101,7 +101,7 @@ public class RetryingWebhookHandlerIT {
         RetryingWebhookHandler webhookHandler = getInstance(adminCredentials, adminCredentials, adminCredentials);
 
         BitbucketWebhook result =
-                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, false, true);
+                webhookHandler.register(BITBUCKET_BASE_URL, globalCredentialsProvider, bitbucketSCMRepository, null, false, true);
 
         assertThat(result.getUrl(), containsString(JENKINS_URL));
         assertThat(result.getEvents(), iterableWithSize(1));

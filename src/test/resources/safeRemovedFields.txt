@@ -3,8 +3,8 @@
 # Very few fields should be listed in here, and once a release is made the field should be removed from here (or the test fails)
 # Format is semi-colon separated string, with fully-justified field name
 # fullClassName#fieldName;reason why it is safe to remove
-com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#projectKey;repository initialization now handled by BitbucketSCM
-com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#repositorySlug;repository initialization now handled by BitbucketSCM
-com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#repositoryId;repository initialization now handled by BitbucketSCM
-com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#selfLink;repository initialization now handled by BitbucketSCM
-com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#cloneUrl;repository initialization now handled by BitbucketSCM
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#projectKey;repository initialization now handled by BitbucketSCM and any additional fields are quietly ignored during deserialization
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#repositorySlug;repository initialization now handled by BitbucketSCM and any additional fields are quietly ignored during deserialization
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#repositoryId;repository initialization now handled by BitbucketSCM and any additional fields are quietly ignored during deserialization
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#selfLink;repository initialization now handled by BitbucketSCM and any additional fields are quietly ignored during deserialization
+com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep#cloneUrl;repository initialization now handled by BitbucketSCM and any additional fields are quietly ignored during deserialization

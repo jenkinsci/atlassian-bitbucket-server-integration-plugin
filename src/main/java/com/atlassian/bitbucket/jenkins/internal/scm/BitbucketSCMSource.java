@@ -165,7 +165,7 @@ public class BitbucketSCMSource extends SCMSource {
                     descriptor.getRetryingWebhookHandler().register(
                             bitbucketServerConfiguration.getBaseUrl(),
                             bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, isPullRequestTrigger, isRefTrigger);
+                            repository, owner, isPullRequestTrigger, isRefTrigger);
                 } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
                     LOGGER.severe("Webhook failed to register- token credentials assigned to " + bitbucketServerConfiguration.getServerName()
                                   + " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");

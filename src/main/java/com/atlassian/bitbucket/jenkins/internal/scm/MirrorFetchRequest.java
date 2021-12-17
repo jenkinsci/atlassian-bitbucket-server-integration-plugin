@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import hudson.model.Item;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 
 public class MirrorFetchRequest {
 
@@ -15,7 +14,7 @@ public class MirrorFetchRequest {
     private final String repoNameOrSlug;
     public MirrorFetchRequest(String bitbucketServerBaseUrl,
                               @CheckForNull Item context,
-                              @Nullable String credentialsId,
+                              @CheckForNull String credentialsId,
                               String projectNameOrKey,
                               String repoNameOrSlug,
                               String existingMirrorSelection) {
@@ -36,7 +35,7 @@ public class MirrorFetchRequest {
         return context;
     }
 
-    @Nullable
+    @CheckForNull
     public String getCredentialsId() {
         return credentialsId;
     }
