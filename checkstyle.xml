@@ -53,7 +53,8 @@
         <module name="TypeName"/>
         <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
         <module name="IllegalImport">
-            <property name="illegalPkgs" value="clover, junit.framework, org.apache.commons.lang, org.slf4j, javax.annotation.Nonnull, com.google.common.collect"/>
+            <property name="illegalPkgs" value="clover, junit.framework, org.apache.commons.lang, org.slf4j, com.google.common.collect"/>
+            <property name="illegalClasses" value="javax.annotation.Nonnull"/>
         </module>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>

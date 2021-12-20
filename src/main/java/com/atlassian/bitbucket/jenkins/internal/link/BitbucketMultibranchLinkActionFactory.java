@@ -7,7 +7,6 @@ import hudson.model.Action;
 import jenkins.model.TransientActionFactory;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,9 +25,8 @@ public class BitbucketMultibranchLinkActionFactory extends TransientActionFactor
         this.externalLinkUtils = externalLinkUtils;
     }
 
-    @Nonnull
     @Override
-    public Collection<? extends Action> createFor(@Nonnull WorkflowMultiBranchProject workflowMultiBranchProject) {
+    public Collection<? extends Action> createFor(WorkflowMultiBranchProject workflowMultiBranchProject) {
         Optional<BitbucketSCMRepository> maybeSource = workflowMultiBranchProject.getSCMSources()
                 .stream().filter(source -> source instanceof BitbucketSCMSource)
                 .map(source -> ((BitbucketSCMSource) source).getBitbucketSCMRepository())
