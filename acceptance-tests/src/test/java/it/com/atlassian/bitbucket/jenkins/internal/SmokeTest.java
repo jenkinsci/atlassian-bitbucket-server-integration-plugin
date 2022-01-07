@@ -214,6 +214,11 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
+    @Ignore("https://github.com/jenkinsci/acceptance-test-harness/issues/721")
+    // This issue is fixed in the v1.109 of acceptance-test-harness but that version is not compatible with current
+    // Jenkins version (v2.289.1) we are using or the LTS (v2.319.1). Jenkins version should be >= v2.323 for v1.109 of
+    // the acceptance-test-harness. This test can be enabled when we are able to upgrade to v1.109 of
+    // acceptance-test-harness.
     public void testRunBuildActionWtihFreestlyeJob() throws Exception {
         // Log into Bitbucket
         LoginPage loginPage = new LoginPage(jenkins, BITBUCKET_BASE_URL);

@@ -16,6 +16,7 @@ import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.po.Job;
 import org.jenkinsci.test.acceptance.po.User;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.inject.Inject;
@@ -72,6 +73,11 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
     }
 
     @Test
+    @Ignore("https://github.com/jenkinsci/acceptance-test-harness/issues/721")
+    // This issue is fixed in the v1.109 of acceptance-test-harness but that version is not compatible with current
+    // Jenkins version (v2.289.1) we are using or the LTS (v2.319.1). Jenkins version should be >= v2.323 for v1.109 of
+    // the acceptance-test-harness. This test can be enabled when we are able to upgrade to v1.109 of
+    // acceptance-test-harness.
     public void testAuthorize() {
         OAuth1AccessToken user1AccessToken = getAccessToken(user1);
         OAuth1AccessToken user2AccessToken = getAccessToken(user2);
