@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider
 import com.google.common.annotations.VisibleForTesting;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
-import org.apache.log4j.Logger;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.security.InvalidKeyException;
@@ -15,6 +14,8 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
@@ -92,7 +93,7 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
             headers.put(BUILD_STATUS_SIGNATURE_ID, Base64.getEncoder().encodeToString(sig.sign()));
             headers.put(BUILD_STATUS_SIGNATURE_ALGORITHM_ID, algorithm);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            LOGGER.warn("Error signing build status, continuing without signature:", e);
+            LOGGER.log(Level.WARNING, "Error signing build status, continuing without signature:", e);
             return Headers.of(Collections.emptyMap());
         }
         return Headers.of(headers);
