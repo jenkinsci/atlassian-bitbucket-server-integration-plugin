@@ -53,6 +53,10 @@
         <module name="TypeName"/>
         <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
         <module name="IllegalImport">
+            <!--
+              Log4J and SLF4J are banned because anything logged with them doesn't show
+              up in the web console. Use java.util.logging instead.
+             -->
             <property name="illegalPkgs" value="clover,
                                                 com.google.common.collect,
                                                 junit.framework,
