@@ -111,7 +111,8 @@ public class BitbucketWebhookHandler implements WebhookHandler {
         if (request.isTriggerOnPullRequest()) {
             supportedEvents.add(PULL_REQUEST_DECLINED);
             supportedEvents.add(PULL_REQUEST_DELETED);
-            if (!forbiddenEvents.contains(PULL_REQUEST_FROM_REF_UPDATED) && !request.isMirror()) {
+            if (!forbiddenEvents.contains(PULL_REQUEST_FROM_REF_UPDATED) && !request.isMirror() &&
+                    hooks.contains(PULL_REQUEST_FROM_REF_UPDATED.getEventId())) {
                 supportedEvents.add(PULL_REQUEST_FROM_REF_UPDATED);
             }
             supportedEvents.add(PULL_REQUEST_MERGED);
