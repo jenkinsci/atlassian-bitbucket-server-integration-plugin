@@ -93,14 +93,12 @@ public class BitbucketWebhookHandler implements WebhookHandler {
      */
     private Collection<BitbucketWebhookEvent> getEvents(WebhookRegisterRequest request) {
         Set<BitbucketWebhookEvent> supportedEvents = new HashSet<>();
-        Set<BitbucketWebhookEvent> forbiddenEvents = new HashSet<>();
-        Set<String> hooks = new HashSet<>();
+        Set<String> hooks;
         try {
-            BitbucketWebhookSupportedEvents events = serverCapabilities.getWebhookSupportedEvents();
-            hooks.addAll(events.getApplicationWebHooks());
+            hooks = serverCapabilities.getWebhookSupportedEvents().getApplicationWebHooks();
         } catch (BitbucketMissingCapabilityException e) {
-            forbiddenEvents.add(MIRROR_SYNCHRONIZED);
-            forbiddenEvents.add(PULL_REQUEST_FROM_REF_UPDATED);
+            // For Bitbucket < 6.5
+            hooks = new HashSet<>();
         }
 
         if (request.isMirror() && hooks.contains(MIRROR_SYNCHRONIZED.getEventId())) {
@@ -109,9 +107,10 @@ public class BitbucketWebhookHandler implements WebhookHandler {
             supportedEvents.add(REPO_REF_CHANGE);
         }
         if (request.isTriggerOnPullRequest()) {
+            // For Bitbucket starting 6.5, supported events should be checked for presence in the hooks set.
             supportedEvents.add(PULL_REQUEST_DECLINED);
             supportedEvents.add(PULL_REQUEST_DELETED);
-            if (!forbiddenEvents.contains(PULL_REQUEST_FROM_REF_UPDATED) && !request.isMirror()) {
+            if (!request.isMirror() && hooks.contains(PULL_REQUEST_FROM_REF_UPDATED.getEventId())) {
                 supportedEvents.add(PULL_REQUEST_FROM_REF_UPDATED);
             }
             supportedEvents.add(PULL_REQUEST_MERGED);
