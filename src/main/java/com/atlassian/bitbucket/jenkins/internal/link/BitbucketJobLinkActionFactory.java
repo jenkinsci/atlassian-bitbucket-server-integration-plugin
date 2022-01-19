@@ -15,7 +15,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Stream;
@@ -32,9 +31,8 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
         this.externalLinkUtils = externalLinkUtils;
     }
 
-    @Nonnull
     @Override
-    public Collection<? extends Action> createFor(@Nonnull Job target) {
+    public Collection<? extends Action> createFor(Job target) {
         // Freestyle Job
         if (target instanceof FreeStyleProject) {
             FreeStyleProject freeStyleProject = (FreeStyleProject) target;
