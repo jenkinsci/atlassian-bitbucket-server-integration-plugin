@@ -34,7 +34,6 @@ import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
@@ -541,7 +540,7 @@ public class BitbucketSCM extends SCM {
         }
 
         @Override
-        public SCM newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
+        public SCM newInstance(@Nullable StaplerRequest req, JSONObject formData) throws FormException {
             BitbucketSCM instance = (BitbucketSCM) super.newInstance(req, formData);
             
             if (req != null) {

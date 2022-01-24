@@ -148,7 +148,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                     version = plugin.getWrapper().getVersion();
                 }
             } catch (IllegalStateException e) {
-                org.apache.log4j.Logger.getLogger(UserAgentInterceptor.class).warn("Jenkins not available", e);
+                Logger.getLogger(UserAgentInterceptor.class.getName()).log(Level.WARNING, "Jenkins not available", e);
             }
             bbJenkinsUserAgent = "bitbucket-jenkins-integration/" + version;
         }

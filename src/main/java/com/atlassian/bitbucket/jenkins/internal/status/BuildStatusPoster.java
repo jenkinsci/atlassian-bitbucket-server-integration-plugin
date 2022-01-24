@@ -16,7 +16,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -56,7 +55,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     }
 
     @Override
-    public void onCompleted(Run<?, ?> r, @Nonnull TaskListener listener) {
+    public void onCompleted(Run<?, ?> r, TaskListener listener) {
         BitbucketRevisionAction bitbucketRevisionAction = r.getAction(BitbucketRevisionAction.class);
         if (bitbucketRevisionAction != null) {
             postBuildStatus(bitbucketRevisionAction, r, listener);
