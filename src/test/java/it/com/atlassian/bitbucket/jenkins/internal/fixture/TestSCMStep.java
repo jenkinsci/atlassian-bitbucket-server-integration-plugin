@@ -31,6 +31,6 @@ public class TestSCMStep extends BitbucketSCMStep {
 
     @Override
     public StepDescriptor getDescriptor() {
-        return (StepDescriptor) Jenkins.getInstance().getDescriptorOrDie(BitbucketSCMStep.class);
+        return (StepDescriptor) Jenkins.get().getDescriptorOrDie(BitbucketSCMStep.class);
     }
 }

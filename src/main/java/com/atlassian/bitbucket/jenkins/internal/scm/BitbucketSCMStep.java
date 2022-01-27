@@ -4,13 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
 import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.model.Item;
@@ -20,7 +15,6 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.*;
@@ -30,9 +24,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
 
-import static java.lang.String.format;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
@@ -40,16 +32,11 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 public class BitbucketSCMStep extends SCMStep {
 
     private List<BranchSpec> branches;
-    private String cloneUrl;
     private String credentialsId;
     private String sshCredentialsId;
     private String id;
-    private String projectKey;
     private final String projectName;
     private final String repositoryName;
-    private String repositorySlug;
-    private int repositoryId;
-    private String selfLink;
     private final String serverId;
     private String mirrorName;
 
@@ -102,11 +89,7 @@ public class BitbucketSCMStep extends SCMStep {
     public List<BranchSpec> getBranches() {
         return branches;
     }
-
-    public String getCloneUrl() {
-        return cloneUrl;
-    }
-
+    
     @Nullable
     public String getCredentialsId() {
         return credentialsId;
@@ -126,98 +109,21 @@ public class BitbucketSCMStep extends SCMStep {
         return mirrorName;
     }
 
-    @Nullable
-    public String getProjectKey() {
-        return projectKey;
-    }
-
     public String getProjectName() {
-        return !StringUtils.isBlank(projectKey) && projectKey.startsWith("~") ?
-                projectKey : projectName;
+        return projectName;
     }
-
+    
     public String getRepositoryName() {
         return repositoryName;
-    }
-
-    @Nullable
-    public String getRepositorySlug() {
-        return repositorySlug;
-    }
-
-    public String getSelfLink() {
-        return selfLink;
     }
 
     public String getServerId() {
         return serverId;
     }
 
-    public int getRepositoryId() {
-        return repositoryId;
-    }
-
     @Override
     protected SCM createSCM() {
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
-        if (!mayBeServerConf.isPresent()) {
-            throw new BitbucketSCMException("Error creating the Bitbucket SCM: No Bitbucket Server configuration for serverId " + serverId);
-        }
-        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
-                format("Bitbucket SCM Step: Query Bitbucket for project [%s] repo [%s] mirror [%s]",
-                        projectName,
-                        repositoryName,
-                        mirrorName));
-        BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
-                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
-        BitbucketRepository repository;
-        if (!isBlank(mirrorName)) {
-            try {
-                EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler(scmHelper)
-                                .fetchRepository(
-                                        new MirrorFetchRequest(
-                                                serverConfiguration.getBaseUrl(),
-                                                credentialsId,
-                                                globalCredentialsProvider,
-                                                projectName,
-                                                repositoryName,
-                                                mirrorName));
-                repository = mirroredRepository.getRepository();
-                cloneUrl = getCloneUrl(mirroredRepository.getMirroringDetails().getCloneUrls());
-            } catch (MirrorFetchException ex) {
-                throw new BitbucketSCMException("Error creating the Bitbucket SCM: " + ex.getMessage());
-            }
-        } else {
-            repository = scmHelper.getRepository(projectName, repositoryName);
-            cloneUrl = getCloneUrl(repository.getCloneUrls());
-        }
-        projectKey = repository.getProject().getKey();
-        repositorySlug = repository.getSlug();
-        selfLink = repository.getSelfLink();
-        repositoryId = repository.getId();
-
-        BitbucketProject bitbucketProject = new BitbucketProject(projectKey, null, projectName);
-        List<BitbucketNamedLink> cloneUrls = singletonList(new BitbucketNamedLink(getCloneProtocol().name, cloneUrl));
-        BitbucketRepository bitbucketRepository =
-                new BitbucketRepository(repositoryId, repositoryName, bitbucketProject,
-                        repositorySlug, RepositoryState.AVAILABLE, cloneUrls, selfLink);
-        return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, serverId, bitbucketRepository);
-    }
-
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls) {
-        return cloneUrls.stream()
-                .filter(link -> getCloneProtocol().name.equals(link.getName()))
-                .findFirst()
-                .map(BitbucketNamedLink::getHref)
-                .orElse("");
-    }
-
-    private CloneProtocol getCloneProtocol() {
-        return isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
+        return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, projectName, repositoryName, serverId, mirrorName);
     }
 
     @Symbol("BitbucketSCMStep")

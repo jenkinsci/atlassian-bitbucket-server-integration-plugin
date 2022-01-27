@@ -84,29 +84,23 @@ public class SmokeTest extends AbstractJUnitTest {
 
         // BBS Personal Access Token
         bbsPersonalAccessToken = createPersonalAccessToken(PROJECT_READ_PERMISSION, REPO_ADMIN_PERMISSION);
-        CredentialsPage credentials = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
-        credentials.open();
-        BitbucketTokenCredentials bbsTokenCreds = credentials.add(BitbucketTokenCredentials.class);
+        CredentialsPage credentialsPage = new CredentialsPage(jenkins, DEFAULT_DOMAIN);
+        credentialsPage.open();
+        BitbucketTokenCredentials bbsTokenCreds = credentialsPage.add(BitbucketTokenCredentials.class);
         bbsTokenCreds.token.set(bbsPersonalAccessToken.getSecret());
         bbsTokenCreds.description.sendKeys(bbsPersonalAccessToken.getId());
-        credentials.create();
+        credentialsPage.create();
 
         // BB Admin user/password
-        credentials.open();
-        UserPwdCredential bbAdminCreds = credentials.add(UserPwdCredential.class);
-        bbsAdminCredsId = "admin-" + randomUUID();
-        bbAdminCreds.setId(bbsAdminCredsId);
-        bbAdminCreds.username.set(BITBUCKET_ADMIN_USERNAME);
-        bbAdminCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
-        credentials.create();
+        createUserPwdCredentials(credentialsPage);
 
         // BB SSh private key
         bbsSshCreds = createSshKeyPair();
-        credentials.open();
-        SshPrivateKeyCredential sshPrivateKeyCreds = credentials.add(SshPrivateKeyCredential.class);
+        credentialsPage.open();
+        SshPrivateKeyCredential sshPrivateKeyCreds = credentialsPage.add(SshPrivateKeyCredential.class);
         sshPrivateKeyCreds.setId(bbsSshCreds.getId());
         sshPrivateKeyCreds.enterDirectly(bbsSshCreds.getPrivateKey());
-        credentials.create();
+        credentialsPage.create();
 
         // Create BB Server entry
         JenkinsConfig jenkinsConfig = jenkins.getConfigPage();
@@ -143,15 +137,7 @@ public class SmokeTest extends AbstractJUnitTest {
     @Test
     public void testRunFolderCredentialsFreestyle() {
         Folder folder = jenkins.jobs.create(Folder.class, "TestFolder");
-
-        CredentialsPage credentials = new CredentialsPage(folder, DEFAULT_DOMAIN);
-        credentials.open();
-        UserPwdCredential folderCreds = credentials.add(UserPwdCredential.class);
-        bbsAdminCredsId = "admin-" + randomUUID();
-        folderCreds.setId(bbsAdminCredsId);
-        folderCreds.username.set(BITBUCKET_ADMIN_USERNAME);
-        folderCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
-        credentials.create();
+        createUserPwdCredentials(new CredentialsPage(folder, DEFAULT_DOMAIN));
 
         job = folder.getJobs().create();
         provideJobWithBitbucketScm(job, bbsAdminCredsId, null, serverId, forkRepo);
@@ -163,16 +149,7 @@ public class SmokeTest extends AbstractJUnitTest {
     @Test
     public void testRunFolderCredentialsMultibranch() throws Exception {
         Folder folder = jenkins.jobs.create(Folder.class, "TestFolder");
-
-        CredentialsPage credentials = new CredentialsPage(folder, DEFAULT_DOMAIN);
-        credentials.open();
-        UserPwdCredential folderCreds = credentials.add(UserPwdCredential.class);
-        bbsAdminCredsId = "admin-" + randomUUID();
-        folderCreds.setId(bbsAdminCredsId);
-        folderCreds.username.set(BITBUCKET_ADMIN_USERNAME);
-        folderCreds.password.set(BITBUCKET_ADMIN_PASSWORD);
-        folderCreds.description.set("Folder Creds");
-        credentials.create();
+        createUserPwdCredentials(new CredentialsPage(folder, DEFAULT_DOMAIN));
 
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 folder.getJobs().create(BitbucketScmWorkflowMultiBranchJob.class);
@@ -510,6 +487,17 @@ public class SmokeTest extends AbstractJUnitTest {
         workflowJob.save();
 
         runFullBuildFlow(workflowJob);
+    }
+
+    private UserPwdCredential createUserPwdCredentials(CredentialsPage credentialsPage) {
+        credentialsPage.open();
+        UserPwdCredential credentials = credentialsPage.add(UserPwdCredential.class);
+        bbsAdminCredsId = "admin-" + randomUUID();
+        credentials.setId(bbsAdminCredsId);
+        credentials.username.set(BITBUCKET_ADMIN_USERNAME);
+        credentials.password.set(BITBUCKET_ADMIN_PASSWORD);
+        credentialsPage.create();
+        return credentials;
     }
 
     private static String getBuildKey(Job job) {

@@ -98,7 +98,7 @@ public class BitbucketScmFormFillDelegateTest {
         when(serverConfigurationValid.getBaseUrl()).thenReturn(SERVER_BASE_URL_VALID);
         when(serverConfigurationValid.getGlobalCredentialsProvider(anyString())).thenReturn(globalCredentialsProvider);
         when(serverConfigurationValid.validate()).thenReturn(FormValidation.ok());
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), eq(parent)))
                 .thenReturn(mock(BitbucketCredentials.class));
         when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(Credentials.class)))
                 .thenReturn(mock(BitbucketCredentials.class));

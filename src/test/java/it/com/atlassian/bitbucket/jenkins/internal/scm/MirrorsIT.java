@@ -14,6 +14,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.MirrorFetchRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.model.Item;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import org.apache.http.HttpHeaders;
@@ -56,6 +57,7 @@ public class MirrorsIT {
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
     private GlobalCredentialsProvider globalCredentialsProvider;
+    private Item context;
 
     @Before
     public void setup() throws Exception {
@@ -63,6 +65,7 @@ public class MirrorsIT {
         stubProjectAndRepository(REPO_ID);
         adminCredentials = getBearerCredentials(CREDENTIAL_ID);
         globalCredentialsProvider = mock(GlobalCredentialsProvider.class);
+        context = mock(Item.class);
     }
 
     @After
@@ -75,7 +78,7 @@ public class MirrorsIT {
         stubMirrors(REPO_ID, mirror("Mirror"));
         BitbucketMirrorHandler instance = createInstance();
         EnrichedBitbucketMirroredRepository mirroredRepository =
-                instance.fetchRepository(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, "Mirror"));
+                instance.fetchRepository(new MirrorFetchRequest(wireMockRule.baseUrl(), context, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror"));
 
         assertThat(mirroredRepository.getRepository().getName(), is(equalTo(REPO_SLUG)));
     }
@@ -85,7 +88,7 @@ public class MirrorsIT {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
         ListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, ""));
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), context, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, ""));
 
         assertThat(options, is(iterableWithSize(3)));
         assertThat(options.stream().map(Option::toString).collect(toList()),
@@ -97,7 +100,7 @@ public class MirrorsIT {
         stubMirrors(REPO_ID, mirror("Mirror1"), mirror("Mirror2"));
         BitbucketMirrorHandler instance = createInstance();
         ListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, PROJECT_KEY, REPO_SLUG, "Mirror1"));
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), context, CREDENTIAL_ID, PROJECT_KEY, REPO_SLUG, "Mirror1"));
 
         assertThat(options, is(iterableWithSize(3)));
         assertThat(options.stream().map(Option::toString).collect(toList()), hasItems("Primary Server=", "Mirror1=Mirror1[selected]", "Mirror2=Mirror2"));
@@ -108,7 +111,7 @@ public class MirrorsIT {
         stubGetRepositoryReturnsError("TEST", "test", 404);
         BitbucketMirrorHandler instance = createInstance();
         ListBoxModel options =
-                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), CREDENTIAL_ID, globalCredentialsProvider, "TEST", "test", ""));
+                instance.fetchAsListBox(new MirrorFetchRequest(wireMockRule.baseUrl(), context, CREDENTIAL_ID, "TEST", "test", ""));
 
         assertThat(options, is(iterableWithSize(1)));
         assertThat(options.stream().map(Option::toString).collect(toList()), hasItems("Primary Server=[selected]"));
@@ -120,7 +123,7 @@ public class MirrorsIT {
         BitbucketRepoFetcher fetcher =
                 (client, project, repository) -> BitbucketSearchHelper.getRepositoryByNameOrSlug(project, repository, client);
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(adminCredentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, context)).thenReturn(adminCredentials);
 
         return new BitbucketMirrorHandler(clientFactoryProvider, jenkinsToBitbucketCredentials, fetcher);
     }

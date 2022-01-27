@@ -231,8 +231,8 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                                 (client, project, repo) -> getRepositoryByNameOrSlug(project, repo, client)).fetchAsListBox(
                                 new MirrorFetchRequest(
                                         serverConfiguration.getBaseUrl(),
+                                        context,
                                         credentialsId,
-                                        serverConfiguration.getGlobalCredentialsProvider("Bitbucket SCM Fill Mirror list"),
                                         projectName,
                                         repositoryName,
                                         mirrorName))

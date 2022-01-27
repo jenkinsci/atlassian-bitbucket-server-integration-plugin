@@ -73,7 +73,7 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo(descriptors.get(mirrorName), AVAILABLE);
         mockMirroredRepo(descriptors.get("Mirror1"), NOT_MIRRORED);
 
-        bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror1"));
+        bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, null, CREDENTIAL_ID, PROJECT, REPO, "Mirror1"));
     }
 
     @Test
@@ -84,7 +84,7 @@ public class BitbucketMirrorHandlerTest {
         mockMirroredRepo(descriptors.get("Mirror1"));
 
         List<Option> options =
-                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror0"));
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, null, CREDENTIAL_ID, PROJECT, REPO, "Mirror0"));
 
         assertThat(options.size(), is(equalTo(3)));
 
@@ -102,7 +102,7 @@ public class BitbucketMirrorHandlerTest {
         String repoCloneUrl = mockMirroredRepo(descriptors.get(mirrorName));
 
         EnrichedBitbucketMirroredRepository repository =
-                bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, "Mirror0"));
+                bitbucketMirrorHandler.fetchRepository(new MirrorFetchRequest(BITBUCKET_BASE_URL, null, CREDENTIAL_ID, PROJECT, REPO, "Mirror0"));
 
         assertThat(repository.getMirroringDetails().getMirrorName(), is(equalTo(mirrorName)));
         assertThat(repository.getMirroringDetails().getStatus(), is(equalTo(AVAILABLE)));
@@ -120,7 +120,7 @@ public class BitbucketMirrorHandlerTest {
         String unavailableMirror = "Mirror100";
 
         List<Option> options =
-                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, CREDENTIAL_ID, globalCredentialsProvider, PROJECT, REPO, unavailableMirror));
+                bitbucketMirrorHandler.fetchAsListBox(new MirrorFetchRequest(BITBUCKET_BASE_URL, null, CREDENTIAL_ID, PROJECT, REPO, unavailableMirror));
 
         assertThat(options.stream()
                 .map(Option::toString)
@@ -137,7 +137,7 @@ public class BitbucketMirrorHandlerTest {
 
     private JenkinsToBitbucketCredentials mockCredentialConversion(BitbucketCredentials credentials) {
         JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials = mock(JenkinsToBitbucketCredentials.class);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(credentials);
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, null)).thenReturn(credentials);
         return jenkinsToBitbucketCredentials;
     }
 

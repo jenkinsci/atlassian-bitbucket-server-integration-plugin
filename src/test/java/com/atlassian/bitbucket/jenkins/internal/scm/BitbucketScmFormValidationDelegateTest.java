@@ -86,7 +86,7 @@ public class BitbucketScmFormValidationDelegateTest {
         when(serverConfigurationInvalid.getServerName()).thenReturn(SERVER_NAME_INVALID);
         when(serverConfigurationInvalid.validate()).thenReturn(FormValidation.error("ERROR"));
         when(pluginConfiguration.getServerById(SERVER_ID_VALID)).thenReturn(of(serverConfigurationValid));
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID)).thenReturn(mock(BitbucketCredentials.class));
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(CREDENTIAL_ID, parent)).thenReturn(mock(BitbucketCredentials.class));
         when(jenkinsProvider.get()).thenReturn(jenkins);
 
         when(bitbucketClientFactory.getSearchClient(any())).thenAnswer((Answer<BitbucketSearchClient>) getSearchClientInvocation -> {

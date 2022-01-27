@@ -13,14 +13,6 @@ import javax.annotation.Nullable;
 public interface JenkinsToBitbucketCredentials {
 
     /**
-     * Converts the input credential id in Bitbucket Credentials.
-     *
-     * @param credentialId the credentials id
-     * @return Bitbucket credentials
-     */
-    BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId);
-
-    /**
      * Converts the input credential id for the given context into Bitbucket Credentials.
      *
      * @param credentialId the credentials id

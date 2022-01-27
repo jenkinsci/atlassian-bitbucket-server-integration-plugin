@@ -17,11 +17,6 @@ import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCred
 public class JenkinsToBitbucketCredentialsImpl implements JenkinsToBitbucketCredentials {
 
     @Override
-    public BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId) {
-        return toBitbucketCredentials(credentialId, null);
-    }
-
-    @Override
     public BitbucketCredentials toBitbucketCredentials(@Nullable String credentialId, @Nullable Item context) {
         return CredentialUtils.getCredentials(credentialId, context)
                 .map(this::toBitbucketCredentials).orElse(ANONYMOUS_CREDENTIALS);

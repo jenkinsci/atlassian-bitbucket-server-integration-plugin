@@ -31,6 +31,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Collection;
@@ -40,7 +41,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.util.Objects.requireNonNull;
 import static jenkins.triggers.SCMTriggerItem.SCMTriggerItems.asSCMTriggerItem;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -121,8 +121,8 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             BitbucketWebhookTriggerDescriptor descriptor = getDescriptor();
             triggerItem.getSCMs()
                     .stream()
-                    .filter(scm -> scm instanceof BitbucketSCM)
-                    .map(scm -> (BitbucketSCM) scm)
+                    .filter(BitbucketSCM.class::isInstance)
+                    .map(BitbucketSCM.class::cast)
                     .filter(scm -> !scm.isWebhookRegistered())
                     .filter(scm -> !checkTriggerExists(descriptor, scm))
                     .forEach(scm -> {
@@ -270,7 +270,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
             }
         }
 
-        private BitbucketServerConfiguration getServer(String serverId) {
+        private BitbucketServerConfiguration getServer(@CheckForNull String serverId) {
             return bitbucketPluginConfiguration
                     .getServerById(serverId)
                     .orElseThrow(() -> new BitbucketClientException(
@@ -291,13 +291,12 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
 
         private void registerWebhook(Item item, BitbucketSCMRepository repository,
                                      boolean pullRequest, boolean refChange) {
-            requireNonNull(repository.getServerId());
             BitbucketServerConfiguration bitbucketServerConfiguration = getServer(repository.getServerId());
 
             BitbucketWebhook webhook = retryingWebhookHandler.register(
                     bitbucketServerConfiguration.getBaseUrl(),
                     bitbucketServerConfiguration.getGlobalCredentialsProvider(item),
-                    repository, pullRequest, refChange);
+                    repository, item, pullRequest, refChange);
             LOGGER.info("Webhook returned -" + webhook);
         }
 
