@@ -22,7 +22,7 @@ import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.browser.Stash;
+import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.*;
@@ -348,7 +348,7 @@ public class BitbucketSCM extends SCM {
         // Initialize the Git SCM
         UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, getRepositorySlug(), null, 
                 getBitbucketSCMRepository().getCloneCredentialsId());
-        gitSCM = new GitSCM(singletonList(remoteConfig), branches, new Stash(selfLink), gitTool, extensions);
+        gitSCM = new GitSCM(singletonList(remoteConfig), branches, new BitbucketServer(selfLink), gitTool, extensions);
     }
 
     @Symbol("BbS")
@@ -369,7 +369,7 @@ public class BitbucketSCM extends SCM {
         private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         public DescriptorImpl() {
-            super(Stash.class);
+            super(BitbucketServer.class);
             gitScmDescriptor = new GitSCM.DescriptorImpl();
             load();
         }

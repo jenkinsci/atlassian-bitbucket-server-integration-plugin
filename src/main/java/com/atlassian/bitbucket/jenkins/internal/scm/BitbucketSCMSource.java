@@ -24,7 +24,7 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.browser.Stash;
+import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -337,7 +337,7 @@ public class BitbucketSCMSource extends SCMSource {
         UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repository.getRepositorySlug(), null,
                 repository.getCloneCredentialsId());
         gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
-        gitSCMSource.setBrowser(new Stash(selfLink));
+        gitSCMSource.setBrowser(new BitbucketServer(selfLink));
         gitSCMSource.setCredentialsId(repository.getCloneCredentialsId());
         gitSCMSource.setOwner(getOwner());
         gitSCMSource.setTraits(traits);
