@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultInstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.google.common.annotations.VisibleForTesting;
-import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
@@ -15,13 +14,15 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatusClient {
 
@@ -99,6 +100,6 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
             LOGGER.log(Level.WARNING, "Error signing build status, continuing without signature:", e);
             return;
         }
-        builder.headers(Headers.of(headers));
+        headers.entrySet().forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
     }
 }
