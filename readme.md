@@ -58,7 +58,7 @@ To configure the plugin:
 
 Bitbucket Server instances are added and configured at the system level. Once they’re added users can select them from the SCM when creating a Jenkins job. You must add at least one Bitbucket Server instance to Jenkins.
 
-When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) that is configured with project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
+When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/bitbucketserver0717/personal-access-tokens-1087535496.html) that is configured with project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
 
 Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
 
