@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,11 +72,6 @@ public class BuildStatusPosterTest {
         when(buildStatusFactory.createLegacyBuildStatus(run)).thenReturn(buildStatus);
     }
     
-    @After
-    public void cleanup() {
-        System.setProperty("bitbucket.status.disable", "");
-    }
-    
     @Test
     public void testBitbucketClientException() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
@@ -106,8 +100,12 @@ public class BuildStatusPosterTest {
     @Test
     public void testBuildStatusDisabled() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
-        System.setProperty("bitbucket.status.disable", "true");
-        buildStatusPoster.onCompleted(run, listener);
+        try {
+            System.setProperty("bitbucket.status.disable", "true");
+            buildStatusPoster.onCompleted(run, listener);
+        } finally {
+            System.setProperty("bitbucket.status.disable", "");
+        }
         verify(logger).println((eq("Build statuses disabled, no build status sent.")));
         
         verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
