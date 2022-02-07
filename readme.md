@@ -58,7 +58,8 @@ To configure the plugin:
 
 Bitbucket Server instances are added and configured at the system level. Once they’re added users can select them from the SCM when creating a Jenkins job. You must add at least one Bitbucket Server instance to Jenkins.
 
-When adding a Bitbucket Server instance you must add at least one Bitbucket Server [personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens) that is configured with project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
+When adding a Bitbucket Server instance you must add at least one Bitbucket Server [HTTP access 
+token](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html) that is configured with project admin permissions. Doing this allows users to automatically set up build triggers when creating a Jenkins job.
 
 Watch our [video](https://youtu.be/0-FugzVYJQU) to find out how to do this, or see below for written instructions. 
 
@@ -71,9 +72,9 @@ To add a Bitbucket Server instance:
 3. Enter these instance details:
    - Instance name - Enter a name to help users identify this instance. 
    - Instance URL - Enter the Bitbucket Server base URL. For example, http://localhost:7990/bitbucket. 
-   - Personal access token - Select a token from the list. Or to first add a token:
+   - HTTP access token - Select a token from the list. Or to first add a token:
       - Select **Add** > **Jenkins**.
-      - For **Kind**, select [Bitbucket personal access token](https://confluence.atlassian.com/display/BitbucketServer/personal+access+tokens).
+      - For **Kind**, select [HTTP access token](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html).
       - Enter a Token (with at least **project admin permissions**), a unique token ID and a Description. 
       - Select **Add**. You should now be able to select the token from the list.
 4. Select **Test connection** to check your instance details. 
