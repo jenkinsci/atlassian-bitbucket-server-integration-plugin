@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.TaskListener;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,7 +72,12 @@ public class BuildStatusPosterTest {
         when(buildStatusFactory.createRichBuildStatus(run)).thenReturn(buildStatus);
         when(buildStatusFactory.createLegacyBuildStatus(run)).thenReturn(buildStatus);
     }
-
+    
+    @After
+    public void cleanup() {
+        System.setProperty("bitbucket.status.disable", "");
+    }
+    
     @Test
     public void testBitbucketClientException() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
@@ -94,6 +100,16 @@ public class BuildStatusPosterTest {
         when(jenkinsSetupMock.getPluginConfiguration().getServerById(SERVER_ID)).thenReturn(Optional.empty());
         buildStatusPoster.onCompleted(run, listener);
         verify(listener).error(eq("Failed to post build status as the provided Bitbucket Server config does not exist"));
+        verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
+    }
+    
+    @Test
+    public void testBuildStatusDisabled() {
+        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        System.setProperty("bitbucket.status.disable", "true");
+        buildStatusPoster.onCompleted(run, listener);
+        verify(logger).println((eq("Build statuses disabled, no build status sent.")));
+        
         verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 

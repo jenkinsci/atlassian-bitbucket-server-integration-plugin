@@ -24,9 +24,11 @@ import java.util.logging.Logger;
 @Extension
 public class BuildStatusPoster extends RunListener<Run<?, ?>> {
 
+    private static final String BUILD_STATUS_DISABLED_MSG = "Build statuses disabled, no build status sent.";
     private static final String BUILD_STATUS_ERROR_MSG = "Failed to post build status, additional information:";
     private static final String BUILD_STATUS_FORMAT =
             "Posting build status of %s to %s for commit id [%s] and ref '%s'";
+    private static final String BUILD_STATUS_DISABLED_KEY = "bitbucket.status.disable";
     private static final Logger LOGGER = Logger.getLogger(BuildStatusPoster.class.getName());
     private static final String NO_SERVER_MSG =
             "Failed to post build status as the provided Bitbucket Server config does not exist";
@@ -63,6 +65,11 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     }
 
     public void postBuildStatus(BitbucketRevisionAction revisionAction, Run<?, ?> run, TaskListener listener) {
+        if (Boolean.getBoolean(BUILD_STATUS_DISABLED_KEY)) {
+            listener.getLogger().println(BUILD_STATUS_DISABLED_MSG);
+            return;
+        }
+        
         Optional<BitbucketServerConfiguration> serverOptional =
                 pluginConfiguration.getServerById(revisionAction.getBitbucketSCMRepo().getServerId());
         if (serverOptional.isPresent()) {

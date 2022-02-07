@@ -153,6 +153,10 @@ To use a different Jenkinsfile for different branches of your Bitbucket Server p
 
 Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline).
 
+#### Advanced Configuration
+
+You can disable build statuses by running Jenkins with the option `-Dbitbucket.status.disable=true`.
+
 ### Additional documentation
 
 * [Sending deployment notifications](./docs/deployment_notifications.md)
