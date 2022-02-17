@@ -29,7 +29,7 @@ The plugin streamlines the entire configuration process and removes the need for
 - Jenkins 2.289.1+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 6.10.15 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
+Note: Bitbucket Server 5.5 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
 
 ## In this document
 1. [Install the plugin](#install-the-plugin)
