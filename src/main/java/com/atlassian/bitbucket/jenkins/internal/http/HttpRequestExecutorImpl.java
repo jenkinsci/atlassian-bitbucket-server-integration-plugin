@@ -42,13 +42,13 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     public void executeDelete(HttpUrl url, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder = new Request.Builder().url(url).delete();
 
-        executeRequest(requestBuilder, EMPTY_RESPONSE, toSet(additionalConfig));
+        executeRequest(requestBuilder, EMPTY_RESPONSE, additionalConfig);
     }
 
     @Override
     public <T> T executeGet(HttpUrl url, ResponseConsumer<T> consumer, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        return executeRequest(requestBuilder, consumer, toSet(additionalConfig));
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                              RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder =
                 new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url);
-        return executeRequest(requestBuilder, consumer, toSet(additionalConfig));
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
     @Override
@@ -64,11 +64,12 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                             ResponseConsumer<T> consumer, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder =
                 new Request.Builder().put(RequestBody.create(JSON, requestBodyAsJson)).url(url);
-        return executeRequest(requestBuilder, consumer, toSet(additionalConfig));
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
     private <T> T executeRequest(Request.Builder requestBuilder, ResponseConsumer<T> consumer,
-                                 Set<RequestConfiguration> additionalConfig) {
+                                 RequestConfiguration... additionalConfigs) {
+        Set<RequestConfiguration> additionalConfig = toSet(additionalConfigs);
         additionalConfig.forEach(config -> config.apply(requestBuilder));
         return performRequest(requestBuilder.build(), consumer);
     }
@@ -132,7 +133,6 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         } catch (RateLimitedException e) {
             RetryOnRateLimitConfig rateLimitConfig = request.tag(RetryOnRateLimitConfig.class);
             if (rateLimitConfig != null) {
-
                 if (rateLimitConfig.incrementAndGetAttempts() <= rateLimitConfig.getMaxAttempts()) {
                     try {
                         Thread.sleep(e.getRetryIn());

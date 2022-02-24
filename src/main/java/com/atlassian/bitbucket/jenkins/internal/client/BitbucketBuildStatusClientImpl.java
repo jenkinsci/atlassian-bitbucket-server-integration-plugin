@@ -10,6 +10,7 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 public class BitbucketBuildStatusClientImpl implements BitbucketBuildStatusClient {
 
     private static final String BUILD_STATUS_VERSION = "1.0";
+    private static final int maxAttempts = Integer.parseInt(System.getProperty("bitbucket.retry.request.attempts", "3"));
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String revisionSha;
 
@@ -27,6 +28,6 @@ public class BitbucketBuildStatusClientImpl implements BitbucketBuildStatusClien
                 .addPathSegment("commits")
                 .addPathSegment(revisionSha)
                 .build();
-        bitbucketRequestExecutor.makePostRequest(url, buildStatus, new RetryOnRateLimitConfig(3));
+        bitbucketRequestExecutor.makePostRequest(url, buildStatus, new RetryOnRateLimitConfig(maxAttempts));
     }
 }
