@@ -153,6 +153,10 @@ To use a different Jenkinsfile for different branches of your Bitbucket Server p
 
 Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline).
 
+#### Advanced Configuration
+
+A list of all custom environmental properties can be found in `SystemPropertiesConstant.java`.
+
 ### Additional documentation
 
 * [Sending deployment notifications](./docs/deployment_notifications.md)
