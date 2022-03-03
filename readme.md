@@ -155,7 +155,7 @@ Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or r
 
 #### Advanced Configuration
 
-You can disable build statuses by running Jenkins with the option `-Dbitbucket.status.disable=true`.
+A list of all custom environmental properties can be found in `SystemPropertiesConstant.java`.
 
 ### Additional documentation
 
