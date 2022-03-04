@@ -36,8 +36,11 @@ public class BitbucketSCMStepIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),
-                credentialsId, "", PROJECT_NAME, REPO_NAME, serverId, "");
+        TestSCMStep scmStep = new TestSCMStep.Builder(id, PROJECT_NAME, REPO_NAME)
+                .credentialsId(credentialsId)
+                .branches(singletonList(new BranchSpec("master")))
+                .serverId(serverId)
+                .build();
         TestSCM scm = scmStep.createSCM();
 
         assertThat(scmStep.getBranches(), hasSize(1));
@@ -75,8 +78,11 @@ public class BitbucketSCMStepIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("test-branch")),
-                credentialsId, "", PROJECT_NAME, REPO_NAME, serverId, "");
+        TestSCMStep scmStep = new TestSCMStep.Builder(id, PROJECT_NAME, REPO_NAME)
+                .credentialsId(credentialsId)
+                .branches(singletonList(new BranchSpec("test-branch")))
+                .serverId(serverId)
+                .build();
         TestSCM scm = scmStep.createSCM();
         scm.getAndInitializeGitScmIfNull(null);
 
@@ -119,8 +125,12 @@ public class BitbucketSCMStepIT {
         String sshCredentialsId = bbJenkinsRule.getSshCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),
-                credentialsId, sshCredentialsId, PROJECT_NAME, REPO_NAME, serverId, "");
+        TestSCMStep scmStep = new TestSCMStep.Builder(id, PROJECT_NAME, REPO_NAME)
+                .credentialsId(credentialsId)
+                .sshCredentialsId(sshCredentialsId)
+                .branches(singletonList(new BranchSpec("master")))
+                .serverId(serverId)
+                .build();
         TestSCM scm = scmStep.createSCM();
         scm.getAndInitializeGitScmIfNull(null);
 
@@ -163,8 +173,12 @@ public class BitbucketSCMStepIT {
         String sshCredentialsId = bbJenkinsRule.getSshCredentialsId();
         String id = UUID.randomUUID().toString();
         String serverId = serverConf.getId();
-        TestSCMStep scmStep = new TestSCMStep(id, singletonList(new BranchSpec("master")),
-                credentialsId, sshCredentialsId, PROJECT_NAME, REPO_NAME, serverId, "");
+        TestSCMStep scmStep = new TestSCMStep.Builder(id, PROJECT_NAME, REPO_NAME)
+                .credentialsId(credentialsId)
+                .sshCredentialsId(sshCredentialsId)
+                .branches(singletonList(new BranchSpec("master")))
+                .serverId(serverId)
+                .build();
         TestSCM scm = scmStep.createSCM();
 
         assertThat(scmStep.getBranches(), hasSize(1));
