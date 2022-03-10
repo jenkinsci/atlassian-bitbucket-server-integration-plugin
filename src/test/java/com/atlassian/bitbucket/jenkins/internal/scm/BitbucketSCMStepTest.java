@@ -49,7 +49,7 @@ public class BitbucketSCMStepTest {
                 .descriptor(descriptor)
                 .serverName(SERVER_NAME)
                 .build();
-        doReturn(Collections.singletonList(serverConfiguration)).when(descriptor).getConfigurationByName(SERVER_NAME);
+        doReturn(Collections.singletonList(serverConfiguration)).when(descriptor).getServerListByName(SERVER_NAME);
         BitbucketSCMRepository result = scmStep.createSCM().getBitbucketSCMRepository();
 
         assertThat(result.getServerId(), equalTo(SERVER_ID));
@@ -61,20 +61,21 @@ public class BitbucketSCMStepTest {
                 .descriptor(descriptor)
                 .serverName(SERVER_NAME)
                 .build();
-        doReturn(Collections.emptyList()).when(descriptor).getConfigurationByName(SERVER_NAME);
+        doReturn(Collections.emptyList()).when(descriptor).getServerListByName(SERVER_NAME);
 
         Exception thrown = assertThrows(BitbucketSCMException.class, scmStep::createSCM);
         assertThat(thrown.getMessage(), equalTo("Error creating Bitbucket SCM: No server configuration matches provided name"));
     }
-    
+
     @Test
     public void testCreateSCMServerMultipleMatchingNames() {
+        BitbucketServerConfiguration otherConfiguration = mock(BitbucketServerConfiguration.class);
         TestSCMStep scmStep = new TestSCMStep.Builder("id", "project", "repository")
                 .descriptor(descriptor)
                 .serverName(SERVER_NAME)
                 .build();
-        doReturn(Arrays.asList(serverConfiguration, mock(BitbucketServerConfiguration.class)))
-                .when(descriptor).getConfigurationByName(SERVER_NAME);
+        doReturn(Arrays.asList(serverConfiguration, otherConfiguration))
+                .when(descriptor).getServerListByName(SERVER_NAME);
 
         Exception thrown = assertThrows(BitbucketSCMException.class, scmStep::createSCM);
         assertThat(thrown.getMessage(), equalTo("Error creating Bitbucket SCM: Multiple server configurations match " +

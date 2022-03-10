@@ -19,7 +19,6 @@ import org.kohsuke.stapler.verb.POST;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
@@ -142,7 +141,7 @@ public class BitbucketSCMStep extends SCMStep {
             return;
         }
         if (serverName != null) {
-            List<BitbucketServerConfiguration> serverList = ((DescriptorImpl) getDescriptor()).getConfigurationByName(serverName);
+            List<BitbucketServerConfiguration> serverList = ((DescriptorImpl) getDescriptor()).getServerListByName(serverName);
             if (serverList.isEmpty()) {
                 throw new BitbucketSCMException("Error creating Bitbucket SCM: No server configuration matches provided name");
             } else if (serverList.size() > 1) {
@@ -288,10 +287,8 @@ public class BitbucketSCMStep extends SCMStep {
         }
 
         @VisibleForTesting
-        List<BitbucketServerConfiguration> getConfigurationByName(String serverName) {
-             return bitbucketPluginConfiguration.getServerList()
-                    .stream().filter(server -> serverName.equals(server.getServerName()))
-                    .collect(Collectors.toList());
+        List<BitbucketServerConfiguration> getServerListByName(String serverName) {
+             return bitbucketPluginConfiguration.getValidServerListByName(serverName);
         }
     }
 }
