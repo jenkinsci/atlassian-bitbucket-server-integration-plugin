@@ -48,6 +48,7 @@ public class FakeRemoteHttpServer implements Call.Factory {
         urlToResponseBody.values().stream().filter(Objects::nonNull).forEach(b -> assertTrue(b.isClosed()));
     }
 
+    @Nullable
     public String getHeaderValue(String url, String headerName) {
         return urlToRequest.get(url).header(headerName);
     }

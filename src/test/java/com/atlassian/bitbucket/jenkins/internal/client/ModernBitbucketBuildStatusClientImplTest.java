@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
 import jcifs.util.Base64;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
+import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
@@ -21,17 +22,17 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.annotation.Nullable;
-
 import java.security.KeyPair;
 import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ModernBitbucketBuildStatusClientImplTest {
@@ -39,17 +40,16 @@ public class ModernBitbucketBuildStatusClientImplTest {
     private static final String BBS_BASE_URL = "http://localhost:7990/bitbucket";
     private static final String JENKINS_BASE_URL = "http://localhost:8080/jenkins";
     private static final String SHA1 = "5ab78046a50050b8aa3e4accf80950a60f716391";
-
+    static KeyPair keyPair;
     @Captor
-    ArgumentCaptor<Headers> captor;
+    ArgumentCaptor<RequestConfiguration> captor;
     ModernBitbucketBuildStatusClientImpl client;
+    @Mock
+    DisplayURLProvider displayURLProvider;
     @Mock
     BitbucketRequestExecutor executor;
     @Mock
     InstanceKeyPairProvider keyPairProvider;
-    @Mock
-    DisplayURLProvider displayURLProvider;
-    static KeyPair keyPair;
 
     @BeforeClass
     public static void init() {
@@ -69,9 +69,17 @@ public class ModernBitbucketBuildStatusClientImplTest {
     public void testPost() {
         BitbucketBuildStatus buildStatus = createTestBuildStatus("refs/testref");
         client.post(buildStatus);
+
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
 
-        Headers headers = captor.getValue();
+        //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
+        // Request.Builder and we can then assert it did the right thing from that.
+        List<RequestConfiguration> configs = captor.getAllValues();
+        Request.Builder builder = new Request.Builder().url("http://notUsed");
+        configs.forEach(requestConfiguration -> requestConfiguration.apply(builder)
+        );
+
+        Headers headers = builder.build().headers();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
@@ -81,9 +89,17 @@ public class ModernBitbucketBuildStatusClientImplTest {
     public void testPostNoRef() {
         BitbucketBuildStatus buildStatus = createTestBuildStatus(null);
         client.post(buildStatus);
+
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
 
-        Headers headers = captor.getValue();
+        //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
+        // Request.Builder and we can then assert it did the right thing from that.
+        List<RequestConfiguration> configs = captor.getAllValues();
+        Request.Builder builder = new Request.Builder().url("http://notUsed");
+        configs.forEach(requestConfiguration -> requestConfiguration.apply(builder)
+        );
+
+        Headers headers = builder.build().headers();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
         assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));

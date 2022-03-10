@@ -12,15 +12,19 @@ public class SystemPropertiesConstants {
      * Defaults to FALSE.
      */
     public static final String BUILD_STATUS_DISABLED_KEY = "bitbucket.status.disable";
-
+    /**
+     * Specifies the duration of the Bitbucket capabilities cache. This cache is used to determine which features of
+     * Bitbucket are available to Jenkins. Jenkins makes a request to Bitbucket whenever the cache expires.
+     * Defaults to 1 hour.
+     */
+    public static final String CAPABILITIES_CACHE_DURATION_KEY = "bitbucket.client.capabilities.cache.duration";
     /**
      * Specifies the time to live (TTL) of an OAuth access token, used when making API requests in Jenkins on
-     * behalf of the Bitbucket user, such as starting jobs. When the token expires, the user will have to acquire 
+     * behalf of the Bitbucket user, such as starting jobs. When the token expires, the user will have to acquire
      * another before being able to make further API requests.
      * Defaults to 5 years.
      */
     public static final String DEFAULT_OAUTH_ACCESS_TOKEN_TTL_KEY = "bitbucket.oauth.default.access.token.ttl";
-    
     /**
      * Specifies the time to live (TTL) of an OAuth request token, which is used when performing an authorization flow
      * between Bitbucket and Jenkins. This token TTL determines the maximum length of that flow before the user must
@@ -28,7 +32,6 @@ public class SystemPropertiesConstants {
      * Defaults to 10 minutes.
      */
     public static final String DEFAULT_OAUTH_REQUEST_TOKEN_TTL_KEY = "bitbucket.oauth.default.request.token.ttl";
-
     /**
      * Specifies the time to live (TTL) of an OAuth session. This is the period after an OAuth token has been acquired
      * as part of applinking Bitbucket and Jenkins. So long as the session is active, old or expired access tokens
@@ -39,9 +42,8 @@ public class SystemPropertiesConstants {
     public static final String DEFAULT_OAUTH_SESSION_TTL_KEY = "bitbucket.oauth.default.session.ttl";
 
     /**
-     * Specifies the duration of the Bitbucket capabilities cache. This cache is used to determine which features of
-     * Bitbucket are available to Jenkins. Jenkins makes a request to Bitbucket whenever the cache expires.
-     * Defaults to 1 hour.
+     * Maximum number of attempts to retry when posting a build status and the server responds wth a 429.
+     * Defaults 3. Care should be taken when adjusting this as to not overload a server that is already under load.
      */
-    public static final String CAPABILITIES_CACHE_DURATION_KEY = "bitbucket.client.capabilities.cache.duration";
+    public static final String REQUEST_RETRY_MAX_ATTEMPTS = "bitbucket.build.post.retry.request.attempts";
 }

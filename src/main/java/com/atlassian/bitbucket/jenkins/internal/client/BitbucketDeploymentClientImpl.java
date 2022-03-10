@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeployment;
-import okhttp3.Headers;
 import okhttp3.HttpUrl;
 
 import static java.util.Objects.requireNonNull;
@@ -37,6 +36,6 @@ public class BitbucketDeploymentClientImpl implements BitbucketDeploymentClient 
                 .addPathSegment("deployments")
                 .build();
 
-        bitbucketRequestExecutor.makePostRequest(url, deployment, Headers.of());
+        bitbucketRequestExecutor.makePostRequest(url, deployment);
     }
 }
