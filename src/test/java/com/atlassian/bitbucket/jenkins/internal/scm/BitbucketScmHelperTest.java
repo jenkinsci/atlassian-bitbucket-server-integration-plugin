@@ -17,6 +17,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import hudson.model.Item;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class BitbucketScmHelperTest {
         BitbucketClientFactoryProvider bitbucketClientFactoryProvider = mock(BitbucketClientFactoryProvider.class);
         when(bitbucketClientFactoryProvider.getClient(eq("myBaseUrl"), any(BitbucketCredentials.class)))
                 .thenReturn(clientFactory);
-        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class)))
+        when(jenkinsToBitbucketCredentials.toBitbucketCredentials(nullable(String.class), nullable(Item.class)))
                 .thenReturn(mock(BitbucketCredentials.class));
         bitbucketScmHelper =
                 new BitbucketScmHelper("myBaseUrl",

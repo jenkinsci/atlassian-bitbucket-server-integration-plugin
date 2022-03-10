@@ -4,11 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryPro
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
+import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
@@ -16,7 +14,8 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
-
+import com.cloudbees.plugins.credentials.Credentials;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
@@ -25,7 +24,7 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
-import hudson.plugins.git.browser.Stash;
+import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -56,9 +55,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.atlassian.bitbucket.jenkins.internal.model.RepositoryState.AVAILABLE;
 import static java.lang.Math.max;
-import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -80,66 +77,17 @@ public class BitbucketSCMSource extends SCMSource {
             @CheckForNull String repositoryName,
             @CheckForNull String serverId,
             @CheckForNull String mirrorName) {
+
         super.setId(id);
         this.traits = new ArrayList<>();
         if (traits != null) {
             this.traits.addAll(traits);
         }
 
-        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
-        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(serverId);
-        if (!mayBeServerConf.isPresent()) {
-            LOGGER.info("No Bitbucket Server configuration for serverId " + serverId);
-            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
-            return;
-        }
-
-        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
-                format("Bitbucket SCM: Query Bitbucket for project [%s] repo [%s] mirror[%s]",
-                        projectName,
-                        repositoryName,
-                        mirrorName));
-        BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
-                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));
-        if (isBlank(projectName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The project name is blank");
-            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
-            return;
-        }
-        if (isBlank(repositoryName)) {
-            LOGGER.info("Error creating the Bitbucket SCM: The repository name is blank");
-            setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
-            return;
-        }
-        String selfLink = "";
-        if (isNotBlank(mirrorName)) {
-            try {
-                EnrichedBitbucketMirroredRepository mirroredRepository =
-                        descriptor.createMirrorHandler(scmHelper)
-                                .fetchRepository(
-                                        new MirrorFetchRequest(
-                                                serverConfiguration.getBaseUrl(),
-                                                credentialsId,
-                                                globalCredentialsProvider,
-                                                projectName,
-                                                repositoryName,
-                                                mirrorName));
-                setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirroredRepository);
-                selfLink = mirroredRepository.getRepository().getSelfLink();
-            } catch (MirrorFetchException ex) {
-                setEmptyRepository(credentialsId, sshCredentialsId, projectName, repositoryName, serverId, mirrorName);
-            }
-        } else {
-            BitbucketRepository localRepo = scmHelper.getRepository(projectName, repositoryName);
-            setRepositoryDetails(credentialsId, sshCredentialsId, serverId, "", localRepo);
-            selfLink = localRepo.getSelfLink();
-        }
-        //self link contains `/browse` which we must trim off.
-        String repositoryUrl = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
-        gitSCMSource.setBrowser(new Stash(repositoryUrl));
-        gitSCMSource.setId(getId() + "-git-scm");
+        // This is a temporary storage of the SCM details as the deserialized stapler request is not provided with the
+        // parent object
+        repository = new BitbucketSCMRepository(credentialsId, sshCredentialsId, projectName, projectName,
+                repositoryName, repositoryName, serverId, mirrorName);
     }
 
     /**
@@ -171,14 +119,8 @@ public class BitbucketSCMSource extends SCMSource {
             return Collections.emptyList();
         }
         BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        GlobalCredentialsProvider globalCredentialsProvider = serverConfiguration.getGlobalCredentialsProvider(
-                format("Bitbucket SCM: Query Bitbucket for project [%s] repo [%s] mirror[%s]",
-                        getProjectName(),
-                        getRepositoryName(),
-                        getMirrorName()));
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
-                        globalCredentialsProvider.getGlobalAdminCredentials().orElse(null));        
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));        
         
         scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName())
                 .ifPresent(defaultBranch -> result.add(new BitbucketRepositoryMetadataAction(repository, defaultBranch)));
@@ -205,8 +147,7 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     public void afterSave() {
         super.afterSave();
-        // The git scm needs an owner set to resolve non-global credentials
-        getGitSCMSource().setOwner(getOwner());
+        initializeGitScmSource();
 
         if (!webhookRegistered && isValid()) {
             SCMSourceOwner owner = getOwner();
@@ -224,12 +165,11 @@ public class BitbucketSCMSource extends SCMSource {
                     descriptor.getRetryingWebhookHandler().register(
                             bitbucketServerConfiguration.getBaseUrl(),
                             bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, isPullRequestTrigger, isRefTrigger);
+                            repository, owner, isPullRequestTrigger, isRefTrigger);
                 } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
                     LOGGER.severe("Webhook failed to register- token credentials assigned to " + bitbucketServerConfiguration.getServerName()
                                   + " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
                 }
-
             }
         }
     }
@@ -239,12 +179,19 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     CustomGitSCMSource getGitSCMSource() {
+        if (gitSCMSource == null) {
+            initializeGitScmSource();
+        }
         return gitSCMSource;
     }
 
     @CheckForNull
     public String getCredentialsId() {
         return getBitbucketSCMRepository().getCredentialsId();
+    }
+
+    public Optional<Credentials> getCredentials() {
+        return CredentialUtils.getCredentials(getCredentialsId(), getOwner());
     }
 
     public String getMirrorName() {
@@ -302,9 +249,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public boolean isValid() {
-        return getMirrorName() != null && isNotBlank(getProjectKey()) && isNotBlank(getProjectName()) &&
-               isNotBlank(getRemote()) && isNotBlank(getRepositoryName()) && isNotBlank(getRepositorySlug()) &&
-               isNotBlank(getServerId());
+        return getBitbucketSCMRepository().isValid() && isNotBlank(getRemote());
     }
 
     @Override
@@ -332,77 +277,71 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         if (event == null || isEventApplicable(event)) {
+            if (!isValid()) {
+                listener.error("The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve." +
+                               " Check the configuration before running this job again.");
+                return;
+            }
             getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
         }
     }
 
-    private String getCloneUrl(List<BitbucketNamedLink> cloneUrls, CloneProtocol cloneProtocol) {
-        return cloneUrls.stream()
-                .filter(link -> Objects.equals(cloneProtocol.name, link.getName()))
-                .findFirst()
-                .map(BitbucketNamedLink::getHref)
-                .orElse("");
-    }
-
+    // Resolves the SCM repository, and the Git SCM. This involves a callout to Bitbucket so it must be done after the
+    // SCM owner has been initialized
+    @VisibleForTesting
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private void initialize(String cloneUrl, BitbucketSCMRepository bitbucketSCMRepository) {
-        repository = bitbucketSCMRepository;
-        String credentialsId = isBlank(bitbucketSCMRepository.getSshCredentialsId()) ?
-                bitbucketSCMRepository.getCredentialsId() : bitbucketSCMRepository.getSshCredentialsId();
-        UserRemoteConfig remoteConfig =
-                new UserRemoteConfig(cloneUrl, bitbucketSCMRepository.getRepositorySlug(), null, credentialsId);
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
-        getGitSCMSource().setTraits(traits);
-        getGitSCMSource().setCredentialsId(credentialsId);
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void setEmptyRepository(@Nullable String credentialsId,
-                                    @Nullable String sshCredentialsId,
-                                    @CheckForNull String projectName,
-                                    @CheckForNull String repositoryName,
-                                    @CheckForNull String serverId,
-                                    @CheckForNull String mirrorName) {
-        projectName = Objects.toString(projectName, "");
-        repositoryName = Objects.toString(repositoryName, "");
-        mirrorName = Objects.toString(mirrorName, "");
-        BitbucketRepository repository =
-                new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName),
-                        repositoryName, AVAILABLE);
-        setRepositoryDetails(credentialsId, sshCredentialsId, serverId, mirrorName, repository);
-    }
-
-    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
-                                      @Nullable String serverId, String mirrorName, BitbucketRepository repository) {
-        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
-        String cloneUrl = getCloneUrl(repository.getCloneUrls(), cloneProtocol);
-        if (cloneUrl.isEmpty()) {
-            LOGGER.info("No clone url found for repository: " + repository.getName());
-        }
-        BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, sshCredentialsId, repository.getProject().getName(),
-                        repository.getProject().getKey(), repository.getName(), repository.getSlug(),
-                        serverId, mirrorName);
-        initialize(cloneUrl, bitbucketSCMRepository);
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void setRepositoryDetails(@Nullable String credentialsId, @Nullable String sshCredentialsId,
-                                      @Nullable String serverId, EnrichedBitbucketMirroredRepository repository) {
-        if (isBlank(serverId)) {
+    void initializeGitScmSource() {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(repository.getServerId());
+        if (!mayBeServerConf.isPresent()) {
+            // Without a valid server config, we cannot fetch repo details so the config remains as the user entered it
             return;
         }
-        CloneProtocol cloneProtocol = isBlank(sshCredentialsId) ? CloneProtocol.HTTP : CloneProtocol.SSH;
-        String cloneUrl = getCloneUrl(repository.getMirroringDetails().getCloneUrls(), cloneProtocol);
-        if (cloneUrl.isEmpty()) {
-            LOGGER.info("No clone url found for repository: " + repository.getRepository().getName());
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+        String cloneUrl, selfLink;
+
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                getCredentials().orElse(null));
+
+        if (repository.isMirrorConfigured()) {
+            EnrichedBitbucketMirroredRepository fetchedRepository = descriptor.createMirrorHandler(scmHelper)
+                    .fetchRepository(
+                            new MirrorFetchRequest(
+                                    serverConfiguration.getBaseUrl(),
+                                    getOwner(),
+                                    getCredentialsId(),
+                                    getProjectName(),
+                                    getRepositoryName(),
+                                    getMirrorName()));
+            BitbucketRepository underlyingRepo = fetchedRepository.getRepository();
+            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
+                    underlyingRepo.getProject().getName(), underlyingRepo.getProject().getKey(), underlyingRepo.getName(),
+                    underlyingRepo.getSlug(), getServerId(), fetchedRepository.getMirroringDetails().getMirrorName());
+            cloneUrl = underlyingRepo.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
+            selfLink = fetchedRepository.getRepository().getSelfLink();
+        } else {
+            BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
+            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
+                    fetchedRepository.getProject().getName(), fetchedRepository.getProject().getKey(),
+                    fetchedRepository.getName(), fetchedRepository.getSlug(), getServerId(), "");
+            cloneUrl = fetchedRepository.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
+            selfLink = fetchedRepository.getSelfLink();
         }
-        BitbucketRepository underlyingRepo = repository.getRepository();
-        BitbucketSCMRepository bitbucketSCMRepository =
-                new BitbucketSCMRepository(credentialsId, sshCredentialsId, underlyingRepo.getProject().getName(),
-                        underlyingRepo.getProject().getKey(), underlyingRepo.getName(), underlyingRepo.getSlug(),
-                        serverId, repository.getMirroringDetails().getMirrorName());
-        initialize(cloneUrl, bitbucketSCMRepository);
+        // Self link contains `/browse` which we must trim off.
+        selfLink = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
+        if (isBlank(cloneUrl)) {
+            LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
+        }
+
+        // Initialize the Git SCM source
+        UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repository.getRepositorySlug(), null,
+                repository.getCloneCredentialsId());
+        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
+        gitSCMSource.setBrowser(new BitbucketServer(selfLink));
+        gitSCMSource.setCredentialsId(repository.getCloneCredentialsId());
+        gitSCMSource.setOwner(getOwner());
+        gitSCMSource.setTraits(traits);
+        gitSCMSource.setId(getId() + "-git-scm");
     }
 
     @Symbol("BbS")
@@ -576,11 +515,10 @@ public class BitbucketSCMSource extends SCMSource {
             return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT, TagSCMHeadCategory.DEFAULT};
         }
 
-        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                 @Nullable BitbucketTokenCredentials tokenCredentials) {
+        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(tokenCredentials));
+                    jenkinsToBitbucketCredentials.toBitbucketCredentials(httpCredentials));
         }
 
         Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {

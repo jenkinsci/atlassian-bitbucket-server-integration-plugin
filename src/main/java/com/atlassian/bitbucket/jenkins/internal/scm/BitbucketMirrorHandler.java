@@ -93,7 +93,7 @@ public class BitbucketMirrorHandler {
                 requireNonNull(mirrorFetchRequest.getBitbucketServerBaseUrl(), "Bitbucket base Url not found");
 
         BitbucketCredentials jobOrGlobalConf =
-                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getCredentialsId());
+                jenkinsToBitbucketCredentials.toBitbucketCredentials(mirrorFetchRequest.getCredentialsId(), mirrorFetchRequest.getContext());
         BitbucketClientFactory client = bitbucketClientFactoryProvider.getClient(bitbucketBaseUrl, jobOrGlobalConf);
         BitbucketRepository repository =
                 bitbucketRepoFetcher.fetchRepo(client, mirrorFetchRequest.getProjectNameOrKey(), mirrorFetchRequest.getRepoNameOrSlug());

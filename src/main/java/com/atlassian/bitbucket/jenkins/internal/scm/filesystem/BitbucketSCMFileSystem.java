@@ -117,7 +117,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
             BitbucketFilePathClient filePathClient =
                     clientFactoryProvider.getClient(maybeServerConfiguration.get().getBaseUrl(),
-                            jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId(), bitbucketSCMSource.getOwner()))
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(repository.getCredentialsId(), source.getOwner()))
                             .getProjectClient(repository.getProjectKey())
                             .getRepositoryClient(repository.getRepositorySlug())
                             .getFilePathClient();

@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
@@ -15,6 +14,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestClosed
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.PullRequestOpenedWebhookEvent;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhookEvent;
 
+import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import jenkins.branch.MultiBranchProject;
@@ -44,8 +44,14 @@ import static org.mockito.Mockito.*;
 
 public class BitbucketSCMSourceTest {
 
-    private static final String httpCloneLink = "http://localhost:7990/fake.git";
-    private static final String sshCloneLink = "ssh://git@localhost:7990/fake.git";
+    private static final BitbucketDefaultBranch DEFAULT_BRANCH = new BitbucketDefaultBranch("ref/head/master",
+            "master",
+            BitbucketRefType.BRANCH,
+            "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0",
+            "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0",
+            true);
+    private static final String HTTP_CLONE_LINK = "http://localhost:7990/fake.git";
+    private static final String SSH_CLONE_LINK = "ssh://git@localhost:7990/fake.git";
 
     @Test
     public void testAfterSaveDoesNothingIfIsInvalid() {
@@ -76,7 +82,7 @@ public class BitbucketSCMSourceTest {
 
         verifyZeroInteractions(triggerDesc);
     }
-
+    
     @Test
     public void testAfterSaveRegistersWebhookIfNotAlreadyRegisteredWithNoTrigger() {
         String credentialsId = "valid-credentials";
@@ -88,10 +94,11 @@ public class BitbucketSCMSourceTest {
         doReturn(emptyMap()).when(owner).getTriggers();
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
+        doNothing().when(bitbucketSCMSource).initializeGitScmSource();
 
         bitbucketSCMSource.afterSave();
 
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(false));
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(owner), eq(false), eq(false));
     }
 
     @Test
@@ -111,10 +118,11 @@ public class BitbucketSCMSourceTest {
         doReturn(singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
+        doNothing().when(bitbucketSCMSource).initializeGitScmSource();
 
         bitbucketSCMSource.afterSave();
 
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(true), eq(false));
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(owner), eq(true), eq(false));
     }
 
     @Test
@@ -134,10 +142,11 @@ public class BitbucketSCMSourceTest {
         doReturn(singletonMap(triggerDesc, trigger)).when(owner).getTriggers();
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMSource, serverId, baseUrl, owner);
         doReturn(true).when(bitbucketSCMSource).isValid();
+        doNothing().when(bitbucketSCMSource).initializeGitScmSource();
 
         bitbucketSCMSource.afterSave();
 
-        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(false), eq(true));
+        verify(descriptor.getRetryingWebhookHandler()).register(eq(baseUrl), any(), any(), eq(owner), eq(false), eq(true));
     }
 
     @Test
@@ -236,16 +245,8 @@ public class BitbucketSCMSourceTest {
         String serverId = "serverId1";
         String projectName = "proj1";
         
-        BitbucketDefaultBranch branch = new BitbucketDefaultBranch("ref/head/master", 
-                                                                    "master", 
-                                                                    BitbucketRefType.BRANCH, 
-                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
-                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
-                                                                    true);
-        
         BitbucketSCMSource bitbucketSCMsource = createInstance(credentialsId, serverId, projectName);
-        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
-        bitbucketSCMsource.setOwner(owner);
+        bitbucketSCMsource.setOwner(mock(MultiBranchProject.class));
                 
         SCMSourceEvent<RefsChangedWebhookEvent> mockEvent = mock(SCMSourceEvent.class);        
         List<Action> result = bitbucketSCMsource.retrieveActions(mockEvent, null);
@@ -256,7 +257,7 @@ public class BitbucketSCMSourceTest {
         
         BitbucketRepositoryMetadataAction metaAction = (BitbucketRepositoryMetadataAction) action;
         assertThat(metaAction.getBitbucketSCMRepository(), equalTo(bitbucketSCMsource.getBitbucketSCMRepository()));
-        assertThat(metaAction.getBitbucketDefaultBranch(), equalTo(branch));
+        assertThat(metaAction.getBitbucketDefaultBranch(), equalTo(DEFAULT_BRANCH));
     }
     
     @Test
@@ -345,24 +346,24 @@ public class BitbucketSCMSourceTest {
                             .thenReturn(Optional.empty());
                     when(descriptor.getBitbucketScmHelper(
                             nullable(String.class),
-                            nullable(BitbucketTokenCredentials.class)))
+                            nullable(Credentials.class)))
                             .thenReturn(scmHelper);
                     when(descriptor.getRetryingWebhookHandler()).thenReturn(mock(RetryingWebhookHandler.class));
                     when(scmHelper.getRepository(nullable(String.class), nullable(String.class))).thenReturn(repository);
                     when(scmHelper.getDefaultBranch(nullable(String.class), nullable(String.class)))
-                            .thenReturn(Optional.of(new BitbucketDefaultBranch("ref/head/master", 
-                                                                    "master", 
-                                                                    BitbucketRefType.BRANCH, 
-                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
-                                                                    "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", 
-                                                                    true)));
+                            .thenReturn(Optional.of(DEFAULT_BRANCH));
                     when(repository.getProject()).thenReturn(mock(BitbucketProject.class));
-                    when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", httpCloneLink), new BitbucketNamedLink("ssh", sshCloneLink)));
+                    when(repository.getCloneUrls()).thenReturn(Arrays.asList(new BitbucketNamedLink("http", HTTP_CLONE_LINK), new BitbucketNamedLink("ssh", SSH_CLONE_LINK)));
                     when(repository.getSelfLink()).thenReturn("");
                     doReturn(mock(GlobalCredentialsProvider.class))
                             .when(bitbucketServerConfiguration).getGlobalCredentialsProvider(any(String.class));
                 }
                 return descriptor;
+            }
+
+            @Override
+            public Optional<Credentials> getCredentials() {
+                return Optional.of(mock(Credentials.class));
             }
         };
     }

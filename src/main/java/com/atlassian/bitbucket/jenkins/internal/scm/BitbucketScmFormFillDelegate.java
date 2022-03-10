@@ -213,8 +213,8 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                         bitbucketMirrorHandler.fetchAsListBox(
                                 new MirrorFetchRequest(
                                         serverConfiguration.getBaseUrl(),
+                                        context,
                                         credentialsId,
-                                        serverConfiguration.getGlobalCredentialsProvider("Bitbucket SCM Fill Mirror list"),
                                         projectName,
                                         repositoryName,
                                         mirrorName)))

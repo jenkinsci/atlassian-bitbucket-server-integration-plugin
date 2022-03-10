@@ -115,7 +115,7 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(repo)), eq(project), eq(false), eq(true));
     }
 
     @Test
@@ -152,7 +152,10 @@ public class BitbucketWebhookTriggerImplTest {
 
         trigger.start(project, true);
 
-        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), eq(false), eq(true));
+        verify(webhookHandler, never())
+                .register(
+                        anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), 
+                        eq(project), eq(false), eq(true));
     }
 
     @Test
@@ -167,7 +170,7 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(repo)), eq(workflowJob), eq(false), eq(true));
     }
 
     @Test
@@ -183,12 +186,12 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo1)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(repo1)), eq(project), eq(false), eq(true));
         verify(webhookHandler)
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(repo2)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(repo2)), eq(project), eq(false), eq(true));
     }
 
     @Test
@@ -205,7 +208,7 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(actualRepo)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(actualRepo)), eq(project), eq(false), eq(true));
     }
 
     @Test
@@ -222,7 +225,7 @@ public class BitbucketWebhookTriggerImplTest {
                 .register(
                         argThat(args -> args.equals(BITBUCKET_BASE_URL)),
                         any(GlobalCredentialsProvider.class),
-                        argThat(arg -> arg.equals(actualRepo)), eq(false), eq(true));
+                        argThat(arg -> arg.equals(actualRepo)), eq(project), eq(false), eq(true));
     }
 
     @Test
@@ -240,7 +243,10 @@ public class BitbucketWebhookTriggerImplTest {
         BitbucketWebhookTriggerImpl trigger = createInstance(descriptor, null);
         trigger.start(workflowJob, true);
 
-        verify(webhookHandler, never()).register(anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), eq(false), eq(true));
+        verify(webhookHandler, never())
+                .register(
+                        anyString(), any(GlobalCredentialsProvider.class), any(BitbucketSCMRepository.class), 
+                        eq(workflowJob), eq(false), eq(true));
     }
 
     private FreeStyleProject createFreeStyleProject() {

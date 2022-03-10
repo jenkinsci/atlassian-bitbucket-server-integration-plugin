@@ -1,14 +1,12 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.CloneProtocol;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.CheckForNull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
@@ -46,9 +44,9 @@ public class BitbucketRepository {
             @JsonProperty("slug") String slug,
             @JsonProperty("state") RepositoryState state) {
         this.id = id;
-        this.name = name;
+        this.name = Objects.toString(name, "");
         this.project = project;
-        this.slug = slug;
+        this.slug = Objects.toString(slug, "");
         this.state = state;
         if (links != null) {
             setLinks(links);
@@ -75,6 +73,12 @@ public class BitbucketRepository {
 
     public List<BitbucketNamedLink> getCloneUrls() {
         return cloneUrls;
+    }
+
+    public Optional<BitbucketNamedLink> getCloneUrl(CloneProtocol cloneProtocol) {
+        return cloneUrls.stream()
+                .filter(link -> Objects.equals(cloneProtocol.name, link.getName()))
+                .findFirst();
     }
 
     public int getId() {

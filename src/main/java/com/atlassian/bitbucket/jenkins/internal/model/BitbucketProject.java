@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketProject {
 
@@ -20,11 +18,11 @@ public class BitbucketProject {
 
     @JsonCreator
     public BitbucketProject(
-            @JsonProperty(value = "key", required = true) String key,
+            @CheckForNull @JsonProperty(value = "key", required = true) String key,
             @CheckForNull @JsonProperty("links") Map<String, List<BitbucketNamedLink>> links,
-            @JsonProperty(value = "name", required = true) String name) {
-        this.key = requireNonNull(key, "key");
-        this.name = requireNonNull(name, "name");
+            @CheckForNull @JsonProperty(value = "name", required = true) String name) {
+        this.key = Objects.toString(key, "");
+        this.name = Objects.toString(name, "");
         if (links != null) {
             List<BitbucketNamedLink> self = links.get("self");
             if (self != null && !self.isEmpty()) { // there should always be exactly one self link.
