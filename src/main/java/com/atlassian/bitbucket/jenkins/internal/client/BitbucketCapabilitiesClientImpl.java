@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.*;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.CAPABILITIES_CACHE_DURATION_KEY;
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static java.util.Collections.emptySet;
 import static okhttp3.HttpUrl.parse;
@@ -24,7 +25,7 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
      * Cache duration for the capabilities response. Defaults to 1 hour in ms.
      */
     public static final long CAPABILITIES_CACHE_DURATION =
-            parsePositiveLongFromSystemProperty("bitbucket.client.capabilities.cache.duration", 360000);
+            parsePositiveLongFromSystemProperty(CAPABILITIES_CACHE_DURATION_KEY, 360000);
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final Supplier<AtlassianServerCapabilities> capabilitiesCache;
 

@@ -1,7 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.http;
 
-import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
+import com.atlassian.bitbucket.jenkins.internal.client.RequestConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import hudson.Plugin;
 import jenkins.model.Jenkins;
@@ -12,21 +12,21 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
-import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static java.net.HttpURLConnection.*;
-import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private static final int BAD_REQUEST_FAMILY = 4;
+    private static final int HTTP_RATE_LIMITED = 429;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private static final int SERVER_ERROR_FAMILY = 5;
-
+    private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private final Call.Factory httpCallFactory;
 
     @Inject
@@ -39,61 +39,39 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
-    public void executeDelete(HttpUrl url, BitbucketCredentials credentials) {
+    public void executeDelete(HttpUrl url, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder = new Request.Builder().url(url).delete();
-        executeRequest(requestBuilder, credentials, EMPTY_RESPONSE);
+
+        executeRequest(requestBuilder, EMPTY_RESPONSE, additionalConfig);
     }
 
     @Override
-    public <T> T executeGet(HttpUrl url, BitbucketCredentials credentials, ResponseConsumer<T> consumer) {
+    public <T> T executeGet(HttpUrl url, ResponseConsumer<T> consumer, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder = new Request.Builder().url(url);
-        return executeRequest(requestBuilder, credentials, consumer);
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
     @Override
-    public <T> T executePost(HttpUrl url, BitbucketCredentials credential, String requestBodyAsJson,
-                             ResponseConsumer<T> consumer, Headers headers) {
+    public <T> T executePost(HttpUrl url, String requestBodyAsJson, ResponseConsumer<T> consumer,
+                             RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder =
-                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url).headers(headers);
-        return executeRequest(requestBuilder, credential, consumer);
+                new Request.Builder().post(RequestBody.create(JSON, requestBodyAsJson)).url(url);
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
     @Override
-    public <T> T executePut(HttpUrl url, BitbucketCredentials credentials, String requestBodyAsJson,
-                            ResponseConsumer<T> consumer) {
+    public <T> T executePut(HttpUrl url, String requestBodyAsJson,
+                            ResponseConsumer<T> consumer, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder =
                 new Request.Builder().put(RequestBody.create(JSON, requestBodyAsJson)).url(url);
-        return executeRequest(requestBuilder, credentials, consumer);
+        return executeRequest(requestBuilder, consumer, additionalConfig);
     }
 
-    private <T> T executeRequest(Request.Builder requestBuilder, BitbucketCredentials credentials,
-                                 ResponseConsumer<T> consumer) {
-        try {
-            addAuthentication(credentials, requestBuilder);
-            Response response = httpCallFactory.newCall(requestBuilder.build()).execute();
-            int responseCode = response.code();
-
-            try (ResponseBody body = response.body()) {
-                if (response.isSuccessful()) {
-                    log.fine("Bitbucket - call successful");
-                    return consumer.consume(response);
-                }
-                handleError(responseCode, body == null ? null : body.string());
-            }
-        } catch (ConnectException | SocketTimeoutException e) {
-            log.log(Level.FINE, "Bitbucket - Connection failed", e);
-            throw new ConnectionFailureException(e);
-        } catch (IOException e) {
-            log.log(Level.FINE, "Bitbucket - io exception", e);
-            throw new BitbucketClientException(e);
-        }
-        throw new UnhandledErrorException("Unhandled error", -1, null);
-    }
-
-    private void addAuthentication(BitbucketCredentials credential, Request.Builder requestBuilder) {
-        if (credential != ANONYMOUS_CREDENTIALS) {
-            requestBuilder.addHeader(AUTHORIZATION, credential.toHeaderValue());
-        }
+    private <T> T executeRequest(Request.Builder requestBuilder, ResponseConsumer<T> consumer,
+                                 RequestConfiguration... additionalConfigs) {
+        Set<RequestConfiguration> additionalConfig = toSet(additionalConfigs);
+        additionalConfig.forEach(config -> config.apply(requestBuilder));
+        return performRequest(requestBuilder.build(), consumer);
     }
 
     /**
@@ -107,7 +85,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
      * @throws ServerErrorException     if the server failed to process the request
      * @throws BitbucketClientException for all errors not already captured
      */
-    private static void handleError(int responseCode, @Nullable String body)
+    private void handleError(int responseCode, @Nullable String body, Headers headers)
             throws AuthorizationException {
         switch (responseCode) {
             case HTTP_FORBIDDEN: // fall through to same handling.
@@ -118,6 +96,8 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
             case HTTP_NOT_FOUND:
                 log.info("Bitbucket - Path not found");
                 throw new NotFoundException("The requested resource does not exist", body);
+            case HTTP_RATE_LIMITED:
+                throw new RateLimitedException("Rate limited", HTTP_RATE_LIMITED, body, headers);
         }
         int family = responseCode / 100;
         switch (family) {
@@ -130,6 +110,53 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                         "The server failed to service request", responseCode, body);
         }
         throw new UnhandledErrorException("Unhandled error", responseCode, body);
+    }
+
+    private <T> T performRequest(Request request, ResponseConsumer<T> consumer) {
+        try {
+            Response response = httpCallFactory.newCall(request).execute();
+            int responseCode = response.code();
+
+            try (ResponseBody body = response.body()) {
+                if (response.isSuccessful()) {
+                    log.fine("Bitbucket - call successful");
+                    return consumer.consume(response);
+                }
+                handleError(responseCode, body == null ? null : body.string(), response.headers());
+            }
+        } catch (ConnectException | SocketTimeoutException e) {
+            log.log(Level.FINE, "Bitbucket - Connection failed", e);
+            throw new ConnectionFailureException(e);
+        } catch (IOException e) {
+            log.log(Level.FINE, "Bitbucket - io exception", e);
+            throw new BitbucketClientException(e);
+        } catch (RateLimitedException e) {
+            RetryOnRateLimitConfig rateLimitConfig = request.tag(RetryOnRateLimitConfig.class);
+            if (rateLimitConfig != null) {
+                if (rateLimitConfig.incrementAndGetAttempts() <= rateLimitConfig.getMaxAttempts()) {
+                    try {
+                        Thread.sleep(e.getRetryIn());
+                    } catch (InterruptedException ex) {
+                        throw new UnhandledErrorException("Interrupted during wait to retry", -2, null);
+                    }
+                    return performRequest(request, consumer);
+                }
+            }
+            throw e;
+        }
+        throw new UnhandledErrorException("Unhandled error", -1, null);
+    }
+
+    private Set<RequestConfiguration> toSet(RequestConfiguration[] additionalConfig) {
+        //We want to throw if there are duplicates in the array, the builtin Collectors do not do this (they pick one element
+        //and discards the rest). A duplicate would be a coding error, so we want to throw to give a heads up to the dev.
+        Set<RequestConfiguration> configurations = new HashSet<>(additionalConfig.length, 1);
+        for (RequestConfiguration config : additionalConfig) {
+            if (!configurations.add(config)) {
+                throw new IllegalArgumentException("Duplicate RequestConfiguration provided");
+            }
+        }
+        return configurations;
     }
 
     /**

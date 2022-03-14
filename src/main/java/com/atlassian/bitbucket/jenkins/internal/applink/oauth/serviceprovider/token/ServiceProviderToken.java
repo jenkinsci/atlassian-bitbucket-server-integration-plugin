@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 import java.time.Clock;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.*;
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
@@ -68,13 +69,13 @@ public final class ServiceProviderToken extends Token {
      * The default value for request token time to live.  Value corresponds to 10 minutes in ms.
      */
     public static final long DEFAULT_REQUEST_TOKEN_TTL =
-            parsePositiveLongFromSystemProperty("bitbucket.oauth.default.request.token.ttl", 600000);
+            parsePositiveLongFromSystemProperty(DEFAULT_OAUTH_REQUEST_TOKEN_TTL_KEY, 600000);
 
     /**
      * The default value for access token time to live.  Value corresponds to 5 years in ms.
      */
     public static final long DEFAULT_ACCESS_TOKEN_TTL =
-            parsePositiveLongFromSystemProperty("bitbucket.oauth.default.access.token.ttl",
+            parsePositiveLongFromSystemProperty(DEFAULT_OAUTH_ACCESS_TOKEN_TTL_KEY,
                     5 * 365 * 24 * 60 * 60 * 1000L);
 
     /**
@@ -83,7 +84,7 @@ public final class ServiceProviderToken extends Token {
      * live while the access token has just expired.
      */
     public static final long DEFAULT_SESSION_TTL =
-            parsePositiveLongFromSystemProperty("bitbucket.oauth.default.session.ttl",
+            parsePositiveLongFromSystemProperty(DEFAULT_OAUTH_SESSION_TTL_KEY,
                     DEFAULT_ACCESS_TOKEN_TTL + 30 * 24 * 60 * 60 * 1000L);
 
     private final Authorization authorization;

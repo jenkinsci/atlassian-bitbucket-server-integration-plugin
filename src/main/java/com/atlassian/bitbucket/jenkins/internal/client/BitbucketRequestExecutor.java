@@ -8,13 +8,13 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
@@ -29,8 +29,8 @@ public class BitbucketRequestExecutor {
     private final HttpUrl bitbucketBaseUrl;
     private final HttpUrl bitbucketCoreRestPathUrl;
     private final BitbucketCredentials credentials;
-    private final ObjectMapper objectMapper;
     private final HttpRequestExecutor httpRequestExecutor;
+    private final ObjectMapper objectMapper;
 
     public BitbucketRequestExecutor(String bitbucketBaseUrl,
                                     HttpRequestExecutor httpRequestExecutor, ObjectMapper objectMapper,
@@ -76,33 +76,35 @@ public class BitbucketRequestExecutor {
     /**
      * Make a GET request to the url given. This method will add authentication headers as needed.
      * If the requested resource is paged, or the return type is generified use this method,
-     * otherwise the {@link #makeGetRequest(HttpUrl, Class)} is most likely a better choice.
+     * otherwise the {@link #makeGetRequest(HttpUrl, Class, RequestConfiguration...)} is most likely a better choice.
      *
      * @param url        url to connect to
      * @param returnType type reference used when getting generified objects (such as pages)
      * @param <T>        type to return
      * @return a deserialized object of type T
-     * @see #makeGetRequest(HttpUrl, Class)
+     * @see #makeGetRequest(HttpUrl, Class, RequestConfiguration...)
      */
-    public <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, TypeReference<T> returnType) {
-        return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
+    public <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, TypeReference<T> returnType,
+                                                   RequestConfiguration... additionalConfig) {
+        return makeGetRequest(url, in -> objectMapper.readValue(in, returnType), additionalConfig);
     }
 
     /**
      * Make a GET request to the url given. This method will add authentication headers as needed.
      * <em>Note!</em> this method <em>cannot</em> be used to retrieve entities that makes use of
      * generics (such as {@link BitbucketPage}) for that use {@link #makeGetRequest(HttpUrl,
-     * TypeReference)} instead.
+     * TypeReference, RequestConfiguration...)} instead.
      *
      * @param url        url to connect to
      * @param returnType class of the desired return type. Do note that if the type is generified
      *                   this method will not work
      * @param <T>        type to return
      * @return a deserialized object of type T
-     * @see #makeGetRequest(HttpUrl, TypeReference)
+     * @see #makeGetRequest(HttpUrl, TypeReference, RequestConfiguration...)
      */
-    public <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, Class<T> returnType) {
-        return makeGetRequest(url, in -> objectMapper.readValue(in, returnType));
+    public <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, Class<T> returnType,
+                                                   RequestConfiguration... additionalConfig) {
+        return makeGetRequest(url, in -> objectMapper.readValue(in, returnType), additionalConfig);
     }
 
     /**
@@ -115,11 +117,12 @@ public class BitbucketRequestExecutor {
      * @param <R>             return type
      * @return the result
      */
-    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Headers headers,
-                                                       Class<R> returnType) {
+    public <T, R> BitbucketResponse<R> makePostRequest(HttpUrl url, T requestPayload, Class<R> returnType,
+                                                       RequestConfiguration... additionalConfig) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
-        return httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), response ->
-                new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())), headers);
+        return httpRequestExecutor.executePost(url, marshall(requestPayload), response ->
+                        new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())),
+                addCredentials(additionalConfig));
     }
 
     /**
@@ -129,8 +132,8 @@ public class BitbucketRequestExecutor {
      * @param requestPayload JSON payload which will be marshalled to send it with POST
      * @param <T>            Type of Request payload
      */
-    public <T> void makePostRequest(HttpUrl url, T requestPayload, Headers headers) {
-        httpRequestExecutor.executePost(url, credentials, marshall(requestPayload), EMPTY_RESPONSE, headers);
+    public <T> void makePostRequest(HttpUrl url, T requestPayload, RequestConfiguration... additionalConfig) {
+        httpRequestExecutor.executePost(url, marshall(requestPayload), EMPTY_RESPONSE, addCredentials(additionalConfig));
     }
 
     /**
@@ -143,10 +146,20 @@ public class BitbucketRequestExecutor {
      * @param <R>            Type of return
      * @return the result
      */
-    public <T, R> BitbucketResponse<R> makePutRequest(HttpUrl url, T requestPayload, Class<R> returnType) {
+    public <T, R> BitbucketResponse<R> makePutRequest(HttpUrl url, T requestPayload, Class<R> returnType,
+                                                      RequestConfiguration... additionalConfig) {
         ObjectReader<R> reader = in -> objectMapper.readValue(in, returnType);
-        return httpRequestExecutor.executePut(url, credentials, marshall(requestPayload), response ->
-                new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())));
+        return httpRequestExecutor.executePut(url, marshall(requestPayload), response ->
+                        new BitbucketResponse<>(response.headers().toMultimap(), unmarshall(reader, response.body())),
+                addCredentials(additionalConfig));
+    }
+
+    private RequestConfiguration[] addCredentials(RequestConfiguration[] additionalConfig) {
+        if (credentials != BitbucketCredentials.ANONYMOUS_CREDENTIALS) {
+            additionalConfig = Arrays.copyOf(additionalConfig, additionalConfig.length + 1);
+            additionalConfig[additionalConfig.length - 1] = credentials;
+        }
+        return additionalConfig;
     }
 
     private void ensureNonEmptyBody(Response response) {
@@ -157,14 +170,15 @@ public class BitbucketRequestExecutor {
         }
     }
 
-    private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, ObjectReader<T> reader) {
-        return httpRequestExecutor.executeGet(url, credentials,
+    private <T> BitbucketResponse<T> makeGetRequest(HttpUrl url, ObjectReader<T> reader,
+                                                    RequestConfiguration... additionalConfig) {
+        return httpRequestExecutor.executeGet(url,
                 response -> {
                     ensureNonEmptyBody(response);
                     T result = unmarshall(reader, response.body());
                     return new BitbucketResponse<>(
                             response.headers().toMultimap(), result);
-                });
+                }, addCredentials(additionalConfig));
     }
 
     private <T> String marshall(T requestPayload) {

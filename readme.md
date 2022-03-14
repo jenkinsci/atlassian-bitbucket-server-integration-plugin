@@ -153,6 +153,10 @@ To use a different Jenkinsfile for different branches of your Bitbucket Server p
 
 Watch our [video](https://youtu.be/LY3zPgRr8no) to find out how to do this, or read more about [Multibranch Pipelines on Jenkins.io](https://jenkins.io/doc/book/pipeline/multibranch/#creating-a-multibranch-pipeline).
 
+#### Advanced Configuration
+
+A list of all custom environmental properties can be found in `SystemPropertiesConstant.java`.
+
 ### Additional documentation
 
 * [Sending deployment notifications](./docs/deployment_notifications.md)
@@ -216,6 +220,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ### 3.2.0 (Unreleased)
 - The minimum version of Jenkins changed to be **2.289.1**
+- Fix JENKINS-66539 we now handle rate limiting for posting build statuses
 
 ### 3.1.0 (5 November 2021)
 - [Sending notifications to Bitbucket Data Center's deployment status API](./docs/deployment_notifications.md) are now
