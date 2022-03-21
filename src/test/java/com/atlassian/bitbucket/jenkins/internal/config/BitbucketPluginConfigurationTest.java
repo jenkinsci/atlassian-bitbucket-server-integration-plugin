@@ -26,10 +26,10 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -59,6 +59,7 @@ public class BitbucketPluginConfigurationTest {
     @Before
     public void setup() {
         pluginConfiguration = new BitbucketPluginConfiguration();
+        when(validServerConfiguration.getServerName()).thenReturn("serverName");
         when(validServerConfiguration.validate()).thenReturn(FormValidation.ok());
         when(validServerConfiguration.getId()).thenReturn("0");
         when(validServerConfiguration.getBaseUrl()).thenReturn("http://localhost:5990/bitbucket");
@@ -141,6 +142,30 @@ public class BitbucketPluginConfigurationTest {
     public void testGetValidServerListEmpty() {
         pluginConfiguration.setServerList(Collections.emptyList());
         assertThat(pluginConfiguration.getValidServerList(), Matchers.hasSize(0));
+    }
+    
+    @Test
+    public void testGetValidServerListByName() {
+        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne));
+        assertThat(pluginConfiguration.getValidServerListByName("serverName"), Matchers.hasSize(1));
+    }
+    
+    @Test
+    public void testGetValidServerListEmptyByName() {
+        pluginConfiguration.setServerList(Collections.emptyList());
+        assertThat(pluginConfiguration.getValidServerListByName("serverName"), Matchers.hasSize(0));
+    }
+
+    @Test
+    public void testGetValidServerListNonMatchingName() {
+        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, invalidServerConfigurationOne));
+        assertThat(pluginConfiguration.getValidServerListByName("nonMatchingName"), Matchers.hasSize(0));
+    }
+    
+    @Test
+    public void testGetValidServerListMultipleMatchingNames() {
+        pluginConfiguration.setServerList(Arrays.asList(validServerConfiguration, validServerConfiguration));
+        assertThat(pluginConfiguration.getValidServerListByName("serverName"), Matchers.hasSize(2));
     }
 
     @Test

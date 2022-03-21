@@ -1,12 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
-import com.google.inject.Guice;
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.plugins.git.BranchSpec;
@@ -37,18 +34,15 @@ public class BitbucketSCMStep extends SCMStep {
     private String id;
     private final String projectName;
     private final String repositoryName;
-    private final String serverId;
+    private String serverId;
+    @UpgradeHandled(handledBy = "Optional field, existing SCMSteps will be created as normal", removeAnnotationInVersion = "3.2.1")
+    private String serverName;
     private String mirrorName;
 
     @DataBoundConstructor
-    public BitbucketSCMStep(String projectName, String repositoryName, String serverId) {
+    public BitbucketSCMStep(String projectName, String repositoryName) {
         this.id = UUID.randomUUID().toString();
         this.branches = Collections.singletonList(new BranchSpec("**"));
-
-        if (isBlank(serverId)) {
-            throw new BitbucketSCMException("Error creating Bitbucket SCM: No server configuration provided");
-        }
-        this.serverId = serverId;
 
         if (isBlank(projectName)) {
             throw new BitbucketSCMException("Error creating the Bitbucket SCM: The project name is blank");
@@ -62,8 +56,8 @@ public class BitbucketSCMStep extends SCMStep {
     }
 
     @DataBoundSetter
-    public void setId(String id) {
-        this.id = requireNonNull(id, "id");
+    public void setBranches(List<BranchSpec> branches) {
+        this.branches = requireNonNull(branches, "branches");
     }
 
     @DataBoundSetter
@@ -72,8 +66,8 @@ public class BitbucketSCMStep extends SCMStep {
     }
 
     @DataBoundSetter
-    public void setSshCredentialsId(@Nullable String sshCredentialsId) {
-        this.sshCredentialsId = stripToNull(sshCredentialsId);
+    public void setId(String id) {
+        this.id = requireNonNull(id, "id");
     }
 
     @DataBoundSetter
@@ -82,10 +76,20 @@ public class BitbucketSCMStep extends SCMStep {
     }
 
     @DataBoundSetter
-    public void setBranches(List<BranchSpec> branches) {
-        this.branches = requireNonNull(branches, "branches");
+    public void setServerId(String serverId) {
+        this.serverId = requireNonNull(serverId, "serverId");
+    }
+    
+    @DataBoundSetter
+    public void setServerName(String serverName) {
+        this.serverName = requireNonNull(serverName, "serverName");
     }
 
+    @DataBoundSetter
+    public void setSshCredentialsId(@Nullable String sshCredentialsId) {
+        this.sshCredentialsId = stripToNull(sshCredentialsId);
+    }
+    
     public List<BranchSpec> getBranches() {
         return branches;
     }
@@ -120,25 +124,48 @@ public class BitbucketSCMStep extends SCMStep {
     public String getServerId() {
         return serverId;
     }
+    
+    @Nullable
+    public String getServerName() {
+        return serverName;
+    }
 
     @Override
     protected SCM createSCM() {
+        resolveServerId();
         return new BitbucketSCM(id, branches, credentialsId, sshCredentialsId, null, null, projectName, repositoryName, serverId, mirrorName);
+    }
+    
+    // If the server ID was not set but the server name was, this finds the matching config and resolves the ID
+    private void resolveServerId() {
+        if (serverId != null) {
+            // Id already exists, nothing to do
+            return;
+        }
+        if (serverName != null) {
+            List<BitbucketServerConfiguration> serverList = ((DescriptorImpl) getDescriptor()).getServerListByName(serverName);
+            if (serverList.isEmpty()) {
+                throw new BitbucketSCMException("Error creating Bitbucket SCM: No server configuration matches provided name");
+            } else if (serverList.size() > 1) {
+                throw new BitbucketSCMException("Error creating Bitbucket SCM: Multiple server configurations match " +
+                                                "provided service name. Use serverId to disambiguate");
+            }
+            serverId = serverList.get(0).getId();
+        } else {
+            throw new BitbucketSCMException("Error creating Bitbucket SCM: No server name or ID provided");
+        }
     }
 
     @Symbol("BitbucketSCMStep")
     @Extension
-    public static final class DescriptorImpl extends SCMStepDescriptor implements BitbucketScmFormValidation, BitbucketScmFormFill {
+    public static class DescriptorImpl extends SCMStepDescriptor implements BitbucketScmFormValidation, BitbucketScmFormFill {
 
-        @Inject
-        private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         @Inject
         private BitbucketScmFormFillDelegate formFill;
         @Inject
         private BitbucketScmFormValidationDelegate formValidation;
-        private transient JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
         @Override
         @POST
@@ -261,35 +288,9 @@ public class BitbucketSCMStep extends SCMStep {
             return false;
         }
 
-        @Inject
-        public void setJenkinsToBitbucketCredentials(
-                JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials) {
-            this.jenkinsToBitbucketCredentials = jenkinsToBitbucketCredentials;
-        }
-
-        private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
-            injectJenkinsToBitbucketCredentials();
-            return new BitbucketMirrorHandler(
-                    bitbucketClientFactoryProvider,
-                    jenkinsToBitbucketCredentials,
-                    (client, project, repo) -> helper.getRepository(project, repo));
-        }
-
-        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl,
-                                                 @Nullable BitbucketTokenCredentials tokenCredentials) {
-            return new BitbucketScmHelper(bitbucketUrl,
-                    bitbucketClientFactoryProvider,
-                    jenkinsToBitbucketCredentials.toBitbucketCredentials(tokenCredentials));
-        }
-
-        private Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
-            return bitbucketPluginConfiguration.getServerById(serverId);
-        }
-
-        private void injectJenkinsToBitbucketCredentials() {
-            if (jenkinsToBitbucketCredentials == null) {
-                Guice.createInjector(new JenkinsToBitbucketCredentialsModule()).injectMembers(this);
-            }
+        @VisibleForTesting
+        List<BitbucketServerConfiguration> getServerListByName(String serverName) {
+             return bitbucketPluginConfiguration.getValidServerListByName(serverName);
         }
     }
 }

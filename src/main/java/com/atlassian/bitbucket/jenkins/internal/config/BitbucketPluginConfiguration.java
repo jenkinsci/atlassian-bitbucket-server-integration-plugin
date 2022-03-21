@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
@@ -93,8 +94,18 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
      * @return a list of all valid configured servers
      */
     public List<BitbucketServerConfiguration> getValidServerList() {
-        return serverList.stream()
-                .filter(server -> server.validate().kind != Kind.ERROR)
+        return getValidServerStream().collect(Collectors.toList());
+    }
+
+    /**
+     * Returns a list of all servers configured by the user matching the provided name, and also passing the process()
+     * function with no errors.
+     * @param serverName the name to search for
+     * @return a list of all valid configured servers with a matching serverName
+     */
+    public List<BitbucketServerConfiguration> getValidServerListByName(String serverName) {
+        return getValidServerStream()
+                .filter(server -> serverName.equals(server.getServerName()))
                 .collect(Collectors.toList());
     }
 
@@ -107,6 +118,11 @@ public class BitbucketPluginConfiguration extends GlobalConfiguration {
         return serverList.stream().anyMatch(server -> server.validate().kind == Kind.ERROR);
     }
 
+    private Stream<BitbucketServerConfiguration> getValidServerStream() {
+        return serverList.stream()
+                .filter(server -> server.validate().kind != Kind.ERROR);
+    }
+    
     private void updateJobs(Map<String, String> oldBaseUrls) {
         Set<String> changedServerIds = serverList.stream()
                 .filter(serverConfig -> !serverConfig.getBaseUrl().equalsIgnoreCase(oldBaseUrls.get(serverConfig.getId())))

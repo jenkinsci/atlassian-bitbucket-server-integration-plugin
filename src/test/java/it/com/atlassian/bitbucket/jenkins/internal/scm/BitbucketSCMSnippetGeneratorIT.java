@@ -65,7 +65,6 @@ public class BitbucketSCMSnippetGeneratorIT {
         json.put("stapler-class", "com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep");
         json.put("$class", "com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMStep");
 
-        json.put("projectName", "Project 1");
         json.put("repositoryName", "rep_1");
 
         RestAssured.expect()
