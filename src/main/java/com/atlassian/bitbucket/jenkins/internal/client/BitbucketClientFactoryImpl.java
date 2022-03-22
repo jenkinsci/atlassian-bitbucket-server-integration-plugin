@@ -1,19 +1,16 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.supply.BitbucketCapabilitiesSupplier;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
-    private final BitbucketCapabilitiesSupplier capabilitiesSupplier;
 
     BitbucketClientFactoryImpl(String serverUrl, BitbucketCredentials credentials, ObjectMapper objectMapper,
                                HttpRequestExecutor httpRequestExecutor) {
         bitbucketRequestExecutor = new BitbucketRequestExecutor(serverUrl, httpRequestExecutor, objectMapper,
                 credentials);
-        capabilitiesSupplier = new BitbucketCapabilitiesSupplier(bitbucketRequestExecutor);
     }
 
     @Override
@@ -23,7 +20,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketCapabilitiesClient getCapabilityClient() {
-        return new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor, capabilitiesSupplier);
+        return new BitbucketCapabilitiesClientImpl(bitbucketRequestExecutor);
     }
 
     @Override

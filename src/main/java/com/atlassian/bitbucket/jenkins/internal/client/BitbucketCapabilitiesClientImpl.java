@@ -26,12 +26,12 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
      */
     public static final long CAPABILITIES_CACHE_DURATION =
             parsePositiveLongFromSystemProperty(CAPABILITIES_CACHE_DURATION_KEY, 360000);
+    private static Supplier<AtlassianServerCapabilities> capabilitiesCache;
+    
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
-    private final Supplier<AtlassianServerCapabilities> capabilitiesCache;
 
-    BitbucketCapabilitiesClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, BitbucketCapabilitiesSupplier supplier) {
+    BitbucketCapabilitiesClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
-        capabilitiesCache = Suppliers.memoizeWithExpiration(supplier, CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -55,6 +55,10 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
 
     @Override
     public AtlassianServerCapabilities getServerCapabilities() {
+        if (capabilitiesCache == null) {
+            capabilitiesCache = Suppliers.memoizeWithExpiration(new BitbucketCapabilitiesSupplier(bitbucketRequestExecutor),
+                    CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS);
+        }
         return capabilitiesCache.get();
     }
 
