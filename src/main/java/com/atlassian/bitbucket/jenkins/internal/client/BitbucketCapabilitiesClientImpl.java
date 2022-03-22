@@ -6,37 +6,34 @@ import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilitie
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketWebhookSupportedEvents;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentCapabilities;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import okhttp3.HttpUrl;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities.*;
-import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.CAPABILITIES_CACHE_DURATION_KEY;
-import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
+
+import com.google.common.cache.Cache;
+
+import java.util.concurrent.ExecutionException;
+
 import static java.util.Collections.emptySet;
 import static okhttp3.HttpUrl.parse;
 
 public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesClient {
 
-    /**
-     * Cache duration for the capabilities response. Defaults to 1 hour in ms.
-     */
-    public static final long CAPABILITIES_CACHE_DURATION =
-            parsePositiveLongFromSystemProperty(CAPABILITIES_CACHE_DURATION_KEY, 360000);
-    private static Supplier<AtlassianServerCapabilities> capabilitiesCache;
-    
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final Cache<HttpUrl, AtlassianServerCapabilities> capabilitiesCache;
 
-    BitbucketCapabilitiesClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor) {
+    BitbucketCapabilitiesClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, Cache capabilitiesCache) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
+        this.capabilitiesCache = capabilitiesCache;
     }
 
     @Override
     public BitbucketCICapabilities getCICapabilities() {
-        BitbucketCICapabilities ciCapabilities = getCapabilitiesForKey(RICH_BUILDSTATUS_CAPABILITY_KEY, BitbucketCICapabilities.class);
+        BitbucketCICapabilities ciCapabilities =
+                getCapabilitiesForKey(RICH_BUILDSTATUS_CAPABILITY_KEY, BitbucketCICapabilities.class);
         if (ciCapabilities == null) {
             return new BitbucketCICapabilities(emptySet());
         }
@@ -55,16 +52,22 @@ public class BitbucketCapabilitiesClientImpl implements BitbucketCapabilitiesCli
 
     @Override
     public AtlassianServerCapabilities getServerCapabilities() {
-        if (capabilitiesCache == null) {
-            capabilitiesCache = Suppliers.memoizeWithExpiration(new BitbucketCapabilitiesSupplier(bitbucketRequestExecutor),
-                    CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS);
+        try {
+            return capabilitiesCache.get(bitbucketRequestExecutor.getBaseUrl(), () ->
+                    new BitbucketCapabilitiesSupplier(bitbucketRequestExecutor).get()
+            );
+        } catch (ExecutionException executionException) {
+            throw new RuntimeException(executionException);
+        } catch (UncheckedExecutionException uncheckedExecutionException) {
+            // We unwrap the exception in case consumers have handling for specific exception cases
+            throw (RuntimeException) uncheckedExecutionException.getCause();
         }
-        return capabilitiesCache.get();
     }
 
     @Override
     public BitbucketWebhookSupportedEvents getWebhookSupportedEvents() throws BitbucketMissingCapabilityException {
-        BitbucketWebhookSupportedEvents events = getCapabilitiesForKey(WEBHOOK_CAPABILITY_KEY, BitbucketWebhookSupportedEvents.class);
+        BitbucketWebhookSupportedEvents events =
+                getCapabilitiesForKey(WEBHOOK_CAPABILITY_KEY, BitbucketWebhookSupportedEvents.class);
         if (events == null) {
             throw new BitbucketMissingCapabilityException(
                     "Remote Bitbucket Server does not support Webhooks. Make sure " +

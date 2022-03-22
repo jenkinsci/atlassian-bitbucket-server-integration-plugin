@@ -3,13 +3,18 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketResponse;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import okhttp3.HttpUrl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -24,6 +29,10 @@ public class BitbucketCapabilitiesClientImplTest {
     private AtlassianServerCapabilities newCapabilities;
     @Mock
     private BitbucketRequestExecutor requestExecutor;
+    @Spy
+    Cache<HttpUrl, AtlassianServerCapabilities> capabilitiesCache = CacheBuilder.newBuilder()
+            .expireAfterAccess(3600000, TimeUnit.MILLISECONDS)
+            .build();
 
     @Before
     public void setup() {
@@ -39,31 +48,41 @@ public class BitbucketCapabilitiesClientImplTest {
 
     @Test
     public void testGetServerCapabilitiesNoCache() {
-        BitbucketResponse response = mock(BitbucketResponse.class);
-        doReturn(newCapabilities).when(response).getBody();
-        doReturn(response).when(requestExecutor).makeGetRequest(
-                eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
-
-        assertEquals(newCapabilities, capabilitiesClient.getServerCapabilities());
-        verify(requestExecutor).getBaseUrl();
+        AtlassianServerCapabilities result = getServerCapabilities();
+        
+        assertEquals(newCapabilities, result);
+        // Two checks- once as the key of the cache and again when making the GET request
+        verify(requestExecutor, times(2)).getBaseUrl();
         verify(requestExecutor).makeGetRequest(
                 eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
     }
 
     @Test
     public void testGetServerCapabilitiesWithCache() {
-        testGetServerCapabilitiesNoCache();
+        getServerCapabilities();
+        AtlassianServerCapabilities result = getServerCapabilities();
 
-        assertEquals(newCapabilities, capabilitiesClient.getServerCapabilities());
-        verifyNoMoreInteractions(requestExecutor);
+        assertEquals(newCapabilities, result);
+        verify(requestExecutor, times(1)).makeGetRequest(
+                eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
     }
-    
+
     @Test
     public void testGetServerCapabilitiesMultipleClients() {
-        testGetServerCapabilitiesNoCache();
+        getServerCapabilities();
+        BitbucketCapabilitiesClientImpl newClient = new BitbucketCapabilitiesClientImpl(requestExecutor, capabilitiesCache);
+        AtlassianServerCapabilities result = getServerCapabilities();
         
-        BitbucketCapabilitiesClientImpl newClient = new BitbucketCapabilitiesClientImpl(requestExecutor);
-        assertEquals(newCapabilities, capabilitiesClient.getServerCapabilities());
-        verifyNoMoreInteractions(requestExecutor);
+        assertEquals(newCapabilities, result);
+        verify(requestExecutor, times(1)).makeGetRequest(
+                eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
+    }
+    
+    private AtlassianServerCapabilities getServerCapabilities() {
+        BitbucketResponse response = mock(BitbucketResponse.class);
+        doReturn(newCapabilities).when(response).getBody();
+        doReturn(response).when(requestExecutor).makeGetRequest(
+                eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
+        return capabilitiesClient.getServerCapabilities();
     }
 }
