@@ -21,7 +21,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     public static final long CAPABILITIES_CACHE_DURATION =
             parsePositiveLongFromSystemProperty(CAPABILITIES_CACHE_DURATION_KEY, 360000);
     private final Cache<HttpUrl, AtlassianServerCapabilities> capabilitiesCache = CacheBuilder.newBuilder()
-            .expireAfterAccess(CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS)
+            .expireAfterWrite(CAPABILITIES_CACHE_DURATION, TimeUnit.MILLISECONDS)
             .build();
             
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
