@@ -114,6 +114,7 @@ To create the Application Link:
 1. In Bitbucket Server, go to **Administration** (select the cog in the top navigation bar)  > **Application Links**. 
 2. Enter the application URL (see Application Link details page) and select **Create new link**. 
 3. If you are using Bitbucket DC version 7.21 or above, you will be prompted to select a type of application link. Choose **Atlassian Product**.
+   - Note that the **External Product** option relies on an OAuth2 connection and is not supported by this plugin
 4. Select **Continue** on the warning message. This is not a problem. 
 5. Complete the form: 
    - Application Name - Enter a name to help you identify this Jenkins instance. 
