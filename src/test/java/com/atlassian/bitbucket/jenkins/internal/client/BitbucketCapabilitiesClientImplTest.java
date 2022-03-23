@@ -48,7 +48,7 @@ public class BitbucketCapabilitiesClientImplTest {
 
     @Test
     public void testGetServerCapabilitiesNoCache() {
-        AtlassianServerCapabilities result = getServerCapabilities();
+        AtlassianServerCapabilities result = getServerCapabilities(capabilitiesClient);
         
         assertEquals(newCapabilities, result);
         // Two checks- once as the key of the cache and again when making the GET request
@@ -59,8 +59,8 @@ public class BitbucketCapabilitiesClientImplTest {
 
     @Test
     public void testGetServerCapabilitiesWithCache() {
-        getServerCapabilities();
-        AtlassianServerCapabilities result = getServerCapabilities();
+        getServerCapabilities(capabilitiesClient);
+        AtlassianServerCapabilities result = getServerCapabilities(capabilitiesClient);
 
         assertEquals(newCapabilities, result);
         verify(requestExecutor, times(1)).makeGetRequest(
@@ -69,20 +69,20 @@ public class BitbucketCapabilitiesClientImplTest {
 
     @Test
     public void testGetServerCapabilitiesMultipleClients() {
-        getServerCapabilities();
+        getServerCapabilities(capabilitiesClient);
         BitbucketCapabilitiesClientImpl newClient = new BitbucketCapabilitiesClientImpl(requestExecutor, capabilitiesCache);
-        AtlassianServerCapabilities result = getServerCapabilities();
+        AtlassianServerCapabilities result = getServerCapabilities(newClient);
         
         assertEquals(newCapabilities, result);
         verify(requestExecutor, times(1)).makeGetRequest(
                 eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
     }
     
-    private AtlassianServerCapabilities getServerCapabilities() {
+    private AtlassianServerCapabilities getServerCapabilities(BitbucketCapabilitiesClient client) {
         BitbucketResponse response = mock(BitbucketResponse.class);
         doReturn(newCapabilities).when(response).getBody();
         doReturn(response).when(requestExecutor).makeGetRequest(
                 eq(HttpUrl.parse(BASE_URL + "/rest/capabilities")), eq(AtlassianServerCapabilities.class));
-        return capabilitiesClient.getServerCapabilities();
+        return client.getServerCapabilities();
     }
 }
