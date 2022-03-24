@@ -4,10 +4,13 @@ import com.atlassian.bitbucket.jenkins.internal.annotations.NotUpgradeSensitive;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthConsumerEntry.OAuthConsumerEntryDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Action;
 import hudson.model.Descriptor;
+import hudson.model.Descriptor.FormException;
+import jenkins.model.Jenkins;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
@@ -24,14 +27,17 @@ import static java.util.Objects.requireNonNull;
 public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthConsumerCreateAction> implements Action {
 
     private final ServiceProviderConsumerStore store;
+    private final JenkinsProvider jenkinsProvider;
 
-    public OAuthConsumerCreateAction(ServiceProviderConsumerStore store) {
+    public OAuthConsumerCreateAction(ServiceProviderConsumerStore store, JenkinsProvider jenkinsProvider) {
         this.store = requireNonNull(store, "store");
+        this.jenkinsProvider = requireNonNull(jenkinsProvider, "jenkinsProvider");
     }
 
     @RequirePOST
     @SuppressWarnings("unused") // Stapler
-    public HttpResponse doPerformCreate(StaplerRequest req) throws ServletException, URISyntaxException {
+    public HttpResponse doPerformCreate(StaplerRequest req) throws ServletException, URISyntaxException, FormException {
+        jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
         Consumer consumer = getConsumerDescriptor().getConsumerFromSubmittedForm(req);
         store.add(consumer);
         return HttpResponses.redirectViaContextPath(RELATIVE_PATH + "/consumer/" + consumer.getKey() + "/applinkinfo");
