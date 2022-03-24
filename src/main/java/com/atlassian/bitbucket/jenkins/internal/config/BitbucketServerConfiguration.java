@@ -34,14 +34,13 @@ import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.FormValidationUtils.checkBaseUrl;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.firstOrNull;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.withId;
 import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
@@ -180,31 +179,6 @@ public class BitbucketServerConfiguration
         if (creds == null) {
             return FormValidation.error(
                     "We can't find that personal access token (has it been deleted?). Provide a different token and try again.");
-        }
-        return FormValidation.ok();
-    }
-
-    /**
-     * Validates that the provided baseUrl value is syntactically valid
-     *
-     * @param baseUrl the URL to check
-     * @return FormValidation with Kind.ok if syntactically valid; Kind.error otherwise
-     */
-    private static FormValidation checkBaseUrl(String baseUrl) {
-        if (isEmpty(baseUrl)) {
-            return FormValidation.error("Required");
-        }
-        try {
-            URL base = new URL(baseUrl);
-            if (isBlank(base.getHost())) {
-                return FormValidation.error(
-                        "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
-            } else if (base.getHost().endsWith("bitbucket.org")) {
-                return FormValidation.error("This plugin does not support connecting to bitbucket.org. It is for Bitbucket Server instances only.");
-            }
-        } catch (MalformedURLException e) {
-            return FormValidation.error(
-                    "This isn't a valid URL. Check for typos and make sure to include http:// or https://");
         }
         return FormValidation.ok();
     }

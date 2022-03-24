@@ -3,10 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.Builder;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -15,8 +17,10 @@ import javax.inject.Inject;
 import javax.servlet.ServletException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.HMAC_SHA1;
+import static com.atlassian.bitbucket.jenkins.internal.util.FormValidationUtils.checkBaseUrl;
 import static org.apache.commons.lang3.StringUtils.isAlphanumeric;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -88,14 +92,17 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
 
     @Extension
     public static class OAuthConsumerEntryDescriptor extends Descriptor<OAuthConsumerEntry> {
-
+        
+        @Inject
+        private JenkinsProvider jenkinsProvider;
         @Inject
         private ServiceProviderConsumerStore consumerStore;
 
         public FormValidation doCheckConsumerKey(@QueryParameter String consumerKey) {
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
             String k = consumerKey.replaceAll("-", "");
             if (!isAlphanumeric(k)) {
-                return FormValidation.error("Enter a Key");
+                return FormValidation.error("Consumer key cannot be empty");
             } else if (consumerStore.get(consumerKey).isPresent()) {
                 return FormValidation.error("Key with the same name already exists");
             } else {
@@ -104,30 +111,46 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
         }
 
         public FormValidation doCheckConsumerName(@QueryParameter String consumerName) {
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
             if (isBlank(consumerName)) {
-                return FormValidation.error("Enter a consumer name");
+                return FormValidation.error("Consumer name cannot be empty");
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckCallbackUrl(@QueryParameter String callbackUrl) {
-            if (!isBlank(callbackUrl)) {
-                try {
-                    new URI(callbackUrl);
-                } catch (URISyntaxException e) {
-                    return FormValidation.error("Invalid callback URL. Reason " + e.getMessage());
-                }
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
+            return checkBaseUrl(callbackUrl);
+        }
+
+        public FormValidation doCheckConsumerSecret(@QueryParameter String consumerSecret) {
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
+            if (isBlank(consumerSecret)) {
+                return FormValidation.error("Consumer secret cannot be empty");
             }
             return FormValidation.ok();
         }
 
         public Consumer getConsumerFromSubmittedForm(
-                StaplerRequest request) throws ServletException, URISyntaxException {
+                StaplerRequest request) throws ServletException, URISyntaxException, FormException {
+            jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
             JSONObject data = request.getSubmittedForm();
             String consumerKey = data.getString(CONSUMER_KEY_FIELD);
             String consumerName = data.getString(CONSUMER_NAME_FIELD);
             String consumerSecret = data.getString(CONSUMER_SECRET_FIELD);
             String callbackUrl = data.getString(CONSUMER_CALLBACKURL_FIELD);
+
+            FormValidation formValidation = FormValidation.aggregate(Arrays.asList(
+                    doCheckConsumerKey(consumerKey),
+                    doCheckConsumerName(consumerName),
+                    doCheckCallbackUrl(callbackUrl),
+                    doCheckConsumerSecret(consumerSecret)));
+
+            if (formValidation.kind == FormValidation.Kind.ERROR) {
+                // The form field is unused, but the Exception constructor requires it- value here is arbitrary
+                throw new FormException(Messages.bitbucket_oauth_consumer_entry_form_error() + "\n" + 
+                                        formValidation.getMessage(), CONSUMER_KEY_FIELD);
+            }
 
             Builder builder = Consumer.key(consumerKey)
                     .name(consumerName)

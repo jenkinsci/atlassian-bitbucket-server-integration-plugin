@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.servlet.AuthorizeConfirmationConfig.AuthorizeConfirmationConfigDescriptor;
+import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
@@ -30,9 +31,12 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     @Inject
     private ServiceProviderTokenStore serviceProviderTokenStore;
     @Inject
+    private JenkinsProvider jenkinsProvider;
+    @Inject
     private AuthorizeConfirmationConfigDescriptor authorizeConfirmationConfigDescriptor;
 
     public Collection<OAuthConsumerEntry> getConsumers() {
+        jenkinsProvider.get().checkPermission(Jenkins.SYSTEM_READ);
         return stream(consumerStore.getAll().spliterator(), false).map(OAuthConsumerEntry::getOAuthConsumerForUpdate).collect(toList());
     }
 
@@ -43,7 +47,8 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
      */
     @SuppressWarnings("unused") // Stapler
     public OAuthConsumerCreateAction getCreate() {
-        return new OAuthConsumerCreateAction(consumerStore);
+        jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
+        return new OAuthConsumerCreateAction(consumerStore, jenkinsProvider);
     }
 
     /**
@@ -54,6 +59,7 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
      */
     @SuppressWarnings("unused") // Stapler
     public OAuthConsumerUpdateAction getConsumer(String key) {
+        jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
         return new OAuthConsumerUpdateAction(key, consumerStore, serviceProviderTokenStore);
     }
 
@@ -70,7 +76,7 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
 
     @Override
     public Descriptor<OAuthGlobalConfiguration> getDescriptor() {
-        return Jenkins.get().getDescriptorOrDie(getClass());
+        return jenkinsProvider.get().getDescriptorOrDie(getClass());
     }
 
     @CheckForNull

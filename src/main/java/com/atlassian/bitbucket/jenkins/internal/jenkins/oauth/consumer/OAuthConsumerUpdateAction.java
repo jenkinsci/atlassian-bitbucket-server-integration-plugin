@@ -9,6 +9,8 @@ import com.atlassian.bitbucket.jenkins.internal.provider.JenkinsProvider;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Action;
+import hudson.model.Descriptor;
+import jenkins.model.Jenkins;
 import jenkins.model.ModelObjectWithContextMenu;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
@@ -52,16 +54,18 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
     }
 
     @RequirePOST
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // Stapler
     public HttpResponse doPerformDelete(StaplerRequest req) {
+        jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
         tokenStore.removeByConsumer(consumerKey);
         consumerStore.delete(consumerKey);
         return HttpResponses.redirectViaContextPath(RELATIVE_PATH);
     }
 
     @RequirePOST
-    @SuppressWarnings("unused")
-    public HttpResponse doPerformUpdate(StaplerRequest req) throws ServletException, URISyntaxException {
+    @SuppressWarnings("unused") // Stapler
+    public HttpResponse doPerformUpdate(StaplerRequest req) throws ServletException, URISyntaxException, Descriptor.FormException {
+        jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
         Consumer consumer = getConsumerDescriptor().getConsumerFromSubmittedForm(req);
         consumerStore.update(consumer);
         return HttpResponses.redirectViaContextPath(RELATIVE_PATH);
@@ -79,10 +83,13 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
 
     @CheckForNull
     public OAuthConsumerEntry getConsumerEntry() {
+        jenkinsProvider.get().checkPermission(Jenkins.SYSTEM_READ);
         return consumerStore.get(consumerKey).map(OAuthConsumerEntry::getOAuthConsumerForUpdate).orElse(null);
     }
 
+    @SuppressWarnings("unused") //Stapler
     public String getConsumerKey() {
+        jenkinsProvider.get().checkPermission(Jenkins.SYSTEM_READ);
         return consumerKey;
     }
 
