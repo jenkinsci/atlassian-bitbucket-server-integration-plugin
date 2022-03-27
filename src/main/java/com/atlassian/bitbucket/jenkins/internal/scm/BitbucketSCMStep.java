@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.google.common.annotations.VisibleForTesting;
@@ -35,7 +34,6 @@ public class BitbucketSCMStep extends SCMStep {
     private final String projectName;
     private final String repositoryName;
     private String serverId;
-    @UpgradeHandled(handledBy = "Optional field, existing SCMSteps will be created as normal", removeAnnotationInVersion = "3.2.1")
     private String serverName;
     private String mirrorName;
 
