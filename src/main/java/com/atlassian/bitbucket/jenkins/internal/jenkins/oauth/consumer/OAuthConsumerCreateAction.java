@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer;
 
 import com.atlassian.bitbucket.jenkins.internal.annotations.NotUpgradeSensitive;
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.oauth.consumer.OAuthConsumerEntry.OAuthConsumerEntryDescriptor;
@@ -28,8 +27,6 @@ import static java.util.Objects.requireNonNull;
 public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthConsumerCreateAction> implements Action {
 
     private final ServiceProviderConsumerStore store;
-    // TODO: fix NotUpgradeSensitive so this annotation is not necessary
-    @UpgradeHandled(handledBy = "Not upgrade sensitive", removeAnnotationInVersion = "3.2.1")
     private final JenkinsProvider jenkinsProvider;
 
     public OAuthConsumerCreateAction(ServiceProviderConsumerStore store, JenkinsProvider jenkinsProvider) {
