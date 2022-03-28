@@ -1,5 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.link;
 
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.SCMHeadByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.SCMSourceByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -11,6 +15,7 @@ import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.scm.SCM;
 import jenkins.model.TransientActionFactory;
+import jenkins.scm.api.SCMHead;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -24,11 +29,19 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
 
     @Inject
     private BitbucketExternalLinkUtils externalLinkUtils;
+    @Inject
+    private SCMHeadByItemProvider headProvider;
+    @Inject
+    private SCMSourceByItemProvider sourceProvider;
 
     public BitbucketJobLinkActionFactory() { }
 
-    public BitbucketJobLinkActionFactory(BitbucketExternalLinkUtils externalLinkUtils) {
+    public BitbucketJobLinkActionFactory(BitbucketExternalLinkUtils externalLinkUtils, 
+                                         DefaultSCMHeadByItemProvider headProvider,
+                                         DefaultSCMSourceByItemProvider sourceProvider) {
         this.externalLinkUtils = externalLinkUtils;
+        this.headProvider = headProvider;
+        this.sourceProvider = sourceProvider;
     }
 
     @Override
@@ -57,16 +70,21 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
             // Multibranch Pipeline Job
             if (getWorkflowParent(workflowJob) instanceof WorkflowMultiBranchProject) {
                 // Multibranch Pipeline Job from SCM Source, or if there is none, try and get it from an SCMStep
+                SCMHead head = headProvider.findHead(workflowJob);
+                if (head == null) {
+                    return Collections.emptyList();
+                }
+                
                 return Stream.of(getScmSource(workflowJob), getScmStep(workflowJob))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .findFirst()
-                        .flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, target.getName()))
+                        .flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, head.getName()))
                         .map(Arrays::asList)
                         .orElse(Collections.emptyList());
             }
             // Pipeline Job built with an SCMStep
-            if (getWorkflowSCMs(workflowJob).stream().anyMatch(scm -> scm instanceof BitbucketSCM)) {
+            if (getWorkflowSCMs(workflowJob).stream().anyMatch(BitbucketSCM.class::isInstance)) {
                 return getScmStep(workflowJob)
                         .flatMap(scmRepository -> externalLinkUtils.createRepoLink(scmRepository))
                         .map(Arrays::asList)
@@ -101,10 +119,8 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
     }
 
     private Optional<BitbucketSCMRepository> getScmSource(WorkflowJob workflowJob) {
-        return ((WorkflowMultiBranchProject) getWorkflowParent(workflowJob))
-                .getSCMSources().stream()
-                .filter(scmSource -> scmSource instanceof BitbucketSCMSource)
-                .map(scmSource -> ((BitbucketSCMSource) scmSource).getBitbucketSCMRepository())
-                .findFirst();
+        return Optional.ofNullable(sourceProvider.findSource(workflowJob))
+                .filter(BitbucketSCMSource.class::isInstance)
+                .map(scmSource -> ((BitbucketSCMSource) scmSource).getBitbucketSCMRepository());
     }
 }

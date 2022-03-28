@@ -2,6 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.link;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -10,6 +12,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
+import jenkins.scm.api.SCMHead;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -48,9 +51,13 @@ public class BitbucketJobLinkActionFactoryTest {
     private BitbucketPluginConfiguration pluginConfiguration;
     @Mock
     private FreeStyleProject freeStyleProject;
+    @Mock
+    private DefaultSCMHeadByItemProvider headProvider;
+    @Mock
+    private DefaultSCMSourceByItemProvider sourceProvider;
+    
     private WorkflowJob workflowJob;
     private WorkflowJob workflowJobWithScmStep;
-    private WorkflowJob multibranchJob;
     private WorkflowJob multibranchJobFromSource;
     @Mock
     private WorkflowMultiBranchProject multibranchProject;
@@ -67,16 +74,19 @@ public class BitbucketJobLinkActionFactoryTest {
         workflowJob = jenkins.createProject(WorkflowJob.class);
         workflowJob.setDefinition(new CpsScmFlowDefinition(scm, "Jenkinsfile"));
         workflowJobWithScmStep = jenkins.createProject(WorkflowJob.class, "workflow-job-with-scm-step");
-        multibranchJob = jenkins.createProject(WorkflowJob.class, "branch1");
         multibranchJobFromSource = jenkins.createProject(WorkflowJob.class, "branch2");
 
         when(freeStyleProject.getScm()).thenReturn(scm);
-        when(multibranchProject.getSCMSources()).thenReturn(Arrays.asList(mockSCMSource));
 
         when(pluginConfiguration.getServerById(SERVER_ID)).thenReturn(Optional.of(configuration));
         when(configuration.getBaseUrl()).thenReturn(BASE_URL);
         when(configuration.validate()).thenReturn(FormValidation.ok());
 
+        SCMHead multibranchJobFromSourceHead = mock(SCMHead.class);
+        doReturn("branch2").when(multibranchJobFromSourceHead).getName();
+        doReturn(multibranchJobFromSourceHead).when(headProvider).findHead(multibranchJobFromSource);
+        doReturn(mockSCMSource).when(sourceProvider).findSource(multibranchJobFromSource);
+        
         externalLinkUtils = new BitbucketExternalLinkUtils(pluginConfiguration);
         actionFactory = getActionFactory();
     }
@@ -118,15 +128,6 @@ public class BitbucketJobLinkActionFactoryTest {
     }
 
     @Test
-    public void testCreateMultibranchCustomStep() {
-        Collection<? extends Action> actions = actionFactory.createFor(multibranchJob);
-
-        assertThat(actions.size(), equalTo(1));
-        BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
-        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/compare/commits?sourceBranch=refs%2Fheads%2Fbranch1"));
-    }
-
-    @Test
     public void testCreateNotBitbucketSCMFreestyle() {
         when(freeStyleProject.getScm()).thenReturn(mock(SCM.class));
         Collection<? extends Action> actions = actionFactory.createFor(freeStyleProject);
@@ -159,11 +160,11 @@ public class BitbucketJobLinkActionFactoryTest {
     }
 
     private BitbucketJobLinkActionFactory getActionFactory() {
-        return new BitbucketJobLinkActionFactory(externalLinkUtils) {
+        return new BitbucketJobLinkActionFactory(externalLinkUtils, headProvider, sourceProvider) {
 
             @Override
             Collection<? extends SCM> getWorkflowSCMs(WorkflowJob job) {
-                if (Objects.equals(job, multibranchJob) || Objects.equals(job, workflowJobWithScmStep)) {
+                if (Objects.equals(job, workflowJobWithScmStep)) {
                     return Collections.singleton(scm);
                 }
                 return Collections.emptySet();
@@ -171,7 +172,7 @@ public class BitbucketJobLinkActionFactoryTest {
 
             @Override
             ItemGroup getWorkflowParent(WorkflowJob job) {
-                if (Objects.equals(job, multibranchJobFromSource) || Objects.equals(job, multibranchJob)) {
+                if (Objects.equals(job, multibranchJobFromSource)) {
                     return multibranchProject;
                 }
                 return jenkins.jenkins;
