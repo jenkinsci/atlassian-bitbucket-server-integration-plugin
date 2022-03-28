@@ -232,7 +232,19 @@ public class UpgradeTest {
      */
     private Set<Class<?>> filterAnnotatedClasses(Set<Class<?>> interestingClasses) {
         return interestingClasses.stream()
-                .filter(type -> type.getAnnotation(NotUpgradeSensitive.class) == null)
+                //this looks insane, BUT a class is unique by FQN AND classloader, the referenced NotUpgradeSensitive.class
+                //comes from the boot classloader, whereas `type` comes via a URL classloader so they are not the same.
+                //this forces loading the annotation via the same classloader and thus work as expected.
+                .filter(type -> {
+                    try {
+                        Class loadedAnnotation = type.getClassLoader()
+                                .loadClass(NotUpgradeSensitive.class.getName());
+                        boolean value = type.getAnnotation(loadedAnnotation) == null;
+                        return value;
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .collect(Collectors.toSet());
     }
 
