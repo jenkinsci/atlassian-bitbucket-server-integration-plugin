@@ -224,7 +224,8 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 - The minimum version of Jenkins changed to be **2.289.1**
 - Fix JENKINS-66539 we now handle rate limiting for posting build statuses
 - JENKINS-66498 BitbucketSCMStep can now use serverName instead of serverId to specify a Bitbucket instance
-- Small bug and security fixes
+- Small bug and security fixes. 
+See security advisory for this version here: https://www.jenkins.io/security/advisory/2022-03-29/
 
 ### 3.1.0 (5 November 2021)
 - [Sending notifications to Bitbucket Data Center's deployment status API](./docs/deployment_notifications.md) are now
