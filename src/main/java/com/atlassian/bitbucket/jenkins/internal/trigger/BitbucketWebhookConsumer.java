@@ -87,7 +87,6 @@ public class BitbucketWebhookConsumer {
     private static Set<String> eligibleRefs(RefsChangedWebhookEvent event) {
         return event.getChanges()
                 .stream()
-                .filter(refChange -> refChange.getType() != BitbucketRefChangeType.DELETE)
                 .map(refChange -> refChange.getRef().getId())
                 .collect(Collectors.toSet());
     }

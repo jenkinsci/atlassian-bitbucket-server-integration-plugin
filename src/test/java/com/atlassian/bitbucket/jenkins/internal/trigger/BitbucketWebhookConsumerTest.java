@@ -290,14 +290,23 @@ public class BitbucketWebhookConsumerTest {
     }
 
     @Test
-    public void testRefsChangedShouldNotTriggerIfConfiguredRefIsDeleted() {
+    public void testRefsChangedShouldTriggerIfConfiguredRefIsDeleted() {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+
         RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(BitbucketRefChangeType.DELETE), bitbucketRepository);
 
         consumer.process(event);
 
-        verify(bitbucketTrigger, never()).trigger(any());
-        verify(workflowTrigger, never()).trigger(any());
+        verify(bitbucketTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+        verify(workflowTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
     }
 
     @Test
