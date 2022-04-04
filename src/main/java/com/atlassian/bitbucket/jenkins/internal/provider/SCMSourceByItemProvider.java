@@ -8,7 +8,11 @@ import javax.annotation.CheckForNull;
 
 @ImplementedBy(DefaultSCMSourceByItemProvider.class)
 public interface SCMSourceByItemProvider {
-    
+
+    /**
+     * @return the result of calling SCMSource.SourceByItem.findSource(item)
+     * @since 3.0.0
+     */
     @CheckForNull
     SCMSource findSource(Item item);
 }
