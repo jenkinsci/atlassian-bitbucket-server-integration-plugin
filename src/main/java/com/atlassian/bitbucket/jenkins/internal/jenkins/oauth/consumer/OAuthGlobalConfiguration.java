@@ -82,7 +82,7 @@ public class OAuthGlobalConfiguration extends ManagementLink implements Describa
     @CheckForNull
     @Override
     public String getIconFileName() {
-        return "secure.gif";
+        return "secure.png";
     }
 
     @CheckForNull
