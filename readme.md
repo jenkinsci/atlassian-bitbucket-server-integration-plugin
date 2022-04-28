@@ -220,6 +220,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.2.1 (28 April 2022)
+- Fix JENKINS-63031 slashes no longer break links to Bitbucket
+
 ### 3.2.0 (24 March 2022)
 - The minimum version of Jenkins changed to be **2.289.1**
 - Fix JENKINS-66539 we now handle rate limiting for posting build statuses
