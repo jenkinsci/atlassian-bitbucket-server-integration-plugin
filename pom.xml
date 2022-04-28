@@ -17,7 +17,7 @@
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
         <java.level>8</java.level>
-        <jackson.version>2.13.0</jackson.version>
+        <jackson.version>2.13.2.1</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.version>2.289.1</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
