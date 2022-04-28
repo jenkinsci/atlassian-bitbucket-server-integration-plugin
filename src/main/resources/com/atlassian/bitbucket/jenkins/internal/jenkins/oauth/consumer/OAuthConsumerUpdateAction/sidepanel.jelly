@@ -1,12 +1,12 @@
 <?jelly escape-by-default='true'?>
 
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:s="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
     <l:side-panel>
         <j:set var="url" value="${h.getNearestAncestorUrl(request,it)}"/>
         <l:tasks>
-            <l:task icon="images/24x24/up.png" href="../.." title="${%bitbucket.oauth.consumer.back}" contextMenu="false"/>
-            <l:task icon="images/24x24/help.png" href="${url}/applinkinfo" title="${%bitbucket.oauth.consumer.applink.info}" />
-            <l:task icon="images/24x24/edit-delete.png" href="${url}/delete" title="${%bitbucket.oauth.consumer.delete}"/>
+            <l:task icon="icon-up icon-md" href="../.." title="${%bitbucket.oauth.consumer.back}" contextMenu="false"/>
+            <l:task icon="icon-help icon-md" href="${url}/applinkinfo" title="${%bitbucket.oauth.consumer.applink.info}" />
+            <l:task icon="icon-edit-delete icon-md" href="${url}/delete" title="${%bitbucket.oauth.consumer.delete}"/>
         </l:tasks>
     </l:side-panel>
 </j:jelly>
