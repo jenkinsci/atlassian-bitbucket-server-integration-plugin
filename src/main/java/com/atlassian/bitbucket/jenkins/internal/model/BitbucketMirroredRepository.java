@@ -1,12 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.CloneProtocol;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Objects.requireNonNull;
 
@@ -35,6 +34,12 @@ public class BitbucketMirroredRepository {
 
     public boolean isAvailable() {
         return available;
+    }
+
+    public Optional<BitbucketNamedLink> getCloneUrl(CloneProtocol cloneProtocol) {
+        return getCloneUrls().stream()
+                .filter(link -> cloneProtocol.name.equalsIgnoreCase(link.getName()))
+                .findFirst();
     }
 
     public List<BitbucketNamedLink> getCloneUrls() {

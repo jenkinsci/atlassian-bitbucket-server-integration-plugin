@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -326,8 +327,13 @@ public class BitbucketSCM extends SCM {
             repositories.set(0, new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
                     underlyingRepo.getProject().getName(), underlyingRepo.getProject().getKey(), underlyingRepo.getName(),
                     underlyingRepo.getSlug(), getServerId(), fetchedRepository.getMirroringDetails().getMirrorName()));
-            cloneUrl = underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
-                    .map(BitbucketNamedLink::getHref).orElse("");
+            // Get the clone URL from the mirror
+            cloneUrl = fetchedRepository.getMirroringDetails().getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                    .map(BitbucketNamedLink::getHref)
+                    // If the mirroring details are missing the clone URL for some reason, try to fall back to the upstream
+                    .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                            .map(BitbucketNamedLink::getHref)
+                            .orElse(""));
             selfLink = fetchedRepository.getRepository().getSelfLink();
         } else {
             BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());

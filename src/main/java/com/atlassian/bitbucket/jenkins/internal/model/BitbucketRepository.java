@@ -77,7 +77,7 @@ public class BitbucketRepository {
 
     public Optional<BitbucketNamedLink> getCloneUrl(CloneProtocol cloneProtocol) {
         return cloneUrls.stream()
-                .filter(link -> Objects.equals(cloneProtocol.name, link.getName()))
+                .filter(link -> cloneProtocol.name.equalsIgnoreCase(link.getName()))
                 .findFirst();
     }
 
