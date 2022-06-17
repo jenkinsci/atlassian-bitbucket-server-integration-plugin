@@ -522,7 +522,7 @@ public class BitbucketSCM extends SCM {
                     jenkinsToBitbucketCredentials.toBitbucketCredentials(httpCredentials));
         }
 
-        private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
+        BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
             return new BitbucketMirrorHandler(
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials,
