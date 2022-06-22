@@ -249,6 +249,12 @@
             <scope>runtime</scope>
         </dependency>
         <!--        Test dependencies -->
+        <dependency>
+            <groupId>org.jenkins-ci.main</groupId>
+            <artifactId>jenkins-test-harness</artifactId>
+            <version>1784.v83a_b_3ce99392</version>
+            <scope>test</scope>
+        </dependency>
         <!--to mock Bitbucket Server-->
         <dependency>
             <groupId>com.github.tomakehurst</groupId>

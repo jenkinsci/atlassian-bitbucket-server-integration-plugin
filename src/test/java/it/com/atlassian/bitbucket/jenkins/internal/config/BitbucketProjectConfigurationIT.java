@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
-import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.getDivByText;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.HtmlUnitUtils.waitTillItemIsRendered;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -131,7 +130,9 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.setValueAttribute("");
         form.click();
         bbJenkinsRule.waitForBackgroundJavaScript();
-        assertNotNull(getDivByText(form, "Enter a project name"));
+
+        DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
+        assertEquals("Enter a project name", validationArea.getTextContent());
     }
 
     @Test
@@ -146,7 +147,9 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.setValueAttribute("non-existent-project");
         form.click();
         bbJenkinsRule.waitForBackgroundJavaScript();
-        assertNotNull(getDivByText(form, "The project 'non-existent-project' does not exist or you do not have permission to access it."));
+
+        DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
+        assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
     @Test
@@ -165,7 +168,9 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.setValueAttribute("");
         form.click();
         bbJenkinsRule.waitForBackgroundJavaScript();
-        assertNotNull(getDivByText(form, "Repository name is required"));
+
+        DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
+        assertEquals("Repository name is required", validationArea.getTextContent());
     }
 
     @Test
@@ -185,7 +190,8 @@ public class BitbucketProjectConfigurationIT {
         form.click();
         bbJenkinsRule.waitForBackgroundJavaScript();
 
-        assertNotNull(getDivByText(form, "The repository 'non-existent-repo' does not exist or you do not have permission to access it."));
+        DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
+        assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
     private void setupBitbucketSCM() throws IOException {
