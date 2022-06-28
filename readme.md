@@ -220,6 +220,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.3.0 (28 June 2022)
+- Fix JENKINS-68634: Jobs configured to clone from the mirror will now do so.
+- Bump dependency Zip4J from 2.9.1 to 2.10.0
+
 ### 3.2.1 (28 April 2022)
 - Fix JENKINS-63031 slashes no longer break links to Bitbucket
 
