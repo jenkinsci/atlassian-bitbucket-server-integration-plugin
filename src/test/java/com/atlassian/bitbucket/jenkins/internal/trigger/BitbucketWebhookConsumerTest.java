@@ -212,7 +212,7 @@ public class BitbucketWebhookConsumerTest {
     @Test
     public void testRefsChangedNotBitbucketSCM() {
         GitSCMSource scmSource = mock(GitSCMSource.class);
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null);
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
@@ -234,7 +234,7 @@ public class BitbucketWebhookConsumerTest {
         doReturn(mockScmRepo).when(scmSource).getBitbucketSCMRepository();
         doReturn(mockWebhookRepo).when(payload).getRepository();
 
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null);
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
@@ -290,7 +290,7 @@ public class BitbucketWebhookConsumerTest {
     }
 
     @Test
-    public void testRefsChangedShouldNotTriggerIfConfiguredRefIsDeleted() {
+    public void testRefsChangedFiresRefChangedDeletedEvent() {
         RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(BitbucketRefChangeType.DELETE), bitbucketRepository);
 
