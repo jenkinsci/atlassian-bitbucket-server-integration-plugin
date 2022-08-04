@@ -56,7 +56,7 @@ public class BitbucketWebhookConsumer {
 
     private void process(RefsChangedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
-        String webhookEventType = "refs changed";
+        String webhookEventType = "Refs Changed";
         if (event instanceof MirrorSynchronizedWebhookEvent) {
             webhookEventType = "Mirror Synchronized";
         }
