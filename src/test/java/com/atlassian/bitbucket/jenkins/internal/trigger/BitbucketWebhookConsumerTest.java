@@ -10,15 +10,15 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.GitSCM;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.scm.api.SCMEvent;
+import jenkins.scm.api.SCMEventListener;
+import jenkins.scm.api.SCMHeadEvent;
 import org.apache.groovy.util.Maps;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.InjectMocks;
@@ -26,14 +26,16 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent.*;
 import static java.util.Collections.*;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -50,17 +52,17 @@ public class BitbucketWebhookConsumerTest {
     private static final String JENKINS_REPO_NAME = "jenkins repo name";
     private static final String JENKINS_REPO_SLUG = "jenkins_repo_slug";
     private static final String branchName = "branch";
+    private static final BlockingQueue<SCMHeadEvent> events = new LinkedBlockingQueue<>();
     private static final String serverId = "serverId";
     @ClassRule
-    public static JenkinsRule jenkins = new JenkinsRule();
+    public static JenkinsRule jenkinsRule = new JenkinsRule();
+    private static SCMEventListener testListener;
     @Mock
     private BitbucketPluginConfiguration bitbucketPluginConfiguration;
     private BitbucketRepository bitbucketRepository;
 
     @Mock
     private BitbucketSCM bitbucketSCM;
-    @Mock
-    private BitbucketPullRequest pullRequest;
     @Mock
     private BitbucketWebhookTriggerImpl bitbucketTrigger;
     @InjectMocks
@@ -74,6 +76,8 @@ public class BitbucketWebhookConsumerTest {
     @Mock
     private BitbucketWebhookTriggerImpl nullBitbucketTrigger;
     private FreeStyleProject nullProject;
+    @Mock
+    private BitbucketPullRequest pullRequest;
     private PullRequestClosedWebhookEvent pullRequestClosedEvent;
     private PullRequestOpenedWebhookEvent pullRequestOpenedEvent;
     private RefsChangedWebhookEvent refsChangedEvent;
@@ -83,6 +87,23 @@ public class BitbucketWebhookConsumerTest {
     @Mock
     private BitbucketWebhookTriggerImpl workflowTrigger;
 
+    @AfterClass
+    public static void destroy() {
+        jenkinsRule.jenkins.getExtensionList(SCMEventListener.class).remove(testListener);
+    }
+
+    @BeforeClass
+    public static void init() {
+        testListener = new SCMEventListener() {
+            @Override
+            public void onSCMHeadEvent(SCMHeadEvent<?> event) {
+                events.add(event);
+            }
+        };
+
+        jenkinsRule.jenkins.getExtensionList(SCMEventListener.class).add(testListener);
+    }
+
     @Before
     public void setup() throws Exception {
         when(bitbucketTrigger.isApplicableForEvent(any())).thenReturn(true);
@@ -90,22 +111,22 @@ public class BitbucketWebhookConsumerTest {
         when(nullBitbucketTrigger.isApplicableForEvent(any())).thenReturn(true);
         when(workflowTrigger.isApplicableForEvent(any())).thenReturn(true);
 
-        FreeStyleProject ignoredProject = jenkins.createFreeStyleProject();
-        nullProject = jenkins.createFreeStyleProject();
+        FreeStyleProject ignoredProject = jenkinsRule.createFreeStyleProject();
+        nullProject = jenkinsRule.createFreeStyleProject();
         nullProject.addTrigger(nullBitbucketTrigger);
 
-        freeStyleProject = jenkins.createFreeStyleProject();
+        freeStyleProject = jenkinsRule.createFreeStyleProject();
         freeStyleProject.setScm(bitbucketSCM);
         freeStyleProject.addTrigger(bitbucketTrigger);
 
-        gitProject = jenkins.createFreeStyleProject();
+        gitProject = jenkinsRule.createFreeStyleProject();
         gitProject.setScm(gitSCM);
         gitProject.addTrigger(gitTrigger);
         List<RemoteConfig> remoteConfig = createRemoteConfig();
         when(gitSCM.getRepositories()).thenReturn(remoteConfig);
 
-        workflowJob = jenkins.jenkins.get().createProject(WorkflowJob.class,
-                "test" + jenkins.jenkins.get().getItems().size());
+        workflowJob = jenkinsRule.jenkins.get().createProject(WorkflowJob.class,
+                "test" + jenkinsRule.jenkins.get().getItems().size());
         CpsScmFlowDefinition definition = new CpsScmFlowDefinition(workflowSCM, "Jenkinsfile");
         workflowJob.setDefinition(definition);
         workflowJob.addTrigger(workflowTrigger);
@@ -142,10 +163,85 @@ public class BitbucketWebhookConsumerTest {
         nullProject.delete();
         freeStyleProject.delete();
         workflowJob.delete();
+        events.clear();
     }
 
     @Test
-    public void testPullRequestCloseDoesntTriggerBitbucketSCMBuild() {
+    public void testMirrorSynchronizedUpdateAndDeleteFiresBothEvents() throws InterruptedException {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        MirrorSynchronizedWebhookEvent refsChangedWebhookEvent = new MirrorSynchronizedWebhookEvent(
+                BITBUCKET_USER,
+                new BitbucketMirrorServer("1", "mirror1"),
+                MIRROR_SYNCHRONIZED.getEventId(),
+                new Date(),
+                refChanges(BitbucketRefChangeType.DELETE, BitbucketRefChangeType.UPDATE),
+                bitbucketRepository,
+                BitbucketRepositorySynchronizationType.INCREMENTAL);
+
+        consumer.process(refsChangedWebhookEvent);
+
+        verify(bitbucketTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+        verify(workflowTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+
+        event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
+    }
+
+    @Test
+    public void testPullRequestBranchUpdatedTriggerBitbucketSCMBuild() throws InterruptedException {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        PullRequestWebhookEvent pullRequestFromRefEvent = new PullRequestFromRefUpdatedWebhookEvent(BITBUCKET_USER,
+                PULL_REQUEST_OPENED.getEventId(), new Date(), pullRequest);
+
+        consumer.process(pullRequestFromRefEvent);
+
+        verify(bitbucketTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        verify(workflowTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<PullRequestFromRefUpdatedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(pullRequestFromRefEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
+    }
+
+    @Test
+    public void testPullRequestChangedTriggerBuild() throws InterruptedException {
+        consumer.process(pullRequestOpenedEvent);
+
+        verify(gitTrigger)
+                .trigger(
+                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+        verify(nullBitbucketTrigger, never()).trigger(any());
+
+        SCMHeadEvent<PullRequestOpenedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(pullRequestOpenedEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.CREATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
+    }
+
+    @Test
+    public void testPullRequestCloseDoesntTriggerBitbucketSCMBuild() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
         when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
@@ -160,10 +256,15 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never())
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<PullRequestClosedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(pullRequestClosedEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testPullRequestOpenTriggerBitbucketSCMBuild() {
+    public void testPullRequestOpenTriggerBitbucketSCMBuild() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
         when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
@@ -178,41 +279,66 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<PullRequestOpenedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(pullRequestOpenedEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.CREATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testPullRequestBranchUpdatedTriggerBitbucketSCMBuild() {
+    public void testRefChangedUpdateAndDeleteFiresBothEvents() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
-        when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
         when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
+                BITBUCKET_USER,
+                REPO_REF_CHANGE.getEventId(),
+                new Date(),
+                refChanges(BitbucketRefChangeType.DELETE, BitbucketRefChangeType.UPDATE),
+                bitbucketRepository);
 
-        consumer.process(new PullRequestFromRefUpdatedWebhookEvent(BITBUCKET_USER, PULL_REQUEST_OPENED.getEventId(),
-                new Date(), pullRequest));
+        consumer.process(refsChangedWebhookEvent);
 
         verify(bitbucketTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
-
         verify(workflowTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+
+        event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testPullRequestChangedTriggerBuild() {
-        consumer.process(pullRequestOpenedEvent);
+    public void testRefsChangedFiresRefChangedDeletedEvent() throws InterruptedException {
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
+                BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(BitbucketRefChangeType.DELETE), bitbucketRepository);
 
-        verify(gitTrigger)
-                .trigger(
-                        eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
-        verify(nullBitbucketTrigger, never()).trigger(any());
+        consumer.process(refsChangedWebhookEvent);
+
+        verify(bitbucketTrigger, never()).trigger(any());
+        verify(workflowTrigger, never()).trigger(any());
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
     public void testRefsChangedNotBitbucketSCM() {
         GitSCMSource scmSource = mock(GitSCMSource.class);
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null, null);
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent =
+                new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
@@ -234,16 +360,17 @@ public class BitbucketWebhookConsumerTest {
         doReturn(mockScmRepo).when(scmSource).getBitbucketSCMRepository();
         doReturn(mockWebhookRepo).when(payload).getRepository();
 
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null, null);
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent =
+                new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
 
     @Test
-    public void testRefsChangedShouldNotTriggerBitbucketSCMIfMirrorNameDoesNotMatch() {
+    public void testRefsChangedShouldNotTriggerBitbucketSCMIfMirrorNameDoesNotMatch() throws InterruptedException {
         BitbucketRepository repository =
                 repository("http://bitbucket.example.com/scm/readme/readme.git", "readme", "readme");
-        MirrorSynchronizedWebhookEvent event = new MirrorSynchronizedWebhookEvent(
+        MirrorSynchronizedWebhookEvent mirrorSynchronizedEvent = new MirrorSynchronizedWebhookEvent(
                 BITBUCKET_USER,
                 new BitbucketMirrorServer("1", "mirror1"),
                 MIRROR_SYNCHRONIZED.getEventId(),
@@ -252,34 +379,44 @@ public class BitbucketWebhookConsumerTest {
                 repository,
                 BitbucketRepositorySynchronizationType.INCREMENTAL);
 
-        consumer.process(event);
+        consumer.process(mirrorSynchronizedEvent);
 
         verify(bitbucketTrigger, never()).trigger(any());
         verify(workflowTrigger, never()).trigger(any());
+
+        SCMHeadEvent<MirrorSynchronizedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(mirrorSynchronizedEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testRefsChangedShouldNotTriggerBitbucketSCMIfRepositoryDoesNotMatch() {
+    public void testRefsChangedShouldNotTriggerBitbucketSCMIfRepositoryDoesNotMatch() throws InterruptedException {
         BitbucketRepository repository =
                 repository("http://bitbucket.example.com/scm/readme/readme.git", "readme", "readme");
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), repository);
 
-        consumer.process(event);
+        consumer.process(refsChangedWebhookEvent);
 
         verify(bitbucketTrigger, never()).trigger(any());
         verify(workflowTrigger, never()).trigger(any());
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testRefsChangedShouldNotTriggerBuildIfDifferentServerUrl() {
+    public void testRefsChangedShouldNotTriggerBuildIfDifferentServerUrl() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
         when(serverConfiguration.getBaseUrl()).thenReturn("http://bitbucket-staging.example.com/");
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
 
-        consumer.process(event);
+        consumer.process(refsChangedWebhookEvent);
 
         verify(bitbucketTrigger, never())
                 .trigger(
@@ -287,45 +424,44 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never())
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testRefsChangedFiresRefChangedDeletedEvent() {
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
-                BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(BitbucketRefChangeType.DELETE), bitbucketRepository);
-
-        consumer.process(event);
-
-        verify(bitbucketTrigger, never()).trigger(any());
-        verify(workflowTrigger, never()).trigger(any());
-    }
-
-    @Test
-    public void testRefsChangedShouldTriggerBuildIfNoSelfUrl() {
+    public void testRefsChangedShouldTriggerBuildIfNoSelfUrl() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
         when(serverConfiguration.getBaseUrl()).thenReturn("http://bitbucket-staging.example.com/");
         BitbucketProject project = new BitbucketProject(JENKINS_PROJECT_KEY, emptyMap(), JENKINS_PROJECT_KEY);
         BitbucketRepository repository = new BitbucketRepository(
                 1, JENKINS_REPO_SLUG, null, project, JENKINS_REPO_SLUG, RepositoryState.AVAILABLE);
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), repository);
 
-        consumer.process(event);
+        consumer.process(refsChangedWebhookEvent);
 
         verify(bitbucketTrigger).trigger(eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
         verify(workflowTrigger).trigger(eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testRefsChangedTriggerBitbucketSCMBuild() {
+    public void testRefsChangedTriggerBitbucketSCMBuild() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
         when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), bitbucketRepository);
 
-        consumer.process(event);
+        consumer.process(refsChangedWebhookEvent);
 
         verify(bitbucketTrigger)
                 .trigger(
@@ -333,28 +469,43 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testRefsChangedTriggerBuild() {
+    public void testRefsChangedTriggerBuild() throws InterruptedException {
         consumer.process(refsChangedEvent);
 
         verify(gitTrigger)
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
         verify(nullBitbucketTrigger, never()).trigger(any());
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     @Test
-    public void testShouldNotTriggerBuildIfRepositoryDoesNotMatch() {
+    public void testShouldNotTriggerBuildIfRepositoryDoesNotMatch() throws InterruptedException {
         BitbucketRepository repository =
                 repository("http://bitbucket.example.com/scm/readme/readme.git", "readme", "readme");
-        RefsChangedWebhookEvent event = new RefsChangedWebhookEvent(
+        RefsChangedWebhookEvent refsChangedWebhookEvent = new RefsChangedWebhookEvent(
                 BITBUCKET_USER, REPO_REF_CHANGE.getEventId(), new Date(), refChanges(), repository);
 
-        consumer.process(event);
+        consumer.process(refsChangedWebhookEvent);
 
         verify(gitTrigger, never()).trigger(any());
+
+        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
+        assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
 
     private List<RemoteConfig> createRemoteConfig() {
@@ -369,12 +520,11 @@ public class BitbucketWebhookConsumerTest {
         return refChanges(BitbucketRefChangeType.ADD);
     }
 
-    private List<BitbucketRefChange> refChanges(BitbucketRefChangeType changeType) {
+    private List<BitbucketRefChange> refChanges(BitbucketRefChangeType... changeTypes) {
         BitbucketRef ref = new BitbucketRef("refs/heads/master", "master", BitbucketRefType.BRANCH);
-        BitbucketRefChange change =
-                new BitbucketRefChange(
-                        ref, "refs/heads/master", "fromHash", "tohash", changeType);
-        return singletonList(change);
+        return Arrays.stream(changeTypes).map(changeType -> new BitbucketRefChange(
+                        ref, "refs/heads/master", "fromHash", "tohash", changeType))
+                .collect(Collectors.toList());
     }
 
     private BitbucketRepository repository(String cloneUrl, String projectKey, String repoSlug) {
