@@ -16,6 +16,7 @@ import jenkins.scm.api.SCMHeadEvent;
 import org.apache.groovy.util.Maps;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
+import org.hamcrest.core.Every;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.*;
@@ -37,6 +38,7 @@ import static java.util.Collections.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -189,13 +191,14 @@ public class BitbucketWebhookConsumerTest {
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
-        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
-        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
-        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
-
-        event = events.poll(500L, TimeUnit.MILLISECONDS);
-        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
-        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+        List<SCMHeadEvent<RefsChangedWebhookEvent>> firedEvents = new ArrayList<>();
+        firedEvents.add(events.poll(500L, TimeUnit.MILLISECONDS));
+        firedEvents.add(events.poll(500L, TimeUnit.MILLISECONDS));
+        assertThat(firedEvents.stream().noneMatch(Objects::isNull), equalTo(true));
+        assertThat(firedEvents.stream().map(SCMHeadEvent::getPayload).collect(Collectors.toList()),
+                Every.everyItem(equalTo(refsChangedWebhookEvent)));
+        assertThat(firedEvents.stream().anyMatch(event -> event.getType() == SCMEvent.Type.UPDATED), equalTo(true));
+        assertThat(firedEvents.stream().anyMatch(event -> event.getType() == SCMEvent.Type.REMOVED), equalTo(true));
 
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
@@ -220,6 +223,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<PullRequestFromRefUpdatedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(pullRequestFromRefEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -235,6 +239,7 @@ public class BitbucketWebhookConsumerTest {
         verify(nullBitbucketTrigger, never()).trigger(any());
 
         SCMHeadEvent<PullRequestOpenedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(pullRequestOpenedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.CREATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -258,6 +263,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<PullRequestClosedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(pullRequestClosedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -281,6 +287,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<PullRequestOpenedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(pullRequestOpenedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.CREATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -307,13 +314,14 @@ public class BitbucketWebhookConsumerTest {
                 .trigger(
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
-        SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
-        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
-        assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
-
-        event = events.poll(500L, TimeUnit.MILLISECONDS);
-        assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
-        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+        List<SCMHeadEvent<RefsChangedWebhookEvent>> firedEvents = new ArrayList<>();
+        firedEvents.add(events.poll(500L, TimeUnit.MILLISECONDS));
+        firedEvents.add(events.poll(500L, TimeUnit.MILLISECONDS));
+        assertThat(firedEvents.stream().noneMatch(Objects::isNull), equalTo(true));
+        assertThat(firedEvents.stream().map(SCMHeadEvent::getPayload).collect(Collectors.toList()),
+                Every.everyItem(equalTo(refsChangedWebhookEvent)));
+        assertThat(firedEvents.stream().anyMatch(event -> event.getType() == SCMEvent.Type.UPDATED), equalTo(true));
+        assertThat(firedEvents.stream().anyMatch(event -> event.getType() == SCMEvent.Type.REMOVED), equalTo(true));
 
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
     }
@@ -329,6 +337,7 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never()).trigger(any());
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -385,6 +394,7 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never()).trigger(any());
 
         SCMHeadEvent<MirrorSynchronizedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(mirrorSynchronizedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -403,6 +413,7 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger, never()).trigger(any());
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -426,6 +437,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -448,6 +460,7 @@ public class BitbucketWebhookConsumerTest {
         verify(workflowTrigger).trigger(eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -471,6 +484,7 @@ public class BitbucketWebhookConsumerTest {
                         eq(BitbucketWebhookTriggerRequest.builder().actor(BITBUCKET_USER).build()));
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -486,6 +500,7 @@ public class BitbucketWebhookConsumerTest {
         verify(nullBitbucketTrigger, never()).trigger(any());
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
@@ -503,6 +518,7 @@ public class BitbucketWebhookConsumerTest {
         verify(gitTrigger, never()).trigger(any());
 
         SCMHeadEvent<RefsChangedWebhookEvent> event = events.poll(500L, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
         assertThat(event.getPayload(), equalTo(refsChangedWebhookEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.UPDATED));
         assertThat(events.poll(100L, TimeUnit.MILLISECONDS), nullValue());
