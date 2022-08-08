@@ -105,7 +105,7 @@ public class BitbucketSCMSource extends SCMSource {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return getGitSCMSource().build(head, revision);
+        return getAndInitializeGitSCMSourceIfNull().build(head, revision);
     }
     
     @Override
@@ -178,7 +178,7 @@ public class BitbucketSCMSource extends SCMSource {
         return repository;
     }
 
-    CustomGitSCMSource getGitSCMSource() {
+    CustomGitSCMSource getAndInitializeGitSCMSourceIfNull() {
         if (gitSCMSource == null) {
             initializeGitScmSource();
         }
@@ -208,7 +208,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public String getRemote() {
-        return getGitSCMSource().getRemote();
+        return getAndInitializeGitSCMSourceIfNull().getRemote();
     }
 
     public String getRepositoryName() {
@@ -282,7 +282,7 @@ public class BitbucketSCMSource extends SCMSource {
                                " Check the configuration before running this job again.");
                 return;
             }
-            getGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+            getAndInitializeGitSCMSourceIfNull().accessibleRetrieve(criteria, observer, event, listener);
         }
     }
 
@@ -317,7 +317,15 @@ public class BitbucketSCMSource extends SCMSource {
             repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
                     underlyingRepo.getProject().getName(), underlyingRepo.getProject().getKey(), underlyingRepo.getName(),
                     underlyingRepo.getSlug(), getServerId(), fetchedRepository.getMirroringDetails().getMirrorName());
-            cloneUrl = underlyingRepo.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
+
+            // Get the clone URL from the mirror
+            cloneUrl = fetchedRepository.getMirroringDetails().getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                    .map(BitbucketNamedLink::getHref)
+                    // If the mirroring details are missing the clone URL for some reason, try to fall back to the upstream
+                    .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                            .map(BitbucketNamedLink::getHref)
+                            .orElse(""));
+            
             selfLink = fetchedRepository.getRepository().getSelfLink();
         } else {
             BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
@@ -525,7 +533,7 @@ public class BitbucketSCMSource extends SCMSource {
             return bitbucketPluginConfiguration.getServerById(serverId);
         }
 
-        private BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
+        BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
             return new BitbucketMirrorHandler(
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials,
