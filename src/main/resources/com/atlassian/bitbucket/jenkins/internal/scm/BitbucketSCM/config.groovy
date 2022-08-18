@@ -30,7 +30,7 @@ f.section() {
     }
 
     f.entry(title: _("Branches to build")) {
-        f.repeatableProperty(field: "branches", addCaption: _("Add branch"), hasHeader: "true", minimum: "1", noAddButton: "true")
+        f.repeatableProperty(field: "branches", addCaption: _("Add branch"), hasHeader: "true", minimum: "1")
     }
 
     if (descriptor.showGitToolOptions) {
