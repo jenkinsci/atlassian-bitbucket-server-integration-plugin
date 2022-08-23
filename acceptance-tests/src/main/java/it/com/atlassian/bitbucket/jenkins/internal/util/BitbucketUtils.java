@@ -15,8 +15,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +44,16 @@ public class BitbucketUtils {
     public static final String PROJECT_READ_PERMISSION = "PROJECT_READ";
     public static final String REPO_ADMIN_PERMISSION = "REPO_ADMIN";
     public static final String REPO_SLUG = "rep_1";
+
+    public static final String PRIV_KEY = "-----BEGIN OPENSSH PRIVATE KEY-----\n" +
+                                          "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\n" +
+                                          "QyNTUxOQAAACAL2dUHG4kSVqZ9pOqBhtEjygdxuiYPbVeyUMX6IBPBJQAAAJAOD47NDg+O\n" +
+                                          "zQAAAAtzc2gtZWQyNTUxOQAAACAL2dUHG4kSVqZ9pOqBhtEjygdxuiYPbVeyUMX6IBPBJQ\n" +
+                                          "AAAEA4u5H/tXLBU8F5SqbNZi+KRZZ+GPFjNio8HKLXm4p+tQvZ1QcbiRJWpn2k6oGG0SPK\n" +
+                                          "B3G6Jg9tV7JQxfogE8ElAAAADHRlc3RAamVua2lucwE=\n" +
+                                          "-----END OPENSSH PRIVATE KEY-----\n";
+    public static final String PUB_KEY =
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAvZ1QcbiRJWpn2k6oGG0SPKB3G6Jg9tV7JQxfogE8El\n";
 
     public static BitbucketRepository forkRepository(String projectKey, String repoSlug, String forkName) {
         String sourceRepoUrl = BITBUCKET_BASE_URL + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repoSlug;
@@ -95,9 +110,11 @@ public class BitbucketUtils {
 
     @SuppressWarnings("unchecked")
     public static BitbucketSshKeyPair createSshKeyPair() throws IOException {
-        SshKeyPair keyPair = new SshKeyPairGenerator().get();
+        createED25519KeyPairOnDisk();
+
         Map<String, Object> createSshKeyRequest = new HashMap<>();
-        createSshKeyRequest.put("text", keyPair.readPublicKey());
+        createSshKeyRequest.put("text",
+                PUB_KEY);
 
         ResponseBody<Response> response = RestAssured
                 .given()
@@ -115,7 +132,7 @@ public class BitbucketUtils {
                     .post(BITBUCKET_BASE_URL + "/rest/ssh/1.0/keys")
                 .getBody();
 
-        return new BitbucketSshKeyPair(response.path("id"), keyPair.readPublicKey(), keyPair.readPrivateKey());
+        return new BitbucketSshKeyPair(response.path("id"), PUB_KEY, PRIV_KEY);
     }
 
     public static Job provideJobWithBitbucketScm(Job job, String bbsAdminCredsId, @Nullable BitbucketSshKeyPair bbsSshCreds,
@@ -270,6 +287,23 @@ public class BitbucketUtils {
                     .when()
                 .get(applicationLinkUrl)
                 .getBody().jsonPath().getString("id");
+    }
+
+    private static void createED25519KeyPairOnDisk() throws IOException{
+        File home = new File(System.getProperty("user.home"));
+        File publicKey = new File(home, ".ssh/jenkins-selenium-tests.pub");
+        File privateKey = new File(home, ".ssh/jenkins-selenium-tests");
+        if (publicKey.createNewFile()) {
+            FileWriter myWriter = new FileWriter(publicKey.getAbsoluteFile());
+            myWriter.write(PUB_KEY);
+            myWriter.close();
+        }
+        if (privateKey.createNewFile()) {
+            FileWriter myWriter = new FileWriter(privateKey.getAbsoluteFile());
+            myWriter.write(PRIV_KEY);
+            myWriter.close();
+        }
+        Files.setPosixFilePermissions(privateKey.toPath(), EnumSet.of(PosixFilePermission.OWNER_READ));
     }
 
     public static void deleteApplicationLink(URL applicationLinkUrl) {
