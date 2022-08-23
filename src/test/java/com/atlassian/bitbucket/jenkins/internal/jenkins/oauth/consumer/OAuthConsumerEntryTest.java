@@ -80,7 +80,6 @@ public class OAuthConsumerEntryTest {
     public void testDoCheckConsumerKeyWithIllegalCharacters() {
         Consumer consumer =
                 new Consumer.Builder("NonExistantKey").name("name").signatureMethod(Consumer.SignatureMethod.HMAC_SHA1).build();
-        when(consumerStore.get(any(String.class))).thenReturn(Optional.empty());
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("Key.with.nonalpha.characters");
         assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
         assertThat(formValidation.getMessage(), equalTo(KEY_ILLEGAL_ERROR_MESSAGE));
