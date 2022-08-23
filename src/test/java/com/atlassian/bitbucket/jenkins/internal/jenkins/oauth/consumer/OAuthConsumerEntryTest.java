@@ -22,7 +22,8 @@ import javax.servlet.ServletException;
 import java.net.URISyntaxException;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -33,8 +34,9 @@ public class OAuthConsumerEntryTest {
     private static final String CONSUMER_KEY_FIELD = "consumerKey";
     private static final String CONSUMER_NAME_FIELD = "consumerName";
     private static final String CONSUMER_SECRET_FIELD = "consumerSecret";
-    private static final String KEY_ERROR_MESSAGE = "Consumer key cannot be empty";
-    private static final String KEY_EXISTS_ERROR = "Key with the same name already exists";
+    private static final String KEY_BLANK_ERROR_MESSAGE = "Consumer key cannot be empty";
+    private static final String KEY_ILLEGAL_ERROR_MESSAGE = "Consumer key must consist of alphanumeric characters and hypens only";
+    private static final String KEY_EXISTS_ERROR_MESSAGE = "Key with the same name already exists";
     private static final String NAME_ERROR_MESSAGE = "Consumer name cannot be empty";
     private static final String SECRET_ERROR_MESSAGE = "Consumer secret cannot be empty";
     private static final String URL_ERROR_MESSAGE =
@@ -61,8 +63,8 @@ public class OAuthConsumerEntryTest {
                 new Consumer.Builder("NonExistantKey").name("name").signatureMethod(Consumer.SignatureMethod.HMAC_SHA1).build();
         when(consumerStore.get(any(String.class))).thenReturn(Optional.of(consumer));
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("Key1");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), KEY_EXISTS_ERROR);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(KEY_EXISTS_ERROR_MESSAGE));
     }
 
     @Test
@@ -71,7 +73,17 @@ public class OAuthConsumerEntryTest {
                 new Consumer.Builder("NonExistantKey").name("name").signatureMethod(Consumer.SignatureMethod.HMAC_SHA1).build();
         when(consumerStore.get(any(String.class))).thenReturn(Optional.empty());
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("Key-with-dash");
-        assertEquals(formValidation.kind, FormValidation.Kind.OK);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.OK));
+    }
+
+    @Test
+    public void testDoCheckConsumerKeyWithIllegalCharacters() {
+        Consumer consumer =
+                new Consumer.Builder("NonExistantKey").name("name").signatureMethod(Consumer.SignatureMethod.HMAC_SHA1).build();
+        when(consumerStore.get(any(String.class))).thenReturn(Optional.empty());
+        FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("Key.with.nonalpha.characters");
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(KEY_ILLEGAL_ERROR_MESSAGE));
     }
 
     @Test
@@ -80,61 +92,61 @@ public class OAuthConsumerEntryTest {
                 new Consumer.Builder("ExistantKey").name("name").signatureMethod(Consumer.SignatureMethod.HMAC_SHA1).build();
         when(consumerStore.get(any(String.class))).thenReturn(Optional.of(consumer));
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("ExistantKey");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), KEY_EXISTS_ERROR);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(KEY_EXISTS_ERROR_MESSAGE));
     }
 
     @Test
     public void testDoCheckConsumerKeyWithSpaces() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("Key with spaces");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), KEY_ERROR_MESSAGE);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(KEY_ILLEGAL_ERROR_MESSAGE));
     }
 
     @Test
     public void testDoCheckConsumerName() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerName("Name1");
-        assertEquals(formValidation.kind, FormValidation.Kind.OK);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.OK));
     }
 
     @Test
     public void testDoCheckConsumerSecret() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerSecret("Secret1");
-        assertEquals(formValidation.kind, FormValidation.Kind.OK);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.OK));
     }
 
     @Test
     public void testDoCheckEmptyConsumerKey() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerKey("");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), KEY_ERROR_MESSAGE);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(KEY_BLANK_ERROR_MESSAGE));
     }
 
     @Test
     public void testDoCheckEmptyConsumerName() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerName("");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), NAME_ERROR_MESSAGE);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(NAME_ERROR_MESSAGE));
     }
 
     @Test
     public void testDoCheckEmptyConsumerSecret() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckConsumerSecret("");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), SECRET_ERROR_MESSAGE);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(SECRET_ERROR_MESSAGE));
     }
 
     @Test
     public void testDoCheckHttpConsumerUrl() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckCallbackUrl("http://Callback/");
-        assertEquals(formValidation.kind, FormValidation.Kind.OK);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.OK));
     }
 
     @Test
     public void testDoCheckInvalidConsumerUrl() {
         FormValidation formValidation = oAuthConsumerEntryDescriptor.doCheckCallbackUrl("Url1");
-        assertEquals(formValidation.kind, FormValidation.Kind.ERROR);
-        assertEquals(formValidation.getMessage(), URL_ERROR_MESSAGE);
+        assertThat(formValidation.kind, equalTo(FormValidation.Kind.ERROR));
+        assertThat(formValidation.getMessage(), equalTo(URL_ERROR_MESSAGE));
     }
 
     @Test

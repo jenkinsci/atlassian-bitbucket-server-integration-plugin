@@ -100,9 +100,10 @@ public class OAuthConsumerEntry extends AbstractDescribableImpl<OAuthConsumerEnt
 
         public FormValidation doCheckConsumerKey(@QueryParameter String consumerKey) {
             jenkinsProvider.get().checkPermission(Jenkins.ADMINISTER);
-            String k = consumerKey.replaceAll("-", "");
-            if (!isAlphanumeric(k)) {
+            if (isBlank(consumerKey)) {
                 return FormValidation.error("Consumer key cannot be empty");
+            } else if (!isAlphanumeric(consumerKey.replaceAll("-", ""))) {
+                return FormValidation.error("Consumer key must consist of alphanumeric characters and hypens only");
             } else if (consumerStore.get(consumerKey).isPresent()) {
                 return FormValidation.error("Key with the same name already exists");
             } else {
