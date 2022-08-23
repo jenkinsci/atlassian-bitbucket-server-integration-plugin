@@ -220,6 +220,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.3.0 (24 August 2022)
+- Fix JENKINS-63031: Ref changed webhooks now correctly trigger updated and removed SCM head events
+- Fix JENKINS-69288: Misleading validation message on OAuth consumer creation page
+
 ### 3.2.3 (18 August 2022)
 - Fix JENKINS-68956: Multibranch pipeline jobs configured to clone from the mirror will now do so.
 
