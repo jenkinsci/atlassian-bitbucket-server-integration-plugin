@@ -338,10 +338,12 @@ public class BitbucketWebhookConsumerTest {
         assertThat(events.poll(POST_POLL_TIMEOUT, TimeUnit.MILLISECONDS), nullValue());
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testRefsChangedNotBitbucketSCM() {
         GitSCMSource scmSource = mock(GitSCMSource.class);
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = mock(BitbucketWebhookConsumer.BitbucketSCMHeadEvent.class);
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = 
+                new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
@@ -364,8 +366,8 @@ public class BitbucketWebhookConsumerTest {
         doReturn(mockScmRepo).when(scmSource).getBitbucketSCMRepository();
         doReturn(mockWebhookRepo).when(payload).getRepository();
 
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = mock(BitbucketWebhookConsumer.BitbucketSCMHeadEvent.class);
-        doReturn(payload).when(headEvent).getPayload();
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = 
+                new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
     }
