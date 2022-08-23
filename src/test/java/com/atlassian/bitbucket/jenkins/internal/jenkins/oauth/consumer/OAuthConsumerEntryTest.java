@@ -35,7 +35,7 @@ public class OAuthConsumerEntryTest {
     private static final String CONSUMER_NAME_FIELD = "consumerName";
     private static final String CONSUMER_SECRET_FIELD = "consumerSecret";
     private static final String KEY_BLANK_ERROR_MESSAGE = "Consumer key cannot be empty";
-    private static final String KEY_ILLEGAL_ERROR_MESSAGE = "Consumer key must consist of alphanumeric characters and hypens only";
+    private static final String KEY_ILLEGAL_ERROR_MESSAGE = "Consumer key must consist of alphanumeric characters and hyphens only";
     private static final String KEY_EXISTS_ERROR_MESSAGE = "Key with the same name already exists";
     private static final String NAME_ERROR_MESSAGE = "Consumer name cannot be empty";
     private static final String SECRET_ERROR_MESSAGE = "Consumer secret cannot be empty";
