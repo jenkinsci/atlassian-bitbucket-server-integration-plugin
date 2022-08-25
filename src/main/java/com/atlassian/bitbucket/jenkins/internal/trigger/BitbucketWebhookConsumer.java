@@ -56,67 +56,40 @@ public class BitbucketWebhookConsumer {
 
     private void process(RefsChangedWebhookEvent event) {
         BitbucketRepository repository = event.getRepository();
-        String webhookEventType = "Refs Changed";
-        if (event instanceof MirrorSynchronizedWebhookEvent) {
-            webhookEventType = "Mirror Synchronized";
+        LOGGER.fine(format("Received refs changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
+        if (!isEligibleRefs(event)) {
+            return;
         }
-        LOGGER.fine(format("Received %s event from repo: %s/%s", webhookEventType, repository.getProject().getKey(), repository.getSlug()));
-        Set<BitbucketRefChange> eligibleUpdatedRefs = eligibleRefs(event);
-        if (!eligibleUpdatedRefs.isEmpty()) {
-            RefChangedDetails refChangedDetails = new RefChangedDetails(event);
+        RefChangedDetails refChangedDetails = new RefChangedDetails(event);
+        triggerJob(event, refChangedDetails);
+    }
 
-            try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
-                BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
-                event.getActor().ifPresent(requestBuilder::actor);
-
-                processJobs(event, refChangedDetails, requestBuilder);
-                BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.UPDATED, event,
-                        eligibleUpdatedRefs, event.getRepository().getSlug()));
-            }
-        } 
-        
-        Set<BitbucketRefChange> deletedRefs = new HashSet<>(event.getChanges());
-        deletedRefs.removeAll(eligibleUpdatedRefs);
-        if (!deletedRefs.isEmpty()) {
-            BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.REMOVED, event,
-                    deletedRefs, event.getRepository().getSlug()));
+    private void process(MirrorSynchronizedWebhookEvent event) {
+        BitbucketRepository repository = event.getRepository();
+        LOGGER.fine(format("Received Mirror Synchronized changed event from repo: %s/%s  ", repository.getProject().getKey(), repository.getSlug()));
+        if (!isEligibleRefs(event)) {
+            return;
         }
+        RefChangedDetails refChangedDetails = new RefChangedDetails(event);
+        triggerJob(event, refChangedDetails);
     }
 
     private void process(PullRequestWebhookEvent event) {
         LOGGER.fine("Received pull request event");
+        RefChangedDetails refChangedDetails = new RefChangedDetails(event);
         if (event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent) {
-            RefChangedDetails refChangedDetails = new RefChangedDetails(event);
-            
-            try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
-                BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
-                event.getActor().ifPresent(requestBuilder::actor);
-                
-                processJobs(event, refChangedDetails, requestBuilder);
-                BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(getSCMEventType(event),
-                        event, event.getPullRequest().getToRef().getRepository().getSlug()));
-            }
+            triggerJob(event, refChangedDetails);
         } else if (event instanceof PullRequestClosedWebhookEvent) {
-            BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.REMOVED, event, 
-                    event.getPullRequest().getFromRef().getRepository().getSlug()));
+            BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.REMOVED, event, event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }
 
-    private static Set<BitbucketRefChange> eligibleRefs(RefsChangedWebhookEvent event) {
+    private static Set<String> eligibleRefs(RefsChangedWebhookEvent event) {
         return event.getChanges()
                 .stream()
                 .filter(refChange -> refChange.getType() != BitbucketRefChangeType.DELETE)
+                .map(refChange -> refChange.getRef().getId())
                 .collect(Collectors.toSet());
-    }
-    
-    private static SCMEvent.Type getSCMEventType(PullRequestWebhookEvent event) {
-        if (event instanceof PullRequestOpenedWebhookEvent) {
-            return SCMEvent.Type.CREATED;
-        } else if (event instanceof PullRequestFromRefUpdatedWebhookEvent) {
-            return SCMEvent.Type.UPDATED;
-        } else {
-            return SCMEvent.Type.REMOVED;
-        }
     }
 
     private static Optional<? extends SCM> getScmFromWorkflowJob(WorkflowJob job) {
@@ -211,6 +184,14 @@ public class BitbucketWebhookConsumer {
                 }).orElse(false);
     }
 
+    private boolean isEligibleRefs(RefsChangedWebhookEvent event) {
+        if (eligibleRefs(event).isEmpty()) {
+            LOGGER.fine("Skipping processing of refs changed event because no refs have been added or updated");
+            return false;
+        }
+        return true;
+    }
+
     private void processJobs(AbstractWebhookEvent event, RefChangedDetails refChangedDetails, BitbucketWebhookTriggerRequest.Builder requestBuilder) {
         Jenkins.get().getAllItems(ParameterizedJobMixIn.ParameterizedJob.class)
                 .stream()
@@ -221,6 +202,28 @@ public class BitbucketWebhookConsumer {
                 .filter(triggerDetails -> hasMatchingRepository(refChangedDetails, triggerDetails.getJob()))
                 .peek(triggerDetails -> LOGGER.fine("Triggering " + triggerDetails.getJob().getFullDisplayName()))
                 .forEach(triggerDetails -> triggerDetails.getTrigger().trigger(requestBuilder.build()));
+    }
+
+    private void triggerJob(AbstractWebhookEvent event, RefChangedDetails refChangedDetails) {
+        try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
+            BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
+            event.getActor().ifPresent(requestBuilder::actor);
+
+            processJobs(event, refChangedDetails, requestBuilder);
+            if (event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent) {
+                PullRequestWebhookEvent prOpenEvent = (PullRequestWebhookEvent) event;
+                SCMEvent.Type eventType = SCMEvent.Type.CREATED;
+                if (event instanceof PullRequestFromRefUpdatedWebhookEvent) {
+                    eventType = SCMEvent.Type.UPDATED;
+                }
+                BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(eventType,
+                        prOpenEvent, prOpenEvent.getPullRequest().getToRef().getRepository().getSlug()));
+            } else if (event instanceof RefsChangedWebhookEvent) {
+                RefsChangedWebhookEvent refsChangedEvent = (RefsChangedWebhookEvent) event;
+                BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.UPDATED, refsChangedEvent,
+                        refsChangedEvent.getRepository().getSlug()));
+            }
+        }
     }
 
     /**
@@ -266,12 +269,9 @@ public class BitbucketWebhookConsumer {
     }
 
     static class BitbucketSCMHeadEvent extends SCMHeadEvent<RefsChangedWebhookEvent> {
-        
-        private Collection<BitbucketRefChange> effectiveRefs;
 
-        public BitbucketSCMHeadEvent(Type type, RefsChangedWebhookEvent payload, Collection<BitbucketRefChange> effectiveRefs, String origin) {
+        public BitbucketSCMHeadEvent(Type type, RefsChangedWebhookEvent payload, String origin) {
             super(type, payload, origin);
-            this.effectiveRefs = effectiveRefs;
         }
 
         @Override
@@ -288,9 +288,7 @@ public class BitbucketWebhookConsumer {
             if (!matchingRepo(getPayload().getRepository(), src.getBitbucketSCMRepository())) {
                 return emptyMap();
             }
-            return effectiveRefs.stream()
-                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()), 
-                            change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
+            return getPayload().getChanges().stream().collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()), change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
         }
 
         @Override
