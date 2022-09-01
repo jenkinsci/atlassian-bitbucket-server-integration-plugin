@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsModule;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.inject.Guice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,6 +61,7 @@ public class BitbucketSCM extends SCM {
     // this is to enable us to support future multiple repositories
     private final List<BitbucketSCMRepository> repositories;
     private volatile boolean isWebhookRegistered;
+    private Map<String, String> environment;
 
     @DataBoundConstructor
     public BitbucketSCM(
@@ -81,6 +83,23 @@ public class BitbucketSCM extends SCM {
         repositories.add(new BitbucketSCMRepository(
                 credentialsId, sshCredentialsId, projectName, projectName, repositoryName, repositoryName, serverId, mirrorName));
     }
+
+    BitbucketSCM(
+            @CheckForNull String credentialsId,
+            @CheckForNull String sshCredentialsId,
+            @CheckForNull String projectName,
+            @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "We handle null values properly in a way that Findbugs misses")
+            @CheckForNull String repositoryName,
+            @CheckForNull String serverId,
+            @CheckForNull String mirrorName,
+            GitSCM gitSCM, 
+            AbstractWebhookEvent payload) {
+
+        this(null, null, credentialsId, sshCredentialsId, null, null, projectName, repositoryName, serverId, mirrorName);
+        this.gitSCM = gitSCM;
+        environment.put("EVENTKEY", payload.getEventKey());
+    }
+    
 
     // This constructor is to be used when building an SCM in code but the GitSCM needs to be initialized as part of the
     // construction, rather than automatically when performing a checkout or other git operation. This requires the user
@@ -149,6 +168,7 @@ public class BitbucketSCM extends SCM {
         if (extensions != null) {
             this.extensions.addAll(extensions);
         }
+        environment = new HashMap<>();
     }
 
     @CheckForNull
@@ -160,6 +180,7 @@ public class BitbucketSCM extends SCM {
     public void buildEnvironment(Run<?, ?> build, Map<String, String> env) {
         getAndInitializeGitScmIfNull(build.getParent())
                 .buildEnvironment(build, env);
+        env.putAll(environment);
     }
 
     @CheckForNull

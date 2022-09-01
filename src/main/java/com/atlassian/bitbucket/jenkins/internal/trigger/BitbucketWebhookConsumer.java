@@ -250,8 +250,8 @@ public class BitbucketWebhookConsumer {
             }
 
             BitbucketPullRequestRef fromRef = getPayload().getPullRequest().getFromRef();
-            return Collections.singletonMap(new GitBranchSCMHead(fromRef.getDisplayId()),
-                    new GitBranchSCMRevision(new GitBranchSCMHead(fromRef.getDisplayId()), fromRef.getLatestCommit()));
+            return Collections.singletonMap(new BitbucketWebhookConsumer.BitbucketBranchSCMHead(fromRef.getDisplayId(), getPayload()),
+                    new BitbucketWebhookConsumer.BitbucketBranchSCMRevision(new BitbucketWebhookConsumer.BitbucketBranchSCMHead(fromRef.getDisplayId(), getPayload()), fromRef.getLatestCommit()));
         }
 
         @Override
@@ -264,7 +264,43 @@ public class BitbucketWebhookConsumer {
             return false; //see comment on the overriden method
         }
     }
+    
+    public static class BitbucketBranchSCMRevision extends SCMRevision {
+        
+        private final String hash;
 
+        public BitbucketBranchSCMRevision(SCMHead head, String hash) {
+            super(head);
+            this.hash = hash;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {return true;}
+            if (o == null || getClass() != o.getClass()) {return false;}
+            BitbucketWebhookConsumer.BitbucketBranchSCMRevision that = (BitbucketWebhookConsumer.BitbucketBranchSCMRevision) o;
+            return Objects.equals(hash, that.hash);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(hash);
+        }
+    }
+    public static class BitbucketBranchSCMHead extends SCMHead {
+
+        private final AbstractWebhookEvent payload;
+
+        public BitbucketBranchSCMHead(String name, AbstractWebhookEvent payload) {
+            super(name);
+            this.payload = payload;
+        }
+        
+        public AbstractWebhookEvent getPayload() {
+            return payload;
+        }
+    }
+    
     static class BitbucketSCMHeadEvent extends SCMHeadEvent<RefsChangedWebhookEvent> {
         
         private Collection<BitbucketRefChange> effectiveRefs;
@@ -288,9 +324,10 @@ public class BitbucketWebhookConsumer {
             if (!matchingRepo(getPayload().getRepository(), src.getBitbucketSCMRepository())) {
                 return emptyMap();
             }
+            
             return effectiveRefs.stream()
-                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()), 
-                            change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
+                    .collect(Collectors.toMap(change -> new BitbucketWebhookConsumer.BitbucketBranchSCMHead(change.getRef().getDisplayId(), getPayload()), 
+                            change -> new BitbucketBranchSCMRevision(new BitbucketWebhookConsumer.BitbucketBranchSCMHead(change.getRef().getDisplayId(), getPayload()), change.getToHash())));
         }
 
         @Override

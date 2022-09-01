@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
+import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookConsumer;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEvent;
@@ -18,10 +19,8 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-import hudson.model.Action;
-import hudson.model.Actionable;
-import hudson.model.Item;
-import hudson.model.TaskListener;
+import hudson.model.*;
+import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.browser.BitbucketServer;
@@ -29,6 +28,7 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -40,6 +40,7 @@ import jenkins.scm.impl.form.NamedArrayList;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.HttpResponse;
@@ -50,6 +51,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -105,8 +109,46 @@ public class BitbucketSCMSource extends SCMSource {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return getAndInitializeGitSCMSourceIfNull().build(head, revision);
+        
+        SCM constructedSCM = getAndInitializeGitSCMSourceIfNull().build(head, revision);
+        if (constructedSCM instanceof GitSCM && head instanceof BitbucketWebhookConsumer.BitbucketBranchSCMHead) {
+            GitSCM constructedGitSCM = (GitSCM) constructedSCM;
+            BitbucketWebhookConsumer.BitbucketBranchSCMHead bitbucketHead =
+                    (BitbucketWebhookConsumer.BitbucketBranchSCMHead) head;
+//            return new BitbucketSCM(
+//                    getCredentialsId(), 
+//                    getSshCredentialsId(),
+//                    getProjectName(),
+//                    getRepositoryName(),
+//                    getServerId(),
+//                    getMirrorName(),
+//                    constructedGitSCM,
+//                    bitbucketHead.getPayload()
+//            );
+        }
+//        LOGGER.warning("git scm source didn't construct a recognizable SCM");
+        return constructedSCM;
     }
+    
+//    private static class SCMInvocationHandler implements InvocationHandler {
+//
+//        private final SCM target;
+//
+//        public SCMInvocationHandler(SCM target) {
+//            this.target = target;
+//        }
+//
+//        @Override
+//        public Object invoke(Object o, Method method, Object[] objects) throws Throwable {
+//            Object result = method.invoke(o, objects);
+//            if (method.getName().equals(SCM.class.getMethod("buildEnvironment", Run.class, Map.class))) {
+//                Map environment = (Map) objects[1];
+//                environment.put("TEST_VALUE", "hello");
+//            }
+//            
+//            return result;
+//        }
+//    }
     
     @Override
     protected List<Action> retrieveActions(SCMSourceEvent event, 
