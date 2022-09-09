@@ -19,7 +19,7 @@
         <java.level>8</java.level>
         <jackson.version>2.13.0</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.289.1</jenkins.version>
+        <jenkins.version>2.319</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
