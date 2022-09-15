@@ -18,7 +18,7 @@ public class OAuthProblemUtils {
                                        OAuthProblemException ope,
                                        Logger logger) {
         if (Problems.TIMESTAMP_REFUSED.equals(ope.getProblem())) {
-            logger.log(Level.WARNING, "Rejecting OAuth request for url \"{}\" due to invalid timestamp ({}). " +
+            logger.log(Level.WARNING, "Rejecting OAuth request for url \"{0}\" due to invalid timestamp ({1}). " +
                                       "This is most likely due to our system clock not being " +
                                       "synchronized with the consumer's clock.",
                     new Object[]{message.URL, ope.getParameters()});
@@ -31,7 +31,7 @@ public class OAuthProblemUtils {
         } else {
             // omit the stacktrace
             logger.log(Level.WARNING,
-                    "Problem encountered authenticating OAuth client for url \"{}\", error was \"{}\", with parameters \"{}\"",
+                    "Problem encountered authenticating OAuth client for url \"{0}\", error was \"{1}\", with parameters \"{2}\"",
                     new Object[]{message.URL, ope.getProblem(), ope.getParameters()}
             );
         }
