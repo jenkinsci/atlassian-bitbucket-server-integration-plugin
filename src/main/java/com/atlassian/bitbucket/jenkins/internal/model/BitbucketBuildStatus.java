@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -27,15 +29,15 @@ public class BitbucketBuildStatus {
     private final String url;
 
     @JsonCreator
-    public BitbucketBuildStatus(@JsonProperty("buildNumber") String buildNumber,
-                                @JsonProperty("description") String description,
-                                @JsonProperty("duration") Long duration,
+    public BitbucketBuildStatus(@JsonProperty("buildNumber") @CheckForNull String buildNumber,
+                                @JsonProperty("description") @CheckForNull String description,
+                                @JsonProperty("duration") @CheckForNull Long duration,
                                 @JsonProperty("key") String key,
-                                @JsonProperty("name") String name,
-                                @JsonProperty("parent") String parent,
-                                @JsonProperty("ref") String ref,
+                                @JsonProperty("name") @CheckForNull String name,
+                                @JsonProperty("parent") @CheckForNull String parent,
+                                @JsonProperty("ref") @CheckForNull String ref,
                                 @JsonProperty("state") BuildState state,
-                                @JsonProperty("testResults") TestResults testResults,
+                                @JsonProperty("testResults") @CheckForNull TestResults testResults,
                                 @JsonProperty("url") String url) {
         requireNonNull(key, "key");
         requireNonNull(state, "state");
@@ -50,6 +52,60 @@ public class BitbucketBuildStatus {
         this.state = state;
         this.testResults = testResults;
         this.url = url;
+    }
+    
+    private BitbucketBuildStatus(Builder builder) {
+        key = requireNonNull(builder.key, "key");
+        url = requireNonNull(builder.url, "url");
+        description = builder.description;
+        name = builder.name;
+        
+        if (builder.isLegacy) {
+            buildNumber = null;
+            duration = null;
+            parent = null;
+            ref = null;
+            testResults = null;
+        } else {
+            buildNumber = builder.buildNumber;
+            duration = builder.duration;
+            parent = builder.parent;
+            ref = builder.ref;
+            testResults = builder.testResults;
+        }
+        
+        if (builder.state == BuildState.CANCELLED && (builder.isLegacy || !builder.isCancelledSupported)) {
+            state = BuildState.FAILED;
+        } else {
+            state = requireNonNull(builder.state, "state");
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BitbucketBuildStatus that = (BitbucketBuildStatus) o;
+        
+        return Objects.equals(buildNumber, that.buildNumber) &&
+               Objects.equals(description, that.description) &&
+               Objects.equals(duration, that.duration) && 
+               Objects.equals(key, that.key) &&
+               Objects.equals(name, that.name) && 
+               Objects.equals(parent, that.parent) &&
+               Objects.equals(ref, that.ref) && 
+               state == that.state &&
+               Objects.equals(testResults, that.testResults) && 
+               Objects.equals(url, that.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(buildNumber, description, duration, key, name, parent, ref, state, testResults, url);
     }
 
     @JsonProperty(value = "buildNumber")
@@ -111,6 +167,8 @@ public class BitbucketBuildStatus {
         private String buildNumber;
         private String description;
         private Long duration;
+        private boolean isLegacy = false;
+        private boolean isCancelledSupported = true;
         private String key;
         private String name;
         private String parent;
@@ -126,9 +184,19 @@ public class BitbucketBuildStatus {
         }
 
         public BitbucketBuildStatus build() {
-            return new BitbucketBuildStatus(buildNumber, description, duration, key, name, parent, ref, state, testResults, url);
+            return new BitbucketBuildStatus(this);
         }
-
+        
+        public Builder legacy() {
+            isLegacy = true;
+            return this;
+        }
+        
+        public Builder noCancelledState() {
+            isCancelledSupported = false;
+            return this;
+        }
+        
         public Builder setBuildNumber(String buildNumber) {
             this.buildNumber = buildNumber;
             return this;

@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSetup;
 import com.atlassian.bitbucket.jenkins.internal.fixture.mocks.TestBitbucketClientFactoryHandler;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -46,7 +45,7 @@ public class BuildStatusPosterTest {
     @Mock
     private BitbucketBuildStatusFactory buildStatusFactory;
 
-    private BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("key", SUCCESSFUL, "aUrl").build();
+    private BitbucketBuildStatus.Builder buildStatus = new BitbucketBuildStatus.Builder("key", SUCCESSFUL, "aUrl");
     private TestBitbucketClientFactoryHandler clientFactoryMock;
     private BitbucketJenkinsSetup jenkinsSetupMock;
     private BuildStatusPoster buildStatusPoster;
@@ -57,7 +56,7 @@ public class BuildStatusPosterTest {
         clientFactoryMock =
                 TestBitbucketClientFactoryHandler.create(jenkinsSetupMock, jenkinsSetupMock.getBbAdminCredentials())
                         .withBuildStatusClient(REVISION_SHA1, scmRepository)
-                        .withCICapabilities(BitbucketCICapabilities.RICH_BUILD_STATUS_CAPABILITY);
+                        .withCICapabilities("richBuildStatus");
 
         buildStatusPoster = spy(new BuildStatusPoster(
                 clientFactoryMock.getBitbucketClientFactoryProvider(),
@@ -68,16 +67,15 @@ public class BuildStatusPosterTest {
 
         when(run.getProject()).thenReturn(project);
         when(listener.getLogger()).thenReturn(logger);
-        when(buildStatusFactory.createRichBuildStatus(run)).thenReturn(buildStatus);
-        when(buildStatusFactory.createLegacyBuildStatus(run)).thenReturn(buildStatus);
+        when(buildStatusFactory.prepareBuildStatus(run)).thenReturn(buildStatus);
     }
     
     @Test
     public void testBitbucketClientException() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
-        doThrow(BitbucketClientException.class).when(clientFactoryMock.getBuildStatusClient()).post(any(BitbucketBuildStatus.class));
+        doThrow(BitbucketClientException.class).when(clientFactoryMock.getBuildStatusClient()).post(any(BitbucketBuildStatus.Builder.class), any());
         buildStatusPoster.onCompleted(run, listener);
-        verify(clientFactoryMock.getBuildStatusClient()).post(any());
+        verify(clientFactoryMock.getBuildStatusClient()).post(any(), any());
     }
 
     @Test
@@ -111,14 +109,15 @@ public class BuildStatusPosterTest {
         verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 
+    // TODO: Rethink this
     @Test
     public void testSuccessfulPost() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
-        verify(buildStatusFactory).createLegacyBuildStatus(run);
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(buildStatusFactory).prepareBuildStatus(run);
     }
 
     @Test
@@ -128,8 +127,8 @@ public class BuildStatusPosterTest {
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
-        verify(buildStatusFactory).createRichBuildStatus(run);
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(buildStatusFactory).prepareBuildStatus(run);
     }
 
     @Test
@@ -140,7 +139,7 @@ public class BuildStatusPosterTest {
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus);
-        verify(buildStatusFactory).createLegacyBuildStatus(run);
+        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(buildStatusFactory).prepareBuildStatus(run);
     }
 }

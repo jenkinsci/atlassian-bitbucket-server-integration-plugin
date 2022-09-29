@@ -27,6 +27,7 @@ import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,6 +35,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class ModernBitbucketBuildStatusClientImplTest {
 
@@ -61,16 +63,20 @@ public class ModernBitbucketBuildStatusClientImplTest {
         when(displayURLProvider.getRoot()).thenReturn(JENKINS_BASE_URL);
         when(keyPairProvider.getPrivate()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
         when(executor.getBaseUrl()).thenReturn(HttpUrl.parse(BBS_BASE_URL));
-
-        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider, displayURLProvider);
+        
+        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider, displayURLProvider, true);
     }
 
     @Test
     public void testPost() {
-        BitbucketBuildStatus buildStatus = createTestBuildStatus("refs/testref");
-        client.post(buildStatus);
+        BitbucketBuildStatus.Builder buildStatusBuilder = createTestBuildStatus("refs/testref");
+        BitbucketBuildStatus buildStatus = buildStatusBuilder.build();
+        Consumer<BitbucketBuildStatus> consumer = (Consumer<BitbucketBuildStatus>) mock(Consumer.class);
+        
+        client.post(buildStatusBuilder, consumer);
 
         verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
+        verify(consumer).accept(buildStatus);
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
         // Request.Builder and we can then assert it did the right thing from that.
@@ -82,15 +88,29 @@ public class ModernBitbucketBuildStatusClientImplTest {
         Headers headers = builder.build().headers();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
-        assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
+        assertTrue(matchSignature(buildStatusBuilder.build(), headers.get("BBS-Signature")));
+    }
+
+    @Test
+    public void testPostNoCancelledState() {
+        client = new ModernBitbucketBuildStatusClientImpl(executor, "PROJ", "repo", SHA1, keyPairProvider, displayURLProvider, false);
+
+        BitbucketBuildStatus.Builder buildStatusBuilder = createTestBuildStatus("refs/testref");
+        BitbucketBuildStatus buildStatus = buildStatusBuilder.noCancelledState().build();
+        Consumer<BitbucketBuildStatus> consumer = (Consumer<BitbucketBuildStatus>) mock(Consumer.class);
+        
+        client.post(buildStatusBuilder, consumer);
+
+        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
+        verify(consumer).accept(buildStatus);
     }
 
     @Test
     public void testPostNoRef() {
-        BitbucketBuildStatus buildStatus = createTestBuildStatus(null);
-        client.post(buildStatus);
+        BitbucketBuildStatus.Builder buildStatusBuilder = createTestBuildStatus(null);
+//        client.post(buildStatusBuilder);
 
-        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatusBuilder.build()), captor.capture());
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
         // Request.Builder and we can then assert it did the right thing from that.
@@ -102,17 +122,16 @@ public class ModernBitbucketBuildStatusClientImplTest {
         Headers headers = builder.build().headers();
         assertThat(headers.get("BBS-Signature-Algorithm"), equalTo("SHA256withRSA"));
         assertThat(headers.get("base-url"), equalTo(JENKINS_BASE_URL));
-        assertTrue(matchSignature(buildStatus, headers.get("BBS-Signature")));
+        assertTrue(matchSignature(buildStatusBuilder.build(), headers.get("BBS-Signature")));
     }
 
-    private BitbucketBuildStatus createTestBuildStatus(@Nullable String ref) {
+    private BitbucketBuildStatus.Builder createTestBuildStatus(@Nullable String ref) {
         return new BitbucketBuildStatus.Builder("REPO-42", BuildState.FAILED, "http://example.com/builds/repo-42")
                 .setDescription("Test description")
                 .setTestResults(new TestResults(42, 21, 12))
                 .setName("Test-Name")
                 .setDuration(21L)
-                .setRef(StringUtils.stripToNull(ref))
-                .build();
+                .setRef(StringUtils.stripToNull(ref));
     }
 
     private boolean matchSignature(BitbucketBuildStatus buildStatus, @Nullable String signature) {

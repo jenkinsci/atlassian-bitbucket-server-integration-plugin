@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum BuildState {
 
+    @JsonProperty("CANCELLED")
+    CANCELLED("%s cancelled"),
     @JsonProperty("FAILED")
     FAILED("%s failed in %s"),
     @JsonProperty("INPROGRESS")

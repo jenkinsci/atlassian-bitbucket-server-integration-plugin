@@ -19,6 +19,7 @@ import java.util.Collection;
 public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStatusFactory {
 
     private static final Collection<Result> successfulResults = Arrays.asList(Result.SUCCESS, Result.UNSTABLE);
+    private static final Collection<Result> cancelledResults = Arrays.asList(Result.ABORTED, Result.NOT_BUILT);
 
     private final DisplayURLProvider displayURLProvider;
 
@@ -32,16 +33,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
     }
 
     @Override
-    public BitbucketBuildStatus createLegacyBuildStatus(Run<?, ?> build) {
-        return fromBuild(build, false);
-    }
-
-    @Override
-    public BitbucketBuildStatus createRichBuildStatus(Run<?, ?> build) {
-        return fromBuild(build, true);
-    }
-
-    private BitbucketBuildStatus fromBuild(Run<?, ?> build, boolean isRich) {
+    public BitbucketBuildStatus.Builder prepareBuildStatus(Run<?, ?> build) {
         Job<?, ?> job = build.getParent();
         ItemGroup parent = job.getParent();
         boolean isMultibranch = parent instanceof MultiBranchProject;
@@ -55,6 +47,8 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
             state = BuildState.INPROGRESS;
         } else if (successfulResults.contains(build.getResult())) {
             state = BuildState.SUCCESSFUL;
+        } else if (cancelledResults.contains(build.getResult())) {
+            state = BuildState.CANCELLED;
         } else {
             state = BuildState.FAILED;
         }
@@ -62,22 +56,20 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
                 .setName(name)
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
 
-        if (isRich) {
-            BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
+        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
 
-            bbs.setBuildNumber(build.getId())
-                    .setTestResults(getTestResults(build))
-                    .setParent(isMultibranch ? parent.getFullName() : job.getFullName());
+        bbs.setBuildNumber(build.getId())
+                .setTestResults(getTestResults(build))
+                .setParent(isMultibranch ? parent.getFullName() : job.getFullName());
 
-            if (revisionAction != null) {
-                bbs.setRef(revisionAction.getBranchAsRefFormat());
-            }
-
-            if (state != BuildState.INPROGRESS) {
-                bbs.setDuration(build.getDuration());
-            }
+        if (revisionAction != null) {
+            bbs.setRef(revisionAction.getBranchAsRefFormat());
         }
-        return bbs.build();
+
+        if (state != BuildState.INPROGRESS) {
+            bbs.setDuration(build.getDuration());
+        }
+        return bbs;
     }
 
     @Nullable

@@ -7,7 +7,6 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
@@ -85,24 +84,18 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         GlobalCredentialsProvider globalCredentialsProvider = server.getGlobalCredentialsProvider(run.getParent());
         try {
             BitbucketClientFactory bbsClient = getBbsClient(server, globalCredentialsProvider);
-            BitbucketCICapabilities ciCapabilities = bbsClient.getCapabilityClient().getCICapabilities();
 
-            BitbucketBuildStatus buildStatus;
-            if (!useLegacyBuildStatus() && ciCapabilities.supportsRichBuildStatus()) {
-                buildStatus = bitbucketBuildStatusFactory.createRichBuildStatus(run);
-            } else {
-                buildStatus = bitbucketBuildStatusFactory.createLegacyBuildStatus(run);
-            }
-
-            listener.getLogger().println(String.format(BUILD_STATUS_FORMAT,
-                    buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1(),
-                    buildStatus.getRef()));
+            BitbucketBuildStatus.Builder buildStatusBuilder = bitbucketBuildStatusFactory.prepareBuildStatus(run);
 
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
+
             bbsClient.getProjectClient(bitbucketSCMRepo.getProjectKey())
                     .getRepositoryClient(bitbucketSCMRepo.getRepositorySlug())
-                    .getBuildStatusClient(revisionAction.getRevisionSha1(), ciCapabilities)
-                    .post(buildStatus);
+                    .getBuildStatusClient(revisionAction.getRevisionSha1())
+                    .post(buildStatusBuilder, buildStatus -> 
+                            listener.getLogger().println(String.format(BUILD_STATUS_FORMAT,
+                            buildStatus, server.getServerName(), revisionAction.getRevisionSha1(), buildStatus.getRef())));
+
         } catch (RuntimeException e) {
             String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();
             LOGGER.info(errorMsg);

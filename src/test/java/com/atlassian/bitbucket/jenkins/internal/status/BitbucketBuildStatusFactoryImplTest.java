@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -76,6 +76,46 @@ public class BitbucketBuildStatusFactoryImplTest {
         when(workflowRun.getResult()).thenReturn(Result.FAILURE);
 
         BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun);
+
+        assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
+    }
+    
+    @Test
+    public void testBuildStatusNotBuilt() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.NOT_BUILT);
+
+        BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun, true);
+
+        assertThat(result.getState(), equalTo(BuildState.CANCELLED.toString()));
+    }
+    
+    @Test
+    public void testBuildStatusNotBuiltLegacy() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.NOT_BUILT);
+
+        BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun, false);
+
+        assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
+    }
+    
+    @Test
+    public void testBuildStatusAborted() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.ABORTED);
+
+        BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun, true);
+
+        assertThat(result.getState(), equalTo(BuildState.CANCELLED.toString()));
+    }
+
+    @Test
+    public void testBuildStatusAbortedLegacy() {
+        when(workflowRun.isBuilding()).thenReturn(false);
+        when(workflowRun.getResult()).thenReturn(Result.ABORTED);
+
+        BitbucketBuildStatus result = createBitbucketBuildStatus(workflowRun, false);
 
         assertThat(result.getState(), equalTo(BuildState.FAILED.toString()));
     }
@@ -206,7 +246,7 @@ public class BitbucketBuildStatusFactoryImplTest {
     private BitbucketBuildStatus createBitbucketBuildStatus(Run<?, ?> run, boolean createRich) {
         BitbucketBuildStatusFactoryImpl statusFactory =
                 new BitbucketBuildStatusFactoryImpl(displayUrlProvider);
-        return createRich ? statusFactory.createRichBuildStatus(run) :
-                            statusFactory.createLegacyBuildStatus(run);
+        return createRich ? statusFactory.prepareBuildStatus(run).build() :
+                            statusFactory.prepareBuildStatus(run).legacy().build();
     }
 }
