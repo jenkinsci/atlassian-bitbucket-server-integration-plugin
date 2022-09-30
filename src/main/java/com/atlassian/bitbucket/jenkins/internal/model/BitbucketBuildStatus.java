@@ -74,7 +74,7 @@ public class BitbucketBuildStatus {
             testResults = builder.testResults;
         }
         
-        if (builder.state == BuildState.CANCELLED && (builder.isLegacy || !builder.isCancelledSupported)) {
+        if (builder.state == BuildState.CANCELLED && (builder.isLegacy || builder.noCancelledState)) {
             state = BuildState.FAILED;
         } else {
             state = requireNonNull(builder.state, "state");
@@ -167,8 +167,8 @@ public class BitbucketBuildStatus {
         private String buildNumber;
         private String description;
         private Long duration;
-        private boolean isLegacy = false;
-        private boolean isCancelledSupported = true;
+        private boolean isLegacy;
+        private boolean noCancelledState;
         private String key;
         private String name;
         private String parent;
@@ -193,7 +193,7 @@ public class BitbucketBuildStatus {
         }
         
         public Builder noCancelledState() {
-            isCancelledSupported = false;
+            noCancelledState = true;
             return this;
         }
         

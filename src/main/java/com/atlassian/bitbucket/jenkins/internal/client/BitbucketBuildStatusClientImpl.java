@@ -34,6 +34,6 @@ public class BitbucketBuildStatusClientImpl implements BitbucketBuildStatusClien
                 .addPathSegment("commits")
                 .addPathSegment(revisionSha)
                 .build();
-        bitbucketRequestExecutor.makePostRequest(url, buildStatusBuilder, new RetryOnRateLimitConfig(maxAttempts));
+        bitbucketRequestExecutor.makePostRequest(url, buildStatus, new RetryOnRateLimitConfig(maxAttempts));
     }
 }

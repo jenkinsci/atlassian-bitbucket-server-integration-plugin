@@ -16,7 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -42,6 +41,8 @@ public class ModernBitbucketBuildStatusClientImplTest {
     private static final String BBS_BASE_URL = "http://localhost:7990/bitbucket";
     private static final String JENKINS_BASE_URL = "http://localhost:8080/jenkins";
     private static final String SHA1 = "5ab78046a50050b8aa3e4accf80950a60f716391";
+    private static final HttpUrl
+            EXPECTED_URL = HttpUrl.parse(BBS_BASE_URL + "/rest/api/1.0/projects/PROJ/repos/repo/commits/" + SHA1 + "/builds");
     static KeyPair keyPair;
     @Captor
     ArgumentCaptor<RequestConfiguration> captor;
@@ -75,7 +76,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
         
         client.post(buildStatusBuilder, consumer);
 
-        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
         verify(consumer).accept(buildStatus);
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
@@ -101,16 +102,20 @@ public class ModernBitbucketBuildStatusClientImplTest {
         
         client.post(buildStatusBuilder, consumer);
 
-        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
         verify(consumer).accept(buildStatus);
     }
 
     @Test
     public void testPostNoRef() {
         BitbucketBuildStatus.Builder buildStatusBuilder = createTestBuildStatus(null);
-//        client.post(buildStatusBuilder);
+        BitbucketBuildStatus buildStatus = buildStatusBuilder.build();
+        Consumer<BitbucketBuildStatus> consumer = (Consumer<BitbucketBuildStatus>) mock(Consumer.class);
 
-        verify(executor).makePostRequest(ArgumentMatchers.any(HttpUrl.class), eq(buildStatusBuilder.build()), captor.capture());
+        client.post(buildStatusBuilder, consumer);
+
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
+        verify(consumer).accept(buildStatus);
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
         // Request.Builder and we can then assert it did the right thing from that.

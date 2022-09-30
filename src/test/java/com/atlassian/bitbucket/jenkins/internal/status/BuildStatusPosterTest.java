@@ -104,19 +104,18 @@ public class BuildStatusPosterTest {
         } finally {
             System.setProperty("bitbucket.status.disable", "");
         }
-        verify(logger).println((eq("Build statuses disabled, no build status sent.")));
+        verify(logger).println(eq("Build statuses disabled, no build status sent."));
         
         verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 
-    // TODO: Rethink this
     @Test
     public void testSuccessfulPost() {
         when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
         verify(buildStatusFactory).prepareBuildStatus(run);
     }
 
@@ -127,7 +126,7 @@ public class BuildStatusPosterTest {
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
         verify(buildStatusFactory).prepareBuildStatus(run);
     }
 
@@ -139,7 +138,7 @@ public class BuildStatusPosterTest {
 
         buildStatusPoster.onCompleted(run, listener);
 
-        verify(clientFactoryMock.getBuildStatusClient()).post(buildStatus, any());
+        verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
         verify(buildStatusFactory).prepareBuildStatus(run);
     }
 }
