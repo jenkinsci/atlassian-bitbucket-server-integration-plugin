@@ -1,5 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth;
 
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.fullapplink.ApplinkConfigurationEndpoint;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.fullapplink.SpecificUrlMapper;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.fullapplink.UrlMapper;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.TrustedUnderlyingSystemAuthorizerFilter;
 import com.atlassian.bitbucket.jenkins.internal.jenkins.auth.JenkinsSecurityModeChecker;
@@ -24,5 +27,7 @@ public class OAuthModule extends AbstractModule {
         bind(OAuthValidator.class).to(SimpleOAuthValidator.class).in(Singleton.class);
         bind(TrustedUnderlyingSystemAuthorizerFilter.class).to(TrustedJenkinsAuthorizer.class).in(Singleton.class);
         bind(SecurityModeChecker.class).to(JenkinsSecurityModeChecker.class).in(Singleton.class);
+        bind(UrlMapper.class).to(SpecificUrlMapper.class).in(Singleton.class);
+        bind(ApplinkConfigurationEndpoint.class).in(Singleton.class);
     }
 }

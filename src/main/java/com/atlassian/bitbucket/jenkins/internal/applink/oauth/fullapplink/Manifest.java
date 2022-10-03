@@ -25,37 +25,35 @@ enum TypeId {
 @XStreamAlias("manifest")
 public class Manifest {
 
-    private final String id;
-    private final String name;
-    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
-    private final String typeId = TypeId.JENKINS.getValue();
-    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
-    private final String version = "2.1.1";
-    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
-    private final String buildNumber = "201001";
     @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
     private final String applinksVersion = "7.2.0";
-
+    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
+    private final String buildNumber = "201001";
+    private final String iconUri;
+    private final String iconUrl;
+    private final String id;
     @XStreamImplicit(itemFieldName = "incomingAuthenticationType")
     private final List incomingAuthenticationType = Collections.singletonList(
             "com.atlassian.applinks.api.auth.types.OAuthAuthenticationProvider"
     );
-
+    private final String name;
     @XStreamImplicit(itemFieldName = "outgoingAuthenticationType")
     private final List outgoingAuthenticationType = Collections.emptyList();
 
     @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
     private final boolean publicSignup = false;
+    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
+    private final String typeId = TypeId.JENKINS.getValue();
     private final String url;
-    private final String iconUrl;
-    private final String iconUri;
+    @SuppressFBWarnings("SS_SHOULD_BE_STATIC")
+    private final String version = "2.1.1";
 
     public Manifest(String id, String name, String url) {
         this.id = id;
         this.name = name;
         this.url = url;
-        this.iconUrl = url + "/static/f70b2c22/images/headshot.png";
-        this.iconUri = url + "/static/f70b2c22/images/headshot.png";
+        this.iconUrl = url + "/static/9c75a25f/images/svgs/logo.svg";
+        this.iconUri = url + "/static/9c75a25f/images/svgs/logo.svg";
     }
 
     public String getApplinksVersion() {
@@ -64,6 +62,10 @@ public class Manifest {
 
     public String getBuildNumber() {
         return buildNumber;
+    }
+
+    public String getIconUri() {
+        return iconUri;
     }
 
     public String getIconUrl() {
@@ -92,10 +94,6 @@ public class Manifest {
 
     public String getUrl() {
         return url;
-    }
-
-    public String getIconUri() {
-        return iconUri;
     }
 
     public String getVersion() {
