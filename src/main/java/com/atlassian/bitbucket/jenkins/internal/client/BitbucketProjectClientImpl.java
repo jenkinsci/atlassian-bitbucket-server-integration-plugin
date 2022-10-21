@@ -9,10 +9,13 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 public class BitbucketProjectClientImpl implements BitbucketProjectClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final BitbucketCapabilitiesClient capabilitiesClient;
     private final String projectKey;
 
-    BitbucketProjectClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey) {
+    BitbucketProjectClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, 
+                               BitbucketCapabilitiesClient capabilitiesClient, String projectKey) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
+        this.capabilitiesClient = capabilitiesClient;
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
     }
 
@@ -26,6 +29,6 @@ public class BitbucketProjectClientImpl implements BitbucketProjectClient {
 
     @Override
     public BitbucketRepositoryClient getRepositoryClient(String repositorySlug) {
-        return new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+        return new BitbucketRepositoryClientImpl(bitbucketRequestExecutor, capabilitiesClient, projectKey, repositorySlug);
     }
 }

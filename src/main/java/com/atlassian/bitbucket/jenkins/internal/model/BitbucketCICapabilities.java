@@ -12,8 +12,8 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCICapabilities {
 
-    public static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
-
+    private static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
+    private static final String CANCELLED_BUILD_STATE_CAPABILITIES = "cancelledStatus";
     private final Set<String> ciCapabilities;
 
     @JsonCreator
@@ -23,6 +23,10 @@ public class BitbucketCICapabilities {
 
     public Set<String> getCiCapabilities() {
         return ciCapabilities;
+    }
+
+    public boolean supportsCancelledBuildStates() {
+        return ciCapabilities.contains(CANCELLED_BUILD_STATE_CAPABILITIES);
     }
 
     public boolean supportsRichBuildStatus() {

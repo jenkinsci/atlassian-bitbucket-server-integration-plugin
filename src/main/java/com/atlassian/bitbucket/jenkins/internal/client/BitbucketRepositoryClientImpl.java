@@ -24,12 +24,15 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient {
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
+    private final BitbucketCapabilitiesClient capabilitiesClient;
     private final String projectKey;
     private final String repositorySlug;
 
-    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
+    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, 
+                                  BitbucketCapabilitiesClient capabilitiesClient, String projectKey, 
                                   String repositorySlug) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
+        this.capabilitiesClient = capabilitiesClient;
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repositorySlug = requireNonNull(stripToNull(repositorySlug), "repositorySlug");
     }
@@ -41,16 +44,18 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                                                            DisplayURLProvider displayURLProvider) {
         if (ciCapabilities.supportsRichBuildStatus()) {
             return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
-                    bitbucketSCMRepo.getRepositorySlug(), revisionSha, instanceKeyPairProvider, displayURLProvider);
+                    bitbucketSCMRepo.getRepositorySlug(), revisionSha, instanceKeyPairProvider, displayURLProvider,
+                    ciCapabilities.supportsCancelledBuildStates());
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }
 
     @Override
-    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha, BitbucketCICapabilities ciCapabilities) {
+    public BitbucketBuildStatusClient getBuildStatusClient(String revisionSha) {
+        BitbucketCICapabilities ciCapabilities = capabilitiesClient.getCICapabilities();
         if (ciCapabilities.supportsRichBuildStatus()) {
             return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug,
-                    revisionSha);
+                    revisionSha, ciCapabilities.supportsCancelledBuildStates());
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }

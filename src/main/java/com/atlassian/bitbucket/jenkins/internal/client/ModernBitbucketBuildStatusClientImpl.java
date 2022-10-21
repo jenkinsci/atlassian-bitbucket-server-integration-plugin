@@ -17,6 +17,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,28 +40,38 @@ public class ModernBitbucketBuildStatusClientImpl implements BitbucketBuildStatu
     private final String projectKey;
     private final String repoSlug;
     private final String revisionSha;
+    private final boolean supportsCancelledState;
 
     @VisibleForTesting
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
                                          String repoSlug, String revisionSha,
                                          InstanceKeyPairProvider instanceKeyPairProvider,
-                                         DisplayURLProvider displayURLProvider) {
+                                         DisplayURLProvider displayURLProvider,
+                                         boolean supportsCancelledState) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.instanceKeyPairProvider = requireNonNull(instanceKeyPairProvider, "instanceIdentityProvider");
         this.revisionSha = requireNonNull(stripToNull(revisionSha), "revisionSha");
         this.projectKey = requireNonNull(stripToNull(projectKey), "projectKey");
         this.repoSlug = requireNonNull(stripToNull(repoSlug), "repoSlug");
         this.displayURLProvider = requireNonNull(displayURLProvider, "displayURLProvider");
+        this.supportsCancelledState = supportsCancelledState;
     }
 
     ModernBitbucketBuildStatusClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, String projectKey,
-                                         String repoSlug, String revisionSha) {
+                                         String repoSlug, String revisionSha, boolean supportsCancelledState) {
         this(bitbucketRequestExecutor, projectKey, repoSlug, revisionSha, new DefaultInstanceKeyPairProvider(),
-                DisplayURLProvider.get());
+                DisplayURLProvider.get(), supportsCancelledState);
     }
 
     @Override
-    public void post(BitbucketBuildStatus buildStatus) {
+    public void post(BitbucketBuildStatus.Builder buildStatusBuilder, Consumer<BitbucketBuildStatus> beforePost) {
+        if (!supportsCancelledState) {
+            buildStatusBuilder.noCancelledState();
+        }
+        BitbucketBuildStatus buildStatus = buildStatusBuilder.build();
+        
+        beforePost.accept(buildStatus);
+        
         HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                 .addPathSegment("rest")
                 .addPathSegment("api")

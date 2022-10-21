@@ -4,6 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.http.RetryOnRateLimitConfig;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import okhttp3.HttpUrl;
 
+import java.util.function.Consumer;
+
 import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REQUEST_RETRY_MAX_ATTEMPTS;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
@@ -21,7 +23,10 @@ public class BitbucketBuildStatusClientImpl implements BitbucketBuildStatusClien
     }
 
     @Override
-    public void post(BitbucketBuildStatus buildStatus) {
+    public void post(BitbucketBuildStatus.Builder buildStatusBuilder, Consumer<BitbucketBuildStatus> beforePost) {
+        BitbucketBuildStatus buildStatus = buildStatusBuilder.legacy().build();
+        beforePost.accept(buildStatus);
+        
         HttpUrl url = bitbucketRequestExecutor.getBaseUrl().newBuilder()
                 .addPathSegment("rest")
                 .addPathSegment("build-status")

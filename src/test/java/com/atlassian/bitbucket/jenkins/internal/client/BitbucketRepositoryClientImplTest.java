@@ -13,6 +13,7 @@ import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
@@ -39,6 +41,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketRepositoryClientImplTest {
 
@@ -52,8 +55,9 @@ public class BitbucketRepositoryClientImplTest {
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
             requestExecutor, OBJECT_MAPPER, ANONYMOUS_CREDENTIALS);
-    private final BitbucketRepositoryClientImpl client = new BitbucketRepositoryClientImpl(bitbucketRequestExecutor,
-            PROJECT_KEY, REPO_SLUG);
+    @Mock
+    private BitbucketCapabilitiesClient capabilitiesClient;
+    private BitbucketRepositoryClientImpl client;
 
     @Mock
     private BitbucketSCMRepository bitbucketSCMRepo;
@@ -62,9 +66,14 @@ public class BitbucketRepositoryClientImplTest {
 
     @Before
     public void setup() {
+        when(capabilitiesClient.getCICapabilities()).thenReturn(ciCapabilities);
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(false);
+        when(ciCapabilities.supportsCancelledBuildStates()).thenReturn(false);
         when(bitbucketSCMRepo.getProjectKey()).thenReturn(PROJECT_KEY);
         when(bitbucketSCMRepo.getRepositorySlug()).thenReturn(REPO_SLUG);
+        
+        client = new BitbucketRepositoryClientImpl(bitbucketRequestExecutor,
+                capabilitiesClient, PROJECT_KEY, REPO_SLUG);
     }
 
     @Test
@@ -75,7 +84,7 @@ public class BitbucketRepositoryClientImplTest {
 
         List<BitbucketPullRequest> pullRequests = client.getPullRequests(BitbucketPullRequestState.OPEN).collect(toList());
 
-        assertThat(pullRequests.size(), is(equalTo(2)));
+        MatcherAssert.assertThat(pullRequests.size(), is(equalTo(2)));
         assertThat(pullRequests.stream().map(BitbucketPullRequest::getId).collect(toSet()), hasItems(new Long(96), new Long(97)));
         assertThat(pullRequests.stream().map(BitbucketPullRequest::getState).collect(toSet()), hasItems(BitbucketPullRequestState.OPEN));
     }
@@ -135,10 +144,9 @@ public class BitbucketRepositoryClientImplTest {
     @Test
     public void testPostBuildStatus() throws IOException {
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
-        BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
+        BitbucketBuildStatus.Builder buildStatusBuilder = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
                 .setName("Local BBS Project")
-                .setDescription("#15 in progress")
-                .build();
+                .setDescription("#15 in progress");
 
         String url = HttpUrl.get(BITBUCKET_BASE_URL)
                 .newBuilder()
@@ -152,15 +160,15 @@ public class BitbucketRepositoryClientImplTest {
         String requestString = readFileToString("/build-status-request.json");
         fakeRemoteHttpServer.mapPostRequestToResult(url, requestString, "");
         Buffer b = new Buffer();
-
-        BitbucketBuildStatusClient client = this.client.getBuildStatusClient(REVISION, ciCapabilities);
-        client.post(buildStatus);
+        
+        BitbucketBuildStatusClient client = this.client.getBuildStatusClient(REVISION);
+        client.post(buildStatusBuilder, (Consumer<BitbucketBuildStatus>) mock(Consumer.class));
 
         Request clientRequest = fakeRemoteHttpServer.getRequest(url);
         clientRequest.body().writeTo(b);
         assertEquals(StringUtils.deleteWhitespace(requestString), StringUtils.deleteWhitespace(b.readString(UTF_8)));
     }
-
+    
     @Test
     public void testPostBuildStatusModernClient() throws IOException {
         String postURL = "http://localhost:8080/jenkins/job/Local%20BBS%20Project/15/display/redirect";
@@ -172,10 +180,9 @@ public class BitbucketRepositoryClientImplTest {
 
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(true);
 
-        BitbucketBuildStatus buildStatus = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
+        BitbucketBuildStatus.Builder buildStatusBuilder = new BitbucketBuildStatus.Builder("15", BuildState.INPROGRESS, postURL)
                 .setName("Local BBS Project")
-                .setDescription("#15 in progress")
-                .build();
+                .setDescription("#15 in progress");
 
         String url = getCommitUrl()
                 .addPathSegment("builds")
@@ -187,7 +194,7 @@ public class BitbucketRepositoryClientImplTest {
 
         BitbucketBuildStatusClient client =
                 this.client.getBuildStatusClient(REVISION, bitbucketSCMRepo, ciCapabilities, keyPairProvider, displayURLProvider);
-        client.post(buildStatus);
+        client.post(buildStatusBuilder, (Consumer<BitbucketBuildStatus>) mock(Consumer.class));
 
         Request clientRequest = fakeRemoteHttpServer.getRequest(url);
         clientRequest.body().writeTo(b);

@@ -54,7 +54,7 @@ public class TestBitbucketClientFactoryHandler {
         when(clientFactory
                 .getProjectClient(scmRepo.getProjectKey())
                 .getRepositoryClient(scmRepo.getRepositorySlug())
-                .getBuildStatusClient(revision, ciCapabilities))
+                .getBuildStatusClient(revision))
                 .thenReturn(buildStatusClient);
         return this;
     }

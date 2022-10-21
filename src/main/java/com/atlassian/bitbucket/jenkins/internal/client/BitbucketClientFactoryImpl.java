@@ -49,7 +49,7 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
 
     @Override
     public BitbucketProjectClient getProjectClient(String projectKey) {
-        return new BitbucketProjectClientImpl(bitbucketRequestExecutor, projectKey);
+        return new BitbucketProjectClientImpl(bitbucketRequestExecutor, getCapabilityClient(), projectKey);
     }
 
     @Override
