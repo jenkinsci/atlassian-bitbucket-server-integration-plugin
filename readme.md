@@ -220,6 +220,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.3.2 (21 October 2022)
+- Changes in 3.3.0
+- Added cancelled build state support for Bitbucket DC 8.0+
+- Small bug fixes and updates
+
 ### 3.3.1 (24 August 2022)
 - Revert changes in 3.3.0
 
