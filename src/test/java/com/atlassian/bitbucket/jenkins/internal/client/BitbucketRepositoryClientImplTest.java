@@ -68,7 +68,7 @@ public class BitbucketRepositoryClientImplTest {
     public void setup() {
         when(capabilitiesClient.getCICapabilities()).thenReturn(ciCapabilities);
         when(ciCapabilities.supportsRichBuildStatus()).thenReturn(false);
-        when(ciCapabilities.supportsCancelledAndUnknownBuildStates()).thenReturn(false);
+        when(ciCapabilities.supportsCancelledBuildStates()).thenReturn(false);
         when(bitbucketSCMRepo.getProjectKey()).thenReturn(PROJECT_KEY);
         when(bitbucketSCMRepo.getRepositorySlug()).thenReturn(REPO_SLUG);
         

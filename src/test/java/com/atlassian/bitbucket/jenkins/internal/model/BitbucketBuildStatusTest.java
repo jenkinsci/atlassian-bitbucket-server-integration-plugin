@@ -14,16 +14,17 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 "1", "description", 500L, "key", "name", "parent", "refs/head/master", BuildState.SUCCESSFUL, TEST_RESULTS, "url");
         
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
+        BitbucketBuildStatus status = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .build();
         
-        assertThat(builder.build(), equalTo(expected));
+        assertThat(status, equalTo(expected));
     }
     
     @Test
@@ -31,16 +32,17 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 "1", "description", 500L, "key", "name", "parent", "refs/head/master", BuildState.CANCELLED, TEST_RESULTS, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
+        BitbucketBuildStatus status = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .build();
 
-        assertThat(builder.build(), equalTo(expected));
+        assertThat(status, equalTo(expected));
     }
 
     @Test
@@ -48,11 +50,13 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 null, "description", null, "key", "name", null, null, BuildState.SUCCESSFUL, null, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
+        BitbucketBuildStatus legacyStatus = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
                 .setDescription("description")
-                .setName("name");
+                .setName("name")
+                .legacy()
+                .build();
 
-        assertThat(builder.legacy().build(), equalTo(expected));
+        assertThat(legacyStatus, equalTo(expected));
     }
 
     @Test
@@ -60,11 +64,13 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 null, "description", null, "key", "name", null, null, BuildState.FAILED, null, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
+        BitbucketBuildStatus legacyStatus = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
                 .setDescription("description")
-                .setName("name");
+                .setName("name")
+                .legacy()
+                .build();
 
-        assertThat(builder.legacy().build(), equalTo(expected));
+        assertThat(legacyStatus, equalTo(expected));
     }
 
     @Test
@@ -72,16 +78,19 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 null, "description", null, "key", "name", null, null, BuildState.FAILED, null, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
+        BitbucketBuildStatus legacyNoCancelledStatus = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .legacy()
+                .noCancelledState()
+                .build();
 
-        assertThat(builder.legacy().noCancelledState().build(), equalTo(expected));
+        assertThat(legacyNoCancelledStatus, equalTo(expected));
     }
 
     @Test
@@ -89,16 +98,18 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 null, "description", null, "key", "name", null, null, BuildState.SUCCESSFUL, null, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
+        BitbucketBuildStatus legacyStatus = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .legacy()
+                .build();
 
-        assertThat(builder.legacy().build(), equalTo(expected));
+        assertThat(legacyStatus, equalTo(expected));
     }
 
     @Test
@@ -106,16 +117,18 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 "1", "description", 500L, "key", "name", "parent", "refs/head/master", BuildState.SUCCESSFUL, TEST_RESULTS, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
+        BitbucketBuildStatus noCancelledStatus = new BitbucketBuildStatus.Builder("key", BuildState.SUCCESSFUL, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .noCancelledState()
+                .build();
 
-        assertThat(builder.noCancelledState().build(), equalTo(expected));
+        assertThat(noCancelledStatus, equalTo(expected));
     }
 
     @Test
@@ -123,15 +136,17 @@ public class BitbucketBuildStatusTest {
         BitbucketBuildStatus expected = new BitbucketBuildStatus(
                 "1", "description", 500L, "key", "name", "parent", "refs/head/master", BuildState.FAILED, TEST_RESULTS, "url");
 
-        BitbucketBuildStatus.Builder builder = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
+        BitbucketBuildStatus noCancelledState = new BitbucketBuildStatus.Builder("key", BuildState.CANCELLED, "url")
                 .setBuildNumber("1")
                 .setDescription("description")
                 .setDuration(500L)
                 .setName("name")
                 .setParent("parent")
                 .setRef("refs/head/master")
-                .setTestResults(TEST_RESULTS);
+                .setTestResults(TEST_RESULTS)
+                .noCancelledState()
+                .build();
 
-        assertThat(builder.noCancelledState().build(), equalTo(expected));
+        assertThat(noCancelledState, equalTo(expected));
     }
 }

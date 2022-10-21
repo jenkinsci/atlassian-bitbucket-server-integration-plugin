@@ -45,7 +45,7 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         if (ciCapabilities.supportsRichBuildStatus()) {
             return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, bitbucketSCMRepo.getProjectKey(),
                     bitbucketSCMRepo.getRepositorySlug(), revisionSha, instanceKeyPairProvider, displayURLProvider,
-                    ciCapabilities.supportsCancelledAndUnknownBuildStates());
+                    ciCapabilities.supportsCancelledBuildStates());
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }
@@ -55,7 +55,7 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         BitbucketCICapabilities ciCapabilities = capabilitiesClient.getCICapabilities();
         if (ciCapabilities.supportsRichBuildStatus()) {
             return new ModernBitbucketBuildStatusClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug,
-                    revisionSha, ciCapabilities.supportsCancelledAndUnknownBuildStates());
+                    revisionSha, ciCapabilities.supportsCancelledBuildStates());
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
     }

@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.unmodifiableSet;
@@ -15,7 +13,7 @@ import static java.util.Objects.requireNonNull;
 public class BitbucketCICapabilities {
 
     private static final String RICH_BUILD_STATUS_CAPABILITY = "richBuildStatus";
-    private static final List<String> BUILD_STATE_CAPABILITIES = Arrays.asList("unknownStatus", "cancelledStatus");
+    private static final String CANCELLED_BUILD_STATE_CAPABILITIES = "cancelledStatus";
     private final Set<String> ciCapabilities;
 
     @JsonCreator
@@ -27,8 +25,8 @@ public class BitbucketCICapabilities {
         return ciCapabilities;
     }
 
-    public boolean supportsCancelledAndUnknownBuildStates() {
-        return ciCapabilities.containsAll(BUILD_STATE_CAPABILITIES);
+    public boolean supportsCancelledBuildStates() {
+        return ciCapabilities.contains(CANCELLED_BUILD_STATE_CAPABILITIES);
     }
 
     public boolean supportsRichBuildStatus() {
