@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>3.3.2-SNAPSHOT</version>
+    <version>3.3.2</version>
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>6.10.15</bitbucket.version>
@@ -603,7 +603,7 @@
         <developerConnection>scm:git:git@github.com:jenkinsci/atlassian-bitbucket-server-integration-plugin.git
         </developerConnection>
         <url>http://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin</url>
-        <tag>HEAD</tag>
+        <tag>atlassian-bitbucket-server-integration-3.3.2</tag>
     </scm>
 
     <repositories>
