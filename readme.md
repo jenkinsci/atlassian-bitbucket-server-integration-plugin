@@ -221,7 +221,8 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 
 ### 3.3.2 (21 October 2022)
-- Changes in 3.3.0
+- Fix JENKINS-63031: Ref changed webhooks now correctly trigger updated and removed SCM head events
+- Fix JENKINS-69288: Misleading validation message on OAuth consumer creation page
 - Added cancelled build state support for Bitbucket DC 8.0+
 - Small bug fixes and updates
 
