@@ -41,6 +41,8 @@ public class BitbucketBuildStatusFactoryImplTest {
     private Job freeStyleProject;
     private Jenkins parent;
     @Mock
+    private BitbucketRevisionAction revisionAction;
+    @Mock
     private Run workflowRun;
     private Job workflowJob;
     @Mock
@@ -246,7 +248,7 @@ public class BitbucketBuildStatusFactoryImplTest {
     private BitbucketBuildStatus createBitbucketBuildStatus(Run<?, ?> run, boolean createRich) {
         BitbucketBuildStatusFactoryImpl statusFactory =
                 new BitbucketBuildStatusFactoryImpl(displayUrlProvider);
-        return createRich ? statusFactory.prepareBuildStatus(run).build() :
-                            statusFactory.prepareBuildStatus(run).legacy().build();
+        return createRich ? statusFactory.prepareBuildStatus(run, revisionAction).build() :
+                            statusFactory.prepareBuildStatus(run, revisionAction).legacy().build();
     }
 }

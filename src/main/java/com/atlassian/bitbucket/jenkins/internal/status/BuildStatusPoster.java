@@ -16,6 +16,7 @@ import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 
 import javax.inject.Inject;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,9 +59,11 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
 
     @Override
     public void onCompleted(Run<?, ?> r, TaskListener listener) {
-        BitbucketRevisionAction bitbucketRevisionAction = r.getAction(BitbucketRevisionAction.class);
-        if (bitbucketRevisionAction != null) {
-            postBuildStatus(bitbucketRevisionAction, r, listener);
+        List<BitbucketRevisionAction> actions = r.getActions(BitbucketRevisionAction.class);
+        if (actions != null) {
+            for (BitbucketRevisionAction action : actions) {
+                postBuildStatus(action, r, listener);
+            }
         }
     }
 
@@ -85,7 +88,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
         try {
             BitbucketClientFactory bbsClient = getBbsClient(server, globalCredentialsProvider);
 
-            BitbucketBuildStatus.Builder buildStatusBuilder = bitbucketBuildStatusFactory.prepareBuildStatus(run);
+            BitbucketBuildStatus.Builder buildStatusBuilder = bitbucketBuildStatusFactory.prepareBuildStatus(run, revisionAction);
 
             BitbucketSCMRepository bitbucketSCMRepo = revisionAction.getBitbucketSCMRepo();
 

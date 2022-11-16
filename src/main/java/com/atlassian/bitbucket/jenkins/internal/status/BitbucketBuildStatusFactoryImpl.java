@@ -4,10 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketBuildStatus;
 import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
 import com.google.common.annotations.VisibleForTesting;
-import hudson.model.ItemGroup;
-import hudson.model.Job;
-import hudson.model.Result;
-import hudson.model.Run;
+import hudson.model.*;
 import hudson.tasks.junit.TestResultAction;
 import jenkins.branch.MultiBranchProject;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
@@ -33,7 +30,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
     }
 
     @Override
-    public BitbucketBuildStatus.Builder prepareBuildStatus(Run<?, ?> build) {
+    public BitbucketBuildStatus.Builder prepareBuildStatus(Run<?, ?> build, BitbucketRevisionAction revisionAction) {
         Job<?, ?> job = build.getParent();
         ItemGroup parent = job.getParent();
         boolean isMultibranch = parent instanceof MultiBranchProject;
@@ -55,8 +52,6 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
         BitbucketBuildStatus.Builder bbs = new BitbucketBuildStatus.Builder(key, state, url)
                 .setName(name)
                 .setDescription(state.getDescriptiveText(build.getDisplayName(), build.getDurationString()));
-
-        BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
 
         bbs.setBuildNumber(build.getId())
                 .setTestResults(getTestResults(build))

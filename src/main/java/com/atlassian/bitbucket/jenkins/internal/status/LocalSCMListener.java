@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -11,6 +12,7 @@ import hudson.model.listeners.SCMListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
+import org.jenkinsci.plugins.workflow.libs.*;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
@@ -37,6 +39,17 @@ public class LocalSCMListener extends SCMListener {
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
+
+        for (LibraryResolver resolver : ExtensionList.lookup(LibraryResolver.class)) {
+            for (LibraryConfiguration cfg : resolver.forJob(build.getParent(), new HashMap<>())) {
+                if (cfg.getRetriever() instanceof SCMRetriever) {
+                    SCMRetriever retriever = (SCMRetriever) cfg.getRetriever();
+                    if (retriever.getScm() == scm)
+                        return;
+                }
+            }
+        }
+
         BitbucketSCMRepository bitbucketSCMRepository = repositoryHelper.getRepository(build, scm);
         if (bitbucketSCMRepository == null) {
             return;
