@@ -60,10 +60,8 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
     @Override
     public void onCompleted(Run<?, ?> r, TaskListener listener) {
         List<BitbucketRevisionAction> actions = r.getActions(BitbucketRevisionAction.class);
-        if (actions != null) {
-            for (BitbucketRevisionAction action : actions) {
+        for (BitbucketRevisionAction action : actions) {
                 postBuildStatus(action, r, listener);
-            }
         }
     }
 

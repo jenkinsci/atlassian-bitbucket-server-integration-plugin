@@ -17,6 +17,7 @@ import org.jenkinsci.plugins.workflow.libs.*;
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,21 +36,42 @@ public class LocalSCMListener extends SCMListener {
         this.repositoryHelper = repositoryHelper;
     }
 
+    @CheckForNull
+    public GitSCM getUnderlyingGitSCM(SCM scm) {
+        if (scm instanceof GitSCM) {
+            // Already a git SCM
+            return (GitSCM) scm;
+        }
+        if (scm instanceof BitbucketSCM) {
+            BitbucketSCM bitbucketSCM = (BitbucketSCM) scm;
+            if (bitbucketSCM.getServerId() != null) {
+                return bitbucketSCM.getGitSCM();
+            }
+        }
+        return null;
+    }
+
     @Override
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
 
+        // Check if the current SCM we are checking out is configured as a library SCM. We don't want to send status
+        // to library SCMs.
         for (LibraryResolver resolver : ExtensionList.lookup(LibraryResolver.class)) {
-            for (LibraryConfiguration cfg : resolver.forJob(build.getParent(), new HashMap<>())) {
+            for (LibraryConfiguration cfg : resolver.forJob(build.getParent(), Collections.emptyMap())) {
                 if (cfg.getRetriever() instanceof SCMRetriever) {
                     SCMRetriever retriever = (SCMRetriever) cfg.getRetriever();
-                    if (retriever.getScm() == scm)
-                        return;
+                    if (retriever.getScm() instanceof BitbucketSCM && scm instanceof BitbucketSCM) {
+                        BitbucketSCM libraryScm = (BitbucketSCM) retriever.getScm();
+                        BitbucketSCM bitbucketScm = (BitbucketSCM) scm;
+                        if (libraryScm.getId().equals(bitbucketScm.getId())) {
+                            return;
+                        }
+                    }
                 }
             }
         }
-
         BitbucketSCMRepository bitbucketSCMRepository = repositoryHelper.getRepository(build, scm);
         if (bitbucketSCMRepository == null) {
             return;
@@ -67,20 +89,5 @@ public class LocalSCMListener extends SCMListener {
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
-    }
-
-    @CheckForNull
-    public GitSCM getUnderlyingGitSCM(SCM scm) {
-        if (scm instanceof GitSCM) {
-            // Already a git SCM
-            return (GitSCM) scm;
-        }
-        if (scm instanceof BitbucketSCM) {
-            BitbucketSCM bitbucketSCM = (BitbucketSCM) scm;
-            if (bitbucketSCM.getServerId() != null) {
-                return bitbucketSCM.getGitSCM();
-            }
-        }
-        return null;
     }
 }
