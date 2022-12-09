@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner.Silent;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -143,5 +142,15 @@ public class BuildStatusPosterTest {
 
         verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
         verify(buildStatusFactory).prepareBuildStatus(run, action);
+    }
+
+    @Test
+    public void testSuccessfulPostMultipleActions() {
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Arrays.asList(action, action));
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient(), times(2)).post(eq(buildStatus), any());
+        verify(buildStatusFactory, times(2)).prepareBuildStatus(run, action);
     }
 }
