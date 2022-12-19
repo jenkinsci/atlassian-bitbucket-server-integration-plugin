@@ -19,7 +19,7 @@
         <java.level>8</java.level>
         <jackson.version>2.13.4</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.319</jenkins.version>
+        <jenkins.version>2.320</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -42,8 +42,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.289.x</artifactId>
-                <version>1013.vf8058992a042</version>
+                <artifactId>bom-2.319.x</artifactId>
+                <version>1539.v6a_85813638f8</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
