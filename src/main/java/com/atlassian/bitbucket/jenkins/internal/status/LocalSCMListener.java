@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
+import com.atlassian.bitbucket.jenkins.internal.provider.GlobalLibrariesProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
@@ -38,13 +39,16 @@ public class LocalSCMListener extends SCMListener {
 
     private BuildStatusPoster buildStatusPoster;
     private BitbucketSCMRepositoryHelper repositoryHelper;
+    private GlobalLibrariesProvider librariesProvider;
 
     public LocalSCMListener() {
     }
 
     @Inject
-    LocalSCMListener(BuildStatusPoster buildStatusPoster, BitbucketSCMRepositoryHelper repositoryHelper) {
+    LocalSCMListener(BuildStatusPoster buildStatusPoster, GlobalLibrariesProvider librariesProvider,
+                     BitbucketSCMRepositoryHelper repositoryHelper) {
         this.buildStatusPoster = buildStatusPoster;
+        this.librariesProvider = librariesProvider;
         this.repositoryHelper = repositoryHelper;
     }
 
@@ -63,13 +67,9 @@ public class LocalSCMListener extends SCMListener {
         return null;
     }
 
-    private boolean isFolderLib(Folder folder, SCM scm) {
-        return hasFolderLibrary(scm, folder.getProperties(), folder.getParent());
-    }
 
-    private boolean hasFolderLibrary(SCM scm,
-                                     DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> properties,
-                                     ItemGroup parent) {
+    private boolean isScmFolderLibrary(SCM scm,
+                                       DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> properties) {
         for (Object folderItem : properties) {
             if (folderItem instanceof FolderLibraries) {
                 FolderLibraries folderLibraries = (FolderLibraries) folderItem;
@@ -87,47 +87,58 @@ public class LocalSCMListener extends SCMListener {
                 }
             }
         }
-        if (parent instanceof Folder) {
-            return isFolderLib((Folder) parent, scm);
+        return false;
+    }
+
+    private boolean projectHasFolderLibrary(WorkflowMultiBranchProject project, SCM scm) {
+        if (isScmFolderLibrary(scm, project.getProperties())) {
+            return true;
+        }
+        if (project.getParent() instanceof Folder) {
+            return isFolderLib((Folder) project.getParent(), scm);
         }
         return false;
     }
 
-    private boolean isFolderLib(WorkflowMultiBranchProject project, SCM scm) {
-        return hasFolderLibrary(scm, project.getProperties(), project.getParent());
+    private boolean isFolderLib(Folder folder, SCM scm) {
+        if (isScmFolderLibrary(scm, folder.getProperties())) {
+            return true;
+        }
+        if (folder.getParent() instanceof Folder) {
+            // Recursively check parent folders for folder libraries
+            return isFolderLib((Folder) folder.getParent(), scm);
+        }
+        return false;
     }
 
     @Override
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
-
-        // Check if the current SCM we are checking out is configured as a library SCM. We don't want to send status
-        // to library SCMs.
+        // Check if the current SCM we are checking out is configured as a folder library SCM
         if (build.getParent().getParent() instanceof Folder
             && isFolderLib((Folder) build.getParent().getParent(), scm)) {
             return;
         }
         if (build.getParent().getParent() instanceof WorkflowMultiBranchProject
-            && isFolderLib((WorkflowMultiBranchProject) build.getParent().getParent(), scm)) {
+            && projectHasFolderLibrary((WorkflowMultiBranchProject) build.getParent().getParent(), scm)) {
             return;
         }
 
-
-        for (LibraryResolver resolver : ExtensionList.lookup(LibraryResolver.class)) {
-            for (LibraryConfiguration cfg : resolver.forJob(build.getParent(), Collections.emptyMap())) {
-                if (cfg.getRetriever() instanceof SCMRetriever) {
-                    SCMRetriever retriever = (SCMRetriever) cfg.getRetriever();
-                    if (retriever.getScm() instanceof BitbucketSCM && scm instanceof BitbucketSCM) {
-                        BitbucketSCM libraryScm = (BitbucketSCM) retriever.getScm();
-                        BitbucketSCM bitbucketScm = (BitbucketSCM) scm;
-                        if (libraryScm.getId().equals(bitbucketScm.getId())) {
-                            return;
-                        }
+        // Check if the current SCM we are checking out is configured as a global library SCM
+        for (LibraryConfiguration cfg : librariesProvider.get().getLibraries()) {
+            if (cfg.getRetriever() instanceof SCMRetriever) {
+                SCMRetriever retriever = (SCMRetriever) cfg.getRetriever();
+                if (retriever.getScm() instanceof BitbucketSCM && scm instanceof BitbucketSCM) {
+                    BitbucketSCM libraryScm = (BitbucketSCM) retriever.getScm();
+                    BitbucketSCM bitbucketScm = (BitbucketSCM) scm;
+                    if (libraryScm.getId().equals(bitbucketScm.getId())) {
+                        return;
                     }
                 }
             }
         }
+
         BitbucketSCMRepository bitbucketSCMRepository = repositoryHelper.getRepository(build, scm);
         if (bitbucketSCMRepository == null) {
             return;
