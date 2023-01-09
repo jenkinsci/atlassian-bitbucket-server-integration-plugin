@@ -4,35 +4,26 @@ import com.atlassian.bitbucket.jenkins.internal.provider.GlobalLibrariesProvider
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
-import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.FilePath;
-import hudson.model.ItemGroup;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.model.TopLevelItem;
 import hudson.model.listeners.SCMListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
 import hudson.util.DescribableList;
-import jenkins.branch.MultiBranchProject;
-import jenkins.model.GlobalConfiguration;
-import jenkins.mvn.DefaultGlobalSettingsProvider;
 import org.jenkinsci.plugins.workflow.libs.*;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import java.io.File;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 @Extension
 public class LocalSCMListener extends SCMListener {
