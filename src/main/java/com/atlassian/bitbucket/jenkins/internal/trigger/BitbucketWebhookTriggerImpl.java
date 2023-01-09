@@ -301,7 +301,7 @@ public class BitbucketWebhookTriggerImpl extends Trigger<Job<?, ?>>
         }
 
         @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "If jenkinsProvider is null we inject one, this is a false positive")
-        private boolean webhookExists(@Nullable Job<?, ?> project, BitbucketSCM input) {
+        private boolean webhookExists(@CheckForNull Job<?, ?> project, BitbucketSCM input) {
             try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 if (jenkinsProvider == null) {
                     Guice.createInjector(new JenkinsProviderModule()).injectMembers(this);
