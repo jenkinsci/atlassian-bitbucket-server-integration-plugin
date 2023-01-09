@@ -196,9 +196,27 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         parentFolder.addProperty(folderLibraries);
         Folder folder = new Folder(parentFolder, "Folder");
-        parentFolder.add(folder, "ChildFolder");
         WorkflowJob workflowJob = new WorkflowJob(folder, "Job1");
-        doReturn(workflowJob).when(run).getParent();
+        when(run.getParent()).thenReturn(workflowJob);
+
+        listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
+
+        verify(bitbucketSCM, times(2)).getId();
+        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+    }
+
+    @Test
+    public void testOnCheckoutWithNestedFolderLibraryUnderMultiBranchDoesNotPostBuildStatus() throws IOException {
+        when(bitbucketSCM.getId()).thenReturn("SomeID");
+        Folder parentFolder = new Folder(jenkinsRule.getInstance().getItemGroup(), "ParentFolder");
+        LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
+        SCMRetriever scmRetriever = mock(SCMRetriever.class);
+        when(libConfig.getRetriever()).thenReturn(scmRetriever);
+        when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
+        FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
+        parentFolder.addProperty(folderLibraries);
+        WorkflowMultiBranchProject  workflowMultiBranchProject = new WorkflowMultiBranchProject(parentFolder, "name");
+        WorkflowJob workflowJob = new WorkflowJob(workflowMultiBranchProject, "Job1");
         when(run.getParent()).thenReturn(workflowJob);
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
