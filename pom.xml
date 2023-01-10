@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.17</version>
+        <version>4.42</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
@@ -19,7 +19,7 @@
         <java.level>8</java.level>
         <jackson.version>2.13.4</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.319</jenkins.version>
+        <jenkins.version>2.319.3</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -42,8 +42,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.289.x</artifactId>
-                <version>1500.ve4d05cd32975</version>
+                <artifactId>bom-2.319.x</artifactId>
+                <version>1539.v6a_85813638f8</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -238,15 +238,14 @@
             <!--<version>managed by bom</version>-->
         </dependency>
         <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <!--<version>managed by bom</version>-->
+        </dependency>
+        <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jcommon</artifactId>
             <version>1.0.24</version>
-        </dependency>
-        <dependency>
-            <groupId>org.kohsuke</groupId>
-            <artifactId>trilead-putty-extension</artifactId>
-            <version>1.2</version>
-            <scope>runtime</scope>
         </dependency>
         <!--        Test dependencies -->
         <dependency>

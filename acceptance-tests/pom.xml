@@ -17,11 +17,11 @@
         <jenkins.acceptance-test-harness.version>1.97</jenkins.acceptance-test-harness.version>
         <bitbucket.version>7.8.0</bitbucket.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <jenkins.version>2.321</jenkins.version>
+        <jenkins.version>2.319.3</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.10.3</jackson.version>
         <groovy.version>3.0.7</groovy.version>
-        <commons-lang3.version>3.10</commons-lang3.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
         <log4j.version>1.7.25</log4j.version>
         <rest-assured.version>3.0.7</rest-assured.version>
