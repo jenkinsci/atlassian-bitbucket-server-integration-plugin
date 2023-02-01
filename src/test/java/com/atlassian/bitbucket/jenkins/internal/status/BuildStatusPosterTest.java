@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner.Silent;
 
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.fixture.mocks.BitbucketJenkinsSetup.SERVER_ID;
@@ -67,12 +69,12 @@ public class BuildStatusPosterTest {
 
         when(run.getProject()).thenReturn(project);
         when(listener.getLogger()).thenReturn(logger);
-        when(buildStatusFactory.prepareBuildStatus(run)).thenReturn(buildStatus);
+        when(buildStatusFactory.prepareBuildStatus(run, action)).thenReturn(buildStatus);
     }
-    
+
     @Test
     public void testBitbucketClientException() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
         doThrow(BitbucketClientException.class).when(clientFactoryMock.getBuildStatusClient()).post(any(BitbucketBuildStatus.Builder.class), any());
         buildStatusPoster.onCompleted(run, listener);
         verify(clientFactoryMock.getBuildStatusClient()).post(any(), any());
@@ -80,7 +82,7 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testNoBuildAction() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(null);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.emptyList());
         buildStatusPoster.onCompleted(run, listener);
         verifyZeroInteractions(jenkinsSetupMock.getPluginConfiguration());
         verifyZeroInteractions(listener);
@@ -88,16 +90,16 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testNoMatchingServer() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
         when(jenkinsSetupMock.getPluginConfiguration().getServerById(SERVER_ID)).thenReturn(Optional.empty());
         buildStatusPoster.onCompleted(run, listener);
         verify(listener).error(eq("Failed to post build status as the provided Bitbucket Server config does not exist"));
         verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
-    
+
     @Test
     public void testBuildStatusDisabled() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
         try {
             System.setProperty("bitbucket.status.disable", "true");
             buildStatusPoster.onCompleted(run, listener);
@@ -111,34 +113,44 @@ public class BuildStatusPosterTest {
 
     @Test
     public void testSuccessfulPost() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
 
         buildStatusPoster.onCompleted(run, listener);
 
         verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
-        verify(buildStatusFactory).prepareBuildStatus(run);
+        verify(buildStatusFactory).prepareBuildStatus(run, action);
     }
 
     @Test
     public void testRichBuildStatusForSupportedCapabilities() {
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
         when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
 
         buildStatusPoster.onCompleted(run, listener);
 
         verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
-        verify(buildStatusFactory).prepareBuildStatus(run);
+        verify(buildStatusFactory).prepareBuildStatus(run, action);
     }
 
     @Test
     public void testRichBuildStatusUseLegacyEnabled() {
         when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(true);
-        when(run.getAction(BitbucketRevisionAction.class)).thenReturn(action);
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.singletonList(action));
         when(clientFactoryMock.getCICapabilities().supportsRichBuildStatus()).thenReturn(true);
 
         buildStatusPoster.onCompleted(run, listener);
 
         verify(clientFactoryMock.getBuildStatusClient()).post(eq(buildStatus), any());
-        verify(buildStatusFactory).prepareBuildStatus(run);
+        verify(buildStatusFactory).prepareBuildStatus(run, action);
+    }
+
+    @Test
+    public void testSuccessfulPostMultipleActions() {
+        when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Arrays.asList(action, action));
+
+        buildStatusPoster.onCompleted(run, listener);
+
+        verify(clientFactoryMock.getBuildStatusClient(), times(2)).post(eq(buildStatus), any());
+        verify(buildStatusFactory, times(2)).prepareBuildStatus(run, action);
     }
 }

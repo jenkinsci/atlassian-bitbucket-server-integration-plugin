@@ -7,5 +7,5 @@ import hudson.model.Run;
 @ImplementedBy(BitbucketBuildStatusFactoryImpl.class)
 public interface BitbucketBuildStatusFactory {
 
-    BitbucketBuildStatus.Builder prepareBuildStatus(Run<?, ?> build);
+    BitbucketBuildStatus.Builder prepareBuildStatus(Run<?, ?> build, BitbucketRevisionAction revisionAction);
 }
