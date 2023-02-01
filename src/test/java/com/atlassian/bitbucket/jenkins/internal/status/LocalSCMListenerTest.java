@@ -95,6 +95,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
 
+        // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
@@ -129,6 +130,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
 
+        // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
@@ -160,7 +162,8 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         when(bitbucketSCM.getId()).thenReturn("SomeID");
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
-        verify(bitbucketSCM, times(2)).getId(); // Twice since the same ID will be compared to itself.
+        // Twice since the same ID will be compared to itself.
+        verify(bitbucketSCM, times(2)).getId();
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
 
@@ -201,6 +204,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
 
+        // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
@@ -221,6 +225,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
 
+        // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
