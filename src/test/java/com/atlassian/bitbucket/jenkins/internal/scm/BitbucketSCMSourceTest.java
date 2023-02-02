@@ -14,10 +14,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import jenkins.branch.MultiBranchProject;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.api.SCMSourceEvent;
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 
 import org.apache.commons.lang3.StringUtils;
@@ -215,6 +212,23 @@ public class BitbucketSCMSourceTest {
 
         CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
         assertThat(gitSource.getRemote(), equalTo(HTTP_CLONE_LINK));
+    }
+    
+    @Test
+    public void testGetAndInitializeGitSCMSourceSetsOwnerIfNull() {
+        BitbucketSCMSource source = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositoryName(REPOSITORY_NAME)
+                .build();
+        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull(); // Initializes with no owner
+        assertThat(gitSource.getOwner(), equalTo(null));
+
+        SCMSourceOwner owner = mock(SCMSourceOwner.class);
+        source.setOwner(owner); // This is handled by Jenkins during typical execution
+        
+        gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        assertThat(gitSource.getOwner(), equalTo(owner));
     }
 
     @Test

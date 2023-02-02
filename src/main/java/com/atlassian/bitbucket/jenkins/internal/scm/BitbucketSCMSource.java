@@ -181,6 +181,9 @@ public class BitbucketSCMSource extends SCMSource {
     CustomGitSCMSource getAndInitializeGitSCMSourceIfNull() {
         if (gitSCMSource == null) {
             initializeGitScmSource();
+        } 
+        if (getOwner() != null && gitSCMSource.getOwner() == null) {
+            gitSCMSource.setOwner(getOwner());
         }
         return gitSCMSource;
     }
