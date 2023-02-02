@@ -4,14 +4,21 @@ import com.atlassian.bitbucket.jenkins.internal.provider.GlobalLibrariesProvider
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
-import com.cloudbees.hudson.plugins.folder.*;
-import hudson.model.*;
+import com.cloudbees.hudson.plugins.folder.Folder;
+import hudson.model.AbstractBuild;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.libs.*;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.libs.FolderLibraries;
+import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
+import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
+import org.jenkinsci.plugins.workflow.libs.SCMRetriever;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,14 +43,14 @@ import static org.mockito.Mockito.*;
 public class LocalSCMListenerTest extends HudsonTestCase {
 
     private final Map<String, String> buildMap = new HashMap<>();
+    @Rule
+    public JenkinsRule jenkinsRule = new JenkinsRule();
     @Mock
     private BitbucketSCM bitbucketSCM;
     @Mock
     private BuildStatusPoster buildStatusPoster;
     @Mock
     private GitSCM gitSCM;
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
     @Mock
     private GlobalLibraries globalLibraries;
     @Mock
@@ -85,7 +92,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         WorkflowMultiBranchProject workflowMultiBranchProject =
                 jenkinsRule.getInstance().createProject(WorkflowMultiBranchProject.class, "MultiBranchProject");
         WorkflowJob workflowJob = new WorkflowJob(workflowMultiBranchProject, "Job1");
-        when(run.getParent()).thenReturn(workflowJob);
+        WorkflowRun workflowRun = new WorkflowRun(workflowJob);
         LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
         SCMRetriever scmRetriever = mock(SCMRetriever.class);
         when(libConfig.getRetriever()).thenReturn(scmRetriever);
@@ -93,7 +100,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         workflowMultiBranchProject.addProperty(folderLibraries);
 
-        listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
+        listener.onCheckout(workflowRun, bitbucketSCM, null, taskListener, null, null);
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
@@ -120,15 +127,15 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         when(bitbucketSCM.getId()).thenReturn("SomeID");
         Folder folder = new Folder(jenkinsRule.getInstance().getItemGroup(), "Folder");
         WorkflowJob workflowJob = new WorkflowJob(folder, "Job1");
-        when(run.getParent()).thenReturn(workflowJob);
         LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
         SCMRetriever scmRetriever = mock(SCMRetriever.class);
         when(libConfig.getRetriever()).thenReturn(scmRetriever);
         when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         folder.addProperty(folderLibraries);
+        WorkflowRun workflowRun = new WorkflowRun(workflowJob);
 
-        listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
+        listener.onCheckout(workflowRun, bitbucketSCM, null, taskListener, null, null);
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
@@ -200,9 +207,9 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         parentFolder.addProperty(folderLibraries);
         Folder folder = new Folder(parentFolder, "Folder");
         WorkflowJob workflowJob = new WorkflowJob(folder, "Job1");
-        when(run.getParent()).thenReturn(workflowJob);
+        WorkflowRun workflowRun = new WorkflowRun(workflowJob);
 
-        listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
+        listener.onCheckout(workflowRun, bitbucketSCM, null, taskListener, null, null);
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
@@ -219,14 +226,26 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         parentFolder.addProperty(folderLibraries);
-        WorkflowMultiBranchProject  workflowMultiBranchProject = new WorkflowMultiBranchProject(parentFolder, "name");
+        WorkflowMultiBranchProject workflowMultiBranchProject = new WorkflowMultiBranchProject(parentFolder, "name");
         WorkflowJob workflowJob = new WorkflowJob(workflowMultiBranchProject, "Job1");
-        when(run.getParent()).thenReturn(workflowJob);
+        WorkflowRun workflowRun = new WorkflowRun(workflowJob);
 
-        listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
+        listener.onCheckout(workflowRun, bitbucketSCM, null, taskListener, null, null);
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
+        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+    }
+
+    @Test
+    public void testOnCheckoutWithNoRepositoryDoesNotPostBuildStatus() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        when(run.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        SCM scm = mock(SCM.class);
+
+        listener.onCheckout(run, scm, null, taskListener, null, null);
+
         verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
     }
 
@@ -237,18 +256,6 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         FreeStyleProject project = mock(FreeStyleProject.class);
         when(run.getParent()).thenReturn(project);
         when(globalLibraries.getLibraries()).thenReturn(emptyList());
-
-        listener.onCheckout(run, scm, null, taskListener, null, null);
-
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
-    }
-
-    @Test
-    public void testOnCheckoutWithNoRepositoryDoesNotPostBuildStatus() {
-        FreeStyleProject project = mock(FreeStyleProject.class);
-        when(run.getParent()).thenReturn(project);
-        when(globalLibraries.getLibraries()).thenReturn(emptyList());
-        SCM scm = mock(SCM.class);
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 

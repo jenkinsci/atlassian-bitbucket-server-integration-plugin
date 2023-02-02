@@ -16,7 +16,9 @@ import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
 import hudson.util.DescribableList;
-import org.jenkinsci.plugins.workflow.libs.*;
+import org.jenkinsci.plugins.workflow.libs.FolderLibraries;
+import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
+import org.jenkinsci.plugins.workflow.libs.SCMRetriever;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 
 import javax.annotation.CheckForNull;
@@ -29,8 +31,8 @@ import java.util.Map;
 public class LocalSCMListener extends SCMListener {
 
     private BuildStatusPoster buildStatusPoster;
-    private BitbucketSCMRepositoryHelper repositoryHelper;
     private GlobalLibrariesProvider librariesProvider;
+    private BitbucketSCMRepositoryHelper repositoryHelper;
 
     public LocalSCMListener() {
     }
@@ -58,61 +60,16 @@ public class LocalSCMListener extends SCMListener {
         return null;
     }
 
-
-    private boolean isScmFolderLibrary(SCM scm,
-                                       DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> properties) {
-        for (Object folderItem : properties) {
-            if (folderItem instanceof FolderLibraries) {
-                FolderLibraries folderLibraries = (FolderLibraries) folderItem;
-                for (LibraryConfiguration folderLib : folderLibraries.getLibraries()) {
-                    if (folderLib.getRetriever() instanceof SCMRetriever) {
-                        SCMRetriever retriever = (SCMRetriever) folderLib.getRetriever();
-                        if (retriever.getScm() instanceof BitbucketSCM && scm instanceof BitbucketSCM) {
-                            BitbucketSCM libraryScm = (BitbucketSCM) retriever.getScm();
-                            BitbucketSCM bitbucketScm = (BitbucketSCM) scm;
-                            if (libraryScm.getId().equals(bitbucketScm.getId())) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean projectHasFolderLibrary(WorkflowMultiBranchProject project, SCM scm) {
-        if (isScmFolderLibrary(scm, project.getProperties())) {
-            return true;
-        }
-        if (project.getParent() instanceof Folder) {
-            return isFolderLib((Folder) project.getParent(), scm);
-        }
-        return false;
-    }
-
-    private boolean isFolderLib(Folder folder, SCM scm) {
-        if (isScmFolderLibrary(scm, folder.getProperties())) {
-            return true;
-        }
-        if (folder.getParent() instanceof Folder) {
-            // Recursively check parent folders for folder libraries
-            return isFolderLib((Folder) folder.getParent(), scm);
-        }
-        return false;
-    }
-
     @Override
     public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener,
                            @CheckForNull File changelogFile,
                            @CheckForNull SCMRevisionState pollingBaseline) {
         // Check if the current SCM we are checking out is configured as a folder library SCM
-        if (build.getParent().getParent() instanceof Folder
-            && isFolderLib((Folder) build.getParent().getParent(), scm)) {
+        if (build.getParent().getParent() instanceof Folder && isFolderLib((Folder) build.getParent().getParent(), scm)) {
             return;
         }
-        if (build.getParent().getParent() instanceof WorkflowMultiBranchProject
-            && projectHasFolderLibrary((WorkflowMultiBranchProject) build.getParent().getParent(), scm)) {
+        if (build.getParent().getParent() instanceof WorkflowMultiBranchProject &&
+                projectHasFolderLibrary((WorkflowMultiBranchProject) build.getParent().getParent(), scm)) {
             return;
         }
 
@@ -147,5 +104,48 @@ public class LocalSCMListener extends SCMListener {
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
+    }
+
+    private boolean isFolderLib(Folder folder, SCM scm) {
+        if (isScmFolderLibrary(scm, folder.getProperties())) {
+            return true;
+        }
+        if (folder.getParent() instanceof Folder) {
+            // Recursively check parent folders for folder libraries
+            return isFolderLib((Folder) folder.getParent(), scm);
+        }
+        return false;
+    }
+
+    private boolean isScmFolderLibrary(SCM scm,
+                                       DescribableList<AbstractFolderProperty<?>, AbstractFolderPropertyDescriptor> properties) {
+        for (Object folderItem : properties) {
+            if (folderItem instanceof FolderLibraries) {
+                FolderLibraries folderLibraries = (FolderLibraries) folderItem;
+                for (LibraryConfiguration folderLib : folderLibraries.getLibraries()) {
+                    if (folderLib.getRetriever() instanceof SCMRetriever) {
+                        SCMRetriever retriever = (SCMRetriever) folderLib.getRetriever();
+                        if (retriever.getScm() instanceof BitbucketSCM && scm instanceof BitbucketSCM) {
+                            BitbucketSCM libraryScm = (BitbucketSCM) retriever.getScm();
+                            BitbucketSCM bitbucketScm = (BitbucketSCM) scm;
+                            if (libraryScm.getId().equals(bitbucketScm.getId())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean projectHasFolderLibrary(WorkflowMultiBranchProject project, SCM scm) {
+        if (isScmFolderLibrary(scm, project.getProperties())) {
+            return true;
+        }
+        if (project.getParent() instanceof Folder) {
+            return isFolderLib((Folder) project.getParent(), scm);
+        }
+        return false;
     }
 }
