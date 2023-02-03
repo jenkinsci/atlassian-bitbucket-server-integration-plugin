@@ -184,7 +184,7 @@ public class BitbucketSCMSourceTest {
                 .mirrorName(MIRROR_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(HTTP_MIRROR_CLONE_LINK));
     }
 
@@ -198,7 +198,7 @@ public class BitbucketSCMSourceTest {
                 .mirrorName(MIRROR_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(SSH_MIRROR_CLONE_LINK));
     }
 
@@ -210,7 +210,7 @@ public class BitbucketSCMSourceTest {
                 .repositoryName(REPOSITORY_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(HTTP_CLONE_LINK));
     }
     
@@ -221,13 +221,13 @@ public class BitbucketSCMSourceTest {
                 .projectName(PROJECT_NAME)
                 .repositoryName(REPOSITORY_NAME)
                 .build();
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull(); // Initializes with no owner
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource(); // Initializes with no owner
         assertThat(gitSource.getOwner(), equalTo(null));
 
         SCMSourceOwner owner = mock(SCMSourceOwner.class);
         source.setOwner(owner); // This is handled by Jenkins during typical execution
         
-        gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getOwner(), equalTo(owner));
     }
 
@@ -240,7 +240,7 @@ public class BitbucketSCMSourceTest {
                 .repositoryName(REPOSITORY_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(SSH_CLONE_LINK));
     }
 
