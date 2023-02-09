@@ -184,7 +184,6 @@ public class BitbucketSCMSource extends SCMSource {
         } 
         if (getOwner() != null && gitSCMSource.getOwner() == null) {
             gitSCMSource.setOwner(getOwner());
-            gitSCMSource.setBrowser(new BitbucketServer(selfLink));
         }
         return gitSCMSource;
     }
