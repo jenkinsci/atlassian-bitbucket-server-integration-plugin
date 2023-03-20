@@ -75,7 +75,7 @@ public class ThreeLeggedOAuthAcceptanceTest extends AbstractJUnitTest {
     @Test
     @Ignore("https://github.com/jenkinsci/acceptance-test-harness/issues/721")
     // This issue is fixed in the v1.109 of acceptance-test-harness but that version is not compatible with current
-    // Jenkins version (v2.319) we are using or the LTS (v2.319.1). Jenkins version should be >= v2.323 for v1.109 of
+    // Jenkins version (v2.387) we are using or the LTS (v2.387.1). Jenkins version should be >= v2.323 for v1.109 of
     // the acceptance-test-harness. This test can be enabled when we are able to upgrade to v1.109 of
     // acceptance-test-harness.
     public void testAuthorize() {
