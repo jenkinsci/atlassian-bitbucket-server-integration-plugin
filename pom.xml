@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.42</version>
+        <version>4.56</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
@@ -16,8 +16,7 @@
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
-        <java.level>11</java.level>
-        <jackson.version>2.13.4</jackson.version>
+        <jackson.version>2.14.2</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.version>2.387.1</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -106,13 +105,13 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
-            <version>4.4.14</version>
+            <version>4.4.16</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
-            <version>2.2</version>
-            <scope>provided</scope>
+            <version>142.v04572ca_5b_265</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -296,7 +295,7 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>4.4.0</version>
+            <version>4.5.1</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
