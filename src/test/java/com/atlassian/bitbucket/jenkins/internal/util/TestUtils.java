@@ -45,7 +45,8 @@ public class TestUtils {
     public static String readFileToString(String relativeFilename) {
         try {
             return new String(
-                    readAllBytes(Paths.get(TestUtils.class.getResource(relativeFilename).toURI())));
+                    readAllBytes(Paths.get(TestUtils.class.getResource(relativeFilename).toURI())))
+                    .replaceAll("\\r\\n?", "\n"); // Normalize line endings between operating systems
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
