@@ -14,7 +14,7 @@
         <plugin.build.dir>../target</plugin.build.dir>
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
-        <jenkins.acceptance-test-harness.version>1.97</jenkins.acceptance-test-harness.version>
+        <jenkins.acceptance-test-harness.version>5504.v485694f31cdf</jenkins.acceptance-test-harness.version>
         <bitbucket.version>7.8.0</bitbucket.version>
         <httpclient.version>4.5.13</httpclient.version>
         <jenkins.version>2.387.1</jenkins.version>
@@ -23,10 +23,11 @@
         <groovy.version>3.0.7</groovy.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
+        <junit.version>5.9.2</junit.version>
         <log4j.version>1.7.25</log4j.version>
         <rest-assured.version>3.0.7</rest-assured.version>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -40,6 +41,16 @@
             <groupId>com.github.scribejava</groupId>
             <artifactId>scribejava-core</artifactId>
             <version>${scribejava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>4.1.90.Final</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
@@ -106,6 +117,31 @@
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit.junit</artifactId>
             <version>${jgit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit</groupId>
+            <artifactId>junit-bom</artifactId>
+            <version>${junit.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.9.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.atlassian.bitbucket.server</groupId>
