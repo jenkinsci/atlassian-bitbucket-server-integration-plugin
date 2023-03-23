@@ -32,9 +32,7 @@ public class BitbucketScmWorkflowMultiBranchJob extends WorkflowMultiBranchJob {
         try {
             super.reIndex();
         } catch (NoSuchElementException e) {
-
             find(by.xpath("//*[text()=\"Scan Multibranch Pipeline Now\"]/ancestor::A")).click();
-            //find(by.xpath("//div[@class=\"task \"]//*[text()=\"Scan Multibranch Pipeline Now\"]")).click();
         }
     }
 
