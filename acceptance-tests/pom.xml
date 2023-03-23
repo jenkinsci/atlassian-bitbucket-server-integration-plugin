@@ -15,7 +15,7 @@
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
         <jenkins.acceptance-test-harness.version>5504.v485694f31cdf</jenkins.acceptance-test-harness.version>
-        <bitbucket.version>7.8.0</bitbucket.version>
+        <bitbucket.version>7.21.9</bitbucket.version>
         <httpclient.version>4.5.13</httpclient.version>
         <jenkins.version>2.387.1</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
