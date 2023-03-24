@@ -220,6 +220,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.3.4 (24 March 2023)
+- The minimum version of Jenkins changed to be **2.387.1**
+- The minimum supported version of BitBucket changed to be **6.0**
+
 ### 3.3.3 (9 January 2023)
 - The minimum version of Jenkins changed to be **2.319.3**
 - Now compatible with Jenkins 2.382
