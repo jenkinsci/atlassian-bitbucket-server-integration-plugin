@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestUtilsTest {
+
     @Test
     public void testReadFileToStringCrLineEndings() {
         String lfEndings =   "This\n" +
