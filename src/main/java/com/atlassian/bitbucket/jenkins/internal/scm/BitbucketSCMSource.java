@@ -105,7 +105,7 @@ public class BitbucketSCMSource extends SCMSource {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return getAndInitializeGitSCMSourceIfNull().build(head, revision);
+        return getFullyInitializedGitSCMSource().build(head, revision);
     }
     
     @Override
@@ -178,9 +178,12 @@ public class BitbucketSCMSource extends SCMSource {
         return repository;
     }
 
-    CustomGitSCMSource getAndInitializeGitSCMSourceIfNull() {
+    CustomGitSCMSource getFullyInitializedGitSCMSource() {
         if (gitSCMSource == null) {
             initializeGitScmSource();
+        } 
+        if (getOwner() != null && gitSCMSource.getOwner() == null) {
+            gitSCMSource.setOwner(getOwner());
         }
         return gitSCMSource;
     }
@@ -208,7 +211,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     public String getRemote() {
-        return getAndInitializeGitSCMSourceIfNull().getRemote();
+        return getFullyInitializedGitSCMSource().getRemote();
     }
 
     public String getRepositoryName() {
@@ -282,7 +285,7 @@ public class BitbucketSCMSource extends SCMSource {
                                " Check the configuration before running this job again.");
                 return;
             }
-            getAndInitializeGitSCMSourceIfNull().accessibleRetrieve(criteria, observer, event, listener);
+            getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
         }
     }
 

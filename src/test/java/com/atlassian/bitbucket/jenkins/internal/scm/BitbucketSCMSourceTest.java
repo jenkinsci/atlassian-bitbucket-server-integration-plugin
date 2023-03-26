@@ -14,10 +14,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import jenkins.branch.MultiBranchProject;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.api.SCMSourceEvent;
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 
 import org.apache.commons.lang3.StringUtils;
@@ -187,7 +184,7 @@ public class BitbucketSCMSourceTest {
                 .mirrorName(MIRROR_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(HTTP_MIRROR_CLONE_LINK));
     }
 
@@ -201,7 +198,7 @@ public class BitbucketSCMSourceTest {
                 .mirrorName(MIRROR_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(SSH_MIRROR_CLONE_LINK));
     }
 
@@ -213,8 +210,25 @@ public class BitbucketSCMSourceTest {
                 .repositoryName(REPOSITORY_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(HTTP_CLONE_LINK));
+    }
+    
+    @Test
+    public void testGetAndInitializeGitSCMSourceSetsOwnerIfNull() {
+        BitbucketSCMSource source = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositoryName(REPOSITORY_NAME)
+                .build();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource(); // Initializes with no owner
+        assertThat(gitSource.getOwner(), equalTo(null));
+
+        SCMSourceOwner owner = mock(SCMSourceOwner.class);
+        source.setOwner(owner); // This is handled by Jenkins during typical execution
+        
+        gitSource = source.getFullyInitializedGitSCMSource();
+        assertThat(gitSource.getOwner(), equalTo(owner));
     }
 
     @Test
@@ -226,7 +240,7 @@ public class BitbucketSCMSourceTest {
                 .repositoryName(REPOSITORY_NAME)
                 .build();
 
-        CustomGitSCMSource gitSource = source.getAndInitializeGitSCMSourceIfNull();
+        CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(SSH_CLONE_LINK));
     }
 
