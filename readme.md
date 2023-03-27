@@ -26,7 +26,7 @@ The plugin streamlines the entire configuration process and removes the need for
 
 ## Requirements
 
-- Jenkins 2.387.1+
+- Jenkins 2.375.4+
 - Bitbucket Server 7.4+
 
 Note: Bitbucket Server 6.0 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
@@ -221,7 +221,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 
 ### 3.3.4 (24 March 2023)
-- The minimum version of Jenkins changed to be **2.387.1**
+- The minimum version of Jenkins changed to be **2.375.4**
 - The minimum supported version of BitBucket changed to be **6.0**
 
 ### 3.3.3 (9 January 2023)

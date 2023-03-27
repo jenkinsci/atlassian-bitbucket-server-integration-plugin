@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.56</version>
+        <version>4.42</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
@@ -18,7 +18,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <jackson.version>2.14.2</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.387.1</jenkins.version>
+        <jenkins.version>2.375.4</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -41,8 +41,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.387.x</artifactId>
-                <version>1887.vda_d0ddb_c15c4</version>
+                <artifactId>bom-2.375.x</artifactId>
+                <version>1948.veb_1fd345d3a_e</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -295,7 +295,7 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>4.5.1</version>
+            <version>4.4.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
