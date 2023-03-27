@@ -3,6 +3,9 @@ package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 import com.google.inject.Injector;
 import org.jenkinsci.test.acceptance.po.Describable;
 import org.jenkinsci.test.acceptance.po.WorkflowJob;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.Select;
 
 import java.net.URL;
 
@@ -24,6 +27,11 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     }
 
     private void select(final String option) {
-        find(by.option(option)).click();
+        WebElement dropdownOption = find(by.option(option));
+        // Get the parent dropdown
+        WebElement dropdownBox = dropdownOption
+                .findElement(By.xpath("./parent::select[@class='jenkins-select__input dropdownList']"));
+        Select dropdownSelect = new Select(dropdownBox);
+        dropdownSelect.selectByVisibleText(option);
     }
 }
