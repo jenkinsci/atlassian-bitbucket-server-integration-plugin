@@ -9,6 +9,10 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.time.Duration.ofSeconds;
 
 /**
  * A {@link WorkflowJob workflow (a.k.a. pipeline) job} that uses a Bitbucket Server SCM to fetch the
@@ -16,6 +20,8 @@ import java.net.URL;
  */
 @Describable("org.jenkinsci.plugins.workflow.job.WorkflowJob")
 public class BitbucketScmWorkflowJob extends WorkflowJob {
+
+    private static final Logger LOGGER = Logger.getLogger(BitbucketScmWorkflowJob.class.getName());
 
     public BitbucketScmWorkflowJob(Injector injector, URL url, String name) {
         super(injector, url, name);
@@ -29,12 +35,14 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
 
     private void select(final String option) {
         WebElement dropdownOption = find(by.option(option));
-        waitFor(ExpectedConditions.stalenessOf(dropdownOption));
-        dropdownOption = find(by.option(option));
+        LOGGER.log(Level.INFO, "First "  + isStale(dropdownOption));
         // Get the parent dropdown
         WebElement dropdownBox = dropdownOption
                 .findElement(By.xpath("./parent::select[@class='jenkins-select__input dropdownList']"));
+        LOGGER.log(Level.INFO, "Second "  + isStale(dropdownOption));
         Select dropdownSelect = new Select(dropdownBox);
+        LOGGER.log(Level.INFO, "Third "  + isStale(dropdownOption));
         dropdownSelect.selectByVisibleText(option);
+        LOGGER.log(Level.INFO, "Fourth "  + isStale(dropdownOption));
     }
 }
