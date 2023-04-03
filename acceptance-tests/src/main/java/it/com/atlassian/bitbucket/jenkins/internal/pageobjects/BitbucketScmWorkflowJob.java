@@ -1,5 +1,6 @@
 package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 
+import com.atlassian.plugin.util.WaitUntil;
 import com.google.inject.Injector;
 import org.jenkinsci.test.acceptance.po.Describable;
 import org.jenkinsci.test.acceptance.po.WorkflowJob;
@@ -34,6 +35,7 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     }
 
     private void select(final String option) {
+        LOGGER.log(Level.INFO, "Zero:");
         WebElement dropdownOption = find(by.option(option));
         LOGGER.log(Level.INFO, "First "  + isStale(dropdownOption));
         // Get the parent dropdown
