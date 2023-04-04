@@ -3,6 +3,9 @@ package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 import org.jenkinsci.test.acceptance.po.*;
 import org.openqa.selenium.support.ui.Select;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Represents the {@link PageAreaImpl page area} for configuring a job to use a Bitbucket Server SCM
  *
@@ -10,7 +13,7 @@ import org.openqa.selenium.support.ui.Select;
  */
 @Describable("Bitbucket Server")
 public class BitbucketScmConfig extends Scm {
-
+    private static final Logger LOGGER = Logger.getLogger(BitbucketScmWorkflowJob.class.getName());
     private final Control sshCredentialsId = control("sshCredentialsId");
     private final Control credentialsId = control("credentialsId");
     private final Control serverId = control("serverId");
@@ -23,8 +26,13 @@ public class BitbucketScmConfig extends Scm {
     }
 
     public BitbucketScmConfig credentialsId(String credentialsId) {
+        LOGGER.log(Level.INFO, "Zero:");
         scrollIntoView(this.credentialsId);
-        new Select(this.credentialsId.resolve()).selectByValue(credentialsId);
+        LOGGER.log(Level.INFO, "One:");
+        Select select = new Select(this.credentialsId.resolve());
+        LOGGER.log(Level.INFO, "Two:");
+        select.selectByValue(credentialsId);
+        LOGGER.log(Level.INFO, "Three:");
         return this;
     }
 

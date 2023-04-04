@@ -6,8 +6,10 @@ import org.jenkinsci.test.acceptance.po.Describable;
 import org.jenkinsci.test.acceptance.po.WorkflowJob;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.net.URL;
 import java.util.logging.Level;
@@ -31,20 +33,22 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     public BitbucketScmConfig bitbucketScmJenkinsFileSource() {
         select("Pipeline script from SCM");
         select("Bitbucket Server");
+        ExpectedCondition<WebElement> refreshed =
+                ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(by.id("yui-gen13")));
+        WebDriverWait wait = new WebDriverWait(driver, 5);
+        wait.until(refreshed);
         return new BitbucketScmConfig(this, "/definition/scm");
     }
 
     private void select(final String option) {
-        LOGGER.log(Level.INFO, "Zero:");
         WebElement dropdownOption = find(by.option(option));
-        LOGGER.log(Level.INFO, "First "  + isStale(dropdownOption));
         // Get the parent dropdown
         WebElement dropdownBox = dropdownOption
                 .findElement(By.xpath("./parent::select[@class='jenkins-select__input dropdownList']"));
-        LOGGER.log(Level.INFO, "Second "  + isStale(dropdownOption));
+
         Select dropdownSelect = new Select(dropdownBox);
-        LOGGER.log(Level.INFO, "Third "  + isStale(dropdownOption));
+
         dropdownSelect.selectByVisibleText(option);
-        LOGGER.log(Level.INFO, "Fourth "  + isStale(dropdownOption));
+
     }
 }
