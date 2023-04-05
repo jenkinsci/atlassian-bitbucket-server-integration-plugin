@@ -1,21 +1,14 @@
 package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 
-import com.atlassian.plugin.util.WaitUntil;
 import com.google.inject.Injector;
 import org.jenkinsci.test.acceptance.po.Describable;
 import org.jenkinsci.test.acceptance.po.WorkflowJob;
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.net.URL;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static java.time.Duration.ofSeconds;
 
 /**
  * A {@link WorkflowJob workflow (a.k.a. pipeline) job} that uses a Bitbucket Server SCM to fetch the
@@ -24,8 +17,6 @@ import static java.time.Duration.ofSeconds;
 @Describable("org.jenkinsci.plugins.workflow.job.WorkflowJob")
 public class BitbucketScmWorkflowJob extends WorkflowJob {
 
-    private static final Logger LOGGER = Logger.getLogger(BitbucketScmWorkflowJob.class.getName());
-
     public BitbucketScmWorkflowJob(Injector injector, URL url, String name) {
         super(injector, url, name);
     }
@@ -33,6 +24,8 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     public BitbucketScmConfig bitbucketScmJenkinsFileSource() {
         select("Pipeline script from SCM");
         select("Bitbucket Server");
+        // "yui-gen13" is the ID of the "Test Connection" button. Once this has loaded on the page, it's safe to
+        // select other elements without getting a StaleElementReferenceException
         ExpectedCondition<WebElement> refreshed =
                 ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(by.id("yui-gen13")));
         WebDriverWait wait = new WebDriverWait(driver, 5);
@@ -41,14 +34,6 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     }
 
     private void select(final String option) {
-        WebElement dropdownOption = find(by.option(option));
-        // Get the parent dropdown
-        WebElement dropdownBox = dropdownOption
-                .findElement(By.xpath("./parent::select[@class='jenkins-select__input dropdownList']"));
-
-        Select dropdownSelect = new Select(dropdownBox);
-
-        dropdownSelect.selectByVisibleText(option);
-
+        find(by.option(option)).click();
     }
 }
