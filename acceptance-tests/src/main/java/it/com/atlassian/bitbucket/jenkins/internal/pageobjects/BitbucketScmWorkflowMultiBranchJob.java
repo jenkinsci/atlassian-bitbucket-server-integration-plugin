@@ -32,10 +32,7 @@ public class BitbucketScmWorkflowMultiBranchJob extends WorkflowMultiBranchJob {
         try {
             super.reIndex();
         } catch (NoSuchElementException e) {
-            // JENKINS-63044
-            // This selector is out of date as of Jenkins 2.249.1
-            // find(by.xpath("//div[@class=\"task\"]//*[text()=\"Scan Multibranch Pipeline Now\"]")).click();
-            find(by.xpath("//a[@title=\"Scan Multibranch Pipeline Now\"]")).click();
+            find(by.xpath("//*[text()=\"Scan Multibranch Pipeline Now\"]/ancestor::A")).click();
         }
     }
 

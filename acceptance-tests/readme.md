@@ -268,6 +268,7 @@ will have to start up an instance of Bitbucket Server listening on port `7990` (
 `bitbucket.baseurl` system property.
 
 #### Running the smoke tests on macOS
+Note: Running individual tests through your IDE is not supported on macOS.
 
 Using Docker to start Firefox does not work on macOS. Instead, you can install the appropriate browser with [Homebrew](https://brew.sh/):
 
@@ -278,5 +279,11 @@ brew install geckodriver
 Once you've installed the browser, you can run the smoke tests by specifying the browser type and path:
 
 ```
-BROWSER=firefox mvn clean verify -Psmoke-tests -Dwebdriver.gecko.driver="$(brew --prefix geckodriver)/bin/geckodriver"
+BROWSER=firefox mvn clean verify -Psmoke-tests -Dwebdriver.gecko.driver=/opt/homebrew/bin/geckodriver
 ```
+If you wish to run a single test, append the test name to the end of the command:
+
+```
+BROWSER=firefox mvn clean verify -Psmoke-tests -Dwebdriver.gecko.driver=/opt/homebrew/bin/geckodriver -Dit.test=SmokeTest#<Test Name>
+```
+If you experience issues, confirm your geckodriver location by running `whereis geckodriver`
