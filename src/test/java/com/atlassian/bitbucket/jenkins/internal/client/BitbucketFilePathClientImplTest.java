@@ -5,9 +5,10 @@ import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import jenkins.scm.api.SCMFile;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -25,6 +26,7 @@ public class BitbucketFilePathClientImplTest {
     private static final String REF = "refs/heads/master";
     private static final String REPO_SLUG = "rep_1";
     private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/browse/%s?at=%s";
+    private static final String WEBHOOK_RAW_URL = "%s/rest/api/1.0/projects/%s/repos/%s/raw/%s?at=%s";
 
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
@@ -34,7 +36,7 @@ public class BitbucketFilePathClientImplTest {
             new BitbucketFilePathClientImpl(bitbucketRequestExecutor, PROJECT_KEY, REPO_SLUG);
 
     @Test
-    public void testFetchingFile() throws UnsupportedEncodingException {
+    public void testFetchingFile() throws Exception {
         String response = readFileToString("/file-contents.json");
         String url = format(WEBHOOK_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
                 URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
@@ -50,7 +52,7 @@ public class BitbucketFilePathClientImplTest {
     }
 
     @Test
-    public void testFetchingFileContentPaged() throws UnsupportedEncodingException {
+    public void testFetchingFileContentPaged() throws Exception {
         String firstPageResponse = readFileToString("/file-contents-first-page.json");
         String firstPageUrl = format(WEBHOOK_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
                 URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
@@ -68,6 +70,22 @@ public class BitbucketFilePathClientImplTest {
 
         String remoteContent = client.getFileContent(jenkinsFile);
         assertThat(remoteContent, equalTo(jenkinsFileContent));
+    }
+
+    @Test
+    public void testFetchingFileInputStream() throws Exception {
+        String response = readFileToString("/sampleJenkinsfile");
+        String url = format(WEBHOOK_RAW_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
+                URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        String jenkinsFileContent = readFileToString("/sampleJenkinsfile").trim();
+
+        BitbucketSCMFile rootFile = new BitbucketSCMFile(client, REF);
+        BitbucketSCMFile jenkinsFile = new BitbucketSCMFile(rootFile, FILE_PATH, SCMFile.Type.REGULAR_FILE);
+
+        InputStream stream = client.getRawFileStream(jenkinsFile);
+        assertThat(IOUtils.toString(stream, StandardCharsets.UTF_8), equalTo(jenkinsFileContent));
     }
 
     @Test(expected = IllegalArgumentException.class)

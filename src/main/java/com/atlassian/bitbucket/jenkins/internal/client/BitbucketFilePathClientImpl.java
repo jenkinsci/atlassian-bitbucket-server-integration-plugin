@@ -8,7 +8,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import jenkins.scm.api.SCMFile;
 import okhttp3.HttpUrl;
 import jenkins.scm.api.SCMFile.Type;
+import org.apache.commons.io.input.CloseShieldInputStream;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +54,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     @Override
-    public String getFileContent(BitbucketSCMFile file) {
+    public String getFileContent(BitbucketSCMFile file) throws IOException {
         HttpUrl url = getUrl(file);
 
         BitbucketFilePage firstPage = bitbucketRequestExecutor.makeGetRequest(url, BitbucketFilePage.class).getBody();
@@ -59,6 +64,20 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
                 .collect(Collectors.joining("\n"));
     }
 
+    @Override
+    public InputStream getRawFileStream(BitbucketSCMFile scmFile) throws IOException {
+        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug)
+                .addPathSegment("raw")
+                .addPathSegment(scmFile.getFilePath());
+        scmFile.getRef().map(ref -> urlBuilder.addQueryParameter("at", ref));
+        HttpUrl url = urlBuilder.build();
+
+        return bitbucketRequestExecutor.makeStreamingGetRequest(url);
+    }
     private HttpUrl getUrl(BitbucketSCMFile scmFile) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")

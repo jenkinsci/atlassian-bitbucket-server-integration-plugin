@@ -4,6 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import jenkins.scm.api.SCMFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -42,5 +44,19 @@ public interface BitbucketFilePathClient {
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
      */
-    String getFileContent(BitbucketSCMFile scmFile);
+    String getFileContent(BitbucketSCMFile scmFile) throws IOException;
+
+    /**
+     * Retrieve the bytes of a file in a repository. The bytes are encapsulated in an {@link InputStream} object.
+     * @param scmFile the file to retrieve
+     * @return the bytes of the file in an {@link InputStream} object.
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws NoContentException         if the server did not respond with a body
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException          if the url does not exist, or there is no file at the requested url
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
+     */
+    InputStream getRawFileStream(BitbucketSCMFile scmFile) throws IOException;
 }

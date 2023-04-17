@@ -12,6 +12,7 @@ import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -108,6 +109,16 @@ public class BitbucketRequestExecutor {
     }
 
     /**
+     * Make a GET request to the url given. This method will add authentication headers as needed.
+     *
+     * @param url url to connect to
+     * @return a serialised input stream of bytes.
+     */
+    public InputStream makeStreamingGetRequest(HttpUrl url) {
+        return streamGetRequest(url);
+    }
+
+    /**
      * Makes a POST request to the given URL with given request payload.
      *
      * @param url             the URL to make the request to
@@ -179,6 +190,14 @@ public class BitbucketRequestExecutor {
                     return new BitbucketResponse<>(
                             response.headers().toMultimap(), result);
                 }, addCredentials(additionalConfig));
+    }
+
+    private InputStream streamGetRequest(HttpUrl url, RequestConfiguration... additionalConfig) {
+        return new ByteArrayInputStream(httpRequestExecutor.executeGet(url,
+                response -> {
+                    ensureNonEmptyBody(response);
+                    return response.body().bytes();
+                }, addCredentials(additionalConfig)));
     }
 
     private <T> String marshall(T requestPayload) {

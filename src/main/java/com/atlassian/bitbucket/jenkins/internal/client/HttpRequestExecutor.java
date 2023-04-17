@@ -6,6 +6,8 @@ import com.google.inject.ImplementedBy;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 
+import java.io.IOException;
+
 /**
  * Responsible for making remote HTTP calls to the given URL using passed in credentials. The implementation is tightly
  * bound with OkHttpClient library. Methods also takes {@link ResponseConsumer} instead of returning response in order
@@ -87,6 +89,6 @@ public interface HttpRequestExecutor {
 
         ResponseConsumer<Void> EMPTY_RESPONSE = response -> null;
 
-        T consume(Response response);
+        T consume(Response response) throws IOException;
     }
 }

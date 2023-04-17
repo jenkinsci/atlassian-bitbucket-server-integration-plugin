@@ -3,14 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import jenkins.scm.api.SCMFile;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Optional;
 
 import static jenkins.scm.api.SCMFile.Type.*;
@@ -80,7 +78,7 @@ public class BitbucketSCMFile extends SCMFile {
     public InputStream content() throws IOException, InterruptedException {
         if (isFile()) {
             try {
-                return IOUtils.toInputStream(client.getFileContent(this), Charset.defaultCharset());
+                return client.getRawFileStream(this);
             } catch (NotFoundException nfe) {
                 throw new FileNotFoundException("No file present at location " + getFilePath());
             }
