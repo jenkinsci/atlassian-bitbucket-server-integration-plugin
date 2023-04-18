@@ -31,23 +31,9 @@ public interface BitbucketFilePathClient {
     List<SCMFile> getDirectoryContent(BitbucketSCMFile scmFile);
 
     /**
-     * Retrieve the text contents of a file in a repository. The text is presented in a single, newline-separated string.
-     * This method assumed UTF8 encoding on the file.
-     *
-     * @param scmFile the file to retrieve
-     * @return the UTF8-encoded contents of the file, with new lines separated with newline characters
-     * @throws AuthorizationException     if the credentials did not allow access to the given url
-     * @throws NoContentException         if the server did not respond with a body
-     * @throws ConnectionFailureException if the server did not respond
-     * @throws NotFoundException          if the url does not exist, or there is no file at the requested url
-     * @throws BadRequestException        if the request was malformed and thus rejected by the server
-     * @throws ServerErrorException       if the server failed to process the request
-     * @throws BitbucketClientException   for all errors not already captured
-     */
-    String getFileContent(BitbucketSCMFile scmFile) throws IOException;
-
-    /**
      * Retrieve the bytes of a file in a repository. The bytes are encapsulated in an {@link InputStream} object.
+     * The caller of this method is responsible for closing the stream.
+     *
      * @param scmFile the file to retrieve
      * @return the bytes of the file in an {@link InputStream} object.
      * @throws AuthorizationException     if the credentials did not allow access to the given url
@@ -57,6 +43,8 @@ public interface BitbucketFilePathClient {
      * @throws BadRequestException        if the request was malformed and thus rejected by the server
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
+     *
+     * @since 4.43
      */
     InputStream getRawFileStream(BitbucketSCMFile scmFile) throws IOException;
 }

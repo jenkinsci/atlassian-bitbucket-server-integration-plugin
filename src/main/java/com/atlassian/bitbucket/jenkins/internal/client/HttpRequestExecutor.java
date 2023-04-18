@@ -89,6 +89,6 @@ public interface HttpRequestExecutor {
 
         ResponseConsumer<Void> EMPTY_RESPONSE = response -> null;
 
-        T consume(Response response) throws IOException;
+        T consume(Response response);
     }
 }

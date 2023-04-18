@@ -2,12 +2,14 @@ package com.atlassian.bitbucket.jenkins.internal.scm.filesystem;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import jenkins.scm.api.SCMFile;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -61,12 +63,13 @@ public class BitbucketSCMFileTest {
         rootFile.children();
     }
 
+    @Test
     public void testContent() throws IOException, InterruptedException {
         BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
         BitbucketSCMFile rootFile = new BitbucketSCMFile(root, "root-file", SCMFile.Type.REGULAR_FILE);
         rootFile.content();
 
-        verify(filePathClient).getFileContent(eq(rootFile));
+        verify(filePathClient).getRawFileStream(eq(rootFile));
     }
 
     @Test(expected = IOException.class)
