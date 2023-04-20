@@ -12,7 +12,6 @@ import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -193,11 +192,11 @@ public class BitbucketRequestExecutor {
     }
 
     private InputStream streamGetRequest(HttpUrl url, RequestConfiguration... additionalConfig) {
-        return new ByteArrayInputStream(httpRequestExecutor.executeGet(url,
+        return httpRequestExecutor.executeStreamingGet(url,
                 response -> {
                     ensureNonEmptyBody(response);
-                    return response.body().bytes();
-                }, addCredentials(additionalConfig)));
+                    return response.body().byteStream();
+                }, addCredentials(additionalConfig));
     }
 
     private <T> String marshall(T requestPayload) {
