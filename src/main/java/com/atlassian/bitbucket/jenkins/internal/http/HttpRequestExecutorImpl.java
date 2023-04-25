@@ -61,9 +61,9 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
-    public <T> T executeStreamingGet(HttpUrl url, ResponseConsumer<T> consumer,
+    public InputStream executeStreamingGet(HttpUrl url, ResponseConsumer<InputStream> consumer,
                                      RequestConfiguration... additionalConfig) {
-        return (T) performStreamingGet(url, additionalConfig);
+        return performStreamingGet(url, additionalConfig);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         return performRequest(requestBuilder.build(), consumer);
     }
 
-    private Response handleRequest(Request request) {
+    private Response makeRequest(Request request) {
         try {
             Response response = httpCallFactory.newCall(request).execute();
             int responseCode = response.code();
@@ -108,7 +108,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
                     } catch (InterruptedException ex) {
                         throw new UnhandledErrorException("Interrupted during wait to retry", -2, null);
                     }
-                    return handleRequest(request);
+                    return makeRequest(request);
                 }
             }
             throw e;
@@ -157,24 +157,21 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private <T> T performRequest(Request request, ResponseConsumer<T> consumer) {
         Response response = null;
         try {
-            response = handleRequest(request);
+            response = makeRequest(request);
+            return consumer.consume(response);
         } finally {
             if (response != null && response.body() != null) {
                 response.close();
             }
         }
-        return consumer.consume(response);
     }
 
     private InputStream performStreamingGet(HttpUrl url, RequestConfiguration... additionalConfigs) {
         Set<RequestConfiguration> additionalConfig = toSet(additionalConfigs);
         Request.Builder requestBuilder = new Request.Builder().url(url);
         additionalConfig.forEach(config -> config.apply(requestBuilder));
-        return performStreamingRequest(requestBuilder.build());
-    }
 
-    private InputStream performStreamingRequest(Request request) {
-        Response response = handleRequest(request);
+        Response response = makeRequest(requestBuilder.build());
         return response.body().byteStream();
     }
 

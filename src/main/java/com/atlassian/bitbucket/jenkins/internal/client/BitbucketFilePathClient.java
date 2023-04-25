@@ -44,7 +44,7 @@ public interface BitbucketFilePathClient {
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
      *
-     * @since 4.43
+     * @since 3.3.3
      */
-    InputStream getRawFileStream(BitbucketSCMFile scmFile) throws IOException;
+    InputStream getRawFileStream(BitbucketSCMFile scmFile);
 }

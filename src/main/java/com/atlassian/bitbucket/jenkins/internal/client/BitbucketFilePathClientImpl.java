@@ -51,7 +51,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     @Override
-    public InputStream getRawFileStream(BitbucketSCMFile scmFile) throws IOException {
+    public InputStream getRawFileStream(BitbucketSCMFile scmFile) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
                 .addPathSegment(projectKey)
