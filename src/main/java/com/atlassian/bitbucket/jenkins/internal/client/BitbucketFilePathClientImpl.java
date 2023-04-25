@@ -9,7 +9,6 @@ import jenkins.scm.api.SCMFile;
 import okhttp3.HttpUrl;
 import jenkins.scm.api.SCMFile.Type;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;

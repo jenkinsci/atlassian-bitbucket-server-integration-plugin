@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import jenkins.scm.api.SCMFile;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
