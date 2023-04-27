@@ -9,9 +9,12 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>3.3.3-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <properties>
+        <revision>3.3.3</revision>
+        <changelist>-SNAPSHOT</changelist>
+        <gitHubRepo>jenkinsci/atlassian-bitbucket-server-integration-plugin</gitHubRepo>
         <bitbucket.version>6.10.15</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
@@ -597,11 +600,10 @@
     </profiles>
 
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin.git</connection>
-        <developerConnection>scm:git:git@github.com:jenkinsci/atlassian-bitbucket-server-integration-plugin.git
-        </developerConnection>
-        <url>http://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin</url>
-        <tag>HEAD</tag>
+        <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+        <url>http://github.com/${gitHubRepo}</url>
+        <tag>${scmTag}</tag>
     </scm>
 
     <repositories>
