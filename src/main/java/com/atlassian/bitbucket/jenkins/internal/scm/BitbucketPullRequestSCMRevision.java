@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 
 public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketPullRequestSCMHead> {
@@ -10,20 +9,19 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
     private static final long serialVersionUID = 1L;
 
     private final String change;
+
     public BitbucketPullRequestSCMRevision(@NonNull BitbucketPullRequestSCMHead head,
                                            BitbucketPullRequest pullRequest) {
-
         super(head, new BitbucketSCMRevision(head.getTarget(), pullRequest.getToRef().getLatestCommit()));
         this.change = pullRequest.getFromRef().getLatestCommit();
     }
 
-        /**
-         * The commit hash of the head of the change request branch.
-         */
-        public String getChange() {
+    /**
+     * The commit hash of the head of the change request branch.
+     */
+    public String getChange() {
             return change;
         }
-
 
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> o) {
@@ -51,6 +49,6 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
 
     @Override
     public String toString() {
-        return getTarget() +  "+" + change;
+        return getTarget() + "+" + change;
     }
 }
