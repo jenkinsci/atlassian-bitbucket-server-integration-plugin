@@ -63,6 +63,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
 
         return bitbucketRequestExecutor.makeStreamingGetRequest(url);
     }
+
     private HttpUrl getUrl(BitbucketSCMFile scmFile) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
