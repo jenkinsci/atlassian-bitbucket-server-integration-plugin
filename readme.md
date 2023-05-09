@@ -26,10 +26,10 @@ The plugin streamlines the entire configuration process and removes the need for
 
 ## Requirements
 
-- Jenkins 2.319.3+
+- Jenkins 2.375.4+
 - Bitbucket Server 7.4+
 
-Note: Bitbucket Server 5.5 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
+Note: Bitbucket Server 6.0 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
 
 ## In this document
 1. [Install the plugin](#install-the-plugin)
@@ -220,9 +220,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 3.3.3 (9 January 2023)
-- The minimum version of Jenkins changed to be **2.319.3**
-- Now compatible with Jenkins 2.382
+### 3.3.3 (Not yet released)
+- The minimum version of Jenkins changed to be **2.375.4**
+- The minimum supported version of Bitbucket changed to be **6.0**
+- Now compatible with Jenkins **2.382**
+- Fix JENKINS-69268: When using Shared Libraries that use Bitbucket Server for the SCM, plugin fails to correctly post build status info
 
 ### 3.3.2 (21 October 2022)
 - Fix JENKINS-63031: Ref changed webhooks now correctly trigger updated and removed SCM head events
