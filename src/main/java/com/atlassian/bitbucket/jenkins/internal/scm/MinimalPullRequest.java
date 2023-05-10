@@ -2,7 +2,9 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 
-public class MinimalPullRequest {
+import java.io.Serializable;
+
+public class MinimalPullRequest implements Serializable {
 
     private final String fromRefDisplayId;
     private final String fromRefId;
