@@ -12,17 +12,17 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
     public static final int PR_NAME_BRANCH_MAX_LENGTH = 20;
     public static final String PR_NAME_TEMPLATE = "pr%s--%s--%s";
 
-    private final BitbucketPullRequest pullRequest;
+    private final MinimalPullRequest pullRequest;
     private final String pullRequestId;
     private final BitbucketSCMHead target;
 
-    public BitbucketPullRequestSCMHead(BitbucketPullRequest pullRequest) {
+    public BitbucketPullRequestSCMHead(@NonNull BitbucketPullRequest pullRequest) {
         super(formatPRName(pullRequest.getFromRef().getId(),
                 pullRequest.getFromRef().getDisplayId(),
                 pullRequest.getToRef().getDisplayId()));
-        this.pullRequest = pullRequest;
-        this.pullRequestId = Long.toString(pullRequest.getId());
-        this.target = new BitbucketSCMHead(pullRequest.getToRef().getDisplayId());
+        this.pullRequest = new MinimalPullRequest(pullRequest);
+        this.pullRequestId = Long.toString(this.pullRequest.getPullRequestId());
+        this.target = new BitbucketSCMHead(this.pullRequest.getToRefDisplayId());
     }
 
     @NonNull
@@ -55,7 +55,7 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
         return SCMHeadOrigin.DEFAULT;
     }
 
-    public BitbucketPullRequest getPullRequest() {
+    public MinimalPullRequest getPullRequest() {
         return pullRequest;
     }
 
