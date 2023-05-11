@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.Messages;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.cloudbees.hudson.plugins.folder.computed.PseudoRun;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -23,7 +24,10 @@ import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -46,10 +50,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static java.util.UUID.randomUUID;
@@ -147,6 +154,9 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
+        Set<SCMHeadCategory> categorySet = Arrays.stream(new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
+                new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())}).collect(Collectors.toSet());
+
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
@@ -159,6 +169,7 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getRepositorySlug(), equalTo(forkRepoSlug));
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
+        assertThat(scmSource.getCategories(), equalTo(categorySet));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));
