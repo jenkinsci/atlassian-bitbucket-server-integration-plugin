@@ -55,6 +55,8 @@ public class BitbucketJenkinsRule extends JenkinsRule {
 
     public BitbucketJenkinsRule() {
         webClient = createWebClient();
+        // Enable fetch polyfill so tests can use js fetch API
+        webClient.getOptions().setFetchPolyfillEnabled(true);
         LOGGER.setLevel(Level.INFO);
     }
 
