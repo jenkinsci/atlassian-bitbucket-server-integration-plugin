@@ -220,12 +220,13 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 3.4.0 (18 May 2023)
+### 3.4.0 (22 May 2023)
 - The minimum version of Jenkins changed to be **2.375.4**
 - The minimum supported version of Bitbucket changed to be **6.0**
 - Fix JENKINS-69268: When using Shared Libraries that use Bitbucket Server for the SCM, plugin fails to correctly post build status info
 - Fix JENKINS-70275: Folder-level credentials unavailable to Multibranch pipelines whenever Jenkins restarts
 - Fix JENKINS-66829: Convert file path client to use raw streaming endpoint
+- Fix JENKINS-71300: Remove Prototype Ajax.Request from searchableField.js
 
 ### 3.3.2 (21 October 2022)
 - Fix JENKINS-63031: Ref changed webhooks now correctly trigger updated and removed SCM head events
