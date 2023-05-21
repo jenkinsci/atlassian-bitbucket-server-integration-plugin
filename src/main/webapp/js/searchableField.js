@@ -53,19 +53,23 @@ Behaviour.specify('.searchable', 'searchableField', 200, function (el) {
                 return params;
             }, {});
         // Request the search results
-        new Ajax.Request(el.getAttribute('fillUrl'), {
-            parameters: parameters,
-            onSuccess: function (rsp) {
-                results = (rsp.responseJSON.data || [])
-                    .map(function (value) {
-                        return value.name;
-                    });
-                combobox.valueChanged();
-            },
-            onFailure: function (rsp) {
+        var urlSearchParams = new URLSearchParams(parameters);
+        fetch(el.getAttribute("fillUrl") + "?" + urlSearchParams, {
+            headers: crumb.wrap({}),
+            method: "post",
+        }).then((response) => {
+            if (response.ok) {
+                response.json().then((json) => {
+                    results = (json.data || []).map(value => value.name);
+                    combobox.valueChanged();
+                });
+            } else {
                 results = [];
                 combobox.valueChanged();
             }
+        }).catch(() => {
+            results = [];
+            combobox.valueChanged();
         });
     }, 300));
 
