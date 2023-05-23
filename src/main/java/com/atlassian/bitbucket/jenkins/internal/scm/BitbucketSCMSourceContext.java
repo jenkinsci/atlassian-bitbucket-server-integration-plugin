@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.cloudbees.plugins.credentials.Credentials;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.TaskListener;
@@ -51,7 +52,7 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
 
     @NonNull
     @Override
-    public BitbucketSCMSourceRequest newRequest(@NonNull SCMSource source, @NonNull TaskListener listener) {
+    public BitbucketSCMSourceRequest newRequest(@NonNull SCMSource source, @CheckForNull TaskListener listener) {
         return new BitbucketSCMSourceRequest(source, this, listener);
     }
 

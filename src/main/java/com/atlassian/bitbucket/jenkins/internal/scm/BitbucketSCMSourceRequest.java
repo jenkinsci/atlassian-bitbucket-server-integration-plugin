@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 import jenkins.scm.api.SCMSource;
@@ -16,7 +17,7 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
 
     protected BitbucketSCMSourceRequest(@NonNull SCMSource source,
                                         @NonNull BitbucketSCMSourceContext context,
-                                        @NonNull TaskListener listener) {
+                                        @CheckForNull TaskListener listener) {
         super(source, context, listener);
         this.discoveryHandlers = requireNonNull(context.getDiscoveryHandlers(), "discoveryHandlers");
         // copy the relevant details from the context into the request
