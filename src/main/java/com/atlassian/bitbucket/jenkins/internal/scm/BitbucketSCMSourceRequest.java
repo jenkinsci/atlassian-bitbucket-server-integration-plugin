@@ -16,7 +16,7 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
 
     protected BitbucketSCMSourceRequest(@NonNull SCMSource source,
                                         @NonNull BitbucketSCMSourceContext context,
-                                        TaskListener listener) {
+                                        @NonNull TaskListener listener) {
         super(source, context, listener);
         this.discoveryHandlers = requireNonNull(context.getDiscoveryHandlers(), "discoveryHandlers");
         // copy the relevant details from the context into the request
