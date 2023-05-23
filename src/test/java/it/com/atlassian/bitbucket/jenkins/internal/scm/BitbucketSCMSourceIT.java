@@ -50,13 +50,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
 import static java.util.UUID.randomUUID;
@@ -154,8 +152,8 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
-        Set<SCMHeadCategory> categorySet = Arrays.stream(new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
-                new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())}).collect(Collectors.toSet());
+        Set<SCMHeadCategory> categorySet = Set.of(new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
+                new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())});
 
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
