@@ -51,7 +51,7 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
 
     @NonNull
     @Override
-    public BitbucketSCMSourceRequest newRequest(@NonNull SCMSource source, TaskListener listener) {
+    public BitbucketSCMSourceRequest newRequest(@NonNull SCMSource source, @NonNull TaskListener listener) {
         return new BitbucketSCMSourceRequest(source, this, listener);
     }
 
