@@ -21,28 +21,19 @@ public class BitbucketSCMFileTest {
     BitbucketFilePathClient filePathClient;
 
     @Test
-    public void testGetFilePathIsRoot() {
-        BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
-
-        assertThat(root.getFilePath(), equalTo(""));
-    }
-
-    @Test
-    public void testGetFilePathInRoot() {
+    public void testContent() throws IOException, InterruptedException {
         BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
         BitbucketSCMFile rootFile = new BitbucketSCMFile(root, "root-file", SCMFile.Type.REGULAR_FILE);
+        rootFile.content();
 
-        assertThat(rootFile.getFilePath(), equalTo("root-file"));
+        verify(filePathClient).getRawFileStream(eq(rootFile));
     }
 
-    @Test
-    public void testGetFilePathInDirectory() {
+    @Test(expected = IOException.class)
+    public void testContentOfDirectory() throws IOException, InterruptedException {
         BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
-        BitbucketSCMFile level1dir = new BitbucketSCMFile(root, "level1-dir", SCMFile.Type.DIRECTORY);
-        BitbucketSCMFile level2dir = new BitbucketSCMFile(level1dir, "level2-dir", SCMFile.Type.DIRECTORY);
-        BitbucketSCMFile nestedFile = new BitbucketSCMFile(level2dir, "nested-file", SCMFile.Type.DIRECTORY);
 
-        assertThat(nestedFile.getFilePath(), equalTo("level1-dir/level2-dir/nested-file"));
+        root.content();
     }
 
     @Test
@@ -61,18 +52,28 @@ public class BitbucketSCMFileTest {
         rootFile.children();
     }
 
-    public void testContent() throws IOException, InterruptedException {
+    @Test
+    public void testGetFilePathInDirectory() {
         BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
-        BitbucketSCMFile rootFile = new BitbucketSCMFile(root, "root-file", SCMFile.Type.REGULAR_FILE);
-        rootFile.content();
+        BitbucketSCMFile level1dir = new BitbucketSCMFile(root, "level1-dir", SCMFile.Type.DIRECTORY);
+        BitbucketSCMFile level2dir = new BitbucketSCMFile(level1dir, "level2-dir", SCMFile.Type.DIRECTORY);
+        BitbucketSCMFile nestedFile = new BitbucketSCMFile(level2dir, "nested-file", SCMFile.Type.DIRECTORY);
 
-        verify(filePathClient).getFileContent(eq(rootFile));
+        assertThat(nestedFile.getFilePath(), equalTo("level1-dir/level2-dir/nested-file"));
     }
 
-    @Test(expected = IOException.class)
-    public void testContentOfDirectory() throws IOException, InterruptedException {
+    @Test
+    public void testGetFilePathInRoot() {
+        BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
+        BitbucketSCMFile rootFile = new BitbucketSCMFile(root, "root-file", SCMFile.Type.REGULAR_FILE);
+
+        assertThat(rootFile.getFilePath(), equalTo("root-file"));
+    }
+
+    @Test
+    public void testGetFilePathIsRoot() {
         BitbucketSCMFile root = new BitbucketSCMFile(filePathClient, null);
 
-        root.content();
+        assertThat(root.getFilePath(), equalTo(""));
     }
 }

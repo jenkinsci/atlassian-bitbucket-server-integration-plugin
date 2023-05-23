@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import jenkins.scm.api.SCMFile;
 
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -29,11 +30,11 @@ public interface BitbucketFilePathClient {
     List<SCMFile> getDirectoryContent(BitbucketSCMFile scmFile);
 
     /**
-     * Retrieve the text contents of a file in a repository. The text is presented in a single, newline-separated string.
-     * This method assumed UTF8 encoding on the file.
+     * Retrieve the bytes of a file in a repository. The bytes are encapsulated in an {@link InputStream} object.
+     * The caller of this method is responsible for closing the stream.
      *
      * @param scmFile the file to retrieve
-     * @return the UTF8-encoded contents of the file, with new lines separated with newline characters
+     * @return the bytes of the file in an {@link InputStream} object.
      * @throws AuthorizationException     if the credentials did not allow access to the given url
      * @throws NoContentException         if the server did not respond with a body
      * @throws ConnectionFailureException if the server did not respond
@@ -41,6 +42,8 @@ public interface BitbucketFilePathClient {
      * @throws BadRequestException        if the request was malformed and thus rejected by the server
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
+     *
+     * @since 3.3.3
      */
-    String getFileContent(BitbucketSCMFile scmFile);
+    InputStream getRawFileStream(BitbucketSCMFile scmFile);
 }
