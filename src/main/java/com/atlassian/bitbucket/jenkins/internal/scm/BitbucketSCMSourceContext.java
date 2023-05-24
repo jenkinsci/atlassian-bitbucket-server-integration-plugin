@@ -21,6 +21,8 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
             new HashMap<>();
     private final BitbucketSCMRepository repository;
 
+    private boolean needsChangeRequests;
+
     public BitbucketSCMSourceContext(SCMSourceCriteria criteria,
                                      SCMHeadObserver observer,
                                      @Nullable Credentials credentials,
@@ -32,6 +34,10 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
 
     public Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler> getDiscoveryHandlers() {
         return discoveryHandlers;
+    }
+
+    public final boolean needsChangeRequests() {
+        return needsChangeRequests;
     }
 
     @Override
