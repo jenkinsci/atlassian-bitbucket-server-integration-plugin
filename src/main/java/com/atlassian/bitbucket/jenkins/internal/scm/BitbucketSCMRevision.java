@@ -6,15 +6,15 @@ import jenkins.scm.api.SCMRevision;
 public class BitbucketSCMRevision extends SCMRevision {
 
     private static final long serialVersionUID = 1L;
-    private final String hash;
+    private final String commitHash;
 
-    public BitbucketSCMRevision(@NonNull BitbucketSCMHead head, String hash) {
+    public BitbucketSCMRevision(@NonNull BitbucketSCMHead head, String commitHash) {
         super(head);
-        this.hash = hash;
+        this.commitHash = commitHash;
     }
 
-    public String getHash() {
-        return hash;
+    public String getCommitHash() {
+        return commitHash;
     }
 
     @Override
@@ -28,17 +28,17 @@ public class BitbucketSCMRevision extends SCMRevision {
 
         BitbucketSCMRevision that = (BitbucketSCMRevision) o;
 
-        return hash.equals(that.hash);
+        return commitHash.equals(that.commitHash);
     }
 
     @Override
     public int hashCode() {
-        return hash.hashCode();
+        return commitHash.hashCode();
     }
 
     @Override
     public String toString() {
-        return hash;
+        return commitHash;
     }
 
 }

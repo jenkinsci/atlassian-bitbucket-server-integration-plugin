@@ -248,8 +248,9 @@ public class BitbucketWebhookConsumer {
             }
 
             BitbucketPullRequestSCMHead prScmHead = new BitbucketPullRequestSCMHead(getPayload().getPullRequest());
-            return Collections.singletonMap(prScmHead,
-                    new BitbucketPullRequestSCMRevision(prScmHead, getPayload().getPullRequest()));
+            BitbucketPullRequestSCMRevision prScmRevision =
+                    new BitbucketPullRequestSCMRevision(prScmHead, getPayload().getPullRequest());
+            return Map.of(prScmHead, prScmRevision);
         }
 
         @Override

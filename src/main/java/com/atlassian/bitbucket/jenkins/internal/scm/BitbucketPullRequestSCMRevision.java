@@ -17,7 +17,7 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
     }
 
     /**
-     * The commit hash of the head of the change request branch.
+     * The commit hash of the pull request source branch (source ref)
      */
     public String getChange() {
             return change;
@@ -25,21 +25,13 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
 
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
+
+        if (!(o instanceof BitbucketPullRequestSCMRevision)) {
             return false;
         }
 
-        ChangeRequestSCMRevision<?> that = (ChangeRequestSCMRevision<?>) o;
-        if (!equivalent(that)) {
-            return false;
-        }
-        if (isMerge() && that.isMerge()) {
-            // return target.equals(that.target);
-        }
-        return isMerge() == that.isMerge();
+        BitbucketPullRequestSCMRevision other = (BitbucketPullRequestSCMRevision) o;
+        return getHead().equals(other.getHead()) && getChange().equals(other.getChange());
     }
 
     @Override
