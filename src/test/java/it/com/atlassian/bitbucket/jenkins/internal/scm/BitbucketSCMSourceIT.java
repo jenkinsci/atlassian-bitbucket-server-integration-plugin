@@ -52,7 +52,6 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -152,8 +151,8 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
-        Set<SCMHeadCategory> categorySet = Set.of(new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
-                new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())});
+        SCMHeadCategory[] defaultCategory = {UncategorizedSCMHeadCategory.DEFAULT};
+        SCMHeadCategory pullRequestCategory = new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display());
 
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
@@ -168,7 +167,8 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
         assertThat(scmSource.getCategories().size(), equalTo(2));
-        assertThat(scmSource.getCategories(), contains(categorySet));
+        assertThat(scmSource.getCategories().contains(defaultCategory), equalTo(true));
+        assertThat(scmSource.getCategories().contains(pullRequestCategory), equalTo(true));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));
