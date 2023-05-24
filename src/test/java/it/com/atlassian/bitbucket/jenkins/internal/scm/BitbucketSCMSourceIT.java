@@ -167,7 +167,8 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getRepositorySlug(), equalTo(forkRepoSlug));
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
-        assertThat(scmSource.getCategories(), equalTo(categorySet));
+        assertThat(scmSource.getCategories().size(), equalTo(2));
+        assertThat(scmSource.getCategories(), contains(categorySet));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));
