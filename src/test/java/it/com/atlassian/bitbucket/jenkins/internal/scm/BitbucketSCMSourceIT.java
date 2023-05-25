@@ -151,7 +151,7 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMHeadCategory[] defaultCategory = {UncategorizedSCMHeadCategory.DEFAULT};
+        SCMHeadCategory defaultCategory = UncategorizedSCMHeadCategory.DEFAULT;
         SCMHeadCategory pullRequestCategory = new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display());
 
         BitbucketSCMSource scmSource =
@@ -167,8 +167,8 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
         assertThat(scmSource.getCategories().size(), equalTo(2));
-        assertThat(scmSource.getCategories().contains(defaultCategory), equalTo(true));
-        assertThat(scmSource.getCategories().contains(pullRequestCategory), equalTo(true));
+        scmSource.getCategories().forEach(category -> assertTrue(category.getName().equals(defaultCategory.getName()) ||
+                                                                 category.getName().equals(pullRequestCategory.getName())));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));

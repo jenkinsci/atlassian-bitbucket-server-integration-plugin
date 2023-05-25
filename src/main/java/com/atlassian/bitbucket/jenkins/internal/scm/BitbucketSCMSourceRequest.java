@@ -12,22 +12,17 @@ import static java.util.Objects.requireNonNull;
 public class BitbucketSCMSourceRequest extends SCMSourceRequest {
 
     private final Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler> discoveryHandlers;
-    private final boolean fetchChangeRequests;
 
     protected BitbucketSCMSourceRequest(SCMSource source,
                                         BitbucketSCMSourceContext context,
                                         @CheckForNull TaskListener listener) {
         super(source, context, listener);
         this.discoveryHandlers = requireNonNull(context.getDiscoveryHandlers(), "discoveryHandlers");
-        // copy the relevant details from the context into the request
-        this.fetchChangeRequests = context.needsChangeRequests();
+
     }
 
     public Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler> getDiscoveryHandlers() {
         return discoveryHandlers;
     }
 
-    public boolean isFetchChangeRequests() {
-        return fetchChangeRequests;
-    }
 }
