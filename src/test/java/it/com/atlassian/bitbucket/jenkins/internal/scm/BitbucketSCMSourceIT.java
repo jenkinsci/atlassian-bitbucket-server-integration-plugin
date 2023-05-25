@@ -151,7 +151,7 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMHeadCategory[] defaultCategory = {UncategorizedSCMHeadCategory.DEFAULT};
+        SCMHeadCategory defaultCategory = UncategorizedSCMHeadCategory.DEFAULT;
         SCMHeadCategory pullRequestCategory = new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display());
 
         BitbucketSCMSource scmSource =
