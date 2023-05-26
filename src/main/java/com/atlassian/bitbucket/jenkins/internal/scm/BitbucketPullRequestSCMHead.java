@@ -5,21 +5,15 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
-import org.apache.commons.lang3.StringUtils;
 
 public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements ChangeRequestSCMHead2 {
-
-    public static final int PR_NAME_BRANCH_MAX_LENGTH = 20;
-    public static final String PR_NAME_TEMPLATE = "pr%s--%s--%s";
 
     private final MinimalPullRequest pullRequest;
     private final String pullRequestId;
     private final BitbucketSCMHead target;
 
     public BitbucketPullRequestSCMHead(@NonNull BitbucketPullRequest pullRequest) {
-        super(formatPRName(pullRequest.getFromRef().getId(),
-                pullRequest.getFromRef().getDisplayId(),
-                pullRequest.getToRef().getDisplayId()));
+        super(pullRequest.getFromRef().getId());
         this.pullRequest = new MinimalPullRequest(pullRequest);
         this.pullRequestId = Long.toString(this.pullRequest.getPullRequestId());
         this.target = new BitbucketSCMHead(this.pullRequest.getToRefDisplayId());
@@ -57,12 +51,5 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
 
     public MinimalPullRequest getPullRequest() {
         return pullRequest;
-    }
-
-    private static String formatPRName(String pullRequestId, String branchName, String targetBranchName) {
-        return String.format(PR_NAME_TEMPLATE,
-                pullRequestId,
-                StringUtils.truncate(branchName, PR_NAME_BRANCH_MAX_LENGTH),
-                StringUtils.truncate(targetBranchName, PR_NAME_BRANCH_MAX_LENGTH));
     }
 }
