@@ -9,6 +9,7 @@ import jenkins.scm.api.SCMFile;
 import okhttp3.HttpUrl;
 import jenkins.scm.api.SCMFile.Type;
 
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,14 +50,18 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     @Override
-    public String getFileContent(BitbucketSCMFile file) {
-        HttpUrl url = getUrl(file);
+    public InputStream getRawFileStream(BitbucketSCMFile scmFile) {
+        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug)
+                .addPathSegment("raw")
+                .addPathSegment(scmFile.getFilePath());
+        scmFile.getRef().map(ref -> urlBuilder.addQueryParameter("at", ref));
+        HttpUrl url = urlBuilder.build();
 
-        BitbucketFilePage firstPage = bitbucketRequestExecutor.makeGetRequest(url, BitbucketFilePage.class).getBody();
-        return BitbucketPageStreamUtil.toStream(firstPage, new FileNextPageFetcher(url, bitbucketRequestExecutor))
-                .map(page -> ((BitbucketFilePage) page).getLines())
-                .flatMap(Collection::stream)
-                .collect(Collectors.joining("\n"));
+        return bitbucketRequestExecutor.makeStreamingGetRequest(url);
     }
 
     private HttpUrl getUrl(BitbucketSCMFile scmFile) {
@@ -94,32 +99,6 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
         }
 
         private HttpUrl nextPageUrl(BitbucketPage<BitbucketDirectoryChild> previous) {
-            return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
-        }
-    }
-
-    static class FileNextPageFetcher implements NextPageFetcher<String> {
-
-        private final BitbucketRequestExecutor bitbucketRequestExecutor;
-        private final HttpUrl url;
-
-        FileNextPageFetcher(HttpUrl url,
-                            BitbucketRequestExecutor bitbucketRequestExecutor) {
-            this.url = url;
-            this.bitbucketRequestExecutor = bitbucketRequestExecutor;
-        }
-
-        @Override
-        public BitbucketPage<String> next(BitbucketPage<String> previous) {
-            if (previous.isLastPage()) {
-                throw new IllegalArgumentException("Last page does not have next page");
-            }
-            return bitbucketRequestExecutor.makeGetRequest(
-                    nextPageUrl(previous),
-                    new TypeReference<BitbucketFilePage>() {}).getBody();
-        }
-
-        private HttpUrl nextPageUrl(BitbucketPage<String> previous) {
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
         }
     }

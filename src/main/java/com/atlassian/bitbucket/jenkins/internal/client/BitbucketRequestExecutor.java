@@ -108,6 +108,16 @@ public class BitbucketRequestExecutor {
     }
 
     /**
+     * Make a GET request to the url given. This method will add authentication headers as needed.
+     *
+     * @param url url to connect to
+     * @return a serialised input stream of bytes.
+     */
+    public InputStream makeStreamingGetRequest(HttpUrl url) {
+        return streamGetRequest(url);
+    }
+
+    /**
      * Makes a POST request to the given URL with given request payload.
      *
      * @param url             the URL to make the request to
@@ -178,6 +188,14 @@ public class BitbucketRequestExecutor {
                     T result = unmarshall(reader, response.body());
                     return new BitbucketResponse<>(
                             response.headers().toMultimap(), result);
+                }, addCredentials(additionalConfig));
+    }
+
+    private InputStream streamGetRequest(HttpUrl url, RequestConfiguration... additionalConfig) {
+        return httpRequestExecutor.executeStreamingGet(url,
+                response -> {
+                    ensureNonEmptyBody(response);
+                    return response.body().byteStream();
                 }, addCredentials(additionalConfig));
     }
 

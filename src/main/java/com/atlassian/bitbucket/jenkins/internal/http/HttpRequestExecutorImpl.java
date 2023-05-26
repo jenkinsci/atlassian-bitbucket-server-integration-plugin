@@ -10,6 +10,7 @@ import okhttp3.*;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
@@ -60,6 +61,12 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     @Override
+    public InputStream executeStreamingGet(HttpUrl url, ResponseConsumer<InputStream> consumer,
+                                     RequestConfiguration... additionalConfig) {
+        return performStreamingGet(url, additionalConfig);
+    }
+
+    @Override
     public <T> T executePut(HttpUrl url, String requestBodyAsJson,
                             ResponseConsumer<T> consumer, RequestConfiguration... additionalConfig) {
         Request.Builder requestBuilder =
@@ -72,6 +79,41 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         Set<RequestConfiguration> additionalConfig = toSet(additionalConfigs);
         additionalConfig.forEach(config -> config.apply(requestBuilder));
         return performRequest(requestBuilder.build(), consumer);
+    }
+
+    private Response makeRequest(Request request) {
+        try {
+            Response response = httpCallFactory.newCall(request).execute();
+            int responseCode = response.code();
+            ResponseBody body = response.body();
+
+            if (response.isSuccessful()) {
+                log.fine("Bitbucket - call successful");
+                return response;
+            }
+
+            handleError(responseCode, body == null ? null : body.string(), response.headers());
+        } catch (ConnectException | SocketTimeoutException e) {
+            log.log(Level.FINE, "Bitbucket - Connection failed", e);
+            throw new ConnectionFailureException(e);
+        } catch (IOException e) {
+            log.log(Level.FINE, "Bitbucket - io exception", e);
+            throw new BitbucketClientException(e);
+        } catch (RateLimitedException e) {
+            RetryOnRateLimitConfig rateLimitConfig = request.tag(RetryOnRateLimitConfig.class);
+            if (rateLimitConfig != null) {
+                if (rateLimitConfig.incrementAndGetAttempts() <= rateLimitConfig.getMaxAttempts()) {
+                    try {
+                        Thread.sleep(e.getRetryIn());
+                    } catch (InterruptedException ex) {
+                        throw new UnhandledErrorException("Interrupted during wait to retry", -2, null);
+                    }
+                    return makeRequest(request);
+                }
+            }
+            throw e;
+        }
+        throw new UnhandledErrorException("Unhandled error", -1, null);
     }
 
     /**
@@ -113,38 +155,24 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     }
 
     private <T> T performRequest(Request request, ResponseConsumer<T> consumer) {
+        Response response = null;
         try {
-            Response response = httpCallFactory.newCall(request).execute();
-            int responseCode = response.code();
-
-            try (ResponseBody body = response.body()) {
-                if (response.isSuccessful()) {
-                    log.fine("Bitbucket - call successful");
-                    return consumer.consume(response);
-                }
-                handleError(responseCode, body == null ? null : body.string(), response.headers());
+            response = makeRequest(request);
+            return consumer.consume(response);
+        } finally {
+            if (response != null && response.body() != null) {
+                response.close();
             }
-        } catch (ConnectException | SocketTimeoutException e) {
-            log.log(Level.FINE, "Bitbucket - Connection failed", e);
-            throw new ConnectionFailureException(e);
-        } catch (IOException e) {
-            log.log(Level.FINE, "Bitbucket - io exception", e);
-            throw new BitbucketClientException(e);
-        } catch (RateLimitedException e) {
-            RetryOnRateLimitConfig rateLimitConfig = request.tag(RetryOnRateLimitConfig.class);
-            if (rateLimitConfig != null) {
-                if (rateLimitConfig.incrementAndGetAttempts() <= rateLimitConfig.getMaxAttempts()) {
-                    try {
-                        Thread.sleep(e.getRetryIn());
-                    } catch (InterruptedException ex) {
-                        throw new UnhandledErrorException("Interrupted during wait to retry", -2, null);
-                    }
-                    return performRequest(request, consumer);
-                }
-            }
-            throw e;
         }
-        throw new UnhandledErrorException("Unhandled error", -1, null);
+    }
+
+    private InputStream performStreamingGet(HttpUrl url, RequestConfiguration... additionalConfigs) {
+        Set<RequestConfiguration> additionalConfig = toSet(additionalConfigs);
+        Request.Builder requestBuilder = new Request.Builder().url(url);
+        additionalConfig.forEach(config -> config.apply(requestBuilder));
+
+        Response response = makeRequest(requestBuilder.build());
+        return response.body().byteStream();
     }
 
     private Set<RequestConfiguration> toSet(RequestConfiguration[] additionalConfig) {
