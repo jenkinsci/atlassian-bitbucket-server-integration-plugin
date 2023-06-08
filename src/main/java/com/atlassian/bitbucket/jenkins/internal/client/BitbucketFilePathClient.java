@@ -46,4 +46,17 @@ public interface BitbucketFilePathClient {
      * @since 3.3.3
      */
     InputStream getRawFileStream(BitbucketSCMFile scmFile);
+
+    /**
+     * Retrieve the type of filepath provided. This could be NONEXISTENT, REGULAR_FILE, DIRECTORY, etc
+     *
+     * @param filePath the path of the file to check type of
+     * @return the ENUM type of file
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws NoContentException         if the server did not respond with a body
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws NotFoundException          if the url does not exist, or there is no file at the requested url
+     * @since PR_SUPPORT
+     */
+    SCMFile.Type getFileType(String filePath);
 }

@@ -9,6 +9,7 @@ import okhttp3.*;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
@@ -29,6 +30,7 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private static final int SERVER_ERROR_FAMILY = 5;
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private final Call.Factory httpCallFactory;
+    private final Cache cache = new Cache(new File("./"), 1024);
 
     @Inject
     public HttpRequestExecutorImpl() {
