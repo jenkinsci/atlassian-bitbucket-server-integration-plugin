@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
-import com.atlassian.bitbucket.jenkins.internal.scm.Messages;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.cloudbees.hudson.plugins.folder.computed.PseudoRun;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
