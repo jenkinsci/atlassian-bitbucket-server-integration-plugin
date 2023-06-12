@@ -34,7 +34,7 @@ import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.impl.TagSCMHeadCategory;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 
@@ -523,7 +523,8 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         protected SCMHeadCategory[] createCategories() {
-            return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT, TagSCMHeadCategory.DEFAULT};
+            return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
+                    new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())};
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {

@@ -57,7 +57,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug)
                 .addPathSegment("raw")
-                .addPathSegment(scmFile.getFilePath());
+                .addPathSegments(scmFile.getFilePath());
         scmFile.getRef().map(ref -> urlBuilder.addQueryParameter("at", ref));
         HttpUrl url = urlBuilder.build();
 

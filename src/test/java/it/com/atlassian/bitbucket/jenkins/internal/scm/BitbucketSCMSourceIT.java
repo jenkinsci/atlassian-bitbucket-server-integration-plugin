@@ -23,7 +23,10 @@ import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -48,6 +51,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -147,6 +151,7 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
+
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
         assertThat(scmSource.getTraits(), hasSize(0));
@@ -159,6 +164,10 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getRepositorySlug(), equalTo(forkRepoSlug));
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
+        Set<? extends SCMHeadCategory> categories = scmSource.getCategories();
+        assertThat(categories.size(), equalTo(2));
+        assertTrue(categories.stream().anyMatch(UncategorizedSCMHeadCategory.DEFAULT::equals));
+        assertTrue(categories.stream().anyMatch(ChangeRequestSCMHeadCategory.class::isInstance));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));

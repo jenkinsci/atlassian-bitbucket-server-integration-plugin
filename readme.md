@@ -220,6 +220,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 3.4.2 (6 June 2023)
+- Fix JENKINS-71363 streaming support for Jenkinsfiles not in root directory
+
 ### 3.4.1 (23 May 2023)
 - The minimum version of Jenkins changed to be **2.375.4**
 - The minimum supported version of Bitbucket changed to be **6.0**
