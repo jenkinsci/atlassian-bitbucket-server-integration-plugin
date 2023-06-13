@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.lang.String.format;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -23,8 +24,8 @@ public class BitbucketFilePathClientImplTest {
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REF = "refs/heads/master";
     private static final String REPO_SLUG = "rep_1";
-    private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/browse/%s?at=%s";
     private static final String WEBHOOK_RAW_URL = "%s/rest/api/1.0/projects/%s/repos/%s/raw/%s?at=%s";
+    private static final String WEBHOOK_TYPE_URL = "%s/rest/api/1.0/projects/%s/repos/%s/browse/%s?at=%s&type=true";
 
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
@@ -47,5 +48,38 @@ public class BitbucketFilePathClientImplTest {
 
         InputStream stream = client.getRawFileStream(jenkinsFile);
         assertThat(IOUtils.toString(stream, StandardCharsets.UTF_8), equalTo(jenkinsFileContent));
+    }
+
+    @Test
+    public void testGetFileTypeDirectory() throws Exception {
+        String url = format(WEBHOOK_TYPE_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
+                URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
+        fakeRemoteHttpServer.mapUrlToResult(url, "{\"type\":\"DIRECTORY\"}");
+
+        SCMFile.Type fileType = client.getFileType(FILE_PATH, REF);
+
+        assertThat(fileType, equalTo(SCMFile.Type.DIRECTORY));
+    }
+
+    @Test
+    public void testGetFileTypeNonExistent() throws Exception {
+        String url = format(WEBHOOK_TYPE_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
+                URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
+        fakeRemoteHttpServer.mapUrlToResponseCode(url, HTTP_NOT_FOUND);
+
+        SCMFile.Type fileType = client.getFileType(FILE_PATH, REF);
+
+        assertThat(fileType, equalTo(SCMFile.Type.NONEXISTENT));
+    }
+
+    @Test
+    public void testGetFileTypeRegularFile() throws Exception {
+        String url = format(WEBHOOK_TYPE_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, FILE_PATH,
+                URLEncoder.encode(REF, StandardCharsets.UTF_8.toString()));
+        fakeRemoteHttpServer.mapUrlToResult(url, "{\"type\":\"FILE\"}");
+
+        SCMFile.Type fileType = client.getFileType(FILE_PATH, REF);
+
+        assertThat(fileType, equalTo(SCMFile.Type.REGULAR_FILE));
     }
 }
