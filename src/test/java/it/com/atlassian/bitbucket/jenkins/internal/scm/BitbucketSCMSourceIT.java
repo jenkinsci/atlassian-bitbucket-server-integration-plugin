@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
-import com.atlassian.bitbucket.jenkins.internal.scm.Messages;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.cloudbees.hudson.plugins.folder.computed.PseudoRun;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -52,6 +51,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -151,8 +151,6 @@ public class BitbucketSCMSourceIT {
         String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
         String id = randomUUID().toString();
         String serverId = serverConf.getId();
-        SCMHeadCategory defaultCategory = UncategorizedSCMHeadCategory.DEFAULT;
-        SCMHeadCategory pullRequestCategory = new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display());
 
         BitbucketSCMSource scmSource =
                 new BitbucketSCMSource(id, credentialsId, "", null, PROJECT_NAME, forkRepoName, serverId, null);
@@ -166,9 +164,10 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getRepositorySlug(), equalTo(forkRepoSlug));
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
-        assertThat(scmSource.getCategories().size(), equalTo(2));
-        scmSource.getCategories().forEach(category -> assertTrue(category.getName().equals(defaultCategory.getName()) ||
-                                                                 category.getName().equals(pullRequestCategory.getName())));
+        Set<? extends SCMHeadCategory> categories = scmSource.getCategories();
+        assertThat(categories.size(), equalTo(2));
+        assertTrue(categories.stream().anyMatch(UncategorizedSCMHeadCategory.DEFAULT::equals));
+        assertTrue(categories.stream().anyMatch(ChangeRequestSCMHeadCategory.class::isInstance));
 
         SCM gscm = scmSource.build(new SCMHead("master"), null);
         assertThat(gscm, instanceOf(GitSCM.class));
