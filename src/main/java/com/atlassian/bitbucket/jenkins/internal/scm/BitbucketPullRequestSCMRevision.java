@@ -1,27 +1,26 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
+
+import java.util.Objects;
 
 public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketPullRequestSCMHead> {
 
     private static final long serialVersionUID = 1L;
 
-    private final String change;
+    private final String commitHash;
 
-    public BitbucketPullRequestSCMRevision(@NonNull BitbucketPullRequestSCMHead head,
-                                           BitbucketPullRequest pullRequest) {
-        super(head, new BitbucketSCMRevision(head.getTarget(), pullRequest.getToRef().getLatestCommit()));
-        this.change = pullRequest.getFromRef().getLatestCommit();
+    public BitbucketPullRequestSCMRevision(BitbucketPullRequestSCMHead head) {
+        super(head, new BitbucketSCMRevision(head.getTarget(), head.getPullRequest().getToLatestCommit()));
+        this.commitHash = head.getPullRequest().getFromLatestCommit();
     }
 
     /**
      * The commit hash of the pull request source branch (source ref)
      */
-    public String getChange() {
-            return change;
-        }
+    public String getCommitHash() {
+        return commitHash;
+    }
 
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> o) {
@@ -31,16 +30,16 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
         }
 
         BitbucketPullRequestSCMRevision other = (BitbucketPullRequestSCMRevision) o;
-        return getHead().equals(other.getHead()) && getChange().equals(other.getChange());
+        return getHead().equals(other.getHead()) && commitHash.equals(other.commitHash);
     }
 
     @Override
     protected int _hashCode() {
-        return change.hashCode();
+        return Objects.hash(getHead(), commitHash);
     }
 
     @Override
     public String toString() {
-        return getTarget() + "+" + change;
+        return getTarget() + "+" + commitHash;
     }
 }

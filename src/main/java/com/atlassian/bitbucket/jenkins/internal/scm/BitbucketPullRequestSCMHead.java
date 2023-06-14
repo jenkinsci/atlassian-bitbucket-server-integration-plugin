@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 
@@ -14,7 +12,7 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
     private final String pullRequestId;
     private final BitbucketSCMHead target;
 
-    public BitbucketPullRequestSCMHead(@NonNull BitbucketPullRequest pullRequest) {
+    public BitbucketPullRequestSCMHead(BitbucketPullRequest pullRequest) {
         super(PR_ID_PREFIX + pullRequest.getFromRef().getId(), pullRequest.getFromRef().getLatestCommit());
         this.pullRequest = new MinimalPullRequest(pullRequest);
         this.pullRequestId = Long.toString(this.pullRequest.getPullRequestId());
@@ -22,34 +20,28 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
                 pullRequest.getToRef().getLatestCommit());
     }
 
-    @NonNull
     @Override
     public ChangeRequestCheckoutStrategy getCheckoutStrategy() {
-        return ChangeRequestCheckoutStrategy.MERGE;
+        // We currently do not support merging across different repositories so forked
+        // pull requests need to use the HEAD revision of the pull request origin.
+        return pullRequest.isForkedPullRequest() ?
+                ChangeRequestCheckoutStrategy.HEAD :
+                ChangeRequestCheckoutStrategy.MERGE;
     }
 
-    @NonNull
     @Override
     public String getId() {
         return pullRequestId;
     }
 
-    @NonNull
     @Override
     public BitbucketSCMHead getTarget() {
         return target;
     }
 
-    @NonNull
     @Override
     public String getOriginName() {
         return getName();
-    }
-
-    @Override
-    @NonNull
-    public SCMHeadOrigin getOrigin() {
-        return SCMHeadOrigin.DEFAULT;
     }
 
     public MinimalPullRequest getPullRequest() {
