@@ -36,6 +36,14 @@ public class BitbucketSCMProbe extends SCMProbe {
     @Override
     public SCMProbeStat stat(String path) throws IOException {
         requireNonNull(path, "path");
-        return SCMProbeStat.fromType(filePathClient.getFileType(path, head.getName()));
+        return SCMProbeStat.fromType(filePathClient.getFileType(path, getRef()));
+    }
+
+    private String getRef() {
+        if (head instanceof BitbucketSCMHead) {
+            return ((BitbucketSCMHead) head).getLatestCommit();
+        }
+
+        return head.getName();
     }
 }
