@@ -28,7 +28,7 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
         // to select other elements without getting a StaleElementReferenceException
         ExpectedCondition<WebElement> refreshed =
                 ExpectedConditions.refreshed(
-                        ExpectedConditions.presenceOfElementLocated(by.button("Test Connection")));
+                        ExpectedConditions.presenceOfElementLocated(by.button("Test connection")));
         WebDriverWait wait = new WebDriverWait(driver, 5);
         wait.until(refreshed);
         return new BitbucketScmConfig(this, "/definition/scm");
