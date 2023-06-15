@@ -30,7 +30,11 @@ public class BitbucketSCMProbe extends SCMProbe {
 
     @Override
     public long lastModified() {
-        return 0L;
+        if (head instanceof BitbucketSCMHead) {
+            return ((BitbucketSCMHead) head).getUpdatedDate();
+        }
+
+        return -1L;
     }
 
     @Override

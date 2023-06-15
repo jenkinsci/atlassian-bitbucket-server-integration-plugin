@@ -3,14 +3,16 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
-import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDirectory;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDirectoryChild;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jenkins.scm.api.SCMFile;
-import okhttp3.HttpUrl;
 import jenkins.scm.api.SCMFile.Type;
+import okhttp3.HttpUrl;
 
-import javax.annotation.Nullable;
+import javax.annotation.CheckForNull;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
@@ -89,7 +91,7 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
         return getUrlBuilder(scmFile.getFilePath(), scmFile.getRef().orElse(null)).build();
     }
 
-    private HttpUrl.Builder getUrlBuilder(String filePath, @Nullable String ref) {
+    private HttpUrl.Builder getUrlBuilder(String filePath, @CheckForNull String ref) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
                 .addPathSegment(projectKey)
