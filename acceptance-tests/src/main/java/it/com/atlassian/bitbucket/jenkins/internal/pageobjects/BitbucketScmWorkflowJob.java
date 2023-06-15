@@ -24,10 +24,11 @@ public class BitbucketScmWorkflowJob extends WorkflowJob {
     public BitbucketScmConfig bitbucketScmJenkinsFileSource() {
         select("Pipeline script from SCM");
         select("Bitbucket Server");
-        // "yui-gen13" is the ID of the "Test Connection" button. Once this has loaded on the page, it's safe to
-        // select other elements without getting a StaleElementReferenceException
+        // Once the "Test Connection" button has loaded on the page, it's safe
+        // to select other elements without getting a StaleElementReferenceException
         ExpectedCondition<WebElement> refreshed =
-                ExpectedConditions.refreshed(ExpectedConditions.presenceOfElementLocated(by.id("yui-gen13")));
+                ExpectedConditions.refreshed(
+                        ExpectedConditions.presenceOfElementLocated(by.button("Test Connection")));
         WebDriverWait wait = new WebDriverWait(driver, 5);
         wait.until(refreshed);
         return new BitbucketScmConfig(this, "/definition/scm");
