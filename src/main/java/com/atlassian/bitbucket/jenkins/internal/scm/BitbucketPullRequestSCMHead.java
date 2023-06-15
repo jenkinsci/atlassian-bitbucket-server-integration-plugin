@@ -21,7 +21,8 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
         this.pullRequest = new MinimalPullRequest(pullRequest);
         this.pullRequestId = Long.toString(this.pullRequest.getPullRequestId());
         this.target = new BitbucketSCMHead(this.pullRequest.getToRefDisplayId(),
-                pullRequest.getToRef().getLatestCommit(), pullRequest.getUpdatedDate());
+                pullRequest.getToRef().getLatestCommit(),
+                -1);
     }
 
     @NonNull
