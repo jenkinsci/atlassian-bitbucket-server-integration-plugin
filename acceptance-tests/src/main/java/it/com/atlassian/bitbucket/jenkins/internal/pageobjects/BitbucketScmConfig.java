@@ -3,6 +3,8 @@ package it.com.atlassian.bitbucket.jenkins.internal.pageobjects;
 import org.jenkinsci.test.acceptance.po.*;
 import org.openqa.selenium.support.ui.Select;
 
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BrowserUtils.runWithRetry;
+
 /**
  * Represents the {@link PageAreaImpl page area} for configuring a job to use a Bitbucket Server SCM
  *
@@ -24,19 +26,19 @@ public class BitbucketScmConfig extends Scm {
 
     public BitbucketScmConfig credentialsId(String credentialsId) {
         scrollIntoView(this.credentialsId);
-        new Select(this.credentialsId.resolve()).selectByValue(credentialsId);
+        runWithRetry(() -> new Select(this.credentialsId.resolve()).selectByValue(credentialsId));
         return this;
     }
 
     public BitbucketScmConfig sshCredentialsId(String sshCredentialsId) {
         this.scrollIntoView(this.sshCredentialsId);
-        new Select(this.sshCredentialsId.resolve()).selectByValue(sshCredentialsId);
+        runWithRetry(() -> new Select(this.sshCredentialsId.resolve()).selectByValue(sshCredentialsId));
         return this;
     }
 
     public BitbucketScmConfig serverId(String serverId) {
         scrollIntoView(this.serverId);
-        new Select(this.serverId.resolve()).selectByVisibleText(serverId);
+        runWithRetry(() -> new Select(this.serverId.resolve()).selectByVisibleText(serverId));
         return this;
     }
 
