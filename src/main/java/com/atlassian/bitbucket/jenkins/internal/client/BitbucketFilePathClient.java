@@ -30,6 +30,21 @@ public interface BitbucketFilePathClient {
     List<SCMFile> getDirectoryContent(BitbucketSCMFile scmFile);
 
     /**
+     * Retrieves the {@link SCMFile.Type file type} for the specified file path and ref.
+     *
+     * @param path the path of the file or directory to retrieve
+     * @param ref The commit ID or ref to retrieve the file for
+     *
+     * @return the {@link SCMFile.Type type} for the specified file
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
+     */
+    SCMFile.Type getFileType(String path, String ref);
+
+    /**
      * Retrieve the bytes of a file in a repository. The bytes are encapsulated in an {@link InputStream} object.
      * The caller of this method is responsible for closing the stream.
      *

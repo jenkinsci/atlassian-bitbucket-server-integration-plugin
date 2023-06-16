@@ -1,14 +1,18 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
-import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDirectory;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDirectoryChild;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jenkins.scm.api.SCMFile;
-import okhttp3.HttpUrl;
 import jenkins.scm.api.SCMFile.Type;
+import okhttp3.HttpUrl;
 
+import javax.annotation.CheckForNull;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
@@ -50,6 +54,25 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     @Override
+    public Type getFileType(String path, String ref) {
+        HttpUrl url = getUrlBuilder(path, ref).addQueryParameter("type", "true").build();
+
+        try {
+            BitbucketDirectoryChild file = bitbucketRequestExecutor
+                    .makeGetRequest(url, BitbucketDirectoryChild.class)
+                    .getBody();
+
+            if ("FILE".equals(file.getType())) {
+                return REGULAR_FILE;
+            }
+
+            return DIRECTORY;
+        } catch (NotFoundException e) {
+            return NONEXISTENT;
+        }
+    }
+
+    @Override
     public InputStream getRawFileStream(BitbucketSCMFile scmFile) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
@@ -65,16 +88,23 @@ public class BitbucketFilePathClientImpl implements BitbucketFilePathClient {
     }
 
     private HttpUrl getUrl(BitbucketSCMFile scmFile) {
+        return getUrlBuilder(scmFile.getFilePath(), scmFile.getRef().orElse(null)).build();
+    }
+
+    private HttpUrl.Builder getUrlBuilder(String filePath, @CheckForNull String ref) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")
                 .addPathSegment(projectKey)
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug)
                 .addPathSegment("browse")
-                .addPathSegments(scmFile.getFilePath());
-        scmFile.getRef().map(ref -> urlBuilder.addQueryParameter("at", ref));
+                .addPathSegments(filePath);
 
-        return urlBuilder.build();
+        if (ref != null) {
+            urlBuilder.addQueryParameter("at", ref);
+        }
+
+        return urlBuilder;
     }
 
     static class DirectoryNextPageFetcher implements NextPageFetcher<BitbucketDirectoryChild> {

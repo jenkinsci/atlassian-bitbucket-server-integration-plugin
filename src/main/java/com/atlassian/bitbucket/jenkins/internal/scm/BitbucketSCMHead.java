@@ -1,18 +1,25 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadOrigin;
+
+import static java.util.Objects.requireNonNull;
 
 public class BitbucketSCMHead extends SCMHead {
 
-    public BitbucketSCMHead(@NonNull String name) {
+    private final String latestCommit;
+    private final long updatedDate;
+
+    public BitbucketSCMHead(String name, String latestCommit, long updatedDate) {
         super(name);
+        this.latestCommit = requireNonNull(latestCommit, "latestCommit");
+        this.updatedDate = updatedDate;
     }
 
-    @Override
-    @NonNull
-    public SCMHeadOrigin getOrigin() {
-        return SCMHeadOrigin.DEFAULT;
+    public String getLatestCommit() {
+        return latestCommit;
+    }
+
+    public long getUpdatedDate() {
+        return updatedDate;
     }
 }
