@@ -30,7 +30,7 @@ public interface BitbucketFilePathClient {
     List<SCMFile> getDirectoryContent(BitbucketSCMFile scmFile);
 
     /**
-     * Retrieves the list of all files and directories that can be found.
+     * Retrieves the {@link SCMFile.Type file type} for the specified file path and ref.
      *
      * @param path the path of the file or directory to retrieve
      * @param ref The commit ID or ref to retrieve the file for

@@ -13,11 +13,14 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
     private final BitbucketSCMHead target;
 
     public BitbucketPullRequestSCMHead(BitbucketPullRequest pullRequest) {
-        super(PR_ID_PREFIX + pullRequest.getFromRef().getId(), pullRequest.getFromRef().getLatestCommit());
+        super(PR_ID_PREFIX + pullRequest.getFromRef().getId(),
+                pullRequest.getFromRef().getLatestCommit(),
+                pullRequest.getUpdatedDate());
         this.pullRequest = new MinimalPullRequest(pullRequest);
         this.pullRequestId = Long.toString(this.pullRequest.getPullRequestId());
         this.target = new BitbucketSCMHead(this.pullRequest.getToRefDisplayId(),
-                pullRequest.getToRef().getLatestCommit());
+                pullRequest.getToRef().getLatestCommit(),
+                -1);
     }
 
     @Override
