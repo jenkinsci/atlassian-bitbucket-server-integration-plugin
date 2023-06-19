@@ -1,5 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import hudson.Extension;
 import jenkins.plugins.git.GitSCMBuilder;
@@ -13,6 +19,8 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.inject.Inject;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait {
@@ -51,11 +59,24 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         if (context instanceof BitbucketSCMSourceContext) {
             BitbucketSCMSourceContext bitbucketContext = (BitbucketSCMSourceContext) context;
+
+            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+            Optional<BitbucketClientFactory> clientFactory =
+                    descriptor.getClientFactory(bitbucketContext);
+
+            if (!clientFactory.isPresent()) {
+                return;
+            }
+
+            BitbucketRepositoryClient repositoryClient = clientFactory.get()
+                    .getProjectClient(bitbucketContext.getRepository().getProjectKey())
+                    .getRepositoryClient(bitbucketContext.getRepository().getRepositorySlug());
+
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {
                         @Override
                         public Stream<SCMHead> discoverHeads() {
-                            return bitbucketContext.repositoryClient()
+                            return repositoryClient
                                     .getPullRequests(BitbucketPullRequestState.OPEN)
                                     .map(BitbucketPullRequestSCMHead::new);
                         }
@@ -76,6 +97,13 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
     @Extension
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
 
+        @Inject
+        private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
+        @Inject
+        private BitbucketPluginConfiguration bitbucketPluginConfiguration;
+        @Inject
+        private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
+
         @Override
         public Class<? extends SCMBuilder> getBuilderClass() {
             return GitSCMBuilder.class;
@@ -84,6 +112,13 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
         @Override
         public String getDisplayName() {
             return Messages.bitbucket_scm_trait_discovery_pullrequest_display();
+        }
+
+        public Optional<BitbucketClientFactory> getClientFactory(BitbucketSCMSourceContext bitbucketContext) {
+            return bitbucketPluginConfiguration.getServerById(bitbucketContext.getRepository().getServerId())
+                    .map(BitbucketServerConfiguration::getBaseUrl)
+                    .map(baseUrl -> bitbucketClientFactoryProvider.getClient(baseUrl,
+                            jenkinsToBitbucketCredentials.toBitbucketCredentials(bitbucketContext.getCredentials())));
         }
     }
 }

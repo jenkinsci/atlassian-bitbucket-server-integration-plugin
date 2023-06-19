@@ -17,8 +17,7 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
                                         BitbucketSCMSourceContext context,
                                         @CheckForNull TaskListener listener) {
         super(source, context, listener);
-        this.discoveryHandlers = requireNonNull(context.discoveryHandlers(), "discoveryHandlers");
-
+        this.discoveryHandlers = requireNonNull(context.getDiscoveryHandlers(), "discoveryHandlers");
     }
 
     public Collection<BitbucketSCMHeadDiscoveryHandler> getDiscoveryHandlers() {
