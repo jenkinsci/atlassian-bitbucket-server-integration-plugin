@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemPro
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.SCMHeadByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.SCMSourceByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -36,7 +37,7 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
 
     public BitbucketJobLinkActionFactory() { }
 
-    public BitbucketJobLinkActionFactory(BitbucketExternalLinkUtils externalLinkUtils, 
+    public BitbucketJobLinkActionFactory(BitbucketExternalLinkUtils externalLinkUtils,
                                          DefaultSCMHeadByItemProvider headProvider,
                                          DefaultSCMSourceByItemProvider sourceProvider) {
         this.externalLinkUtils = externalLinkUtils;
@@ -74,14 +75,23 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                 if (head == null) {
                     return Collections.emptyList();
                 }
-                
-                return Stream.of(getScmSource(workflowJob), getScmStep(workflowJob))
+
+                Optional<BitbucketSCMRepository> repository = Stream.of(getScmSource(workflowJob), getScmStep(workflowJob))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
-                        .findFirst()
-                        .flatMap(scmRepository -> externalLinkUtils.createBranchDiffLink(scmRepository, head.getName()))
-                        .map(Arrays::asList)
-                        .orElse(Collections.emptyList());
+                        .findFirst();
+
+                Optional<BitbucketExternalLink> externalLink;
+                if (head instanceof BitbucketPullRequestSCMHead) {
+                    externalLink = repository.flatMap(scmRepository ->
+                            externalLinkUtils.createPullRequestLink(scmRepository,
+                                    ((BitbucketPullRequestSCMHead) head).getId()));
+                } else {
+                    externalLink = repository.flatMap(scmRepository ->
+                            externalLinkUtils.createBranchDiffLink(scmRepository, head.getName()));
+                }
+
+                return externalLink.map(Arrays::asList).orElse(Collections.emptyList());
             }
             // Pipeline Job built with an SCMStep
             if (getWorkflowSCMs(workflowJob).stream().anyMatch(BitbucketSCM.class::isInstance)) {
