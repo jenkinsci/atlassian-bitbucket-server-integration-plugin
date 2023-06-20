@@ -47,6 +47,25 @@ public class BitbucketExternalLinkUtils {
         return Optional.of(new BitbucketExternalLink(url, BitbucketLinkType.BRANCH));
     }
 
+    public Optional<BitbucketExternalLink> createPullRequestLink(BitbucketSCMRepository bitbucketRepository,
+                                                                String pullRequestId) {
+        BitbucketServerConfiguration configuration = getConfiguration(bitbucketRepository);
+        if (configuration == null) {
+            return Optional.empty();
+        }
+
+        String url = HttpUrl.get(configuration.getBaseUrl()).newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(bitbucketRepository.getProjectKey())
+                .addPathSegment("repos")
+                .addPathSegment(bitbucketRepository.getRepositorySlug())
+                .addPathSegment("pull-requests")
+                .addPathSegment(pullRequestId)
+                .toString();
+
+        return Optional.of(new BitbucketExternalLink(url, BitbucketLinkType.PULL_REQUEST));
+    }
+
     public Optional<BitbucketExternalLink> createRepoLink(BitbucketSCMRepository bitbucketRepository) {
         BitbucketServerConfiguration configuration = getConfiguration(bitbucketRepository);
         if (configuration == null) {
