@@ -27,11 +27,7 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
 
     @Override
     public ChangeRequestCheckoutStrategy getCheckoutStrategy() {
-        // We currently do not support merging across different repositories so forked
-        // pull requests need to use the HEAD revision of the pull request origin.
-        return pullRequest.isForkedPullRequest() ?
-                ChangeRequestCheckoutStrategy.HEAD :
-                ChangeRequestCheckoutStrategy.MERGE;
+        return ChangeRequestCheckoutStrategy.MERGE;
     }
 
     @Override
