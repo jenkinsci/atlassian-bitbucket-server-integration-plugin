@@ -41,7 +41,7 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
                 BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) prRevision.getHead();
 
-                // The BitbucketPullRequestSCMHead uses the PR id as the head name so we need to use a custom
+                // The BitbucketPullRequestSCMHead uses the PR id as the head name, so we need to use a custom
                 // refspec to be able to map to the correct PR refs
                 gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
                         ":refs/remotes/@{remote}/" + prHead.getName());
@@ -90,7 +90,10 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                                 return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
                             }
 
-                            throw new IllegalStateException("Invalid head type " + head);
+                            RuntimeException e = new IllegalStateException("The specified head needs to be an " +
+                                    "instance of BitbucketPullRequestSCMHead");
+                            e.setStackTrace(new StackTraceElement[0]);
+                            throw e;
                         }
 
                         private boolean isSameOrigin(BitbucketPullRequest pullRequest) {
