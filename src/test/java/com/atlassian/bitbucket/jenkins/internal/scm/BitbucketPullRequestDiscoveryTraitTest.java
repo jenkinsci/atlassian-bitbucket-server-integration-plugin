@@ -25,8 +25,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,10 +88,7 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         doReturn(bitbucketRepositoryClient).when(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
         doReturn(bitbucketProjectClient).when(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
         doReturn(bitbucketClientFactory).when(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
-        testContext = spy(new BitbucketSCMSourceContext(scmSourceCriteria,
-                scmHeadObserver,
-                credentials,
-                bitbucketSCMRepository));
+        initContext(Collections.emptySet());
         underTest = new BitbucketPullRequestDiscoveryTrait() {
             @Override
             public SCMSourceTraitDescriptor getDescriptor() {
@@ -143,6 +142,25 @@ public class BitbucketPullRequestDiscoveryTraitTest {
     }
 
     @Test
+    public void testDecorateContextWithEventHeads() {
+        SCMHead testEventHead = new BitbucketPullRequestSCMHead(mockPullRequest(1, false));
+        initContext(Collections.singleton(testEventHead));
+
+        underTest.decorateContext(testContext);
+
+        ArgumentCaptor<BitbucketSCMHeadDiscoveryHandler> handlerCaptor =
+                ArgumentCaptor.forClass(BitbucketSCMHeadDiscoveryHandler.class);
+        verify(testContext).withDiscoveryHandler(handlerCaptor.capture());
+
+        BitbucketSCMHeadDiscoveryHandler handler = handlerCaptor.getValue();
+        List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
+
+        // Verify that the client does not fetch any pull requests and uses the event heads instead
+        verifyZeroInteractions(bitbucketRepositoryClient);
+        assertThat(heads, Matchers.contains(testEventHead));
+    }
+
+    @Test
     public void testDecorateContextWithServerConfiguration() {
         BitbucketPullRequest sameOriginPr = mockPullRequest(1, false);
         BitbucketPullRequest forkedPr = mockPullRequest(2, true);
@@ -158,13 +176,22 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         BitbucketSCMHeadDiscoveryHandler handler = handlerCaptor.getValue();
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
+        // Verify that the client fetches all open pullrequest and converts them into heads
         verify(bitbucketRepositoryClient).getPullRequests(BitbucketPullRequestState.OPEN);
         assertThat(heads, Matchers.contains(new BitbucketPullRequestSCMHead(sameOriginPr)));
     }
 
+    private void initContext(Set<SCMHead> eventHeads) {
+        testContext = spy(new BitbucketSCMSourceContext(scmSourceCriteria,
+                scmHeadObserver,
+                credentials,
+                eventHeads,
+                bitbucketSCMRepository));
+    }
+
     private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {
-        BitbucketRepository fromRepo = mock(BitbucketRepository.class);
-        BitbucketRepository toRepo = isForked ? mock(BitbucketRepository.class) : fromRepo;
+        BitbucketRepository fromRepo = mockRepo(1);
+        BitbucketRepository toRepo = isForked ? mockRepo(2) : fromRepo;
 
         BitbucketPullRequestRef fromRef =
                 new BitbucketPullRequestRef("refs/heads/from", "from", fromRepo, "fromCommit");
@@ -172,5 +199,11 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 new BitbucketPullRequestRef("refs/heads/to", "to", toRepo, "toCommit");
 
         return new BitbucketPullRequest(id, BitbucketPullRequestState.OPEN, fromRef, toRef, -1);
+    }
+
+    private BitbucketRepository mockRepo(int repoId) {
+        BitbucketRepository repo = mock(BitbucketRepository.class);
+        doReturn(repoId).when(repo).getId();
+        return repo;
     }
 }

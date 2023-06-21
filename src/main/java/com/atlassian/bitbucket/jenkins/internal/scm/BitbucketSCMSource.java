@@ -37,7 +37,6 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
@@ -373,14 +372,16 @@ public class BitbucketSCMSource extends SCMSource {
                             SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException {
+        Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
         BitbucketSCMSourceContext context =
-                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), repository)
+                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository)
                         .withTraits(traits);
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
-                // Process the stream of heads as they come in
-                discoveryHandler.discoverHeads().map(scmHead -> {
+                // Process the stream of heads as they come in and terminate the
+                // stream if the request has finished observing (returns true)
+                discoveryHandler.discoverHeads().anyMatch(scmHead -> {
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
                         return request.process(
@@ -396,7 +397,7 @@ public class BitbucketSCMSource extends SCMSource {
 
                         return true;
                     }
-                }).anyMatch(result -> result); // Terminate the stream if the request has finished observing
+                });
             }
         }
     }
