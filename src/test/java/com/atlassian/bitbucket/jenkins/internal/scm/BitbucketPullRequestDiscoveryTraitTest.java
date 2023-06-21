@@ -12,9 +12,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
+import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,7 +25,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -133,30 +138,39 @@ public class BitbucketPullRequestDiscoveryTraitTest {
 
         underTest.decorateContext(testContext);
 
-        verifyZeroInteractions(bitbucketServerConfiguration);
-        verifyZeroInteractions(bitbucketClientFactoryProvider);
-        verifyZeroInteractions(bitbucketClientFactory);
-        verifyZeroInteractions(bitbucketProjectClient);
         verify(testContext, times(0))
                 .withDiscoveryHandler(any(BitbucketSCMHeadDiscoveryHandler.class));
     }
 
     @Test
     public void testDecorateContextWithServerConfiguration() {
-        underTest.decorateContext(testContext);
+        BitbucketPullRequest sameOriginPr = mockPullRequest(1, false);
+        BitbucketPullRequest forkedPr = mockPullRequest(2, true);
+        doReturn(Stream.of(sameOriginPr, forkedPr)).when(bitbucketRepositoryClient)
+                .getPullRequests(BitbucketPullRequestState.OPEN);
 
-        verify(bitbucketServerConfiguration).getBaseUrl();
-        verify(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
-        verify(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
-        verify(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
+        underTest.decorateContext(testContext);
 
         ArgumentCaptor<BitbucketSCMHeadDiscoveryHandler> handlerCaptor =
                 ArgumentCaptor.forClass(BitbucketSCMHeadDiscoveryHandler.class);
         verify(testContext).withDiscoveryHandler(handlerCaptor.capture());
 
         BitbucketSCMHeadDiscoveryHandler handler = handlerCaptor.getValue();
-        handler.discoverHeads();
+        List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
         verify(bitbucketRepositoryClient).getPullRequests(BitbucketPullRequestState.OPEN);
+        assertThat(heads, Matchers.contains(new BitbucketPullRequestSCMHead(sameOriginPr)));
+    }
+
+    private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {
+        BitbucketRepository fromRepo = mock(BitbucketRepository.class);
+        BitbucketRepository toRepo = isForked ? mock(BitbucketRepository.class) : fromRepo;
+
+        BitbucketPullRequestRef fromRef =
+                new BitbucketPullRequestRef("refs/heads/from", "from", fromRepo, "fromCommit");
+        BitbucketPullRequestRef toRef =
+                new BitbucketPullRequestRef("refs/heads/to", "to", toRepo, "toCommit");
+
+        return new BitbucketPullRequest(id, BitbucketPullRequestState.OPEN, fromRef, toRef, -1);
     }
 }
