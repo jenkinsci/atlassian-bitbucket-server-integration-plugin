@@ -9,6 +9,7 @@ import okhttp3.*;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
@@ -19,11 +20,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.HTTP_CLIENT_CACHE_SIZE_BYTES;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static java.net.HttpURLConnection.*;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private static final int BAD_REQUEST_FAMILY = 4;
+    private static final String CACHE_DIRECTORY = HttpRequestExecutorImpl.class.getName();
+    private static final long CACHE_SIZE_BYTES =
+            parsePositiveLongFromSystemProperty(HTTP_CLIENT_CACHE_SIZE_BYTES, 500L * 1024L * 1024L);
     private static final int HTTP_RATE_LIMITED = 429;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final int SERVER_ERROR_FAMILY = 5;
@@ -32,7 +38,14 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     @Inject
     public HttpRequestExecutorImpl() {
-        this(new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build());
+        this(new File(Jenkins.get().getRootDir(), CACHE_DIRECTORY));
+    }
+
+    public HttpRequestExecutorImpl(File cacheDirectory) {
+        this(new OkHttpClient.Builder()
+                .cache(new Cache(cacheDirectory, CACHE_SIZE_BYTES))
+                .addInterceptor(new UserAgentInterceptor())
+                .build());
     }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
