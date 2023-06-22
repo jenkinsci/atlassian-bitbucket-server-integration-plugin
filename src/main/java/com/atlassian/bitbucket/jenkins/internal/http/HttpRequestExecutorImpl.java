@@ -7,8 +7,10 @@ import hudson.Plugin;
 import jenkins.model.Jenkins;
 import okhttp3.*;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
@@ -19,11 +21,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor.ResponseConsumer.EMPTY_RESPONSE;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.HTTP_CLIENT_CACHE_SIZE_BYTES;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static java.net.HttpURLConnection.*;
 
 public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     private static final int BAD_REQUEST_FAMILY = 4;
+    private static final String CACHE_DIRECTORY = HttpRequestExecutorImpl.class.getName();
+    private static final long CACHE_SIZE_BYTES =
+            parsePositiveLongFromSystemProperty(HTTP_CLIENT_CACHE_SIZE_BYTES, 500L * 1024L * 1024L);
     private static final int HTTP_RATE_LIMITED = 429;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final int SERVER_ERROR_FAMILY = 5;
@@ -32,7 +39,11 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     @Inject
     public HttpRequestExecutorImpl() {
-        this(new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build());
+        this(initCacheDirectory());
+    }
+
+    public HttpRequestExecutorImpl(@CheckForNull File cacheDirectory) {
+        this(initClient(cacheDirectory));
     }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
@@ -72,6 +83,26 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
         Request.Builder requestBuilder =
                 new Request.Builder().put(RequestBody.create(JSON, requestBodyAsJson)).url(url);
         return executeRequest(requestBuilder, consumer, additionalConfig);
+    }
+
+    @CheckForNull
+    private static File initCacheDirectory() {
+        try {
+            return new File(Jenkins.get().getRootDir(), CACHE_DIRECTORY);
+        } catch (IllegalStateException e) {
+            log.log(Level.WARNING, "Jenkins not available, cannot resolve cache directory", e);
+        }
+
+        return null;
+    }
+
+    private static OkHttpClient initClient(@CheckForNull File cacheDirectory) {
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor());
+        if (cacheDirectory != null) {
+            clientBuilder.cache(new Cache(cacheDirectory, CACHE_SIZE_BYTES));
+        }
+
+        return clientBuilder.build();
     }
 
     private <T> T executeRequest(Request.Builder requestBuilder, ResponseConsumer<T> consumer,

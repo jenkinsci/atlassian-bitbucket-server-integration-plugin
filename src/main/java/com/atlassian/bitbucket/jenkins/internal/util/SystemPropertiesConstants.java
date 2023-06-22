@@ -40,7 +40,16 @@ public class SystemPropertiesConstants {
      * Defaults to 5 years and 30 days.
      */
     public static final String DEFAULT_OAUTH_SESSION_TTL_KEY = "bitbucket.oauth.default.session.ttl";
-
+    /**
+     * Specifies the cache size (in bytes) for the HTTP client used when making REST API calls to Bitbucket.
+     * The cache stores its data in a directory on the filesystem and limits the number of bytes it stores based on
+     * this configuration. When the limit is exceeded, the cache will remove entries in the background until it is
+     * satisfied. The limit is not strict, as the cache may temporarily exceed it while waiting for files to be
+     * deleted, and it does not include filesystem overhead or the cache journal. Users should be aware that there is
+     * extra storage overhead due to these factors.
+     * Defaults to 500MB.
+     */
+    public static final String HTTP_CLIENT_CACHE_SIZE_BYTES = "bitbucket.httpclient.cache.size.bytes";
     /**
      * Maximum number of attempts to retry when posting a build status and the server responds wth a 429.
      * Defaults 3. Care should be taken when adjusting this as to not overload a server that is already under load.
