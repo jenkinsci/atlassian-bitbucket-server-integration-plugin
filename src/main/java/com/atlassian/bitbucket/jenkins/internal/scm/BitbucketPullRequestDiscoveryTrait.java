@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import hudson.Extension;
 import jenkins.plugins.git.GitSCMBuilder;
@@ -21,7 +20,6 @@ import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -77,11 +75,18 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {
                         @Override
-                        public Stream<SCMHead> discoverHeads() {
-                            return repositoryClient
-                                    .getPullRequests(BitbucketPullRequestState.OPEN)
-                                    .filter(this::isSameOrigin) // We currently do not support forked PRs
-                                    .map(BitbucketPullRequestSCMHead::new);
+                        public Stream<? extends SCMHead> discoverHeads() {
+                            if (bitbucketContext.getEventHeads().isEmpty()) {
+                                return repositoryClient
+                                        .getPullRequests(BitbucketPullRequestState.OPEN)
+                                        .map(BitbucketPullRequestSCMHead::new)
+                                        .filter(this::isSameOrigin); // We currently do not support forked PRs;
+                            }
+
+                            return bitbucketContext.getEventHeads().stream()
+                                    .filter(BitbucketPullRequestSCMHead.class::isInstance)
+                                    .map(BitbucketPullRequestSCMHead.class::cast)
+                                    .filter(this::isSameOrigin); // We currently do not support forked PRs;
                         }
 
                         @Override
@@ -96,9 +101,9 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                             throw e;
                         }
 
-                        private boolean isSameOrigin(BitbucketPullRequest pullRequest) {
-                            return Objects.equals(pullRequest.getFromRef().getRepository(),
-                                    pullRequest.getToRef().getRepository());
+                        private boolean isSameOrigin(BitbucketPullRequestSCMHead head) {
+                            MinimalPullRequest pullRequest = head.getPullRequest();
+                            return pullRequest.getFromRepositoryId() == pullRequest.getToRepositoryId();
                         }
                     });
         }
