@@ -91,13 +91,13 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                             externalLinkUtils.createBranchDiffLink(scmRepository, head.getName()));
                 }
 
-                return externalLink.map(Arrays::asList).orElse(Collections.emptyList());
+                return externalLink.map(Collections::singletonList).orElse(Collections.emptyList());
             }
             // Pipeline Job built with an SCMStep
             if (getWorkflowSCMs(workflowJob).stream().anyMatch(BitbucketSCM.class::isInstance)) {
                 return getScmStep(workflowJob)
                         .flatMap(scmRepository -> externalLinkUtils.createRepoLink(scmRepository))
-                        .map(Arrays::asList)
+                        .map(Collections::singletonList)
                         .orElse(Collections.emptyList());
             }
         }

@@ -21,9 +21,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait {
+
+    private static final Logger log = Logger.getLogger(BitbucketPullRequestDiscoveryTrait.class.getName());
 
     @DataBoundConstructor
     public BitbucketPullRequestDiscoveryTrait() {
@@ -65,12 +69,14 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                     descriptor.getClientFactory(bitbucketContext);
 
             if (!clientFactory.isPresent()) {
+                log.log(Level.WARNING, "Server configuration missing, cannot resolve client for PR discovery");
                 return;
             }
 
+            BitbucketSCMRepository repository = bitbucketContext.getRepository();
             BitbucketRepositoryClient repositoryClient = clientFactory.get()
-                    .getProjectClient(bitbucketContext.getRepository().getProjectKey())
-                    .getRepositoryClient(bitbucketContext.getRepository().getRepositorySlug());
+                    .getProjectClient(repository.getProjectKey())
+                    .getRepositoryClient(repository.getRepositorySlug());
 
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {
@@ -86,6 +92,7 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                             return bitbucketContext.getEventHeads().stream()
                                     .filter(BitbucketPullRequestSCMHead.class::isInstance)
                                     .map(BitbucketPullRequestSCMHead.class::cast)
+                                    .filter(head -> head.getPullRequest().getState() == BitbucketPullRequestState.OPEN)
                                     .filter(this::isSameOrigin); // We currently do not support forked PRs;
                         }
 

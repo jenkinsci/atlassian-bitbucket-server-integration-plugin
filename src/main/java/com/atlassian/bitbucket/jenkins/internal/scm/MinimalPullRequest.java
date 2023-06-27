@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 
 import java.io.Serializable;
 
@@ -13,6 +14,7 @@ public class MinimalPullRequest implements Serializable {
     private final String fromRefId;
     private final int fromRepositoryId;
     private final long pullRequestId;
+    private final BitbucketPullRequestState state;
     private final String toLatestCommit;
     private final String toRefDisplayId;
     private final String toRefId;
@@ -24,6 +26,7 @@ public class MinimalPullRequest implements Serializable {
         this.fromRefDisplayId = pullRequest.getFromRef().getDisplayId();
         this.fromRepositoryId = pullRequest.getFromRef().getRepository().getId();
         this.pullRequestId = pullRequest.getId();
+        this.state = pullRequest.getState();
         this.toLatestCommit = pullRequest.getToRef().getLatestCommit();
         this.toRefId = pullRequest.getToRef().getId();
         this.toRefDisplayId = pullRequest.getToRef().getDisplayId();
@@ -48,6 +51,10 @@ public class MinimalPullRequest implements Serializable {
 
     public Long getPullRequestId() {
         return pullRequestId;
+    }
+
+    public BitbucketPullRequestState getState() {
+        return state;
     }
 
     public String getToLatestCommit() {
