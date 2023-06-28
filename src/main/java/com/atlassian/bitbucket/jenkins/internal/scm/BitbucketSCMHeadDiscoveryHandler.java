@@ -11,11 +11,11 @@ import java.util.stream.Stream;
  * or processing a {@link BitbucketSCMSourceRequest request}.
  */
 public interface BitbucketSCMHeadDiscoveryHandler {
-    
+
     /**
      * @return as stream of {@link SCMHead heads} to be used for processing the source request
      */
-    Stream<SCMHead> discoverHeads();
+    Stream<? extends SCMHead> discoverHeads();
 
     /**
      * Creates a {@link SCMRevision revision} for the specified head.

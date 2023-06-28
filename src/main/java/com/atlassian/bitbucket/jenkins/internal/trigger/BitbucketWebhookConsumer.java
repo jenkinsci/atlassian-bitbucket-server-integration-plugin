@@ -249,7 +249,7 @@ public class BitbucketWebhookConsumer {
 
             BitbucketPullRequest pullRequest = getPayload().getPullRequest();
             BitbucketPullRequestSCMHead prScmHead = new BitbucketPullRequestSCMHead(pullRequest);
-            BitbucketPullRequestSCMRevision prScmRevision = new BitbucketPullRequestSCMRevision(prScmHead, pullRequest);
+            BitbucketPullRequestSCMRevision prScmRevision = new BitbucketPullRequestSCMRevision(prScmHead);
 
             // We still want to return the affected "branch head" so that we maintain backwards compatibility for the
             // current behavior for the `GitSCMSource` branch discovery trait. Otherwise, `SCMHeadEvent.Validated`

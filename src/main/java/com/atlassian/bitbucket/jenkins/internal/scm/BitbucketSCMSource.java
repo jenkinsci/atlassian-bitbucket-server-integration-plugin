@@ -37,7 +37,6 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
@@ -107,9 +106,9 @@ public class BitbucketSCMSource extends SCMSource {
         }
         return getFullyInitializedGitSCMSource().build(head, revision);
     }
-    
+
     @Override
-    protected List<Action> retrieveActions(SCMSourceEvent event, 
+    protected List<Action> retrieveActions(SCMSourceEvent event,
                                            TaskListener listener) throws IOException, InterruptedException {
         List<Action> result = new ArrayList<>();
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
@@ -120,23 +119,23 @@ public class BitbucketSCMSource extends SCMSource {
         }
         BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));        
-        
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+
         scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName())
                 .ifPresent(defaultBranch -> result.add(new BitbucketRepositoryMetadataAction(repository, defaultBranch)));
         return result;
     }
 
     @Override
-    protected List<Action> retrieveActions(SCMHead head, 
+    protected List<Action> retrieveActions(SCMHead head,
                                            @CheckForNull SCMHeadEvent event,
-                                           TaskListener listener) throws IOException, InterruptedException {       
+                                           TaskListener listener) throws IOException, InterruptedException {
         List<Action> result = new ArrayList<>();
         SCMSourceOwner owner = getOwner();
         if (owner instanceof Actionable) {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
                 .filter(
-                        action -> action.getBitbucketSCMRepository().equals(repository) && 
+                        action -> action.getBitbucketSCMRepository().equals(repository) &&
                         StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
                 .findAny()
                 .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
@@ -181,7 +180,7 @@ public class BitbucketSCMSource extends SCMSource {
     CustomGitSCMSource getFullyInitializedGitSCMSource() {
         if (gitSCMSource == null) {
             initializeGitScmSource();
-        } 
+        }
         if (getOwner() != null && gitSCMSource.getOwner() == null) {
             gitSCMSource.setOwner(getOwner());
         }
@@ -285,7 +284,12 @@ public class BitbucketSCMSource extends SCMSource {
                                " Check the configuration before running this job again.");
                 return;
             }
-            getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+
+            if (hasLegacyTraits()) {
+                doRetrieveLegacy(criteria, observer, event, listener);
+            }
+
+            doRetrieve(criteria, observer, event, listener);
         }
     }
 
@@ -328,7 +332,7 @@ public class BitbucketSCMSource extends SCMSource {
                     .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
                             .map(BitbucketNamedLink::getHref)
                             .orElse(""));
-            
+
             selfLink = fetchedRepository.getRepository().getSelfLink();
         } else {
             BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
@@ -353,6 +357,63 @@ public class BitbucketSCMSource extends SCMSource {
         gitSCMSource.setOwner(getOwner());
         gitSCMSource.setTraits(traits);
         gitSCMSource.setId(getId() + "-git-scm");
+    }
+
+    @Override
+    protected SCMProbe createProbe(SCMHead head, @CheckForNull SCMRevision revision) throws IOException {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        BitbucketServerConfiguration serverConfig = descriptor.getConfiguration(getServerId()).get();
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
+                getCredentials().orElse(null));
+        return new BitbucketSCMProbe(head, scmHelper.getFilePathClient(getProjectKey(), getRepositorySlug()));
+    }
+
+    private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
+                            SCMHeadObserver observer,
+                            @CheckForNull SCMHeadEvent<?> event,
+                            TaskListener listener) throws IOException {
+        Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
+        BitbucketSCMSourceContext context =
+                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository)
+                        .withTraits(traits);
+
+        try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
+            for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
+                // Process the stream of heads as they come in and terminate the
+                // stream if the request has finished observing (returns true)
+                discoveryHandler.discoverHeads().anyMatch(scmHead -> {
+                    SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
+                    try {
+                        return request.process(
+                                scmHead,
+                                scmRevision,
+                                this::newProbe,
+                                (head, revision, isMatch) ->
+                                        listener.getLogger().printf("head: %s, revision: %s, isMatch: %s%n",
+                                                head, revision, isMatch));
+                    } catch (IOException | InterruptedException e) {
+                        listener.error("Error processing request for head: " + scmHead + ", revision: " +
+                                scmRevision + ", error: " + e.getMessage());
+
+                        return true;
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Keeping this for backwards compatibility while we eventually migrate everything to the new
+     * {@link #doRetrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener) retrieve} implementation.
+     */
+    private void doRetrieveLegacy(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
+                                  @CheckForNull SCMHeadEvent<?> event,
+                                  TaskListener listener) throws IOException, InterruptedException {
+        getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+    }
+
+    private boolean hasLegacyTraits() {
+        return traits.stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait));
     }
 
     @Symbol("BbS")
