@@ -52,8 +52,7 @@ import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.test.acceptance.plugins.credentials.ManagedCredentials.DEFAULT_DOMAIN;
 import static org.jenkinsci.test.acceptance.plugins.matrix_auth.MatrixRow.*;
 import static org.jenkinsci.test.acceptance.po.Build.Result.SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.util.StringUtils.trimTrailingCharacter;
 
 @WithPlugins({"atlassian-bitbucket-server-integration", "mailer", "matrix-auth"})
@@ -418,18 +417,57 @@ public class SmokeTest extends AbstractJUnitTest {
     }
 
     @Test
-    public void testFullBuildFlowWithMultibranchPRTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFullFlowMultiBranch(false, true);
+    public void testFullBuildFlowWithMultibranchPRTriggerWithBranchAndPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(false, true, true, true);
     }
 
     @Test
-    public void testFullBuildFlowWithMultibranchRefTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFullFlowMultiBranch(true, false);
+    public void testFullBuildFlowWithMultibranchPRTriggerWithBranchDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(false, true, true, false);
     }
 
     @Test
-    public void testFullBuildFlowWitMultibranchRefAndPRTrigger() throws IOException, GitAPIException, InterruptedException {
-        runFullFlowMultiBranch(true, true);
+    public void testFullBuildFlowWithMultibranchPRTriggerWithPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(false, true, false, true);
+    }
+
+    @Test
+    public void testFullBuildFlowWithMultibranchRefTriggerWithBranchAndPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, false, true, true);
+    }
+
+    @Test
+    public void testFullBuildFlowWithMultibranchRefTriggerWithBranchDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, false, true, false);
+    }
+
+    @Test
+    public void testFullBuildFlowWithMultibranchRefTriggerWithPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, false, false, true);
+    }
+
+    @Test
+    public void testFullBuildFlowWitMultibranchRefAndPRTriggerWithBranchAndPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, true, true, true);
+    }
+
+    @Test
+    public void testFullBuildFlowWitMultibranchRefAndPRTriggerWithBranchDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, true, true, false);
+    }
+
+    @Test
+    public void testFullBuildFlowWitMultibranchRefAndPRTriggerWithPrDiscovery()
+            throws IOException, GitAPIException, InterruptedException {
+        runFullFlowMultiBranch(true, true, false, true);
     }
 
     @Test
@@ -583,7 +621,9 @@ public class SmokeTest extends AbstractJUnitTest {
                 assertThat(status, successfulBuildWithKey(getBuildKey(workflowJob))));
     }
 
-    private void runFullFlowMultiBranch(boolean triggerOnRefChange, boolean triggerOnPullRequest) throws IOException, GitAPIException, InterruptedException {
+    private void runFullFlowMultiBranch(boolean triggerOnRefChange, boolean triggerOnPullRequest,
+                                        boolean discoverBranches, boolean discoverPullRequests)
+            throws IOException, GitAPIException, InterruptedException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
         BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
@@ -591,7 +631,9 @@ public class SmokeTest extends AbstractJUnitTest {
                 .credentialsId(bbsAdminCredsId)
                 .serverId(serverId)
                 .projectName(forkRepo.getProject().getKey())
-                .repositoryName(forkRepo.getSlug());
+                .repositoryName(forkRepo.getSlug())
+                .discoverBranches(discoverBranches)
+                .discoverPullRequests(discoverPullRequests);
         multiBranchJob.enableBitbucketWebhookTrigger(triggerOnRefChange, triggerOnPullRequest);
         multiBranchJob.save();
 
@@ -600,10 +642,8 @@ public class SmokeTest extends AbstractJUnitTest {
         Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
-        RevCommit masterCommit =
-                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
-                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
-        String masterCommitId = masterCommit.getId().getName();
+        commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
+                JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
 
         //trigger scanning so we get no surprise builds on other branches later
         multiBranchJob.reIndex();
@@ -630,18 +670,17 @@ public class SmokeTest extends AbstractJUnitTest {
             assertThat("Wrong started state of build after ref change", build.hasStarted(), is(false));
         }
 
-        BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
+        String pullRequestId = BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        //if any trigger is configured we should now have a build for the feature branch
-        String encodedBranchName = URLEncoder.encode(featureBranchName, UTF_8.name());
-        WorkflowJob featureBranchJob = multiBranchJob.getJob(encodedBranchName);
-        Build lastFeatureBranchBuild = featureBranchJob.getLastBuild();
-        assertThat(lastFeatureBranchBuild.getResult(), is(SUCCESS.name()));
+        String branchJobName = URLEncoder.encode(featureBranchName, UTF_8);
+        String prJobName = URLEncoder.encode("PR-" + pullRequestId, UTF_8);
 
-        String featureBranchBuildName = multiBranchJob.name + "/" + lastFeatureBranchBuild.job.name;
-        fetchBuildStatusesFromBitbucket(featureBranchCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+        // We should now have a build for the feature branch if discover branches is enabled
+        verifyBuildStatus(multiBranchJob, branchJobName, featureBranchCommitId, discoverBranches);
+
+        // We should now have a build for the PR if discover PRs is enabled
+        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId, discoverPullRequests);
 
         // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
         RevCommit newFileCommit =
@@ -651,11 +690,30 @@ public class SmokeTest extends AbstractJUnitTest {
 
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        //a trigger is bound to have triggered the build, so here we are satisfied to check that a new build was triggered
+        // We should now have a build for the feature branch if discover branches is enabled
+        verifyBuildStatus(multiBranchJob, branchJobName, newFileCommitId, discoverBranches);
 
-        // Fetch and verify build status is posted for the new commit
-        fetchBuildStatusesFromBitbucket(newFileCommitId).forEach(status ->
-                assertThat(status, successfulBuildWithKey(featureBranchBuildName)));
+        // We should now have a build for the PR if discover PRs is enabled
+        verifyBuildStatus(multiBranchJob, prJobName, newFileCommitId, discoverPullRequests);
+    }
+
+    private void verifyBuildStatus(BitbucketScmWorkflowMultiBranchJob multiBranchJob, String jobName, String commitId,
+                                   boolean shouldBuildSuccessfully) {
+        String encodedBranchName = URLEncoder.encode(jobName, UTF_8);
+        WorkflowJob job = multiBranchJob.getJob(encodedBranchName);
+        String buildName = multiBranchJob.name + "/" + job.name;
+        Build build = job.getLastBuild();
+
+        if (shouldBuildSuccessfully) {
+            assertThat(build.getResult(), is(SUCCESS.name()));
+            Map<String, ?> buildStatus = fetchBuildStatusesFromBitbucket(commitId).stream()
+                    .filter(status -> buildName.equals(status.get("key")))
+                    .findFirst()
+                    .orElseThrow(AssertionError::new);
+            assertThat(buildStatus, successfulBuildWithKey(buildName));
+        } else {
+            assertFalse(build.hasStarted());
+        }
     }
 
     private Response getBuildOperations(String commitId) {
