@@ -185,7 +185,7 @@
                             locally, change it to 'firefox' or 'chrome' (or whatever browser of choice).
                             See https://github.com/jenkinsci/acceptance-test-harness/blob/master/docs/BROWSER.md for more
                             details and the full list of browsers. -->
-                            <BROWSER>chrome</BROWSER>
+                            <BROWSER>firefox-container</BROWSER>
                         </environmentVariables>
                     </configuration>
                 </plugin>
