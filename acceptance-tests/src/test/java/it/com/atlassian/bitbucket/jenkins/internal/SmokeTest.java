@@ -671,13 +671,11 @@ public class SmokeTest extends AbstractJUnitTest {
         }
 
         String pullRequestId = BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
+        String prJobName = "PR-" + pullRequestId;
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        String branchJobName = URLEncoder.encode(featureBranchName, UTF_8);
-        String prJobName = URLEncoder.encode("PR-" + pullRequestId, UTF_8);
-
         // We should now have a build for the feature branch if discover branches is enabled
-        verifyBuildStatus(multiBranchJob, branchJobName, featureBranchCommitId, discoverBranches);
+        verifyBuildStatus(multiBranchJob, featureBranchName, featureBranchCommitId, discoverBranches);
 
         // We should now have a build for the PR if discover PRs is enabled
         verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId, discoverPullRequests);
@@ -690,17 +688,17 @@ public class SmokeTest extends AbstractJUnitTest {
 
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        // We should now have a build for the feature branch if discover branches is enabled
-        verifyBuildStatus(multiBranchJob, branchJobName, newFileCommitId, discoverBranches);
+        // We should now have a new build for the feature branch if discover branches is enabled
+        verifyBuildStatus(multiBranchJob, featureBranchName, newFileCommitId, discoverBranches);
 
-        // We should now have a build for the PR if discover PRs is enabled
+        // We should now have a new build for the PR if discover PRs is enabled
         verifyBuildStatus(multiBranchJob, prJobName, newFileCommitId, discoverPullRequests);
     }
 
     private void verifyBuildStatus(BitbucketScmWorkflowMultiBranchJob multiBranchJob, String jobName, String commitId,
                                    boolean shouldBuildSuccessfully) {
-        String encodedBranchName = URLEncoder.encode(jobName, UTF_8);
-        WorkflowJob job = multiBranchJob.getJob(encodedBranchName);
+        String encodedJobName = URLEncoder.encode(jobName, UTF_8);
+        WorkflowJob job = multiBranchJob.getJob(encodedJobName);
         String buildName = multiBranchJob.name + "/" + job.name;
         Build build = job.getLastBuild();
 
