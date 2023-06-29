@@ -34,6 +34,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.*;
@@ -75,6 +76,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
             m.putAll(buildMap);
             return null;
         }).when(gitSCM).buildEnvironment(notNull(), anyMap());
+        doAnswer(invocation -> invocation.getArgument(0)).when(gitSCM).deriveLocalBranchName(anyString());
         RemoteConfig rc = new RemoteConfig(new Config(), "origin");
         when(gitSCM.getRepositories()).thenReturn(singletonList(rc));
         when(scmRepository.getRepositorySlug()).thenReturn("repo1");
@@ -119,6 +121,40 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         verify(buildStatusPoster).postBuildStatus(
                 argThat(revision ->
                         scmRepository.equals(revision.getBitbucketSCMRepo())),
+                eq(build), eq(taskListener));
+    }
+
+    @Test
+    public void testOnCheckoutWithBranchName() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster).postBuildStatus(
+                argThat(revision -> revision.getBranchName().equals("master")),
+                eq(build), eq(taskListener));
+    }
+
+    @Test
+    public void testOnCheckoutWithBranchNameUsingPrSource() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        doAnswer(invocation -> {
+            Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
+            m.putAll(buildMap);
+            m.put(PULL_REQUEST_SOURCE_BRANCH, "prsourcebranch");
+            return null;
+        }).when(gitSCM).buildEnvironment(notNull(), anyMap());
+
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster).postBuildStatus(
+                argThat(revision -> revision.getBranchName().equals("prsourcebranch")),
                 eq(build), eq(taskListener));
     }
 

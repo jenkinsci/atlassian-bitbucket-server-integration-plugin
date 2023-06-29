@@ -27,6 +27,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
+
 @Extension
 public class LocalSCMListener extends SCMListener {
 
@@ -98,7 +100,9 @@ public class LocalSCMListener extends SCMListener {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
-        String branch = env.get(GitSCM.GIT_BRANCH);
+        String branch = env.containsKey(PULL_REQUEST_SOURCE_BRANCH) ?
+                env.get(PULL_REQUEST_SOURCE_BRANCH) :
+                env.get(GitSCM.GIT_BRANCH);
         String refName = branch != null ? underlyingScm.deriveLocalBranchName(branch) : null;
         BitbucketRevisionAction revisionAction =
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
