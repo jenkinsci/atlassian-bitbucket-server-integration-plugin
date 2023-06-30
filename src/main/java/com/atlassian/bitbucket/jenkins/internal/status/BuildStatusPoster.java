@@ -93,7 +93,7 @@ public class BuildStatusPoster extends RunListener<Run<?, ?>> {
                     .getBuildStatusClient(revisionAction.getRevisionSha1())
                     .post(buildStatusBuilder, buildStatus -> 
                             listener.getLogger().println(String.format(BUILD_STATUS_FORMAT,
-                            buildStatus, server.getServerName(), revisionAction.getRevisionSha1(), buildStatus.getRef())));
+                            buildStatus.getState(), server.getServerName(), revisionAction.getRevisionSha1(), buildStatus.getRef())));
 
         } catch (RuntimeException e) {
             String errorMsg = BUILD_STATUS_ERROR_MSG + ' ' + e.getMessage();

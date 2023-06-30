@@ -42,6 +42,11 @@ import static org.mockito.Mockito.*;
 @RunWith(Silent.class)
 public class LocalSCMListenerTest extends HudsonTestCase {
 
+    private static final String BRANCH_NAME = "master";
+    private static final String GIT_BRANCH_VALUE = "repository/master";
+    private static final String GIT_COMMIT_VALUE = "683820238c4776695b206fd13b7c5caae4078666";
+    private static final String GIT_TAG_VALUE = "refs/tags/v.1.0.0";
+
     private final Map<String, String> buildMap = new HashMap<>();
     @Rule
     public JenkinsRule jenkinsRule = new JenkinsRule();
@@ -67,8 +72,10 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
     @Before
     public void setup() throws URISyntaxException {
-        buildMap.put(GitSCM.GIT_BRANCH, "master");
-        buildMap.put(GitSCM.GIT_COMMIT, "c1");
+        buildMap.put(GitSCM.GIT_BRANCH, GIT_BRANCH_VALUE);
+        buildMap.put(GitSCM.GIT_COMMIT, GIT_COMMIT_VALUE);
+
+        when(gitSCM.deriveLocalBranchName(GIT_BRANCH_VALUE)).thenReturn(BRANCH_NAME);
         when(bitbucketSCM.getGitSCM()).thenReturn(gitSCM);
         doAnswer(invocation -> {
             Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
@@ -104,7 +111,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -113,13 +120,27 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);
         when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, "refs/heads/master", GIT_COMMIT_VALUE);
 
         listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
 
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(build), eq(taskListener));
+        verify(buildStatusPoster).postBuildStatus(eq(expectedRevision), eq(build), eq(taskListener));
+    }
+
+    @Test
+    public void testOnCheckoutWithBitbucketSCMTagEvent() {
+        buildMap.put(GitSCM.GIT_BRANCH, GIT_TAG_VALUE);
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, GIT_TAG_VALUE, GIT_COMMIT_VALUE);
+
+        listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster).postBuildStatus(eq(expectedRevision), eq(build), eq(taskListener));
     }
 
     @Test
@@ -139,7 +160,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -148,13 +169,27 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);
         when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, "refs/heads/master", GIT_COMMIT_VALUE);
 
         listener.onCheckout(build, gitSCM, null, taskListener, null, null);
 
-        verify(buildStatusPoster).postBuildStatus(
-                argThat(revision ->
-                        scmRepository.equals(revision.getBitbucketSCMRepo())),
-                eq(build), eq(taskListener));
+        verify(buildStatusPoster).postBuildStatus(eq(expectedRevision), eq(build), eq(taskListener));
+    }
+
+    @Test
+    public void testOnCheckoutWithGitSCMTagEvent() {
+        buildMap.put(GitSCM.GIT_BRANCH, GIT_TAG_VALUE);
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, GIT_TAG_VALUE, GIT_COMMIT_VALUE);
+
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
+
+        verify(buildStatusPoster).postBuildStatus(eq(expectedRevision), eq(build), eq(taskListener));
     }
 
     @Test
@@ -171,7 +206,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -213,7 +248,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -234,7 +269,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -246,7 +281,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 
     @Test
@@ -259,6 +294,6 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
-        verify(buildStatusPoster, never()).postBuildStatus(any(), any(), any());
+        verifyZeroInteractions(buildStatusPoster);
     }
 }
