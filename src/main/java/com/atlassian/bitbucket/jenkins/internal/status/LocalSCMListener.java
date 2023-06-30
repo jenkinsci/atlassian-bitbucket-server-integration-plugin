@@ -115,7 +115,7 @@ public class LocalSCMListener extends SCMListener {
             return null;
         }
 
-        // The GitSCM will treat the tag as a branch with a fully justified name, so if refs/tags/ is present,
+        // The GitSCM will treat the tag as a branch with a fully qualified name, so if refs/tags/ is present,
         // the name needs no further processing.
         if (refId.startsWith(TAG_PREFIX)) {
             return refId;
