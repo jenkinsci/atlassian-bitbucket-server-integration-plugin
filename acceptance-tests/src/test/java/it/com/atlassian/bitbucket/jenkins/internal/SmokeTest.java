@@ -662,23 +662,20 @@ public class SmokeTest extends AbstractJUnitTest {
         //this is terrible but we must give Jenkins a chance to react to the trigger and schedule a build
         Thread.sleep(Duration.ofSeconds(10).toMillis());
 
-        Build build = multiBranchJob.getJob(featureBranchName).getLastBuild();
-        if (triggerOnRefChange) {
-            assertThat("Wrong started state of build after ref change", build.hasStarted(), is(true));
-        }
-        if (!triggerOnRefChange && triggerOnPullRequest) {
-            assertThat("Wrong started state of build after ref change", build.hasStarted(), is(false));
-        }
+        Build initialBranchBuild = multiBranchJob.getJob(featureBranchName).getLastBuild();
+        assertThat("Wrong started state of initial branch build after ref change",
+                initialBranchBuild.hasStarted(), is(triggerOnRefChange && discoverBranches));
 
         String pullRequestId = BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
         String prJobName = "PR-" + pullRequestId;
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        // We should now have a build for the feature branch if discover branches is enabled
+        // We should now have a build for the feature branch if branch discovery is enabled
         verifyBuildStatus(multiBranchJob, featureBranchName, featureBranchCommitId, discoverBranches);
 
-        // We should now have a build for the PR if discover PRs is enabled
-        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId, discoverPullRequests);
+        // We should now have a build for the PR if the PR webhook trigger and PR discovery have been enabled
+        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId,
+                discoverPullRequests && triggerOnPullRequest);
 
         // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
         RevCommit newFileCommit =
@@ -688,11 +685,12 @@ public class SmokeTest extends AbstractJUnitTest {
 
         multiBranchJob.waitForBranchIndexingFinished(30);
 
-        // We should now have a new build for the feature branch if discover branches is enabled
+        // We should now have a new build for the feature branch if branch discovery is enabled
         verifyBuildStatus(multiBranchJob, featureBranchName, newFileCommitId, discoverBranches);
 
-        // We should now have a new build for the PR if discover PRs is enabled
-        verifyBuildStatus(multiBranchJob, prJobName, newFileCommitId, discoverPullRequests);
+        // We should now have a build for the PR if the PR webhook trigger and PR discovery have been enabled
+        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId,
+                discoverPullRequests && triggerOnPullRequest);
     }
 
     private void verifyBuildStatus(BitbucketScmWorkflowMultiBranchJob multiBranchJob, String jobName, String commitId,
