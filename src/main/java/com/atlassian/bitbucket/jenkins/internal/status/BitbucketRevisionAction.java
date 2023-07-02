@@ -5,20 +5,38 @@ import hudson.model.Action;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class BitbucketRevisionAction implements Action {
 
-    public static final String REF_PREFIX = "refs/heads/";
-
     private final BitbucketSCMRepository bitbucketSCMRepository;
-    private final String branchName;
+    private final String refName;
     private final String revisionSha1;
 
-    public BitbucketRevisionAction(BitbucketSCMRepository bitbucketSCMRepository, @Nullable String branchName,
+    public BitbucketRevisionAction(BitbucketSCMRepository bitbucketSCMRepository, @Nullable String refName,
                                    String revisionSha1) {
         this.bitbucketSCMRepository = bitbucketSCMRepository;
-        this.branchName = branchName;
+        this.refName = refName;
         this.revisionSha1 = revisionSha1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BitbucketRevisionAction that = (BitbucketRevisionAction) o;
+        return Objects.equals(bitbucketSCMRepository, that.bitbucketSCMRepository) &&
+               Objects.equals(refName, that.refName) &&
+               Objects.equals(revisionSha1, that.revisionSha1);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bitbucketSCMRepository, refName, revisionSha1);
     }
 
     @CheckForNull
@@ -38,13 +56,8 @@ public class BitbucketRevisionAction implements Action {
     }
 
     @CheckForNull
-    public String getBranchName() {
-        return branchName;
-    }
-
-    @CheckForNull
-    public String getBranchAsRefFormat() {
-        return branchName != null ? REF_PREFIX + branchName : null;
+    public String getRefName() {
+        return refName;
     }
 
     public String getRevisionSha1() {

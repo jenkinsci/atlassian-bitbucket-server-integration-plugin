@@ -58,7 +58,7 @@ public final class BitbucketBuildStatusFactoryImpl implements BitbucketBuildStat
                 .setParent(isMultibranch ? parent.getFullName() : job.getFullName());
 
         if (revisionAction != null) {
-            bbs.setRef(revisionAction.getBranchAsRefFormat());
+            bbs.setRef(revisionAction.getRefName());
         }
 
         if (state != BuildState.INPROGRESS) {
