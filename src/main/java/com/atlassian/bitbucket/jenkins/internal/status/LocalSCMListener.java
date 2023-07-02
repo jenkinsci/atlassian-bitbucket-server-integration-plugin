@@ -16,6 +16,7 @@ import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
 import hudson.util.DescribableList;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.workflow.libs.FolderLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
 import org.jenkinsci.plugins.workflow.libs.SCMRetriever;
@@ -31,6 +32,9 @@ import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestS
 
 @Extension
 public class LocalSCMListener extends SCMListener {
+
+    public static final String BRANCH_PREFIX = "refs/heads/";
+    public static final String TAG_PREFIX = "refs/tags/";
 
     private BuildStatusPoster buildStatusPoster;
     private GlobalLibrariesProvider librariesProvider;
@@ -100,14 +104,36 @@ public class LocalSCMListener extends SCMListener {
         Map<String, String> env = new HashMap<>();
         underlyingScm.buildEnvironment(build, env);
 
-        String branch = env.containsKey(PULL_REQUEST_SOURCE_BRANCH) ?
-                env.get(PULL_REQUEST_SOURCE_BRANCH) :
-                env.get(GitSCM.GIT_BRANCH);
-        String refName = branch != null ? underlyingScm.deriveLocalBranchName(branch) : null;
+        String refName = getRefFromEnvironment(env, underlyingScm);
         BitbucketRevisionAction revisionAction =
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
+    }
+
+    @CheckForNull
+    private String getRefFromEnvironment(Map<String, String> env, GitSCM scm) {
+        // If the pull request source branch is specified use that as the ref ID
+        String refId = StringUtils.stripToNull(env.get(PULL_REQUEST_SOURCE_BRANCH));
+
+        // Otherwise, use the default value from GIT_BRANCH
+        if (refId == null) {
+            refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
+        }
+
+        if (refId == null) {
+            return null;
+        }
+
+        // The GitSCM will treat the tag as a branch with a fully qualified name, so if refs/tags/ is present,
+        // the name needs no further processing.
+        if (refId.startsWith(TAG_PREFIX)) {
+            return refId;
+        }
+
+        // Branches are in the form of the result of a git fetch, prepended with the repository name. The Git SCM
+        // can strip the repo name (if it's found in the list of remote configs), and we append refs/heads afterwards.
+        return BRANCH_PREFIX + scm.deriveLocalBranchName(refId);
     }
 
     private boolean isFolderLib(Folder folder, SCM scm) {
