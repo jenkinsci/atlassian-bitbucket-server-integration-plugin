@@ -44,9 +44,13 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) prRevision.getHead();
 
                 // The BitbucketPullRequestSCMHead uses the PR id as the head name, so we need to use a custom
-                // refspec to be able to map to the correct PR refs
+                // refspec to be able to map to the correct PR refs during checkout.
                 gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
                         ":refs/remotes/@{remote}/" + prHead.getName());
+
+                // Additionally, we also need to add the source branch name the underlying GitSCM's environment
+                // so it can be easily referenced if needed.
+                gitSCMBuilder.withExtension(new BitbucketPullRequestSourceBranch(prHead.getPullRequest()));
 
                 // Use the merge checkout strategy if the head specifies it
                 if (prHead.getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) {

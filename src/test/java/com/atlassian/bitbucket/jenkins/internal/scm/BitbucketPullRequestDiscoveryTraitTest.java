@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -126,7 +127,8 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         underTest.decorateBuilder(scmBuilder);
 
         assertThat(scmBuilder.refSpecs().get(0), equalTo("+refs/heads/from:refs/remotes/@{remote}/PR-1"));
-        MergeWithGitSCMExtension mergeExtension = (MergeWithGitSCMExtension) scmBuilder.extensions().get(0);
+        assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketPullRequestSourceBranch.class));
+        MergeWithGitSCMExtension mergeExtension = (MergeWithGitSCMExtension) scmBuilder.extensions().get(1);
         assertThat(mergeExtension.getBaseName(), equalTo("to"));
         assertThat(mergeExtension.getBaseHash(), equalTo("toCommit"));
     }

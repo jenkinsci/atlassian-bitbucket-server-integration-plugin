@@ -28,6 +28,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
+
 @Extension
 public class LocalSCMListener extends SCMListener {
 
@@ -103,14 +105,22 @@ public class LocalSCMListener extends SCMListener {
         underlyingScm.buildEnvironment(build, env);
 
         String refName = getRefFromEnvironment(env, underlyingScm);
-        BitbucketRevisionAction revisionAction = new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
+        BitbucketRevisionAction revisionAction =
+                new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
     }
 
     @CheckForNull
     private String getRefFromEnvironment(Map<String, String> env, GitSCM scm) {
-        String refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
+        // If the pull request source branch is specified use that as the ref ID
+        String refId = StringUtils.stripToNull(env.get(PULL_REQUEST_SOURCE_BRANCH));
+
+        // Otherwise, use the default value from GIT_BRANCH
+        if (refId == null) {
+            refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
+        }
+
         if (refId == null) {
             return null;
         }
