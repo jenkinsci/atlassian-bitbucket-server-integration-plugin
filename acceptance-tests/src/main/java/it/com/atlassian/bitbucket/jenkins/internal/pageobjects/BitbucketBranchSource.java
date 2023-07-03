@@ -72,9 +72,7 @@ public class BitbucketBranchSource extends BranchSource {
     private void addTrait(String name) {
         control(By.cssSelector(".trait-container .trait-add")).click();
         WebElement traitOption =  control(By.linkText(name)).resolve();
-        if (traitOption.isEnabled()) {
-            runWithRetry(traitOption::click);
-        }
+        runWithRetry(traitOption::click);
     }
 
     private void removeTraitIfEnabled(String traitClassName) {
