@@ -293,6 +293,16 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
+    @Override
+    protected SCMRevision retrieve(SCMHead head, TaskListener listener)
+            throws IOException, InterruptedException {
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
+        }
+
+        return getFullyInitializedGitSCMSource().accessibleRetrieve(head, listener);
+    }
+
     // Resolves the SCM repository, and the Git SCM. This involves a callout to Bitbucket so it must be done after the
     // SCM owner has been initialized
     @VisibleForTesting
