@@ -2,9 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import hudson.model.TaskListener;
 import jenkins.plugins.git.GitSCMSource;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMSourceCriteria;
+import jenkins.scm.api.*;
 
 import javax.annotation.CheckForNull;
 import java.io.IOException;
@@ -31,6 +29,12 @@ class CustomGitSCMSource extends GitSCMSource {
                                    @CheckForNull SCMHeadEvent<?> event,
                                    TaskListener listener) throws IOException, InterruptedException {
         super.retrieve(criteria, observer, event, listener);
+    }
+
+    @CheckForNull
+    public SCMRevision accessibleRetrieve(SCMHead head, TaskListener listener)
+            throws IOException, InterruptedException {
+        return super.retrieve(head, listener);
     }
 
     public BitbucketSCMRepository getRepository() {
