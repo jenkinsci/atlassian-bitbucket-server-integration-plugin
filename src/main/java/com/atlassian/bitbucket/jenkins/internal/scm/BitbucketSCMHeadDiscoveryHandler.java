@@ -1,14 +1,14 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMRevision;
+import hudson.model.TaskListener;
+import jenkins.scm.api.*;
 
 import java.util.stream.Stream;
 
 /**
- * TODO: Update doc with relevant methods when BitbucketSCMSource is implemented.
- * Handles the discovery of different head types to be used by the BitbucketSCMSource
- * or processing a {@link BitbucketSCMSourceRequest request}.
+ * Handles the discovery of different head types to be used by the
+ * {@link BitbucketSCMSource#retrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener)} method as part
+ * of processing a {@link BitbucketSCMSourceRequest request}.
  */
 public interface BitbucketSCMHeadDiscoveryHandler {
 
