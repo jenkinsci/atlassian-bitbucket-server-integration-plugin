@@ -3,6 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.http;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.RequestConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants;
+import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils;
 import hudson.Plugin;
 import jenkins.model.Jenkins;
 import okhttp3.*;
@@ -15,6 +17,7 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,7 +35,10 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     @Inject
     public HttpRequestExecutorImpl() {
-        this(new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build());
+        this(new OkHttpClient.Builder()
+                .connectTimeout(SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 10000), TimeUnit.MILLISECONDS)
+                .readTimeout(SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 10000), TimeUnit.MILLISECONDS)
+                .addInterceptor(new UserAgentInterceptor()).build());
     }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
