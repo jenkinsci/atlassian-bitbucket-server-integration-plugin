@@ -300,19 +300,19 @@ public class SmokeTest extends AbstractJUnitTest {
 
     @Test
     public void testFullBuildFlowWithMultiBranchJobAndManualReIndexingWithBranchAndPrDiscovery()
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranchWithManualReindexing(true, true);
     }
 
     @Test
     public void testFullBuildFlowWithMultiBranchJobAndManualReIndexingWithBranchDiscovery()
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranchWithManualReindexing(true, false);
     }
 
     @Test
     public void testFullBuildFlowWithMultiBranchJobAndManualReIndexingWithPrDiscovery()
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, InterruptedException {
         runFullFlowMultiBranchWithManualReindexing(false, true);
     }
 
@@ -545,7 +545,7 @@ public class SmokeTest extends AbstractJUnitTest {
         commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
                 JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
 
-        //trigger scanning so we get no surprise builds on other branches later
+        // trigger scanning so we get no surprise builds on other branches later
         multiBranchJob.reIndex();
         multiBranchJob.waitForBranchIndexingFinished(30);
 
@@ -556,45 +556,70 @@ public class SmokeTest extends AbstractJUnitTest {
                 commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir,
                         JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
         String featureBranchCommitId = featureBranchCommit.getId().getName();
+        waitForBuildTrigger(multiBranchJob);
 
-        //wait for indexing to complete
-        multiBranchJob.waitForBranchIndexingFinished(30);
-        //this is terrible but we must give Jenkins a chance to react to the trigger and schedule a build
-        Thread.sleep(Duration.ofSeconds(10).toMillis());
+        // Keep track of expected build numbers
+        int nextExpectedBranchBuildNum = 1;
+        int nextExpectedPrBuildNum = 1;
 
-        Build initialBranchBuild = multiBranchJob.getJob(featureBranchName).getLastBuild();
-        assertThat("Wrong started state of initial branch build after ref change",
-                initialBranchBuild.hasStarted(), is(triggerOnRefChange && discoverBranches));
+        String branchBuildName = multiBranchJob.name + "/" + featureBranchName;
+        Build branchBuild = multiBranchJob.getJob(featureBranchName).build(nextExpectedBranchBuildNum);
+        if (triggerOnRefChange && discoverBranches) {
+            // We should have a branch build if the ref change trigger and discover branches are enabled
+            verifySuccessfulBuild(branchBuild);
+            verifyPostedBuildStatus(featureBranchCommitId, branchBuildName);
+            nextExpectedBranchBuildNum++;
+        } else {
+            // Otherwise, there should be no branch build
+            assertFalse(branchBuild.hasStarted());
+        }
 
+        // Create pull request
         String pullRequestId = BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), featureBranchName);
         String prJobName = "PR-" + pullRequestId;
-        multiBranchJob.waitForBranchIndexingFinished(30);
+        waitForBuildTrigger(multiBranchJob);
 
-        // We should now have a build for the feature branch if branch discovery is enabled
-        verifyBuildStatus(multiBranchJob, featureBranchName, featureBranchCommitId, discoverBranches);
-
-        // We should now have a build for the PR if the PR webhook trigger and PR discovery have been enabled
-        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId,
-                discoverPullRequests && triggerOnPullRequest);
+        String prBuildName = multiBranchJob.name + "/" + prJobName;
+        Build prBuild = multiBranchJob.getJob(prJobName).build(nextExpectedPrBuildNum);
+        if (discoverPullRequests && triggerOnPullRequest) {
+            // We should have a PR build if the PR trigger and discover PRs are enabled
+            verifySuccessfulBuild(prBuild);
+            verifyPostedBuildStatus(featureBranchCommitId, prBuildName);
+            nextExpectedPrBuildNum++;
+        } else {
+            // Otherwise, there should be no PR build
+            assertFalse(prBuild.hasStarted());
+        }
 
         // Push another file to the feature branch to make sure the first re-index trigger wasn't a coincidence
-        RevCommit newFileCommit =
-                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName, checkoutDir, "new-file",
-                        "I'm a new file".getBytes(UTF_8));
+        RevCommit newFileCommit = commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, featureBranchName,
+                checkoutDir, "new-file", "I'm a new file".getBytes(UTF_8));
         String newFileCommitId = newFileCommit.getId().getName();
+        waitForBuildTrigger(multiBranchJob);
 
-        multiBranchJob.waitForBranchIndexingFinished(30);
+        branchBuild = multiBranchJob.getJob(featureBranchName).build(nextExpectedBranchBuildNum);
+        if (discoverBranches) {
+            // We should have a new branch build if discover branches is enabled
+            verifySuccessfulBuild(branchBuild);
+            verifyPostedBuildStatus(newFileCommitId, branchBuildName);
+        } else {
+            // Otherwise, there should be no branch build
+            assertFalse(branchBuild.hasStarted());
+        }
 
-        // We should now have a new build for the feature branch if branch discovery is enabled
-        verifyBuildStatus(multiBranchJob, featureBranchName, newFileCommitId, discoverBranches);
-
-        // We should now have a build for the PR if the PR webhook trigger and PR discovery have been enabled
-        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId,
-                discoverPullRequests && triggerOnPullRequest);
+        prBuild = multiBranchJob.getJob(prJobName).build(nextExpectedPrBuildNum);
+        if (discoverPullRequests && triggerOnPullRequest) {
+            // We should have a PR build if the PR trigger and discover PRs are enabled
+            verifySuccessfulBuild(prBuild);
+            verifyPostedBuildStatus(newFileCommitId, prBuildName);
+        } else {
+            // Otherwise, there should be no PR build
+            assertFalse(prBuild.hasStarted());
+        }
     }
 
     private void runFullFlowMultiBranchWithManualReindexing(boolean discoverBranches, boolean discoverPullRequests)
-            throws IOException, GitAPIException {
+            throws IOException, GitAPIException, InterruptedException {
         BitbucketScmWorkflowMultiBranchJob multiBranchJob =
                 jenkins.jobs.create(BitbucketScmWorkflowMultiBranchJob.class);
         BitbucketBranchSource bitbucketBranchSource = multiBranchJob.addBranchSource(BitbucketBranchSource.class);
@@ -612,13 +637,11 @@ public class SmokeTest extends AbstractJUnitTest {
         Git gitRepo = cloneRepo(ADMIN_CREDENTIALS_PROVIDER, checkoutDir, forkRepo);
 
         // Push new Jenkinsfile to master
-        RevCommit masterCommit =
-                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir,
-                        JENKINS_FILE_NAME, ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
-        String masterCommitId = masterCommit.getId().getName();
+        commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, MASTER_BRANCH_NAME, checkoutDir, JENKINS_FILE_NAME,
+                ECHO_ONLY_JENKINS_FILE_CONTENT.getBytes(UTF_8));
 
         // Push Jenkinsfile to feature branch
-        final String branchName = "feature/test-feature";
+        final String branchName = "test-feature";
         gitRepo.branchCreate().setName(branchName).call();
         RevCommit featureBranchCommit =
                 commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, JENKINS_FILE_NAME,
@@ -626,55 +649,85 @@ public class SmokeTest extends AbstractJUnitTest {
         String featureBranchCommitId = featureBranchCommit.getId().getName();
         triggerManualScan(multiBranchJob);
 
-        // Verify branch builds were triggered if branch discovery is enabled
-        verifyBuildStatus(multiBranchJob, MASTER_BRANCH_NAME, masterCommitId, discoverBranches);
-        verifyBuildStatus(multiBranchJob, branchName, featureBranchCommitId, discoverBranches);
+        // Keep track of expected build numbers
+        int nextExpectedBranchBuildNum = 1;
+        int nextExpectedPrBuildNum = 1;
+
+        String branchBuildName = multiBranchJob.name + "/" + branchName;
+        Build branchBuild = multiBranchJob.getJob(branchName).build(nextExpectedBranchBuildNum);
+        if (discoverBranches) {
+            // We should have a branch build if discover branches is enabled
+            verifySuccessfulBuild(branchBuild);
+            verifyPostedBuildStatus(featureBranchCommitId, branchBuildName);
+            nextExpectedBranchBuildNum++;
+        } else {
+            // Otherwise, there should be no branch build
+            assertFalse(branchBuild.hasStarted());
+        }
 
         // Create a PR
         String pullRequestId = BitbucketUtils.createPullRequest(PROJECT_KEY, forkRepo.getSlug(), branchName);
         String prJobName = "PR-" + pullRequestId;
         triggerManualScan(multiBranchJob);
 
-        // Verify PR build is triggered if PR discovery is enabled
-        verifyBuildStatus(multiBranchJob, prJobName, featureBranchCommitId, discoverPullRequests);
+        String prBuildName = multiBranchJob.name + "/" + prJobName;
+        Build prBuild = multiBranchJob.getJob(prJobName).build(nextExpectedPrBuildNum);
+        if (discoverPullRequests) {
+            // We should have a PR build if discover PRs is enabled
+            verifySuccessfulBuild(prBuild);
+            verifyPostedBuildStatus(featureBranchCommitId, prBuildName);
+            nextExpectedPrBuildNum++;
+        } else {
+            // Otherwise, there should be no PR build
+            assertFalse(prBuild.hasStarted());
+        }
 
         // Push another file to the feature branch
-        RevCommit newFileCommit =
-                commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir, "new-file",
-                        "I'm a new file".getBytes(UTF_8));
+        RevCommit newFileCommit = commitAndPushFile(gitRepo, ADMIN_CREDENTIALS_PROVIDER, branchName, checkoutDir,
+                "new-file", "I'm a new file".getBytes(UTF_8));
         String newFileCommitId = newFileCommit.getId().getName();
         triggerManualScan(multiBranchJob);
 
-        // Verify feature branch build was triggered for the new commit if branch discovery is enabled
-        verifyBuildStatus(multiBranchJob, branchName, newFileCommitId, discoverBranches);
+        branchBuild = multiBranchJob.getJob(branchName).build(nextExpectedBranchBuildNum);
+        if (discoverBranches) {
+            // We should have a new branch build if discover branches is enabled
+            verifySuccessfulBuild(branchBuild);
+            verifyPostedBuildStatus(newFileCommitId, branchBuildName);
+        } else {
+            // Otherwise, there should be no branch build
+            assertFalse(branchBuild.hasStarted());
+        }
 
-        // Verify PR build is triggered for the new commit if PR discovery is enabled
-        verifyBuildStatus(multiBranchJob, prJobName, newFileCommitId, discoverPullRequests);
+        prBuild = multiBranchJob.getJob(prJobName).build(nextExpectedPrBuildNum);
+        if (discoverPullRequests) {
+            // We should have a PR build if discover PRs is enabled
+            verifySuccessfulBuild(prBuild);
+            verifyPostedBuildStatus(newFileCommitId, prBuildName);
+        } else {
+            // Otherwise, there should be no PR build
+            assertFalse(prBuild.hasStarted());
+        }
     }
 
-    private void triggerManualScan(BitbucketScmWorkflowMultiBranchJob multiBranchJob) {
+    private void triggerManualScan(BitbucketScmWorkflowMultiBranchJob multiBranchJob) throws InterruptedException {
         multiBranchJob.open();
         multiBranchJob.reIndex();
-        multiBranchJob.waitForBranchIndexingFinished(30);
+        waitForBuildTrigger(multiBranchJob);
     }
 
-    private void verifyBuildStatus(BitbucketScmWorkflowMultiBranchJob multiBranchJob, String jobName, String commitId,
-                                   boolean shouldBuildSuccessfully) {
-        String encodedJobName = URLEncoder.encode(jobName, UTF_8);
-        WorkflowJob job = multiBranchJob.getJob(encodedJobName);
-        String buildName = multiBranchJob.name + "/" + job.name;
-        Build build = job.getLastBuild();
+    private void verifyPostedBuildStatus(String commitId, String buildName) {
+        Map<String, ?> buildStatus = fetchBuildStatusesFromBitbucket(commitId).stream()
+                .filter(status -> buildName.equals(status.get("key")))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+        assertThat(buildStatus, successfulBuildWithKey(buildName));
+    }
 
-        if (shouldBuildSuccessfully) {
-            assertThat(build.getResult(), is(SUCCESS.name()));
-            Map<String, ?> buildStatus = fetchBuildStatusesFromBitbucket(commitId).stream()
-                    .filter(status -> buildName.equals(status.get("key")))
-                    .findFirst()
-                    .orElseThrow(AssertionError::new);
-            assertThat(buildStatus, successfulBuildWithKey(buildName));
-        } else {
-            assertFalse(build.hasStarted());
-        }
+    private void waitForBuildTrigger(BitbucketScmWorkflowMultiBranchJob multiBranchJob) throws InterruptedException {
+        //wait for indexing to complete
+        multiBranchJob.waitForBranchIndexingFinished(30);
+        //this is terrible but we must give Jenkins a chance to react to the trigger and schedule a build
+        Thread.sleep(Duration.ofSeconds(10).toMillis());
     }
 
     private Response getBuildOperations(String commitId) {
