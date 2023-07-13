@@ -31,6 +31,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
@@ -140,6 +141,12 @@ public class BitbucketSCMSource extends SCMSource {
                 .findAny()
                 .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
         }
+
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            MinimalPullRequest pullRequest = ((BitbucketPullRequestSCMHead) head).getPullRequest();
+            result.add(new ObjectMetadataAction(pullRequest.getTitle(), pullRequest.getDescription(), null));
+        }
+
         return result;
     }
 
