@@ -6,6 +6,8 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
+import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
@@ -143,8 +145,16 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketPullRequestSCMHead) {
-            MinimalPullRequest pullRequest = ((BitbucketPullRequestSCMHead) head).getPullRequest();
-            result.add(new ObjectMetadataAction(pullRequest.getTitle(), pullRequest.getDescription(), null));
+            BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) head;
+            MinimalPullRequest pullRequest = prHead.getPullRequest();
+            BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+
+            String pullRequestLink = descriptor.getBitbucketExternalLinkUtils()
+                    .createPullRequestLink(getBitbucketSCMRepository(), prHead.getId())
+                    .map(BitbucketExternalLink::getUrlName)
+                    .orElse(null);
+
+            result.add(new ObjectMetadataAction(pullRequest.getTitle(), pullRequest.getDescription(), pullRequestLink));
         }
 
         return result;
@@ -443,6 +453,8 @@ public class BitbucketSCMSource extends SCMSource {
         @Inject
         private BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
         @Inject
+        private BitbucketExternalLinkUtils bitbucketExternalLinkUtils;
+        @Inject
         private BitbucketPluginConfiguration bitbucketPluginConfiguration;
         @Inject
         private BitbucketScmFormFillDelegate formFill;
@@ -571,6 +583,10 @@ public class BitbucketSCMSource extends SCMSource {
         @Override
         public List<GitSCMExtensionDescriptor> getExtensionDescriptors() {
             return Collections.emptyList();
+        }
+
+        public BitbucketExternalLinkUtils getBitbucketExternalLinkUtils() {
+            return bitbucketExternalLinkUtils;
         }
 
         @Override
