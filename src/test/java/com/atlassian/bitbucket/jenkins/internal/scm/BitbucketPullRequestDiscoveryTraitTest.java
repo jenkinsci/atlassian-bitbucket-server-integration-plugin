@@ -119,7 +119,9 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 BitbucketPullRequestState.OPEN,
                 fromRef,
                 toRef,
-                -1);
+                -1,
+                "Test pull request",
+                "This is a test pull request");
         BitbucketPullRequestSCMHead head = new BitbucketPullRequestSCMHead(pullRequest);
         BitbucketPullRequestSCMRevision revision = new BitbucketPullRequestSCMRevision(head);
         GitSCMBuilder scmBuilder = new GitSCMBuilder(head, revision, "remote", null);
@@ -200,7 +202,13 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         BitbucketPullRequestRef toRef =
                 new BitbucketPullRequestRef("refs/heads/to", "to", toRepo, "toCommit");
 
-        return new BitbucketPullRequest(id, BitbucketPullRequestState.OPEN, fromRef, toRef, -1);
+        return new BitbucketPullRequest(id,
+                BitbucketPullRequestState.OPEN,
+                fromRef,
+                toRef,
+                -1,
+                "Test pull request",
+                "This is a test pull request");
     }
 
     private BitbucketRepository mockRepo(int repoId) {

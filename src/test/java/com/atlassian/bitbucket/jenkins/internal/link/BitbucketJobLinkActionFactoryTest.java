@@ -150,7 +150,9 @@ public class BitbucketJobLinkActionFactoryTest {
                 BitbucketPullRequestState.OPEN,
                 fromRef,
                 toRef,
-                -1);
+                -1,
+                "Test pull request",
+                "This is a test pull request");
         BitbucketPullRequestSCMHead prHead = new BitbucketPullRequestSCMHead(pullRequest);
         doReturn(prHead).when(headProvider).findHead(multibranchJobFromSource);
 
