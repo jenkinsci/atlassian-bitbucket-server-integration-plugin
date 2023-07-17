@@ -2,6 +2,9 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
+import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
+import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
+import com.atlassian.bitbucket.jenkins.internal.link.BitbucketLinkType;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
@@ -15,8 +18,10 @@ import hudson.model.Action;
 import hudson.model.Actionable;
 import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.*;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 
+import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
@@ -213,7 +218,7 @@ public class BitbucketSCMSourceTest {
         CustomGitSCMSource gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getRemote(), equalTo(HTTP_CLONE_LINK));
     }
-    
+
     @Test
     public void testGetAndInitializeGitSCMSourceSetsOwnerIfNull() {
         BitbucketSCMSource source = new SCMSourceBuilder(CREDENTIAL_ID)
@@ -226,7 +231,7 @@ public class BitbucketSCMSourceTest {
 
         SCMSourceOwner owner = mock(SCMSourceOwner.class);
         source.setOwner(owner); // This is handled by Jenkins during typical execution
-        
+
         gitSource = source.getFullyInitializedGitSCMSource();
         assertThat(gitSource.getOwner(), equalTo(owner));
     }
@@ -276,6 +281,32 @@ public class BitbucketSCMSourceTest {
 
         Action action = result.get(0);
         assertThat(action.getClass(), equalTo(PrimaryInstanceMetadataAction.class));
+    }
+
+    @Test
+    public void testRetrieveActionsHeadEventPullRequest() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .build();
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+
+        SCMHeadEvent<RefsChangedWebhookEvent> mockEvent = mock(SCMHeadEvent.class);
+        MinimalPullRequest pullRequest = mock(MinimalPullRequest.class);
+        when(pullRequest.getTitle()).thenReturn("PR title");
+        when(pullRequest.getDescription()).thenReturn("PR description");
+        BitbucketPullRequestSCMHead head = mock(BitbucketPullRequestSCMHead.class);
+        when(head.getId()).thenReturn("1");
+        when(head.getPullRequest()).thenReturn(pullRequest);
+        setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+
+        List<Action> result = bitbucketSCMsource.retrieveActions(head, mockEvent, null);
+        Action action = result.get(0);
+
+        assertThat(action, equalTo(new ObjectMetadataAction("PR title",
+                "PR description",
+                "http://localhost/projects/PROJECT_1/repos/pull-requests/1")));
     }
 
     @Test
@@ -363,6 +394,24 @@ public class BitbucketSCMSourceTest {
         when(descriptor.getConfiguration(serverId)).thenReturn(Optional.of(bbsConfig));
         when(bbsConfig.getBaseUrl()).thenReturn(baseUrl);
         when(bbsConfig.getGlobalCredentialsProvider(owner)).thenReturn(credentialsProvider);
+
+        BitbucketExternalLinkUtils linkUtils = mock(BitbucketExternalLinkUtils.class);
+        when(linkUtils.createPullRequestLink(any(BitbucketSCMRepository.class), anyString()))
+                .thenAnswer(invocation -> {
+                    BitbucketSCMRepository repository = invocation.getArgument(0);
+                    String pullRequestId = invocation.getArgument(1);
+                    String mockUrl = HttpUrl.get("http://localhost").newBuilder()
+                            .addPathSegment("projects")
+                            .addPathSegment(repository.getProjectKey())
+                            .addPathSegment("repos")
+                            .addPathSegment(repository.getRepositorySlug())
+                            .addPathSegment("pull-requests")
+                            .addPathSegment(pullRequestId)
+                            .toString();
+
+                    return Optional.of(new BitbucketExternalLink(mockUrl, BitbucketLinkType.PULL_REQUEST));
+                });
+        when(descriptor.getBitbucketExternalLinkUtils()).thenReturn(linkUtils);
 
         return descriptor;
     }
