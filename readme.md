@@ -220,6 +220,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 4.0.0-alpha.1 (Alpha Release)
+**Disclaimer:** This is an alpha release, and the feature is still in development. Incomplete functionality and potential issues may be present.
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests and initiate builds. NOTE: Forked (cross-repository) pull requests
+  are not supported as part of this alpha release.
+
 ### 3.5.0
 - The minimum version of Jenkins changed to be **2.401.1**
 
