@@ -162,6 +162,7 @@ A list of all custom environmental properties can be found in `SystemPropertiesC
 ### Additional documentation
 
 * [Sending deployment notifications](./docs/deployment_notifications.md)
+* [Enabling pull request discovery](./docs/pull_request_discovery.md)
 
 ---
 
