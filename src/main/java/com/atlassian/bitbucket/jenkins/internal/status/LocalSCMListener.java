@@ -115,7 +115,8 @@ public class LocalSCMListener extends SCMListener {
     private String getCommitFromEnvironment(Map<String, String> env) {
         // Pull requests may be built using a merge between the source and target branches which could result in a new
         // commit for the merge. This new merge commit will not exist in Bitbucket, so we need to use the pull request
-        // source commit when posting the build status so that Bitbucket can correctly resolve it.
+        // source commit when posting the build status so that Bitbucket can correctly resolve the build to the correct
+        // commit.
         String commit = env.get(PULL_REQUEST_SOURCE_COMMIT);
         if (commit == null) {
             commit = env.get(GitSCM.GIT_COMMIT);
