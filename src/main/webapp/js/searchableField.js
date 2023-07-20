@@ -53,10 +53,12 @@ Behaviour.specify('.searchable', 'searchableField', 200, function (el) {
                 return params;
             }, {});
         // Request the search results
-        var urlSearchParams = new URLSearchParams(parameters);
-        fetch(el.getAttribute("fillUrl") + "?" + urlSearchParams, {
-            headers: crumb.wrap({}),
+        fetch(el.getAttribute("fillUrl"), {
+            headers: crumb.wrap({
+              "Content-Type": "application/x-www-form-urlencoded",
+            }),
             method: "post",
+            body: new URLSearchParams(parameters),
         }).then((response) => {
             if (response.ok) {
                 response.json().then((json) => {
