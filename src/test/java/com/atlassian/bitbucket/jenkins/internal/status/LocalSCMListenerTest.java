@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.*;
@@ -49,6 +50,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
     private static final String GIT_TAG_VALUE = "refs/tags/v.1.0.0";
     private static final String PR_BRANCH_NAME = "prsourcebranch";
     private static final String PR_BRANCH_VALUE = "origin/prsourcebranch";
+    private static final String PR_COMMIT_VALUE = "1041ad01cafa9cb2832a2f53c9bc2ba3dc15a582";
 
     private final Map<String, String> buildMap = new HashMap<>();
     @Rule
@@ -172,13 +174,14 @@ public class LocalSCMListenerTest extends HudsonTestCase {
             Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
             m.putAll(buildMap);
             m.put(PULL_REQUEST_SOURCE_BRANCH, PR_BRANCH_VALUE);
+            m.put(PULL_REQUEST_SOURCE_COMMIT, PR_COMMIT_VALUE);
             return null;
         }).when(gitSCM).buildEnvironment(notNull(), anyMap());
 
         listener.onCheckout(build, gitSCM, null, taskListener, null, null);
 
         BitbucketRevisionAction expectedRevision =
-                new BitbucketRevisionAction(scmRepository, "refs/heads/prsourcebranch", GIT_COMMIT_VALUE);
+                new BitbucketRevisionAction(scmRepository, "refs/heads/prsourcebranch", PR_COMMIT_VALUE);
 
         verify(buildStatusPoster).postBuildStatus(expectedRevision, build, taskListener);
     }
