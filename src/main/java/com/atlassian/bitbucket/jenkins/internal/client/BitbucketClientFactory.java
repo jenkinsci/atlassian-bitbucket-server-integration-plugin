@@ -1,5 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import hudson.model.TaskListener;
+import jenkins.scm.api.SCMSourceOwner;
+
+import java.io.IOException;
+
 /**
  * Factory for Bitbucket Clients.
  */
@@ -11,6 +16,16 @@ public interface BitbucketClientFactory {
      * @return a client that is ready to use
      */
     BitbucketAuthenticatedUserClient getAuthenticatedUserClient();
+
+    /**
+     * Return a Bitbucket git client
+     * @param listener
+     * @param credentialsId
+     * @param context
+     * @return a git client that is ready to use
+     */
+    BitbucketGitClient getGitClient(TaskListener listener, String credentialsId,
+                                    SCMSourceOwner context) throws IOException, InterruptedException;
 
     /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client

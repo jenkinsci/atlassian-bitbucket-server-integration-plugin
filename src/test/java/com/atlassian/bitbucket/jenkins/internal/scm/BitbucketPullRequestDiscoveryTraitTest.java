@@ -10,11 +10,10 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.model.TaskListener;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMSourceCriteria;
+import jenkins.scm.api.*;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -69,7 +68,13 @@ public class BitbucketPullRequestDiscoveryTraitTest {
     private SCMHeadObserver scmHeadObserver;
     @Mock
     private SCMSourceCriteria scmSourceCriteria;
+    @Mock
+    private SCMSource scmSource;
     private BitbucketSCMSourceContext testContext;
+    @Mock
+    private TaskListener listener;
+    @InjectMocks
+    private SCMSourceOwner owner;
     @InjectMocks
     private BitbucketPullRequestDiscoveryTrait.DescriptorImpl traitDescriptor;
     private BitbucketPullRequestDiscoveryTrait underTest;
@@ -89,6 +94,7 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         doReturn(bitbucketRepositoryClient).when(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
         doReturn(bitbucketProjectClient).when(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
         doReturn(bitbucketClientFactory).when(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
+        doReturn(owner).when(scmSource.getOwner());
         initContext(Collections.emptySet());
         underTest = new BitbucketPullRequestDiscoveryTrait() {
             @Override
@@ -190,7 +196,9 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 scmHeadObserver,
                 credentials,
                 eventHeads,
-                bitbucketSCMRepository));
+                bitbucketSCMRepository,
+                listener,
+                owner));
     }
 
     private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {
