@@ -10,13 +10,14 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import jenkins.plugins.git.GitSCMBuilder;
-import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.hamcrest.Matchers;
+import org.jenkinsci.plugins.gitclient.MergeCommand;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -130,9 +131,12 @@ public class BitbucketPullRequestDiscoveryTraitTest {
 
         assertThat(scmBuilder.refSpecs().get(0), equalTo("+refs/heads/from:refs/remotes/@{remote}/PR-1"));
         assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketPullRequestSourceBranch.class));
-        MergeWithGitSCMExtension mergeExtension = (MergeWithGitSCMExtension) scmBuilder.extensions().get(1);
-        assertThat(mergeExtension.getBaseName(), equalTo("to"));
-        assertThat(mergeExtension.getBaseHash(), equalTo("toCommit"));
+
+        PreBuildMerge mergeBuild = (PreBuildMerge) scmBuilder.extensions().get(1);
+        assertThat(mergeBuild.getOptions().getMergeRemote(), equalTo("origin"));
+        assertThat(mergeBuild.getOptions().getMergeTarget(), equalTo("to"));
+        assertThat(mergeBuild.getOptions().getMergeStrategy(), equalTo(MergeCommand.Strategy.DEFAULT));
+        assertThat(mergeBuild.getOptions().getFastForwardMode(), equalTo(MergeCommand.GitPluginFastForwardMode.FF));
     }
 
     @Test

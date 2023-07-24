@@ -8,8 +8,9 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import hudson.Extension;
+import hudson.plugins.git.UserMergeOptions;
+import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import jenkins.plugins.git.GitSCMBuilder;
-import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
@@ -17,6 +18,7 @@ import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.trait.Discovery;
+import org.jenkinsci.plugins.gitclient.MergeCommand;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
@@ -56,8 +58,13 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 if (prHead.getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) {
                     BitbucketSCMRevision targetRevision = (BitbucketSCMRevision) prRevision.getTarget();
                     SCMHead targetHead = targetRevision.getHead();
-                    gitSCMBuilder.withExtension(new MergeWithGitSCMExtension(targetHead.getName(),
-                            targetRevision.getCommitHash()));
+
+                    UserMergeOptions mergeOptions = new UserMergeOptions(gitSCMBuilder.remoteName(),
+                            targetHead.getName(),
+                            MergeCommand.Strategy.DEFAULT.toString(),
+                            MergeCommand.GitPluginFastForwardMode.FF);
+
+                    gitSCMBuilder.withExtension(new PreBuildMerge(mergeOptions));
                 }
             }
         }
