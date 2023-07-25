@@ -70,6 +70,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
         Git git = Git.with(listener, new EnvVars(EnvVars.masterEnvVars));
         GitClient client = git.getClient();
 
+        if (client == null) {
+            log.log(Level.WARNING, "failed to initialise git client");
+            throw new IOException();
+        }
+
         BitbucketRepository bitbucketRepository = getRepository();
         if (repository.getSshCredentialsId() != null && !repository.getSshCredentialsId().isEmpty()) {
             client.addDefaultCredentials((StandardCredentials) CredentialUtils.getCredentials(repository.getSshCredentialsId(), context).get());
