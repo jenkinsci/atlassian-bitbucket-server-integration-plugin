@@ -19,17 +19,16 @@ import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class BitbucketBranchesDiscoveryTrait extends BitbucketSCMSourceTrait {
-    private static final Logger log = Logger.getLogger(BitbucketBranchesDiscoveryTrait.class.getName());
+public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
+    private static final Logger log = Logger.getLogger(BitbucketBranchDiscoveryTrait.class.getName());
 
     @DataBoundConstructor
-    public BitbucketBranchesDiscoveryTrait() {
+    public BitbucketBranchDiscoveryTrait() {
     }
 
     @Override
