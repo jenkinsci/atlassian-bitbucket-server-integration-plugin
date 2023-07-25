@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 public class BitbucketPullRequestSourceBranch extends GitSCMExtension {
 
     public static final String PULL_REQUEST_SOURCE_BRANCH = "PULL_REQUEST_SOURCE_BRANCH";
+    public static final String PULL_REQUEST_SOURCE_COMMIT = "PULL_REQUEST_SOURCE_COMMIT";
 
     private final MinimalPullRequest pullRequest;
 
@@ -25,5 +26,6 @@ public class BitbucketPullRequestSourceBranch extends GitSCMExtension {
     @Override
     public void populateEnvironmentVariables(GitSCM scm, Map<String, String> env) {
         env.put(PULL_REQUEST_SOURCE_BRANCH, pullRequest.getFromRefDisplayId());
+        env.put(PULL_REQUEST_SOURCE_COMMIT, pullRequest.getFromLatestCommit());
     }
 }
