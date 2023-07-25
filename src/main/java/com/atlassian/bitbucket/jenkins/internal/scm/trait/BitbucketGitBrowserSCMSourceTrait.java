@@ -7,7 +7,6 @@ import hudson.plugins.git.browser.GitRepositoryBrowser;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMSourceContext;
-import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -27,7 +26,6 @@ public class BitbucketGitBrowserSCMSourceTrait extends GitBrowserSCMSourceTrait 
     }
 
     @Extension
-    @Symbol("browser")
     public static class DescriptorImpl extends GitBrowserSCMSourceTrait.DescriptorImpl {
 
         @Override
