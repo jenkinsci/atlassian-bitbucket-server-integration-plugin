@@ -401,7 +401,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     /**
-     * This method gets invoked by XStream after the {@link BitbucketSCMSource } object is unmarshalled.
+     * This method gets invoked by XStream after the {@link BitbucketSCMSource} object is unmarshalled.
      */
     @SuppressWarnings("unused") // Used by XStream
     protected Object readResolve() {
