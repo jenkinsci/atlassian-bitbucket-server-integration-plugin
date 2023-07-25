@@ -1,10 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import hudson.model.TaskListener;
-import jenkins.scm.api.SCMSourceOwner;
-
-import java.io.IOException;
-
 /**
  * Factory for Bitbucket Clients.
  */
