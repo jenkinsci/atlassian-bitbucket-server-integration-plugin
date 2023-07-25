@@ -1,14 +1,13 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.plugins.git.Branch;
-import jenkins.plugins.git.GitBranchSCMHead;
-import jenkins.plugins.git.traits.BranchDiscoveryTrait;
+import org.eclipse.jgit.lib.ObjectId;
+
+import java.util.Map.Entry;
 
 public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
-    public BitbucketBranchSCMHead(@NonNull Branch branch) {
-        super(branch.getName(), branch.getSHA1String(), 0);
+
+    public BitbucketBranchSCMHead(Entry<String, ObjectId> branch) {
+        super(branch.getKey().replaceAll("refs/heads/", ""), branch.getValue().getName(), -1);
     }
 }

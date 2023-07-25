@@ -3,7 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilities;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.common.cache.Cache;
@@ -43,14 +44,6 @@ public class BitbucketClientFactoryImpl implements BitbucketClientFactory {
     @Override
     public BitbucketAuthenticatedUserClient getAuthenticatedUserClient() {
         return new BitbucketAuthenticatedUserClientImpl(bitbucketRequestExecutor);
-    }
-
-    @Override
-    public BitbucketGitClient getGitClient(TaskListener listener, String credentialsId, SCMSourceOwner context) throws IOException, InterruptedException {
-        Git git = Git.with(listener, new EnvVars(EnvVars.masterEnvVars));
-        GitClient client = git.getClient();
-        client.addDefaultCredentials((StandardCredentials) CredentialUtils.getCredentials(credentialsId, context).get());
-        return new BitbucketGitClient(git.getClient());
     }
 
     @Override

@@ -18,16 +18,6 @@ public interface BitbucketClientFactory {
     BitbucketAuthenticatedUserClient getAuthenticatedUserClient();
 
     /**
-     * Return a Bitbucket git client
-     * @param listener
-     * @param credentialsId
-     * @param context
-     * @return a git client that is ready to use
-     */
-    BitbucketGitClient getGitClient(TaskListener listener, String credentialsId,
-                                    SCMSourceOwner context) throws IOException, InterruptedException;
-
-    /**
      * Construct a client that can retrieve the advertised capabilities from Bitbucket. The client
      * is thread safe and can be used multiple times.
      *

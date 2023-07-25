@@ -34,6 +34,36 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
     }
 
     @Override
+    protected void decorateBuilder(SCMBuilder<?, ?> builder) {
+        if (builder instanceof GitSCMBuilder) {
+            GitSCMBuilder<?> gitSCMBuilder = (GitSCMBuilder<?>) builder;
+            SCMRevision revision = gitSCMBuilder.revision();
+
+            if (revision instanceof BitbucketPullRequestSCMRevision) {
+                BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
+                BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) prRevision.getHead();
+
+                // The BitbucketPullRequestSCMHead uses the PR id as the head name, so we need to use a custom
+                // refspec to be able to map to the correct PR refs during checkout.
+                gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
+                                          ":refs/remotes/@{remote}/" + prHead.getName());
+
+                // Additionally, we also need to add the source branch name the underlying GitSCM's environment
+                // so it can be easily referenced if needed.
+                gitSCMBuilder.withExtension(new BitbucketPullRequestSourceBranch(prHead.getPullRequest()));
+
+                // Use the merge checkout strategy if the head specifies it
+                if (prHead.getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) {
+                    BitbucketSCMRevision targetRevision = (BitbucketSCMRevision) prRevision.getTarget();
+                    SCMHead targetHead = targetRevision.getHead();
+                    gitSCMBuilder.withExtension(new MergeWithGitSCMExtension(targetHead.getName(),
+                            targetRevision.getCommitHash()));
+                }
+            }
+        }
+    }
+
+    @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         if (context instanceof BitbucketSCMSourceContext) {
             BitbucketSCMSourceContext bitbucketContext = (BitbucketSCMSourceContext) context;

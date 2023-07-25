@@ -6,7 +6,11 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import hudson.model.TaskListener;
+import jenkins.scm.api.SCMSourceOwner;
 
+import java.io.IOException;
 import java.util.stream.Stream;
 
 /**
@@ -14,6 +18,15 @@ import java.util.stream.Stream;
  * source code.
  */
 public interface BitbucketRepositoryClient {
+
+    /**
+     * Return a Bitbucket branch client
+     * @param listener
+     * @param credentialsId
+     * @param context
+     * @return a git client that is ready to use
+     */
+    BitbucketBranchClient getBranchClient(TaskListener listener, SCMSourceOwner context, BitbucketSCMRepository repository) throws IOException, InterruptedException;
 
     /**
      * Returns a client for getting file content and directory information on paths in a repository.

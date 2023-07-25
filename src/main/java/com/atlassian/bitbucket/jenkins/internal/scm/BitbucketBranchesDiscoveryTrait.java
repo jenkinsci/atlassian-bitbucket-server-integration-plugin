@@ -2,13 +2,11 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketGitClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBranchClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import hudson.Extension;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMHead;
@@ -45,22 +43,20 @@ public class BitbucketBranchesDiscoveryTrait extends BitbucketSCMSourceTrait {
                     descriptor.getClientFactory(bitbucketContext);
 
             if (!clientFactory.isPresent()) {
-                log.log(Level.WARNING, "Server configuration missing, cannot resolve client for PR discovery");
+                log.log(Level.WARNING, "Server configuration missing, cannot resolve client for Branch discovery");
                 return;
             }
 
             BitbucketSCMSourceContext SCMContext = (BitbucketSCMSourceContext) context;
             BitbucketSCMRepository repository = bitbucketContext.getRepository();
-            final BitbucketGitClient gitClient;
+            BitbucketRepositoryClient repositoryClient = clientFactory.get()
+                    .getProjectClient(repository.getProjectKey())
+                    .getRepositoryClient(repository.getRepositorySlug());
+            BitbucketBranchClient bitbucketBranchClient;
             try {
-                String credentialsId = repository.getCredentialsId();
-                if(credentialsId == null) {
-                    log.log(Level.WARNING, "Credential ID was null");
-                    return;
-                }
-                gitClient = clientFactory.get().getGitClient(SCMContext.getTaskListener(), credentialsId, SCMContext.getOwner());
-            } catch (Exception e) {
-                log.log(Level.WARNING, e.getMessage());
+                bitbucketBranchClient = repositoryClient.getBranchClient(SCMContext.getTaskListener(), SCMContext.getOwner(), repository);
+            } catch (Exception exception) {
+                log.log(Level.WARNING, exception.getMessage() + " Cannot resolve client for Branch discovery.");
                 return;
             }
 
@@ -69,8 +65,9 @@ public class BitbucketBranchesDiscoveryTrait extends BitbucketSCMSourceTrait {
                         @Override
                         public Stream<? extends SCMHead> discoverHeads() {
                             if (bitbucketContext.getEventHeads().isEmpty()) {
-                                return gitClient
-                                        .getRemoteBranches()
+                                return
+                                        bitbucketBranchClient.getRemoteBranches()
+                                        .entrySet()
                                         .stream()
                                         .map(BitbucketBranchSCMHead::new)
                                         .filter(this::isSameOrigin); // We currently do not support forked branches;
@@ -119,7 +116,7 @@ public class BitbucketBranchesDiscoveryTrait extends BitbucketSCMSourceTrait {
 
         @Override
         public String getDisplayName() {
-            return Messages.bitbucket_scm_trait_discovery_pullrequest_display();
+            return Messages.bitbucket_scm_trait_discovery_branches_display();
         }
 
         public Optional<BitbucketClientFactory> getClientFactory(BitbucketSCMSourceContext bitbucketContext) {
