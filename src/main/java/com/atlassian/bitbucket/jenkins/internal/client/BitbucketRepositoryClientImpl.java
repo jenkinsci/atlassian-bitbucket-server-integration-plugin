@@ -17,6 +17,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.fasterxml.jackson.core.type.TypeReference;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.model.TaskListener;
 import jenkins.scm.api.SCMSourceOwner;
@@ -66,6 +67,7 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public BitbucketBranchClient getBranchClient(TaskListener listener, SCMSourceOwner context, BitbucketSCMRepository repository) throws IOException, InterruptedException {
         Git git = Git.with(listener, new EnvVars(EnvVars.masterEnvVars));
         GitClient client = git.getClient();
