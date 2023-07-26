@@ -10,7 +10,6 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
@@ -35,6 +34,8 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.GitSCMSourceContext;
+import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -630,13 +631,22 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            return Collections.singletonList(new BitbucketBranchDiscoveryTrait());
+            // TODO: Replace with our own branch discovery implementation.
+            return Collections.singletonList(new BranchDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
             List<NamedArrayList<? extends SCMSourceTraitDescriptor>> result = new ArrayList<>();
-            List<SCMSourceTraitDescriptor> descriptors =
+            List<SCMSourceTraitDescriptor> descriptors = new ArrayList<>();
+
+            // TODO: Temporarily allow BranchDiscoveryTrait but remove once we've implemented our own branch discovery.
+            descriptors.addAll(SCMSourceTrait._for(gitScmSourceDescriptor, GitSCMSourceContext.class, GitSCMBuilder.class)
+                    .stream().filter(descriptor -> descriptor instanceof BranchDiscoveryTrait.DescriptorImpl)
+                    .collect(Collectors.toList()));
+
+            descriptors.addAll(SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class));
                     SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
+
             NamedArrayList.select(descriptors, Messages.bitbucket_scm_trait_type_withinrepository(),
                     NamedArrayList.anyOf(
                             NamedArrayList.withAnnotation(Selection.class),

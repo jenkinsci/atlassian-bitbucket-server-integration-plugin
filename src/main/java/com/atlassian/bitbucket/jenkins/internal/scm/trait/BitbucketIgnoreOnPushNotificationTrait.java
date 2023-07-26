@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSourceContext;
 import jenkins.plugins.git.traits.IgnoreOnPushNotificationTrait;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMSourceContext;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Provides backward compatibility for {@link IgnoreOnPushNotificationTrait}.
@@ -12,6 +13,10 @@ import jenkins.scm.api.trait.SCMSourceContext;
  * @since 4.0.0
  */
 public class BitbucketIgnoreOnPushNotificationTrait extends IgnoreOnPushNotificationTrait {
+
+    @DataBoundConstructor
+    public BitbucketIgnoreOnPushNotificationTrait() {
+    }
 
     public static class DescriptorImpl extends IgnoreOnPushNotificationTrait.DescriptorImpl {
 

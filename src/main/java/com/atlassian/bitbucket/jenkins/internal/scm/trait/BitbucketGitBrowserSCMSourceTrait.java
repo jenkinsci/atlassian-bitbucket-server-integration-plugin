@@ -9,6 +9,8 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMSourceContext;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
+
 /**
  * Provides backward compatibility for {@link GitBrowserSCMSourceTrait}.
  *
@@ -17,12 +19,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BitbucketGitBrowserSCMSourceTrait extends GitBrowserSCMSourceTrait {
 
     @DataBoundConstructor
-    public BitbucketGitBrowserSCMSourceTrait(GitRepositoryBrowser browser) {
+    public BitbucketGitBrowserSCMSourceTrait(@CheckForNull GitRepositoryBrowser browser) {
         super(browser);
-    }
-
-    public BitbucketGitBrowserSCMSourceTrait(GitBrowserSCMSourceTrait trait) {
-        super(trait.getBrowser());
     }
 
     @Extension

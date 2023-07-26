@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
-import jenkins.plugins.git.traits.DiscoverOtherRefsTrait;
-import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
-import jenkins.plugins.git.traits.TagDiscoveryTrait;
+import jenkins.plugins.git.traits.*;
 import jenkins.scm.api.trait.SCMSourceTrait;
 
 import javax.annotation.CheckForNull;
@@ -31,7 +29,19 @@ public class BitbucketLegacyTraitConverter {
         }
 
         if (trait instanceof GitBrowserSCMSourceTrait) {
-            return new BitbucketGitBrowserSCMSourceTrait((GitBrowserSCMSourceTrait) trait);
+            return new BitbucketGitBrowserSCMSourceTrait(((GitBrowserSCMSourceTrait) trait).getBrowser());
+        }
+
+        if (trait instanceof IgnoreOnPushNotificationTrait) {
+            return new BitbucketIgnoreOnPushNotificationTrait();
+        }
+
+        if (trait instanceof RefSpecsSCMSourceTrait) {
+            return new BitbucketRefSpecsSCMSourceTrait(((RefSpecsSCMSourceTrait) trait).getTemplates());
+        }
+
+        if (trait instanceof RemoteNameSCMSourceTrait) {
+            return new BitbucketRemoteNameSCMSourceTrait(((RemoteNameSCMSourceTrait) trait).getRemoteName());
         }
 
         return trait;

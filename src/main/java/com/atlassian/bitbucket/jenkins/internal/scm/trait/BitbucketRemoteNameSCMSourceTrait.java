@@ -7,6 +7,8 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMSourceContext;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
+
 /**
  * Provides backward compatibility for {@link RemoteNameSCMSourceTrait}.
  *
@@ -15,7 +17,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BitbucketRemoteNameSCMSourceTrait extends RemoteNameSCMSourceTrait {
 
     @DataBoundConstructor
-    public BitbucketRemoteNameSCMSourceTrait(String remoteName) {
+    public BitbucketRemoteNameSCMSourceTrait(@CheckForNull String remoteName) {
         super(remoteName);
     }
 
