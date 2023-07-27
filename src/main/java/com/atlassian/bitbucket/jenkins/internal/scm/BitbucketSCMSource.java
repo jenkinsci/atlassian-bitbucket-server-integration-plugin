@@ -10,6 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -31,7 +32,10 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.GitSCMSourceContext;
+import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -40,6 +44,8 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
+import jenkins.scm.impl.trait.Discovery;
+import jenkins.scm.impl.trait.Selection;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
@@ -64,9 +70,9 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
-    private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private List<SCMSourceTrait> traits;
     private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
@@ -395,6 +401,21 @@ public class BitbucketSCMSource extends SCMSource {
         return new BitbucketSCMProbe(head, scmHelper.getFilePathClient(getProjectKey(), getRepositorySlug()));
     }
 
+    /**
+     * This method gets invoked by XStream after the {@link BitbucketSCMSource} object is unmarshalled.
+     */
+    @SuppressWarnings("unused") // Used by XStream
+    protected Object readResolve() {
+        if (traits != null) {
+            // Convert any legacy traits into their new equivalents
+            traits = traits.stream().map(BitbucketLegacyTraitConverter::maybeConvert)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
+
+        return this;
+    }
+
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
                             SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
@@ -608,11 +629,30 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            return gitScmSourceDescriptor.getTraitsDefaults();
+            // TODO: Replace with our own branch discovery implementation.
+            return Collections.singletonList(new BranchDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
-            return gitScmSourceDescriptor.getTraitsDescriptorLists();
+            List<NamedArrayList<? extends SCMSourceTraitDescriptor>> result = new ArrayList<>();
+            List<SCMSourceTraitDescriptor> descriptors = new ArrayList<>();
+
+            // TODO: Temporarily allow BranchDiscoveryTrait but remove once we've implemented our own branch discovery.
+            descriptors.addAll(SCMSourceTrait._for(gitScmSourceDescriptor, GitSCMSourceContext.class, GitSCMBuilder.class)
+                    .stream().filter(descriptor -> descriptor instanceof BranchDiscoveryTrait.DescriptorImpl)
+                    .collect(Collectors.toList()));
+
+            descriptors.addAll(SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class));
+                    SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
+
+            NamedArrayList.select(descriptors, Messages.bitbucket_scm_trait_type_withinrepository(),
+                    NamedArrayList.anyOf(
+                            NamedArrayList.withAnnotation(Selection.class),
+                            NamedArrayList.withAnnotation(Discovery.class)
+                    ),
+                    true, result);
+            NamedArrayList.select(descriptors, Messages.bitbucket_scm_trait_type_additional(), null, true, result);
+            return result;
         }
 
         @Override
