@@ -70,9 +70,9 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
-    private final List<SCMSourceTrait> traits;
     private CustomGitSCMSource gitSCMSource;
     private BitbucketSCMRepository repository;
+    private List<SCMSourceTrait> traits;
     private volatile boolean webhookRegistered;
 
     @DataBoundConstructor
@@ -408,11 +408,9 @@ public class BitbucketSCMSource extends SCMSource {
     protected Object readResolve() {
         if (traits != null) {
             // Convert any legacy traits into their new equivalents
-            List<SCMSourceTrait> traits = this.traits.stream().map(BitbucketLegacyTraitConverter::maybeConvert)
+            traits = traits.stream().map(BitbucketLegacyTraitConverter::maybeConvert)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            this.traits.clear();
-            this.traits.addAll(traits);
         }
 
         return this;
