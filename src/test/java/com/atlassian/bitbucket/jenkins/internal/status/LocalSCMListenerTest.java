@@ -34,7 +34,6 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
 import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -173,7 +172,6 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         doAnswer(invocation -> {
             Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
             m.putAll(buildMap);
-            m.put(PULL_REQUEST_SOURCE_BRANCH, PR_BRANCH_VALUE);
             m.put(PULL_REQUEST_SOURCE_COMMIT, PR_COMMIT_VALUE);
             return null;
         }).when(gitSCM).buildEnvironment(notNull(), anyMap());
@@ -181,7 +179,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         listener.onCheckout(build, gitSCM, null, taskListener, null, null);
 
         BitbucketRevisionAction expectedRevision =
-                new BitbucketRevisionAction(scmRepository, "refs/heads/prsourcebranch", PR_COMMIT_VALUE);
+                new BitbucketRevisionAction(scmRepository, null, PR_COMMIT_VALUE);
 
         verify(buildStatusPoster).postBuildStatus(expectedRevision, build, taskListener);
     }

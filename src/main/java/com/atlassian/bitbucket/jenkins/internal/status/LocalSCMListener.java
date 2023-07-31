@@ -28,7 +28,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_BRANCH;
 import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
 
 @Extension
@@ -127,14 +126,12 @@ public class LocalSCMListener extends SCMListener {
 
     @CheckForNull
     private String getRefFromEnvironment(Map<String, String> env, GitSCM scm) {
-        // If the pull request source branch is specified use that as the ref ID
-        String refId = StringUtils.stripToNull(env.get(PULL_REQUEST_SOURCE_BRANCH));
-
-        // Otherwise, use the default value from GIT_BRANCH
-        if (refId == null) {
-            refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
+        // If the pull request source commit is specified we do not need to specify the ref
+        if (StringUtils.isNotBlank(env.get(PULL_REQUEST_SOURCE_COMMIT))) {
+            return null;
         }
 
+        String refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
         if (refId == null) {
             return null;
         }

@@ -129,7 +129,7 @@ public class BitbucketPullRequestDiscoveryTraitTest {
 
         underTest.decorateBuilder(scmBuilder);
 
-        assertThat(scmBuilder.refSpecs().get(0), equalTo("+refs/heads/from:refs/remotes/@{remote}/PR-1"));
+        assertThat(scmBuilder.refSpecs().get(0), equalTo("+refs/pull-requests/1/from:refs/remotes/@{remote}/PR-1"));
         assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketPullRequestSourceBranch.class));
 
         PreBuildMerge mergeBuild = (PreBuildMerge) scmBuilder.extensions().get(1);
@@ -186,7 +186,10 @@ public class BitbucketPullRequestDiscoveryTraitTest {
 
         // Verify that the client fetches all open pullrequest and converts them into heads
         verify(bitbucketRepositoryClient).getPullRequests(BitbucketPullRequestState.OPEN);
-        assertThat(heads, Matchers.contains(new BitbucketPullRequestSCMHead(sameOriginPr)));
+        assertThat(heads, Matchers.containsInAnyOrder(
+                new BitbucketPullRequestSCMHead(sameOriginPr),
+                new BitbucketPullRequestSCMHead(forkedPr)
+        ));
     }
 
     private void initContext(Set<SCMHead> eventHeads) {
