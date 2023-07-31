@@ -5,6 +5,8 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.TaskListener;
@@ -13,7 +15,6 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import org.eclipse.jgit.lib.ObjectId;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,7 +88,7 @@ public class BitbucketBranchDiscoveryTraitTest {
                 .when(jenkinsToBitbucketCredentials)
                 .toBitbucketCredentials(credentials);
         doReturn(bitbucketRepositoryClient).when(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
-        doReturn(bitbucketBranchClient).when(bitbucketRepositoryClient).getBranchClient(any(), any(), any());
+        doReturn(bitbucketBranchClient).when(bitbucketRepositoryClient).getBranchClient();
         doReturn(bitbucketProjectClient).when(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
         doReturn(bitbucketClientFactory).when(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
         initContext(Collections.emptySet());
@@ -111,7 +112,8 @@ public class BitbucketBranchDiscoveryTraitTest {
 
     @Test
     public void testDecorateContextWithEventHeads() {
-        SCMHead testEventHead = new BitbucketBranchSCMHead(new AbstractMap.SimpleEntry("master", new ObjectId(1,2,3,4,5)));
+        SCMHead testEventHead = new BitbucketBranchSCMHead(new BitbucketDefaultBranch(
+                "1", "master", BitbucketRefType.BRANCH, "1", "2", true));
         initContext(Collections.singleton(testEventHead));
 
         underTest.decorateContext(testContext);
@@ -130,9 +132,8 @@ public class BitbucketBranchDiscoveryTraitTest {
 
     @Test
     public void testDecorateContextWithServerConfiguration() {
-        ObjectId tmpObjectId = new ObjectId(1,2,3,4,5);
-        Map.Entry<String, ObjectId> branch = new AbstractMap.SimpleEntry("master", tmpObjectId);
-        doReturn(Collections.singletonMap("master", tmpObjectId)).when(bitbucketBranchClient).getRemoteBranches();
+        BitbucketDefaultBranch branch = new BitbucketDefaultBranch("1", "master", BitbucketRefType.BRANCH, "1", "2", false);
+        doReturn(Collections.singleton(branch).stream()).when(bitbucketBranchClient).getRemoteBranches();
 
         underTest.decorateContext(testContext);
 

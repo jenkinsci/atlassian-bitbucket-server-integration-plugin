@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
+
     private static final Logger log = Logger.getLogger(BitbucketBranchDiscoveryTrait.class.getName());
 
     @DataBoundConstructor
@@ -46,18 +47,11 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                 return;
             }
 
-            BitbucketSCMSourceContext SCMContext = (BitbucketSCMSourceContext) context;
             BitbucketSCMRepository repository = bitbucketContext.getRepository();
             BitbucketRepositoryClient repositoryClient = clientFactory.get()
                     .getProjectClient(repository.getProjectKey())
                     .getRepositoryClient(repository.getRepositorySlug());
-            BitbucketBranchClient bitbucketBranchClient;
-            try {
-                bitbucketBranchClient = repositoryClient.getBranchClient(SCMContext.getTaskListener(), SCMContext.getOwner(), repository);
-            } catch (Exception exception) {
-                log.log(Level.WARNING, exception.getMessage() + " Cannot resolve client for Branch discovery.");
-                return;
-            }
+            BitbucketBranchClient bitbucketBranchClient = repositoryClient.getBranchClient();
 
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {
@@ -66,8 +60,6 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                             if (bitbucketContext.getEventHeads().isEmpty()) {
                                 return
                                         bitbucketBranchClient.getRemoteBranches()
-                                        .entrySet()
-                                        .stream()
                                         .map(BitbucketBranchSCMHead::new)
                                         .filter(this::isSameOrigin); // We currently do not support forked branches;
                             }

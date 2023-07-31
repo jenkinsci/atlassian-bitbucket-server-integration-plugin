@@ -401,7 +401,7 @@ public class BitbucketSCMSource extends SCMSource {
                             TaskListener listener) throws IOException {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
         SCMSourceOwner owner = getOwner();
-        if(owner == null) {
+        if (owner == null) {
             return;
         }
 
