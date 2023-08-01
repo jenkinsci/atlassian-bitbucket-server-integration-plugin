@@ -69,7 +69,8 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                         @Override
                         public SCMRevision toRevision(SCMHead head) {
                             if (head instanceof BitbucketBranchSCMHead) {
-                                return new BitbucketSCMRevision((BitbucketBranchSCMHead) head, ((BitbucketBranchSCMHead) head).getLatestCommit());
+                                return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
+                                        ((BitbucketBranchSCMHead) head).getLatestCommit());
                             }
 
                             RuntimeException e = new IllegalStateException("The specified head needs to be an " +

@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMRevision;
 
@@ -8,11 +9,12 @@ public class BitbucketSCMRevision extends SCMRevision {
     private static final long serialVersionUID = 1L;
     private final String commitHash;
 
-    public BitbucketSCMRevision(@NonNull BitbucketSCMHead head, String commitHash) {
+    public BitbucketSCMRevision(@NonNull BitbucketSCMHead head, @CheckForNull String commitHash) {
         super(head);
         this.commitHash = commitHash;
     }
 
+    @CheckForNull
     public String getCommitHash() {
         return commitHash;
     }
