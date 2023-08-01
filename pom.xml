@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>4.0.0-alpha.1-SNAPSHOT</version>
+    <version>4.0.0-alpha.2-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <bitbucket.version>6.10.15</bitbucket.version>
@@ -18,7 +18,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <jackson.version>2.15.1</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.401.1</jenkins.version>
+        <jenkins.version>2.401.3</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
