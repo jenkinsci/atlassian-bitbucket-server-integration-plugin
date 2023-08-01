@@ -300,8 +300,8 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
             return effectiveRefs.stream()
-                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()),
-                            change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
+                    .collect(Collectors.toMap(BitbucketBranchSCMHead::new,
+                            change -> new BitbucketSCMRevision(new BitbucketBranchSCMHead(change), change.getToHash())));
         }
 
         @Override

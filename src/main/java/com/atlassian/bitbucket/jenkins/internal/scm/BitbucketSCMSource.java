@@ -321,6 +321,11 @@ public class BitbucketSCMSource extends SCMSource {
             return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
         }
 
+        if (head instanceof BitbucketBranchSCMHead) {
+            return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
+                    ((BitbucketBranchSCMHead) head).getLatestCommit());
+        }
+
         return getFullyInitializedGitSCMSource().accessibleRetrieve(head, listener);
     }
 
