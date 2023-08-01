@@ -3,14 +3,12 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBranchClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import hudson.Extension;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMSourceContext;
@@ -48,10 +46,10 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
             }
 
             BitbucketSCMRepository repository = bitbucketContext.getRepository();
-            BitbucketRepositoryClient repositoryClient = clientFactory.get()
+            BitbucketBranchClient bitbucketBranchClient = clientFactory.get()
                     .getProjectClient(repository.getProjectKey())
-                    .getRepositoryClient(repository.getRepositorySlug());
-            BitbucketBranchClient bitbucketBranchClient = repositoryClient.getBranchClient();
+                    .getRepositoryClient(repository.getRepositorySlug())
+                    .getBranchClient();
 
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {
@@ -60,14 +58,12 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                             if (bitbucketContext.getEventHeads().isEmpty()) {
                                 return
                                         bitbucketBranchClient.getRemoteBranches()
-                                        .map(BitbucketBranchSCMHead::new)
-                                        .filter(this::isSameOrigin); // We currently do not support forked branches;
+                                        .map(BitbucketBranchSCMHead::new);
                             }
 
                             return bitbucketContext.getEventHeads().stream()
                                     .filter(BitbucketBranchSCMHead.class::isInstance)
-                                    .map(BitbucketBranchSCMHead.class::cast)
-                                    .filter(this::isSameOrigin); // We currently do not support forked branches;
+                                    .map(BitbucketBranchSCMHead.class::cast);
                         }
 
                         @Override
@@ -80,10 +76,6 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                                                                            "instance of BitbucketPullRequestSCMHead");
                             e.setStackTrace(new StackTraceElement[0]);
                             throw e;
-                        }
-
-                        private boolean isSameOrigin(BitbucketBranchSCMHead head) {
-                            return head.getOrigin() == SCMHeadOrigin.DEFAULT;
                         }
                     });
         }
