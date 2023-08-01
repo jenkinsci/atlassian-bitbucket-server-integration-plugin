@@ -34,8 +34,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.GitSCMSource;
-import jenkins.plugins.git.GitSCMSourceContext;
-import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -630,18 +628,12 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            // TODO: Replace with our own branch discovery implementation.
-            return Collections.singletonList(new BranchDiscoveryTrait());
+            return Collections.singletonList(new BitbucketBranchDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
             List<NamedArrayList<? extends SCMSourceTraitDescriptor>> result = new ArrayList<>();
             List<SCMSourceTraitDescriptor> descriptors = new ArrayList<>();
-
-            // TODO: Temporarily allow BranchDiscoveryTrait but remove once we've implemented our own branch discovery.
-            descriptors.addAll(SCMSourceTrait._for(gitScmSourceDescriptor, GitSCMSourceContext.class, GitSCMBuilder.class)
-                    .stream().filter(descriptor -> descriptor instanceof BranchDiscoveryTrait.DescriptorImpl)
-                    .collect(Collectors.toList()));
 
             descriptors.addAll(SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class));
                     SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
