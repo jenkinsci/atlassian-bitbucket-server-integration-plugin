@@ -33,8 +33,7 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
                 .addPathSegment(projectKey)
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug)
-                .addPathSegment("branches")
-                .addQueryParameter("filterTest", "");
+                .addPathSegment("branches");
 
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketDefaultBranch> firstPage =

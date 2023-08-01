@@ -6,12 +6,10 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import okhttp3.HttpUrl;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.util.Collection;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.lang.String.valueOf;
@@ -20,7 +18,6 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient {
 
-    private static final Logger log = Logger.getLogger(BitbucketRepositoryClientImpl.class.getName());
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final BitbucketCapabilitiesClient capabilitiesClient;
     private final String projectKey;
@@ -49,7 +46,6 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public BitbucketBranchClient getBranchClient() {
         return new BitbucketBranchClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
     }

@@ -7,13 +7,10 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
-import hudson.model.TaskListener;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
-import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -25,7 +22,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,7 +38,8 @@ public class BitbucketBranchDiscoveryTraitTest {
     private static final String TEST_REPOSITORY_SLUG = "repo-slug";
     private static final String TEST_SERVER_ID = "server-id";
     private static final String TEST_URL = "http://localhost";
-
+    @Mock
+    private BitbucketBranchClient bitbucketBranchClient;
     @Mock
     private BitbucketClientFactory bitbucketClientFactory;
     @Mock
@@ -51,8 +52,6 @@ public class BitbucketBranchDiscoveryTraitTest {
     private BitbucketProjectClient bitbucketProjectClient;
     @Mock
     private BitbucketRepositoryClient bitbucketRepositoryClient;
-    @Mock
-    private BitbucketBranchClient bitbucketBranchClient;
     @Mock
     private BitbucketSCMRepository bitbucketSCMRepository;
     @Mock
@@ -67,10 +66,6 @@ public class BitbucketBranchDiscoveryTraitTest {
     private SCMSourceCriteria scmSourceCriteria;
     @Mock
     private BitbucketSCMSourceContext testContext;
-    @Mock
-    private TaskListener listener;
-    @Mock
-    private SCMSourceOwner owner;
     @InjectMocks
     private BitbucketBranchDiscoveryTrait.DescriptorImpl traitDescriptor;
     private BitbucketBranchDiscoveryTrait underTest;
@@ -132,7 +127,8 @@ public class BitbucketBranchDiscoveryTraitTest {
 
     @Test
     public void testDecorateContextWithServerConfiguration() {
-        BitbucketDefaultBranch branch = new BitbucketDefaultBranch("1", "master", BitbucketRefType.BRANCH, "1", "2", false);
+        BitbucketDefaultBranch branch =
+                new BitbucketDefaultBranch("1", "master", BitbucketRefType.BRANCH, "1", "2", false);
         doReturn(Collections.singleton(branch).stream()).when(bitbucketBranchClient).getRemoteBranches();
 
         underTest.decorateContext(testContext);
@@ -154,14 +150,6 @@ public class BitbucketBranchDiscoveryTraitTest {
                 scmHeadObserver,
                 credentials,
                 eventHeads,
-                bitbucketSCMRepository,
-                listener,
-                owner));
-    }
-
-    private BitbucketRepository mockRepo(int repoId) {
-        BitbucketRepository repo = mock(BitbucketRepository.class);
-        doReturn(repoId).when(repo).getId();
-        return repo;
+                bitbucketSCMRepository));
     }
 }

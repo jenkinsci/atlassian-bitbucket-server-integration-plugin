@@ -400,13 +400,9 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
-        SCMSourceOwner owner = getOwner();
-        if (owner == null) {
-            return;
-        }
 
         BitbucketSCMSourceContext context =
-                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository, listener, owner)
+                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository)
                         .withTraits(traits);
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {

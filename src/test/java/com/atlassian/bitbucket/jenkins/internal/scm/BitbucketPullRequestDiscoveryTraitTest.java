@@ -10,10 +10,11 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.cloudbees.plugins.credentials.Credentials;
-import hudson.model.TaskListener;
-import jenkins.plugins.git.GitSCMBuilder;
-import jenkins.scm.api.*;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
+import jenkins.plugins.git.GitSCMBuilder;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.gitclient.MergeCommand;
@@ -71,10 +72,6 @@ public class BitbucketPullRequestDiscoveryTraitTest {
     private SCMSourceCriteria scmSourceCriteria;
     @Mock
     private BitbucketSCMSourceContext testContext;
-    @Mock
-    private TaskListener listener;
-    @Mock
-    private SCMSourceOwner owner;
     @InjectMocks
     private BitbucketPullRequestDiscoveryTrait.DescriptorImpl traitDescriptor;
     private BitbucketPullRequestDiscoveryTrait underTest;
@@ -198,9 +195,7 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 scmHeadObserver,
                 credentials,
                 eventHeads,
-                bitbucketSCMRepository,
-                listener,
-                owner));
+                bitbucketSCMRepository));
     }
 
     private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {

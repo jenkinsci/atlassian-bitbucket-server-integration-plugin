@@ -18,22 +18,16 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
     private final Collection<BitbucketSCMHeadDiscoveryHandler> discoveryHandlers = new ArrayList<>();
     private final Collection<SCMHead> eventHeads;
     private final BitbucketSCMRepository repository;
-    private final TaskListener listener;
-    private final SCMSourceOwner owner;
 
     public BitbucketSCMSourceContext(@CheckForNull SCMSourceCriteria criteria,
                                      SCMHeadObserver observer,
                                      @CheckForNull Credentials credentials,
                                      Collection<SCMHead> eventHeads,
-                                     BitbucketSCMRepository repository,
-                                     TaskListener listener,
-                                     SCMSourceOwner owner) {
+                                     BitbucketSCMRepository repository) {
         super(criteria, observer);
         this.credentials = credentials;
         this.eventHeads = requireNonNull(eventHeads, "eventHeads");
         this.repository = requireNonNull(repository, "repository");
-        this.listener = requireNonNull(listener, "listener");
-        this.owner = requireNonNull(owner, "owner");
     }
 
     @CheckForNull
@@ -49,10 +43,6 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
         return Collections.unmodifiableCollection(eventHeads);
     }
 
-    public SCMSourceOwner getOwner() {
-        return owner;
-    }
-
     @Override
     public BitbucketSCMSourceRequest newRequest(SCMSource source, @CheckForNull TaskListener listener) {
         return new BitbucketSCMSourceRequest(source, this, listener);
@@ -60,10 +50,6 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
 
     public BitbucketSCMRepository getRepository() {
         return repository;
-    }
-
-    public TaskListener getTaskListener() {
-        return listener;
     }
 
     public void withDiscoveryHandler(BitbucketSCMHeadDiscoveryHandler handler) {
