@@ -73,7 +73,7 @@ public class BitbucketBranchDiscoveryTrait extends BitbucketSCMSourceTrait {
                             }
 
                             RuntimeException e = new IllegalStateException("The specified head needs to be an " +
-                                                                           "instance of BitbucketPullRequestSCMHead");
+                                                                           "instance of BitbucketBranchSCMHead");
                             e.setStackTrace(new StackTraceElement[0]);
                             throw e;
                         }
