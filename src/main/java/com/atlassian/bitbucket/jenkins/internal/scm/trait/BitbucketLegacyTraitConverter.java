@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchDiscoveryTrait;
 import jenkins.plugins.git.traits.*;
 import jenkins.scm.api.trait.SCMSourceTrait;
 
@@ -26,6 +27,10 @@ public class BitbucketLegacyTraitConverter {
     public static SCMSourceTrait maybeConvert(SCMSourceTrait trait) {
         if (trait instanceof TagDiscoveryTrait || trait instanceof DiscoverOtherRefsTrait) {
             return null;
+        }
+
+        if (trait instanceof BranchDiscoveryTrait) {
+            return new BitbucketBranchDiscoveryTrait();
         }
 
         if (trait instanceof GitBrowserSCMSourceTrait) {

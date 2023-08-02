@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,7 +22,6 @@ import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {
@@ -72,13 +72,15 @@ public class BitbucketBranchClientImplTest {
         assertEquals(next.getSize(), values.size());
         assertTrue(next.getSize() > 0);
 
-        assertThat(values.stream().map(BitbucketDefaultBranch::getId).collect(toSet()), hasItems("refs/heads/master", "refs/heads/branch1"));
-        assertThat(next.isLastPage(), is(true));
+        MatcherAssert.assertThat(values.stream().map(BitbucketDefaultBranch::getId).collect(toSet()),
+                hasItems("refs/heads/master", "refs/heads/branch1"));
+        MatcherAssert.assertThat(next.isLastPage(), is(true));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLastPageDoesNotHaveNext() {
-        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher = new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
         BitbucketPage<BitbucketDefaultBranch> page = new BitbucketPage<>();
         page.setLastPage(true);
 

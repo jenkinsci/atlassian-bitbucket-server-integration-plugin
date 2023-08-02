@@ -13,8 +13,6 @@ import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn;
-import jenkins.plugins.git.GitBranchSCMHead;
-import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.scm.api.*;
 import jenkins.triggers.SCMTriggerItem;
 import org.eclipse.jgit.transport.RemoteConfig;
@@ -252,12 +250,13 @@ public class BitbucketWebhookConsumer {
             BitbucketPullRequestSCMRevision prScmRevision = new BitbucketPullRequestSCMRevision(prScmHead);
 
             // We still want to return the affected "branch head" so that we maintain backwards compatibility for the
-            // current behavior for the `GitSCMSource` branch discovery trait. Otherwise, `SCMHeadEvent.Validated`
+            // current expected behavior for the branch discovery trait. Otherwise, `SCMHeadEvent.Validated`
             // (an `SCMHeadObserver` wrapper) will not recognize the affected branch as a "trusted" head and will not
             // be built.
             BitbucketPullRequestRef fromRef = pullRequest.getFromRef();
-            GitBranchSCMHead branchSCMHead = new GitBranchSCMHead(fromRef.getDisplayId());
-            GitBranchSCMRevision branchSCMRevision = new GitBranchSCMRevision(branchSCMHead, fromRef.getLatestCommit());
+            BitbucketBranchSCMHead branchSCMHead = new BitbucketBranchSCMHead(fromRef);
+            BitbucketSCMRevision branchSCMRevision =
+                    new BitbucketSCMRevision(branchSCMHead, branchSCMHead.getLatestCommit());
 
             Map<SCMHead, SCMRevision> scmHeadSCMRevisionMap = new HashMap<>();
             scmHeadSCMRevisionMap.put(prScmHead, prScmRevision);
@@ -300,8 +299,8 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
             return effectiveRefs.stream()
-                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()),
-                            change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
+                    .collect(Collectors.toMap(BitbucketBranchSCMHead::new,
+                            change -> new BitbucketSCMRevision(new BitbucketBranchSCMHead(change), change.getToHash())));
         }
 
         @Override
