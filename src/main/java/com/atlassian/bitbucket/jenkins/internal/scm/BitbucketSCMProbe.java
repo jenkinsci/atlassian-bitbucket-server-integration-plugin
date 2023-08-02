@@ -45,9 +45,9 @@ public class BitbucketSCMProbe extends SCMProbe {
 
     private String getRef() {
         if (head instanceof BitbucketSCMHead) {
-            BitbucketSCMHead bitbucketHead = (BitbucketSCMHead) head;
-            if (bitbucketHead.getLatestCommit() != null) {
-                return bitbucketHead.getLatestCommit();
+            String latestCommit = ((BitbucketSCMHead) head).getLatestCommit();
+            if (latestCommit != null) {
+                return latestCommit;
             }
         }
 
