@@ -1,23 +1,18 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketProjectClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
+import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.cloudbees.plugins.credentials.Credentials;
-import hudson.plugins.git.extensions.impl.PreBuildMerge;
-import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.hamcrest.Matchers;
-import org.jenkinsci.plugins.gitclient.MergeCommand;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,26 +21,25 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BitbucketPullRequestDiscoveryTraitTest {
+public class BitbucketBranchDiscoveryTraitTest {
 
     static final String TEST_PROJECT_KEY = "PROJECT_KEY";
     private static final String TEST_REPOSITORY_SLUG = "repo-slug";
     private static final String TEST_SERVER_ID = "server-id";
     private static final String TEST_URL = "http://localhost";
-
+    @Mock
+    private BitbucketBranchClient bitbucketBranchClient;
     @Mock
     private BitbucketClientFactory bitbucketClientFactory;
     @Mock
@@ -73,11 +67,11 @@ public class BitbucketPullRequestDiscoveryTraitTest {
     @Mock
     private BitbucketSCMSourceContext testContext;
     @InjectMocks
-    private BitbucketPullRequestDiscoveryTrait.DescriptorImpl traitDescriptor;
-    private BitbucketPullRequestDiscoveryTrait underTest;
+    private BitbucketBranchDiscoveryTrait.DescriptorImpl traitDescriptor;
+    private BitbucketBranchDiscoveryTrait underTest;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException, InterruptedException {
         doReturn(TEST_PROJECT_KEY).when(bitbucketSCMRepository).getProjectKey();
         doReturn(TEST_REPOSITORY_SLUG).when(bitbucketSCMRepository).getRepositorySlug();
         doReturn(TEST_SERVER_ID).when(bitbucketSCMRepository).getServerId();
@@ -89,55 +83,16 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 .when(jenkinsToBitbucketCredentials)
                 .toBitbucketCredentials(credentials);
         doReturn(bitbucketRepositoryClient).when(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
+        doReturn(bitbucketBranchClient).when(bitbucketRepositoryClient).getBranchClient();
         doReturn(bitbucketProjectClient).when(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
         doReturn(bitbucketClientFactory).when(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
         initContext(Collections.emptySet());
-        underTest = new BitbucketPullRequestDiscoveryTrait() {
+        underTest = new BitbucketBranchDiscoveryTrait() {
             @Override
             public SCMSourceTraitDescriptor getDescriptor() {
                 return traitDescriptor;
             }
         };
-    }
-
-    @Test
-    public void testDecorateBuilder() {
-        BitbucketProject project = new BitbucketProject(TEST_PROJECT_KEY, null, TEST_PROJECT_KEY);
-        BitbucketRepository repository = new BitbucketRepository(0,
-                TEST_REPOSITORY_SLUG,
-                null,
-                project,
-                TEST_REPOSITORY_SLUG,
-                RepositoryState.AVAILABLE);
-        BitbucketPullRequestRef fromRef = new BitbucketPullRequestRef("heads/refs/from",
-                "from",
-                repository,
-                "fromCommit");
-        BitbucketPullRequestRef toRef = new BitbucketPullRequestRef("heads/refs/to",
-                "to",
-                repository,
-                "toCommit");
-        BitbucketPullRequest pullRequest = new BitbucketPullRequest(1,
-                BitbucketPullRequestState.OPEN,
-                fromRef,
-                toRef,
-                -1,
-                "Test pull request",
-                "This is a test pull request");
-        BitbucketPullRequestSCMHead head = new BitbucketPullRequestSCMHead(pullRequest);
-        BitbucketPullRequestSCMRevision revision = new BitbucketPullRequestSCMRevision(head);
-        GitSCMBuilder scmBuilder = new GitSCMBuilder(head, revision, "remote", null);
-
-        underTest.decorateBuilder(scmBuilder);
-
-        assertThat(scmBuilder.refSpecs().get(0), equalTo("+refs/pull-requests/1/from:refs/remotes/@{remote}/PR-1"));
-        assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketPullRequestSourceBranch.class));
-
-        PreBuildMerge mergeBuild = (PreBuildMerge) scmBuilder.extensions().get(1);
-        assertThat(mergeBuild.getOptions().getMergeRemote(), equalTo("origin"));
-        assertThat(mergeBuild.getOptions().getMergeTarget(), equalTo("to"));
-        assertThat(mergeBuild.getOptions().getMergeStrategy(), equalTo(MergeCommand.Strategy.DEFAULT));
-        assertThat(mergeBuild.getOptions().getFastForwardMode(), equalTo(MergeCommand.GitPluginFastForwardMode.FF));
     }
 
     @Test
@@ -152,7 +107,8 @@ public class BitbucketPullRequestDiscoveryTraitTest {
 
     @Test
     public void testDecorateContextWithEventHeads() {
-        SCMHead testEventHead = new BitbucketPullRequestSCMHead(mockPullRequest(1, false));
+        SCMHead testEventHead = new BitbucketBranchSCMHead(new BitbucketDefaultBranch(
+                "1", "master", BitbucketRefType.BRANCH, "1", "2", true));
         initContext(Collections.singleton(testEventHead));
 
         underTest.decorateContext(testContext);
@@ -164,17 +120,16 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         BitbucketSCMHeadDiscoveryHandler handler = handlerCaptor.getValue();
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
-        // Verify that the client does not fetch any pull requests and uses the event heads instead
-        verifyZeroInteractions(bitbucketRepositoryClient);
+        // Verify that the client does not fetch any branches and uses the event heads instead
+        verifyZeroInteractions(bitbucketBranchClient);
         assertThat(heads, Matchers.contains(testEventHead));
     }
 
     @Test
     public void testDecorateContextWithServerConfiguration() {
-        BitbucketPullRequest sameOriginPr = mockPullRequest(1, false);
-        BitbucketPullRequest forkedPr = mockPullRequest(2, true);
-        doReturn(Stream.of(sameOriginPr, forkedPr)).when(bitbucketRepositoryClient)
-                .getPullRequests(BitbucketPullRequestState.OPEN);
+        BitbucketDefaultBranch branch =
+                new BitbucketDefaultBranch("1", "master", BitbucketRefType.BRANCH, "1", "2", false);
+        doReturn(Collections.singleton(branch).stream()).when(bitbucketBranchClient).getRemoteBranches();
 
         underTest.decorateContext(testContext);
 
@@ -185,12 +140,9 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         BitbucketSCMHeadDiscoveryHandler handler = handlerCaptor.getValue();
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
-        // Verify that the client fetches all open pullrequest and converts them into heads
-        verify(bitbucketRepositoryClient).getPullRequests(BitbucketPullRequestState.OPEN);
-        assertThat(heads, Matchers.containsInAnyOrder(
-                new BitbucketPullRequestSCMHead(sameOriginPr),
-                new BitbucketPullRequestSCMHead(forkedPr)
-        ));
+        // Verify that the client fetches branches and converts them into heads
+        verify(bitbucketBranchClient).getRemoteBranches();
+        assertThat(heads, Matchers.contains(new BitbucketBranchSCMHead(branch)));
     }
 
     private void initContext(Set<SCMHead> eventHeads) {
@@ -199,29 +151,5 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 credentials,
                 eventHeads,
                 bitbucketSCMRepository));
-    }
-
-    private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {
-        BitbucketRepository fromRepo = mockRepo(1);
-        BitbucketRepository toRepo = isForked ? mockRepo(2) : fromRepo;
-
-        BitbucketPullRequestRef fromRef =
-                new BitbucketPullRequestRef("refs/heads/from", "from", fromRepo, "fromCommit");
-        BitbucketPullRequestRef toRef =
-                new BitbucketPullRequestRef("refs/heads/to", "to", toRepo, "toCommit");
-
-        return new BitbucketPullRequest(id,
-                BitbucketPullRequestState.OPEN,
-                fromRef,
-                toRef,
-                -1,
-                "Test pull request",
-                "This is a test pull request");
-    }
-
-    private BitbucketRepository mockRepo(int repoId) {
-        BitbucketRepository repo = mock(BitbucketRepository.class);
-        doReturn(repoId).when(repo).getId();
-        return repo;
     }
 }

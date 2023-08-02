@@ -1,13 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCICapabilities;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -48,6 +43,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                     ciCapabilities.supportsCancelledBuildStates());
         }
         return new BitbucketBuildStatusClientImpl(bitbucketRequestExecutor, revisionSha);
+    }
+
+    @Override
+    public BitbucketBranchClient getBranchClient() {
+        return new BitbucketBranchClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
     }
 
     @Override

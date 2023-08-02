@@ -421,6 +421,7 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
+
         BitbucketSCMSourceContext context =
                 new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository)
                         .withTraits(traits);

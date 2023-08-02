@@ -83,7 +83,6 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 log.log(Level.WARNING, "Server configuration missing, cannot resolve client for PR discovery");
                 return;
             }
-
             BitbucketSCMRepository repository = bitbucketContext.getRepository();
             BitbucketRepositoryClient repositoryClient = clientFactory.get()
                     .getProjectClient(repository.getProjectKey())
