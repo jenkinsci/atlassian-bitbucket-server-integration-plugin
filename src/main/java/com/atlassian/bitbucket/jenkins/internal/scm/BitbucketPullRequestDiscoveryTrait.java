@@ -48,7 +48,7 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 // The BitbucketPullRequestSCMHead uses the PR id as the head name, so we need to use a custom
                 // refspec to be able to map to the correct PR refs during checkout.
                 gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
-                        ":refs/remotes/@{remote}/" + prHead.getName());
+                                          ":refs/remotes/@{remote}/" + prHead.getName());
 
                 // Additionally, we also need to add the source branch name the underlying GitSCM's environment
                 // so it can be easily referenced if needed.
@@ -83,7 +83,6 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                 log.log(Level.WARNING, "Server configuration missing, cannot resolve client for PR discovery");
                 return;
             }
-
             BitbucketSCMRepository repository = bitbucketContext.getRepository();
             BitbucketRepositoryClient repositoryClient = clientFactory.get()
                     .getProjectClient(repository.getProjectKey())

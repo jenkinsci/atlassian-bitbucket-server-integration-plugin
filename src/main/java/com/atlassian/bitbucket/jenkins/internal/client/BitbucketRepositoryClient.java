@@ -16,6 +16,13 @@ import java.util.stream.Stream;
 public interface BitbucketRepositoryClient {
 
     /**
+     * Returns a client for getting branch information from a repository.
+     *
+     * @return a git client that is ready to use
+     */
+    BitbucketBranchClient getBranchClient();
+
+    /**
      * Returns a client for getting file content and directory information on paths in a repository.
      *
      * @return A client that is ready to use
