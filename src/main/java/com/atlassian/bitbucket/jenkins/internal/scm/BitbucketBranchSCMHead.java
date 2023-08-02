@@ -42,7 +42,8 @@ public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
         @Override
         public SCMRevision migrate(@NonNull BitbucketSCMSource source, @NonNull GitBranchSCMRevision revision) {
-            return new BitbucketSCMRevision(new BitbucketBranchSCMHead(revision.getHead().getName()), revision.getHash());
+            return new BitbucketSCMRevision(new BitbucketBranchSCMHead(revision.getHead().getName()),
+                    revision.getHash());
         }
     }
 }
