@@ -38,7 +38,7 @@ public class BitbucketBranchSource extends BranchSource {
         if (isDiscoveryEnabled) {
             addTrait("Discover branches");
         } else {
-            removeTraitIfEnabled("jenkins.plugins.git.traits.BranchDiscoveryTrait");
+            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchDiscoveryTrait");
         }
 
         return this;
