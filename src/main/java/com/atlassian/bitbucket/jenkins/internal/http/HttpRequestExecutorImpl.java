@@ -33,12 +33,19 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private final Call.Factory httpCallFactory;
 
+    public static OkHttpClient buildDefaultOkHttpClient() {
+        long connectionTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 10000);
+        long readTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 10000);
+        log.info("buildDefaultHttpCallFactory with: "+ SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT + ": "+ connectionTimeout + ", "+SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT + ": "+readTimeout);
+        return new OkHttpClient.Builder()
+                .connectTimeout(connectionTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+                .addInterceptor(new UserAgentInterceptor()).build();
+    }
+
     @Inject
     public HttpRequestExecutorImpl() {
-        this(new OkHttpClient.Builder()
-                .connectTimeout(SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 10000), TimeUnit.MILLISECONDS)
-                .readTimeout(SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 10000), TimeUnit.MILLISECONDS)
-                .addInterceptor(new UserAgentInterceptor()).build());
+        this(buildDefaultOkHttpClient());
     }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {

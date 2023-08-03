@@ -4,10 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
-import okhttp3.Call;
-import okhttp3.HttpUrl;
-import okhttp3.Request;
-import okhttp3.Response;
+import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants;
+import okhttp3.*;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -51,6 +49,26 @@ public class HttpRequestExecutorImplTest {
     @After
     public void teardown() {
         factory.ensureResponseBodyClosed();
+    }
+
+    @Test
+    public void testBuildDefaultOkHttpClientDefaults() {
+        System.clearProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT);
+        System.clearProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT);
+        OkHttpClient client = HttpRequestExecutorImpl.buildDefaultOkHttpClient();
+        assertThat(client.connectTimeoutMillis(), is(equalTo(10000)));
+        assertThat(client.readTimeoutMillis(), is(equalTo(10000)));
+    }
+
+    @Test
+    public void testBuildDefaultOkHttpClientOverrides() {
+        int aConnectionTimeout = 2000;
+        int aReadTimeout = 3000;
+        System.setProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, String.valueOf(aConnectionTimeout));
+        System.setProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, String.valueOf(aReadTimeout));
+        OkHttpClient client = HttpRequestExecutorImpl.buildDefaultOkHttpClient();
+        assertThat(client.connectTimeoutMillis(), is(equalTo(aConnectionTimeout)));
+        assertThat(client.readTimeoutMillis(), is(equalTo(aReadTimeout)));
     }
 
     @Test
