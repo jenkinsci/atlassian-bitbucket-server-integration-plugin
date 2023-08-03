@@ -47,8 +47,8 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
 
                 // The BitbucketPullRequestSCMHead uses the PR id as the head name, so we need to use a custom
                 // refspec to be able to map to the correct PR refs during checkout.
-                gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
-                                          ":refs/remotes/@{remote}/" + prHead.getName());
+                gitSCMBuilder.withRefSpec("+refs/pull-requests/" + prHead.getId() + "/from" +
+                        ":refs/remotes/@{remote}/" + prHead.getName());
 
                 // Additionally, we also need to add the source branch name the underlying GitSCM's environment
                 // so it can be easily referenced if needed.
@@ -95,15 +95,13 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                             if (bitbucketContext.getEventHeads().isEmpty()) {
                                 return repositoryClient
                                         .getPullRequests(BitbucketPullRequestState.OPEN)
-                                        .map(BitbucketPullRequestSCMHead::new)
-                                        .filter(this::isSameOrigin); // We currently do not support forked PRs;
+                                        .map(BitbucketPullRequestSCMHead::new);
                             }
 
                             return bitbucketContext.getEventHeads().stream()
                                     .filter(BitbucketPullRequestSCMHead.class::isInstance)
                                     .map(BitbucketPullRequestSCMHead.class::cast)
-                                    .filter(head -> head.getPullRequest().getState() == BitbucketPullRequestState.OPEN)
-                                    .filter(this::isSameOrigin); // We currently do not support forked PRs;
+                                    .filter(head -> head.getPullRequest().getState() == BitbucketPullRequestState.OPEN);
                         }
 
                         @Override
@@ -116,11 +114,6 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
                                     "instance of BitbucketPullRequestSCMHead");
                             e.setStackTrace(new StackTraceElement[0]);
                             throw e;
-                        }
-
-                        private boolean isSameOrigin(BitbucketPullRequestSCMHead head) {
-                            MinimalPullRequest pullRequest = head.getPullRequest();
-                            return pullRequest.getFromRepositoryId() == pullRequest.getToRepositoryId();
                         }
                     });
         }
