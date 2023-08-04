@@ -12,7 +12,7 @@ import javax.annotation.CheckForNull;
 public class BitbucketLegacyTraitConverter {
 
     private BitbucketLegacyTraitConverter() {
-        throw new IllegalStateException("This is a utility class and should not be instantiated");
+        // This is a utility class and should not be instantiated
     }
 
     /**
