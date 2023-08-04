@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchDiscoveryTrait;
 import jenkins.plugins.git.traits.*;
 import jenkins.scm.api.trait.SCMSourceTrait;
 
@@ -11,7 +12,7 @@ import javax.annotation.CheckForNull;
 public class BitbucketLegacyTraitConverter {
 
     private BitbucketLegacyTraitConverter() {
-        throw new IllegalStateException("This is a utility class and should not be instantiated");
+        // This is a utility class and should not be instantiated
     }
 
     /**
@@ -26,6 +27,10 @@ public class BitbucketLegacyTraitConverter {
     public static SCMSourceTrait maybeConvert(SCMSourceTrait trait) {
         if (trait instanceof TagDiscoveryTrait || trait instanceof DiscoverOtherRefsTrait) {
             return null;
+        }
+
+        if (trait instanceof BranchDiscoveryTrait) {
+            return new BitbucketBranchDiscoveryTrait();
         }
 
         if (trait instanceof GitBrowserSCMSourceTrait) {
