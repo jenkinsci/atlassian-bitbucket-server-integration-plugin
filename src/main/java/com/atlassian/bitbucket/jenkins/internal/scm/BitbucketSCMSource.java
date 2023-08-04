@@ -269,6 +269,8 @@ public class BitbucketSCMSource extends SCMSource {
                     .collect(Collectors.toList());
         }
 
+        // initialized will always be null here as transient fields are not persisted so we need to reassign it
+        initialized = new AtomicBoolean(false);
         validateInitialized();
         return this;
     }
