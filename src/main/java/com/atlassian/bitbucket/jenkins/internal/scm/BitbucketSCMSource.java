@@ -74,7 +74,7 @@ public class BitbucketSCMSource extends SCMSource {
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility
     private transient CustomGitSCMSource gitSCMSource;
-    @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
+    @UpgradeHandled(handledBy = "readResolve() method", removeAnnotationInVersion = "4.0.0")
     private transient AtomicBoolean initialized;
     private BitbucketSCMRepository repository;
     @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
