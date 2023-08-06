@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -19,14 +20,12 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistra
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitTool;
-import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.browser.BitbucketServer;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
@@ -57,6 +56,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -68,8 +68,17 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
-    private CustomGitSCMSource gitSCMSource;
+    @UpgradeHandled(handledBy = "static fields not persisted", removeAnnotationInVersion = "4.0.0")
+    private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
+    @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
+    private String cloneUrl;
+    @SuppressWarnings("unused") // Kept for backward compatibility
+    private transient CustomGitSCMSource gitSCMSource;
+    @UpgradeHandled(handledBy = "readResolve() method", removeAnnotationInVersion = "4.0.0")
+    private transient AtomicBoolean initialized;
     private BitbucketSCMRepository repository;
+    @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
+    private String selfLink;
     private List<SCMSourceTrait> traits;
     private volatile boolean webhookRegistered;
 
@@ -83,8 +92,8 @@ public class BitbucketSCMSource extends SCMSource {
             @CheckForNull String repositoryName,
             @CheckForNull String serverId,
             @CheckForNull String mirrorName) {
-
         super.setId(id);
+        initialized = new AtomicBoolean(false);
         this.traits = new ArrayList<>();
         if (traits != null) {
             this.traits.addAll(traits);
@@ -107,11 +116,196 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     @Override
+    public void afterSave() {
+        super.afterSave();
+        validateInitialized();
+
+        if (!webhookRegistered && isValid()) {
+            SCMSourceOwner owner = getOwner();
+            if (owner instanceof ComputedFolder) {
+                ComputedFolder project = (ComputedFolder) owner;
+                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+                BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
+                        .orElseThrow(() -> new BitbucketClientException(
+                                "Server config not found for input server id " + getServerId()));
+                List<BitbucketWebhookMultibranchTrigger> triggers = getTriggers(project);
+                boolean isPullRequestTrigger =
+                        triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isPullRequestTrigger);
+                boolean isRefTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isRefTrigger);
+
+                try {
+                    descriptor.getRetryingWebhookHandler().register(
+                            bitbucketServerConfiguration.getBaseUrl(),
+                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
+                            repository, owner, isPullRequestTrigger, isRefTrigger);
+                } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
+                    LOGGER.severe("Webhook failed to register- token credentials assigned to " +
+                                  bitbucketServerConfiguration.getServerName()
+                                  +
+                                  " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
+                }
+            }
+        }
+    }
+
+    @Override
     public SCM build(SCMHead head, @CheckForNull SCMRevision revision) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building SCM for " + head.getName() + " at revision " + revision);
         }
-        return getFullyInitializedGitSCMSource().build(head, revision);
+
+        validateInitialized();
+
+        GitSCMBuilder<?> builder = new GitSCMBuilder<>(head, revision, cloneUrl, repository.getCloneCredentialsId());
+        builder.withBrowser(new BitbucketServer(selfLink));
+        builder.withRefSpec(REFSPEC_DEFAULT);
+        builder.withTraits(traits);
+        return builder.build();
+    }
+
+    public BitbucketSCMRepository getBitbucketSCMRepository() {
+        return repository;
+    }
+
+    public Optional<Credentials> getCredentials() {
+        return CredentialUtils.getCredentials(getCredentialsId(), getOwner());
+    }
+
+    @CheckForNull
+    public String getCredentialsId() {
+        return getBitbucketSCMRepository().getCredentialsId();
+    }
+
+    public String getMirrorName() {
+        return getBitbucketSCMRepository().getMirrorName();
+    }
+
+    public String getProjectKey() {
+        return getBitbucketSCMRepository().getProjectKey();
+    }
+
+    public String getProjectName() {
+        BitbucketSCMRepository repository = getBitbucketSCMRepository();
+        return repository.isPersonal() ? repository.getProjectKey() : repository.getProjectName();
+    }
+
+    public String getRemote() {
+        validateInitialized();
+        return cloneUrl;
+    }
+
+    public String getRepositoryName() {
+        return getBitbucketSCMRepository().getRepositoryName();
+    }
+
+    public String getRepositorySlug() {
+        return getBitbucketSCMRepository().getRepositorySlug();
+    }
+
+    @CheckForNull
+    public String getServerId() {
+        return getBitbucketSCMRepository().getServerId();
+    }
+
+    @CheckForNull
+    public String getSshCredentialsId() {
+        return getBitbucketSCMRepository().getSshCredentialsId();
+    }
+
+    @Override
+    public List<SCMSourceTrait> getTraits() {
+        return traits;
+    }
+
+    public boolean isEventApplicable(@CheckForNull SCMHeadEvent<?> event) {
+        if (getOwner() instanceof ComputedFolder && event != null) {
+            ComputedFolder<?> owner = (ComputedFolder<?>) getOwner();
+            Object payload = event.getPayload();
+            if (payload instanceof AbstractWebhookEvent) {
+                AbstractWebhookEvent webhookEvent = (AbstractWebhookEvent) payload;
+
+                return owner.getTriggers().values().stream()
+                        .filter(trg -> trg instanceof BitbucketWebhookMultibranchTrigger)
+                        .anyMatch(trig -> (
+                                (BitbucketWebhookMultibranchTrigger) trig).isApplicableForEventType(webhookEvent)
+                        );
+            }
+        }
+        // We only support multibranch project, and SCMHeadEvents are always treated as non-null (see MultiBranchProject.onScmHeadEvent())
+        // So null events or non-computed folders we treat as irrelevant
+        return false;
+    }
+
+    public boolean isValid() {
+        return getBitbucketSCMRepository().isValid() && isNotBlank(getRemote());
+    }
+
+    public boolean isWebhookRegistered() {
+        return webhookRegistered;
+    }
+
+    public void setWebhookRegistered(boolean webhookRegistered) {
+        this.webhookRegistered = webhookRegistered;
+    }
+
+    @Override
+    protected SCMProbe createProbe(SCMHead head, @CheckForNull SCMRevision revision) throws IOException {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        BitbucketServerConfiguration serverConfig = descriptor.getConfiguration(getServerId()).get();
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
+                getCredentials().orElse(null));
+        return new BitbucketSCMProbe(head, scmHelper.getFilePathClient(getProjectKey(), getRepositorySlug()));
+    }
+
+    /**
+     * This method gets invoked by XStream after the {@link BitbucketSCMSource} object is unmarshalled.
+     */
+    @SuppressWarnings("unused") // Used by XStream
+    protected Object readResolve() {
+        // Convert any legacy traits into their new equivalents
+        if (traits != null) {
+            traits = traits.stream().map(BitbucketLegacyTraitConverter::maybeConvert)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
+
+        // initialized will always be null here as transient fields are not persisted so we need to reassign it
+        initialized = new AtomicBoolean(false);
+        validateInitialized();
+        return this;
+    }
+
+    @Override
+    protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
+                            @CheckForNull SCMHeadEvent<?> event,
+                            TaskListener listener) throws IOException, InterruptedException {
+        if (event == null || isEventApplicable(event)) {
+            if (!isValid()) {
+                listener.error(
+                        "The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve." +
+                        " Check the configuration before running this job again.");
+                return;
+            }
+
+            validateInitialized();
+            doRetrieve(criteria, observer, event, listener);
+        }
+    }
+
+    @Override
+    protected SCMRevision retrieve(SCMHead head, TaskListener listener)
+            throws IOException, InterruptedException {
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
+        }
+
+        if (head instanceof BitbucketBranchSCMHead) {
+            return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
+                    ((BitbucketBranchSCMHead) head).getLatestCommit());
+        }
+
+        listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
+        return null;
     }
 
     @Override
@@ -141,11 +335,11 @@ public class BitbucketSCMSource extends SCMSource {
         SCMSourceOwner owner = getOwner();
         if (owner instanceof Actionable) {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
-                .filter(
-                        action -> action.getBitbucketSCMRepository().equals(repository) &&
-                        StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
-                .findAny()
-                .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
+                    .filter(
+                            action -> action.getBitbucketSCMRepository().equals(repository) &&
+                                      StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
+                    .findAny()
+                    .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
         }
 
         if (head instanceof BitbucketPullRequestSCMHead) {
@@ -164,259 +358,16 @@ public class BitbucketSCMSource extends SCMSource {
         return result;
     }
 
-    @Override
-    public void afterSave() {
-        super.afterSave();
-        initializeGitScmSource();
-
-        if (!webhookRegistered && isValid()) {
-            SCMSourceOwner owner = getOwner();
-            if (owner instanceof ComputedFolder) {
-                ComputedFolder project = (ComputedFolder) owner;
-                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-                BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
-                        .orElseThrow(() -> new BitbucketClientException(
-                                "Server config not found for input server id " + getServerId()));
-                List<BitbucketWebhookMultibranchTrigger> triggers = getTriggers(project);
-                boolean isPullRequestTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isPullRequestTrigger);
-                boolean isRefTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isRefTrigger);
-
-                try {
-                    descriptor.getRetryingWebhookHandler().register(
-                            bitbucketServerConfiguration.getBaseUrl(),
-                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, owner, isPullRequestTrigger, isRefTrigger);
-                } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
-                    LOGGER.severe("Webhook failed to register- token credentials assigned to " + bitbucketServerConfiguration.getServerName()
-                                  + " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
+    @VisibleForTesting
+    void validateInitialized() {
+        if (!initialized.get()) {
+            synchronized (this) {
+                if (!initialized.get()) {
+                    initialize();
+                    initialized.set(true);
                 }
             }
         }
-    }
-
-    public BitbucketSCMRepository getBitbucketSCMRepository() {
-        return repository;
-    }
-
-    CustomGitSCMSource getFullyInitializedGitSCMSource() {
-        if (gitSCMSource == null) {
-            initializeGitScmSource();
-        }
-        if (getOwner() != null && gitSCMSource.getOwner() == null) {
-            gitSCMSource.setOwner(getOwner());
-        }
-        return gitSCMSource;
-    }
-
-    @CheckForNull
-    public String getCredentialsId() {
-        return getBitbucketSCMRepository().getCredentialsId();
-    }
-
-    public Optional<Credentials> getCredentials() {
-        return CredentialUtils.getCredentials(getCredentialsId(), getOwner());
-    }
-
-    public String getMirrorName() {
-        return getBitbucketSCMRepository().getMirrorName();
-    }
-
-    public String getProjectKey() {
-        return getBitbucketSCMRepository().getProjectKey();
-    }
-
-    public String getProjectName() {
-        BitbucketSCMRepository repository = getBitbucketSCMRepository();
-        return repository.isPersonal() ? repository.getProjectKey() : repository.getProjectName();
-    }
-
-    public String getRemote() {
-        return getFullyInitializedGitSCMSource().getRemote();
-    }
-
-    public String getRepositoryName() {
-        return getBitbucketSCMRepository().getRepositoryName();
-    }
-
-    public String getRepositorySlug() {
-        return getBitbucketSCMRepository().getRepositorySlug();
-    }
-
-    @CheckForNull
-    public String getServerId() {
-        return getBitbucketSCMRepository().getServerId();
-    }
-
-    @CheckForNull
-    public String getSshCredentialsId() {
-        return getBitbucketSCMRepository().getSshCredentialsId();
-    }
-
-    public boolean isEventApplicable(@CheckForNull SCMHeadEvent<?> event) {
-        if (getOwner() instanceof ComputedFolder && event != null) {
-            ComputedFolder<?> owner = (ComputedFolder<?>) getOwner();
-            Object payload = event.getPayload();
-            if (payload instanceof AbstractWebhookEvent) {
-                AbstractWebhookEvent webhookEvent = (AbstractWebhookEvent) payload;
-
-                return owner.getTriggers().values().stream()
-                        .filter(trg -> trg instanceof BitbucketWebhookMultibranchTrigger)
-                        .anyMatch(trig -> (
-                                (BitbucketWebhookMultibranchTrigger) trig).isApplicableForEventType(webhookEvent)
-                        );
-            }
-        }
-        // We only support multibranch project, and SCMHeadEvents are always treated as non-null (see MultiBranchProject.onScmHeadEvent())
-        // So null events or non-computed folders we treat as irrelevant
-        return false;
-    }
-
-    public boolean isValid() {
-        return getBitbucketSCMRepository().isValid() && isNotBlank(getRemote());
-    }
-
-    @Override
-    public List<SCMSourceTrait> getTraits() {
-        return traits;
-    }
-
-    public boolean isWebhookRegistered() {
-        return webhookRegistered;
-    }
-
-    public void setWebhookRegistered(boolean webhookRegistered) {
-        this.webhookRegistered = webhookRegistered;
-    }
-
-    private List<BitbucketWebhookMultibranchTrigger> getTriggers(ComputedFolder<?> owner) {
-        return owner.getTriggers().values().stream()
-                .filter(BitbucketWebhookMultibranchTrigger.class::isInstance)
-                .map(BitbucketWebhookMultibranchTrigger.class::cast)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    protected void retrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
-                            @CheckForNull SCMHeadEvent<?> event,
-                            TaskListener listener) throws IOException, InterruptedException {
-        if (event == null || isEventApplicable(event)) {
-            if (!isValid()) {
-                listener.error("The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve." +
-                               " Check the configuration before running this job again.");
-                return;
-            }
-
-            if (hasLegacyTraits()) {
-                doRetrieveLegacy(criteria, observer, event, listener);
-            }
-
-            doRetrieve(criteria, observer, event, listener);
-        }
-    }
-
-    @Override
-    protected SCMRevision retrieve(SCMHead head, TaskListener listener)
-            throws IOException, InterruptedException {
-        if (head instanceof BitbucketPullRequestSCMHead) {
-            return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
-        }
-
-        if (head instanceof BitbucketBranchSCMHead) {
-            return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
-                    ((BitbucketBranchSCMHead) head).getLatestCommit());
-        }
-
-        return getFullyInitializedGitSCMSource().accessibleRetrieve(head, listener);
-    }
-
-    // Resolves the SCM repository, and the Git SCM. This involves a callout to Bitbucket so it must be done after the
-    // SCM owner has been initialized
-    @VisibleForTesting
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    void initializeGitScmSource() {
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(repository.getServerId());
-        if (!mayBeServerConf.isPresent()) {
-            // Without a valid server config, we cannot fetch repo details so the config remains as the user entered it
-            return;
-        }
-        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        String cloneUrl, selfLink;
-
-        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
-                getCredentials().orElse(null));
-
-        if (repository.isMirrorConfigured()) {
-            EnrichedBitbucketMirroredRepository fetchedRepository = descriptor.createMirrorHandler(scmHelper)
-                    .fetchRepository(
-                            new MirrorFetchRequest(
-                                    serverConfiguration.getBaseUrl(),
-                                    getOwner(),
-                                    getCredentialsId(),
-                                    getProjectName(),
-                                    getRepositoryName(),
-                                    getMirrorName()));
-            BitbucketRepository underlyingRepo = fetchedRepository.getRepository();
-            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
-                    underlyingRepo.getProject().getName(), underlyingRepo.getProject().getKey(), underlyingRepo.getName(),
-                    underlyingRepo.getSlug(), getServerId(), fetchedRepository.getMirroringDetails().getMirrorName());
-
-            // Get the clone URL from the mirror
-            cloneUrl = fetchedRepository.getMirroringDetails().getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
-                    .map(BitbucketNamedLink::getHref)
-                    // If the mirroring details are missing the clone URL for some reason, try to fall back to the upstream
-                    .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
-                            .map(BitbucketNamedLink::getHref)
-                            .orElse(""));
-
-            selfLink = fetchedRepository.getRepository().getSelfLink();
-        } else {
-            BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
-            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
-                    fetchedRepository.getProject().getName(), fetchedRepository.getProject().getKey(),
-                    fetchedRepository.getName(), fetchedRepository.getSlug(), getServerId(), "");
-            cloneUrl = fetchedRepository.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
-            selfLink = fetchedRepository.getSelfLink();
-        }
-        // Self link contains `/browse` which we must trim off.
-        selfLink = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
-        if (isBlank(cloneUrl)) {
-            LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
-        }
-
-        // Initialize the Git SCM source
-        UserRemoteConfig remoteConfig = new UserRemoteConfig(cloneUrl, repository.getRepositorySlug(), null,
-                repository.getCloneCredentialsId());
-        gitSCMSource = new CustomGitSCMSource(remoteConfig.getUrl(), repository);
-        gitSCMSource.setBrowser(new BitbucketServer(selfLink));
-        gitSCMSource.setCredentialsId(repository.getCloneCredentialsId());
-        gitSCMSource.setOwner(getOwner());
-        gitSCMSource.setTraits(traits);
-        gitSCMSource.setId(getId() + "-git-scm");
-    }
-
-    @Override
-    protected SCMProbe createProbe(SCMHead head, @CheckForNull SCMRevision revision) throws IOException {
-        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-        BitbucketServerConfiguration serverConfig = descriptor.getConfiguration(getServerId()).get();
-        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
-                getCredentials().orElse(null));
-        return new BitbucketSCMProbe(head, scmHelper.getFilePathClient(getProjectKey(), getRepositorySlug()));
-    }
-
-    /**
-     * This method gets invoked by XStream after the {@link BitbucketSCMSource} object is unmarshalled.
-     */
-    @SuppressWarnings("unused") // Used by XStream
-    protected Object readResolve() {
-        if (traits != null) {
-            // Convert any legacy traits into their new equivalents
-            traits = traits.stream().map(BitbucketLegacyTraitConverter::maybeConvert)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        }
-
-        return this;
     }
 
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
@@ -445,7 +396,7 @@ public class BitbucketSCMSource extends SCMSource {
                                                 head, revision, isMatch));
                     } catch (IOException | InterruptedException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
-                                scmRevision + ", error: " + e.getMessage());
+                                       scmRevision + ", error: " + e.getMessage());
 
                         return true;
                     }
@@ -454,18 +405,64 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
-    /**
-     * Keeping this for backwards compatibility while we eventually migrate everything to the new
-     * {@link #doRetrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener) retrieve} implementation.
-     */
-    private void doRetrieveLegacy(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
-                                  @CheckForNull SCMHeadEvent<?> event,
-                                  TaskListener listener) throws IOException, InterruptedException {
-        getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+    private List<BitbucketWebhookMultibranchTrigger> getTriggers(ComputedFolder<?> owner) {
+        return owner.getTriggers().values().stream()
+                .filter(BitbucketWebhookMultibranchTrigger.class::isInstance)
+                .map(BitbucketWebhookMultibranchTrigger.class::cast)
+                .collect(Collectors.toList());
     }
 
-    private boolean hasLegacyTraits() {
-        return traits.stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait));
+    private void initialize() {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(repository.getServerId());
+        if (!mayBeServerConf.isPresent()) {
+            // Without a valid server config, we cannot fetch repo details so the config remains as the user entered it
+            return;
+        }
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(),
+                getCredentials().orElse(null));
+
+        if (repository.isMirrorConfigured()) {
+            EnrichedBitbucketMirroredRepository fetchedRepository = descriptor.createMirrorHandler(scmHelper)
+                    .fetchRepository(
+                            new MirrorFetchRequest(
+                                    serverConfiguration.getBaseUrl(),
+                                    getOwner(),
+                                    getCredentialsId(),
+                                    getProjectName(),
+                                    getRepositoryName(),
+                                    getMirrorName()));
+            BitbucketRepository underlyingRepo = fetchedRepository.getRepository();
+            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
+                    underlyingRepo.getProject().getName(), underlyingRepo.getProject().getKey(), underlyingRepo.getName(),
+                    underlyingRepo.getSlug(), getServerId(), fetchedRepository.getMirroringDetails().getMirrorName());
+
+            // Get the clone URL from the mirror
+            cloneUrl =
+                    fetchedRepository.getMirroringDetails().getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                            .map(BitbucketNamedLink::getHref)
+                            // If the mirroring details are missing the clone URL for some reason, try to fall back to the upstream
+                            .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
+                                    .map(BitbucketNamedLink::getHref)
+                                    .orElse(""));
+
+            selfLink = underlyingRepo.getSelfLink();
+        } else {
+            BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
+            repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
+                    fetchedRepository.getProject().getName(), fetchedRepository.getProject().getKey(),
+                    fetchedRepository.getName(), fetchedRepository.getSlug(), getServerId(), "");
+            cloneUrl =
+                    fetchedRepository.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
+            selfLink = fetchedRepository.getSelfLink();
+        }
+        // Self link contains `/browse` which we must trim off.
+        selfLink = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
+        if (isBlank(cloneUrl)) {
+            LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
+        }
     }
 
     @Symbol("BbS")
@@ -504,12 +501,6 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         @Override
-        public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
-                                                      @QueryParameter String sshCredentialsId) {
-            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
-        }
-
-        @Override
         @POST
         public FormValidation doCheckProjectName(@AncestorInPath Item context,
                                                  @QueryParameter String serverId,
@@ -536,18 +527,17 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         @Override
+        public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
+                                                      @QueryParameter String sshCredentialsId) {
+            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
+        }
+
+        @Override
         @POST
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                      @QueryParameter String baseUrl,
                                                      @QueryParameter String credentialsId) {
             return formFill.doFillCredentialsIdItems(context, baseUrl, credentialsId);
-        }
-
-        @Override
-        public ListBoxModel doFillSshCredentialsIdItems(@AncestorInPath Item context,
-                                                        @QueryParameter String baseUrl,
-                                                        @QueryParameter String sshCredentialsId) {
-            return formFill.doFillSshCredentialsIdItems(context, baseUrl, sshCredentialsId);
         }
 
         @Override
@@ -589,6 +579,13 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         @Override
+        public ListBoxModel doFillSshCredentialsIdItems(@AncestorInPath Item context,
+                                                        @QueryParameter String baseUrl,
+                                                        @QueryParameter String sshCredentialsId) {
+            return formFill.doFillSshCredentialsIdItems(context, baseUrl, sshCredentialsId);
+        }
+
+        @Override
         @POST
         public FormValidation doTestConnection(@AncestorInPath Item context,
                                                @QueryParameter String serverId,
@@ -598,6 +595,14 @@ public class BitbucketSCMSource extends SCMSource {
                                                @QueryParameter String mirrorName) {
             return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName,
                     mirrorName);
+        }
+
+        public BitbucketClientFactoryProvider getBitbucketClientFactoryProvider() {
+            return bitbucketClientFactoryProvider;
+        }
+
+        public BitbucketExternalLinkUtils getBitbucketExternalLinkUtils() {
+            return bitbucketExternalLinkUtils;
         }
 
         @Override
@@ -610,10 +615,6 @@ public class BitbucketSCMSource extends SCMSource {
             return Collections.emptyList();
         }
 
-        public BitbucketExternalLinkUtils getBitbucketExternalLinkUtils() {
-            return bitbucketExternalLinkUtils;
-        }
-
         @Override
         public List<GitTool> getGitTools() {
             return Collections.emptyList();
@@ -621,10 +622,6 @@ public class BitbucketSCMSource extends SCMSource {
 
         public RetryingWebhookHandler getRetryingWebhookHandler() {
             return retryingWebhookHandler;
-        }
-
-        public BitbucketClientFactoryProvider getBitbucketClientFactoryProvider() {
-            return bitbucketClientFactoryProvider;
         }
 
         @Override
@@ -641,7 +638,7 @@ public class BitbucketSCMSource extends SCMSource {
             List<SCMSourceTraitDescriptor> descriptors = new ArrayList<>();
 
             descriptors.addAll(SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class));
-                    SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
+            SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
 
             NamedArrayList.select(descriptors, Messages.bitbucket_scm_trait_type_withinrepository(),
                     NamedArrayList.anyOf(
@@ -659,6 +656,13 @@ public class BitbucketSCMSource extends SCMSource {
                     new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())};
         }
 
+        BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
+            return new BitbucketMirrorHandler(
+                    bitbucketClientFactoryProvider,
+                    jenkinsToBitbucketCredentials,
+                    (client, project, repo) -> helper.getRepository(project, repo));
+        }
+
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
@@ -667,13 +671,6 @@ public class BitbucketSCMSource extends SCMSource {
 
         Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
             return bitbucketPluginConfiguration.getServerById(serverId);
-        }
-
-        BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
-            return new BitbucketMirrorHandler(
-                    bitbucketClientFactoryProvider,
-                    jenkinsToBitbucketCredentials,
-                    (client, project, repo) -> helper.getRepository(project, repo));
         }
     }
 }
