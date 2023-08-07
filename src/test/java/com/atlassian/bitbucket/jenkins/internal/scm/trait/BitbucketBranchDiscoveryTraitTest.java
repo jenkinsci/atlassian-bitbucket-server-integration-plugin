@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
 import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -7,6 +7,10 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchSCMHead;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMHeadDiscoveryHandler;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSourceContext;
 import com.cloudbees.plugins.credentials.Credentials;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;

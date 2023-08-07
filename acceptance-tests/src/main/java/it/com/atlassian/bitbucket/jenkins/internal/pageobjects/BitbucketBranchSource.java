@@ -38,7 +38,7 @@ public class BitbucketBranchSource extends BranchSource {
         if (isDiscoveryEnabled) {
             addTrait("Discover branches");
         } else {
-            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchDiscoveryTrait");
+            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait");
         }
 
         return this;
@@ -48,7 +48,7 @@ public class BitbucketBranchSource extends BranchSource {
         if (isDiscoveryEnabled) {
             addTrait("Discover pull requests");
         } else {
-            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestDiscoveryTrait");
+            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketPullRequestDiscoveryTrait");
         }
 
         return this;
