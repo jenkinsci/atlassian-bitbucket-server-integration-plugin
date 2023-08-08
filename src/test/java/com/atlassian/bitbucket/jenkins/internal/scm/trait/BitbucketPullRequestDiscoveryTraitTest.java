@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import jenkins.plugins.git.GitSCMBuilder;
