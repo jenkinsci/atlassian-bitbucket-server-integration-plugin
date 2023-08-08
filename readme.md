@@ -220,7 +220,12 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
-
+### 4.0.0-beta.1 (Beta Release)
+**Disclaimer:** This is a beta release. Potential issues may occur within the feature. 
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests and initiate builds.
+- Added support for forked pull request builds
+- Implement SCMHead for branch traits. Removing reliance on the full clone implementation previously used. 
 ### 4.0.0-alpha.1 (Alpha Release)
 **Disclaimer:** This is an alpha release, and the feature is still in development. Incomplete functionality and potential issues may be present.
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
