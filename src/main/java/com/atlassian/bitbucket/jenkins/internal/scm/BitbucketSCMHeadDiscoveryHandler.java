@@ -9,6 +9,8 @@ import java.util.stream.Stream;
  * Handles the discovery of different head types to be used by the
  * {@link BitbucketSCMSource#retrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener)} method as part
  * of processing a {@link BitbucketSCMSourceRequest request}.
+ *
+ * @since 4.0.0
  */
 public interface BitbucketSCMHeadDiscoveryHandler {
 

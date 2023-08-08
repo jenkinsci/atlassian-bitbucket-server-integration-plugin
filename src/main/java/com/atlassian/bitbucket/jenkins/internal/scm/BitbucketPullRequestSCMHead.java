@@ -4,6 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements ChangeRequestSCMHead2 {
 
     private static final String PR_ID_PREFIX = "PR-";

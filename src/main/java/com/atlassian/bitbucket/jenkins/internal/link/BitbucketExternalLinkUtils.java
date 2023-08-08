@@ -47,6 +47,9 @@ public class BitbucketExternalLinkUtils {
         return Optional.of(new BitbucketExternalLink(url, BitbucketLinkType.BRANCH));
     }
 
+    /**
+     * @since 4.0.0
+     */
     public Optional<BitbucketExternalLink> createPullRequestLink(BitbucketSCMRepository bitbucketRepository,
                                                                 String pullRequestId) {
         BitbucketServerConfiguration configuration = getConfiguration(bitbucketRepository);

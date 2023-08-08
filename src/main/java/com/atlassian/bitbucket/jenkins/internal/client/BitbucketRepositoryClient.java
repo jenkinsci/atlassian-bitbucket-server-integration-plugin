@@ -19,6 +19,8 @@ public interface BitbucketRepositoryClient {
      * Returns a client for getting branch information from a repository.
      *
      * @return a git client that is ready to use
+     *
+     * @since 4.0.0
      */
     BitbucketBranchClient getBranchClient();
 

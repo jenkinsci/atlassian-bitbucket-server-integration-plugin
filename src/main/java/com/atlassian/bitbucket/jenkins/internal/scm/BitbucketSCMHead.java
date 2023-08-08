@@ -4,6 +4,9 @@ import jenkins.scm.api.SCMHead;
 
 import javax.annotation.CheckForNull;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketSCMHead extends SCMHead {
 
     private final String latestCommit;

@@ -4,6 +4,9 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMRevision;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketSCMRevision extends SCMRevision {
 
     private static final long serialVersionUID = 1L;

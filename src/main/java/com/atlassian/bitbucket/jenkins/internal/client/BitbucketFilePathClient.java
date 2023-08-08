@@ -41,6 +41,8 @@ public interface BitbucketFilePathClient {
      * @throws BadRequestException        if the request was malformed and thus rejected by the server
      * @throws ServerErrorException       if the server failed to process the request
      * @throws BitbucketClientException   for all errors not already captured
+     *
+     * @since 4.0.0
      */
     SCMFile.Type getFileType(String path, String ref);
 

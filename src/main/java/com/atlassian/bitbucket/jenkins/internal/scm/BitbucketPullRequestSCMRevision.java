@@ -4,6 +4,9 @@ import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 
 import java.util.Objects;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketPullRequestSCMHead> {
 
     private static final long serialVersionUID = 1L;

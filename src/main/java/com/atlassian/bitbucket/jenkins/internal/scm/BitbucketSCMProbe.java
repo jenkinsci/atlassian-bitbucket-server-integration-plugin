@@ -9,6 +9,9 @@ import java.io.IOException;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketSCMProbe extends SCMProbe {
 
     private final BitbucketFilePathClient filePathClient;

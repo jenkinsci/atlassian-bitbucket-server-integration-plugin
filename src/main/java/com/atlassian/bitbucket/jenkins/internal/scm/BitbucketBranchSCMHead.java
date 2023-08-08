@@ -11,6 +11,9 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadMigration;
 import jenkins.scm.api.SCMRevision;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
     private static final long UNKNOWN_TIMESTAMP = -1;

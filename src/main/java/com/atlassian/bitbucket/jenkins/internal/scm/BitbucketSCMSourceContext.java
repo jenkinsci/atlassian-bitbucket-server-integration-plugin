@@ -12,6 +12,9 @@ import java.util.Collections;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSourceContext, BitbucketSCMSourceRequest> {
 
     private final Credentials credentials;

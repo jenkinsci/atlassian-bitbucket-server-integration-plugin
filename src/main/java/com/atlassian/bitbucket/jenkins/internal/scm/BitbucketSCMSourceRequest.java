@@ -9,6 +9,9 @@ import java.util.Collection;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * @since 4.0.0
+ */
 public class BitbucketSCMSourceRequest extends SCMSourceRequest {
 
     private final Collection<BitbucketSCMHeadDiscoveryHandler> discoveryHandlers;
