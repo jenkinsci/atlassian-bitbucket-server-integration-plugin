@@ -62,14 +62,11 @@ public class BitbucketBranchDiscoveryTrait extends SCMSourceTrait {
                         @Override
                         public Stream<? extends SCMHead> discoverHeads() {
                             if (bitbucketContext.getEventHeads().isEmpty()) {
-                                return
-                                        bitbucketBranchClient.getRemoteBranches()
-                                        .map(BitbucketBranchSCMHead::new);
+                                return bitbucketBranchClient.getRemoteBranches().map(BitbucketBranchSCMHead::new);
                             }
 
                             return bitbucketContext.getEventHeads().stream()
-                                    .filter(BitbucketBranchSCMHead.class::isInstance)
-                                    .map(BitbucketBranchSCMHead.class::cast);
+                                    .filter(BitbucketBranchSCMHead.class::isInstance);
                         }
 
                         @Override
