@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 /**
  * @since 4.0.0
  */
-
 public class BitbucketBranchDiscoveryTrait extends SCMSourceTrait {
 
     private static final Logger log = Logger.getLogger(BitbucketBranchDiscoveryTrait.class.getName());
