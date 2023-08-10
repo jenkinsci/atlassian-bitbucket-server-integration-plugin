@@ -4,6 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 
 import java.util.stream.Stream;
 
+/**
+ * @since 4.0.0
+ */
 public interface BitbucketBranchClient {
 
     /**
@@ -13,7 +16,6 @@ public interface BitbucketBranchClient {
      * not collect to a list or similar before processing items, but rather process them as they come in.
      *
      * @return Stream of bitbucket branches
-     * @since 4.0.0
      */
     Stream<BitbucketDefaultBranch> getRemoteBranches();
 }
