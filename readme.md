@@ -221,7 +221,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 ### 4.0.0-beta.1 (Beta Release)
-**Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing testing to ensure optimal performance. There might be potential issues, and your feedback is valuable in helping us enhance the overall user experience.
+**Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing testing to ensure optimal performance. Your feedback is valuable in helping us enhance the overall user experience.
 - JENKINS-66581 Add support for pull request builds
     - Added pull requests tab to SCM categories
     - Implemented ChangeRequestSCMHead2 and ChangeRequestSCMRevision
