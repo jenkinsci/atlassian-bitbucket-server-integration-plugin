@@ -14,6 +14,8 @@ import static java.lang.String.valueOf;
 
 public class BitbucketBranchClientImpl implements BitbucketBranchClient {
 
+    private static final int PAGE_SIZE = 1000;
+
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String projectKey;
     private final String repositorySlug;
@@ -33,7 +35,8 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
                 .addPathSegment(projectKey)
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug)
-                .addPathSegment("branches");
+                .addPathSegment("branches")
+                .addQueryParameter("limit", String.valueOf(PAGE_SIZE));
 
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketDefaultBranch> firstPage =

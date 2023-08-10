@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {
 
-    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches";
+    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches?limit=1000";
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
 
