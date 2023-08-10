@@ -636,11 +636,8 @@ public class BitbucketSCMSource extends SCMSource {
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
             List<NamedArrayList<? extends SCMSourceTraitDescriptor>> result = new ArrayList<>();
-            List<SCMSourceTraitDescriptor> descriptors = new ArrayList<>();
-
-            descriptors.addAll(SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class));
-            SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
-
+            List<SCMSourceTraitDescriptor> descriptors =
+                    SCMSourceTrait._for(this, BitbucketSCMSourceContext.class, GitSCMBuilder.class);
             NamedArrayList.select(descriptors, Messages.bitbucket_scm_trait_type_withinrepository(),
                     NamedArrayList.anyOf(
                             NamedArrayList.withAnnotation(Selection.class),
