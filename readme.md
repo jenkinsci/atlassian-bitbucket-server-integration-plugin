@@ -222,7 +222,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ### 3.6.0
 - Update minimum Jenkins version to **2.401.3**
-- Upgrading from 3.5.0 will cause 'branchName' to appear as old data. This field has been changed to 'refName'.
+- Upgrading from 3.5.0 may cause 'branchName' to appear as old data. This field has been changed to 'refName'.
 
 ### 3.5.0
 - The minimum version of Jenkins changed to be **2.401.1**
