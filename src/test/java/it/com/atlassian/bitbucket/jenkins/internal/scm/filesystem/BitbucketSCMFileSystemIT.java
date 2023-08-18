@@ -4,7 +4,9 @@ import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevision;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFileSystem;
@@ -14,8 +16,6 @@ import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler;
-import jenkins.plugins.git.GitBranchSCMHead;
-import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
@@ -112,8 +112,8 @@ public class BitbucketSCMFileSystemIT {
     public void testBuildSCMSource() throws Exception {
         WorkflowMultiBranchProject multiBranchProject =
                 projectHandler.createMultibranchJob("testBuildSCMSource", "PROJECT_1", "rep_1");
-        GitBranchSCMHead head = new GitBranchSCMHead("master");
-        SCMRevision revision = new GitBranchSCMRevision(head, "");
+        BitbucketBranchSCMHead head = new BitbucketBranchSCMHead("master");
+        SCMRevision revision = new BitbucketSCMRevision(head, "");
 
         String serverConfigID = ((BitbucketSCMSource) multiBranchProject.getSCMSources().get(0)).getServerId();
         doReturn(Optional.of(validConfiguration)).when(pluginConfiguration).getServerById(eq(serverConfigID));
@@ -130,7 +130,7 @@ public class BitbucketSCMFileSystemIT {
     public void testBuildSCMSourceInvalidRevision() throws Exception {
         WorkflowMultiBranchProject multiBranchProject =
                 projectHandler.createMultibranchJob("testBuildSCMSourceInvalidRevision", "PROJECT_1", "rep_1");
-        SCMRevision revision = new GitBranchSCMRevision(mock(GitBranchSCMHead.class), "");
+        SCMRevision revision = new BitbucketSCMRevision(mock(BitbucketBranchSCMHead.class), "");
 
         assertThat(builder.build(multiBranchProject.getSCMSources().get(0), revision.getHead(), revision),
                 Matchers.nullValue());
@@ -144,7 +144,7 @@ public class BitbucketSCMFileSystemIT {
 
         doReturn(Optional.of(invalidConfiguration)).when(pluginConfiguration).getServerById(scmSource.getServerId());
 
-        assertThat(builder.build(scmSource, mock(GitBranchSCMHead.class), mock(GitBranchSCMRevision.class)), Matchers.nullValue());
+        assertThat(builder.build(scmSource, mock(BitbucketBranchSCMHead.class), mock(BitbucketSCMRevision.class)), Matchers.nullValue());
     }
 
     @Test
@@ -155,7 +155,7 @@ public class BitbucketSCMFileSystemIT {
 
         doReturn(Optional.empty()).when(pluginConfiguration).getServerById(scmSource.getServerId());
 
-        assertThat(builder.build(scmSource, mock(GitBranchSCMHead.class), mock(GitBranchSCMRevision.class)), Matchers.nullValue());
+        assertThat(builder.build(scmSource, mock(BitbucketBranchSCMHead.class), mock(BitbucketSCMRevision.class)), Matchers.nullValue());
     }
 
     @Test
