@@ -7,12 +7,12 @@ import javax.annotation.CheckForNull;
 /**
  * @since 4.0.0
  */
-public class BitbucketSCMHead extends SCMHead {
+public abstract class BitbucketSCMHead extends SCMHead {
 
     private final String latestCommit;
     private final long updatedDate;
 
-    public BitbucketSCMHead(String name, @CheckForNull String latestCommit, long updatedDate) {
+    protected BitbucketSCMHead(String name, @CheckForNull String latestCommit, long updatedDate) {
         super(name);
         this.latestCommit = latestCommit;
         this.updatedDate = updatedDate;
@@ -26,4 +26,6 @@ public class BitbucketSCMHead extends SCMHead {
     public long getUpdatedDate() {
         return updatedDate;
     }
+
+    public abstract String getFullRef();
 }
