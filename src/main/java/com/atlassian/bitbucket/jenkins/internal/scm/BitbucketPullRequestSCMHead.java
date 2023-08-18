@@ -4,6 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 
+import static org.eclipse.jgit.lib.Constants.R_HEADS;
+
 /**
  * @since 4.0.0
  */
@@ -23,9 +25,7 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
         this.originName = pullRequest.getFromRef().getDisplayId();
         this.pullRequest = new MinimalPullRequest(pullRequest);
         this.pullRequestId = Long.toString(pullRequest.getId());
-        this.target = new BitbucketSCMHead(pullRequest.getToRef().getDisplayId(),
-                pullRequest.getToRef().getLatestCommit(),
-                -1);
+        this.target = new BitbucketBranchSCMHead(pullRequest.getToRef());
     }
 
     @Override
@@ -33,6 +33,11 @@ public class BitbucketPullRequestSCMHead extends BitbucketSCMHead implements Cha
         return ChangeRequestCheckoutStrategy.MERGE;
     }
 
+    @Override
+    public String getFullRef() {
+        return R_HEADS + originName;
+    }
+    
     @Override
     public String getId() {
         return pullRequestId;

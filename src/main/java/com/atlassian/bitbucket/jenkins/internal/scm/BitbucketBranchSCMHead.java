@@ -11,6 +11,8 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadMigration;
 import jenkins.scm.api.SCMRevision;
 
+import static org.eclipse.jgit.lib.Constants.R_HEADS;
+
 /**
  * @since 4.0.0
  */
@@ -32,6 +34,11 @@ public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
     public BitbucketBranchSCMHead(BitbucketRefChange refChange) {
         super(refChange.getRef().getDisplayId(), refChange.getToHash(), UNKNOWN_TIMESTAMP);
+    }
+
+    @Override
+    public String getFullRef() {
+        return R_HEADS + getName();
     }
 
     /**
