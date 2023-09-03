@@ -11,13 +11,12 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadMigration;
 import jenkins.scm.api.SCMRevision;
 
-import static org.eclipse.jgit.lib.Constants.R_HEADS;
-
 /**
  * @since 4.0.0
  */
 public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
+    private static final String REFS_HEADS_PREFIX = "refs/heads/";
     private static final long UNKNOWN_TIMESTAMP = -1;
 
     public BitbucketBranchSCMHead(String name) {
@@ -38,7 +37,7 @@ public class BitbucketBranchSCMHead extends BitbucketSCMHead {
 
     @Override
     public String getFullRef() {
-        return R_HEADS + getName();
+        return REFS_HEADS_PREFIX + getName();
     }
 
     /**

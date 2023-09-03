@@ -220,18 +220,17 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 4.0.0
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds.
+  See [documentation](./docs/pull_request_discovery.md) for more details.
+
 ### 4.0.0-beta.1 (Beta Release)
-**Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing testing to ensure optimal performance. Your feedback is valuable in helping us enhance the overall user experience.
-- JENKINS-66581 Add support for pull request builds
-    - Added pull requests tab to SCM categories
-    - Implemented ChangeRequestSCMHead2 and ChangeRequestSCMRevision
-    - Implemented custom SCMSourceContext, SCMSourceRequest and SCMProbe
-    - Introduced a pull request discovery trait
-    - Added support for discovering forked pull requests
-    - Add ObjectMetadataAction with PR title and description
-    - Implemented a branch discovery trait
-    - Removed reliance on GitSCMSource for retrieve implementation
-    - Added backward compatible support for existing traits
+**Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing
+testing to ensure optimal performance. Your feedback is valuable in helping us enhance the overall user experience.
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds. 
+  See [documentation](./docs/pull_request_discovery.md) for more details.
 
 ### 4.0.0-alpha.1 (Alpha Release)
 **Disclaimer:** This is an alpha release, and the feature is still in development. Incomplete functionality and potential issues may be present.

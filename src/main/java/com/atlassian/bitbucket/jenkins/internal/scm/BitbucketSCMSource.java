@@ -71,6 +71,7 @@ public class BitbucketSCMSource extends SCMSource {
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
     @UpgradeHandled(handledBy = "static fields not persisted", removeAnnotationInVersion = "4.0.0")
     private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
+
     @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility

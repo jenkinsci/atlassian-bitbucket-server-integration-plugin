@@ -71,8 +71,12 @@ public class BitbucketPullRequestDiscoveryTrait extends SCMSourceTrait {
                             MergeCommand.GitPluginFastForwardMode.FF);
 
                     gitSCMBuilder.withExtension(new PreBuildMerge(mergeOptions));
+                } else {
+                    log.fine("Not using MERGE checkout strategy " + prHead.getCheckoutStrategy());
                 }
             }
+        } else {
+            log.fine("Unsupported SCMBuilder type " + builder.getClass());
         }
     }
 
@@ -122,6 +126,8 @@ public class BitbucketPullRequestDiscoveryTrait extends SCMSourceTrait {
                             throw e;
                         }
                     });
+        } else {
+            log.fine("Unsupported SCMSourceContext type " + context.getClass());
         }
     }
 
