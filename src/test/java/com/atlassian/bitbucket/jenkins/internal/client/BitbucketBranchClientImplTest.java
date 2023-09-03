@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {
 
-    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches?limit=1000";
+    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches?limit=1000&orderBy=modification";
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
 
@@ -59,7 +59,8 @@ public class BitbucketBranchClientImplTest {
 
     @Test
     public void testNextPageFetching() {
-        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher = new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 5);
         int nextPageStart = 2;
         fakeRemoteHttpServer.mapUrlToResult(
                 BITBUCKET_BASE_URL + "?start=" + nextPageStart,
@@ -80,10 +81,24 @@ public class BitbucketBranchClientImplTest {
     @Test(expected = IllegalArgumentException.class)
     public void testLastPageDoesNotHaveNext() {
         BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
-                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 5);
         BitbucketPage<BitbucketDefaultBranch> page = new BitbucketPage<>();
         page.setLastPage(true);
 
         fetcher.next(page);
+    }
+
+    @Test
+    public void testMaxPagesNotExceeded() {
+        // Limit fetcher to 1 page
+        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 1);
+
+        // Run the fetcher
+        BitbucketPage<BitbucketDefaultBranch> nextPage = fetcher.next(new BitbucketPage<>());
+
+        // Make sure the result is an "empty last page"
+        assertTrue(nextPage.getValues().isEmpty());
+        assertTrue(nextPage.isLastPage());
     }
 }

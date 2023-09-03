@@ -8,13 +8,21 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils.parsePositiveLongFromSystemProperty;
 import static java.lang.String.valueOf;
 
 public class BitbucketBranchClientImpl implements BitbucketBranchClient {
 
-    private static final int PAGE_SIZE = 1000;
+    private static final long MAX_PAGES =
+            parsePositiveLongFromSystemProperty(REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES, 5L);
+    private static final long PAGE_SIZE =
+            parsePositiveLongFromSystemProperty(REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE, 1000L);
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String projectKey;
@@ -36,24 +44,30 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug)
                 .addPathSegment("branches")
-                .addQueryParameter("limit", String.valueOf(PAGE_SIZE));
+                .addQueryParameter("limit", String.valueOf(PAGE_SIZE))
+                .addQueryParameter("orderBy", "modification"); // the most recently-modified branches first
 
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketDefaultBranch> firstPage =
                 bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketPage<BitbucketDefaultBranch>>() {}).getBody();
-        return BitbucketPageStreamUtil.toStream(firstPage, new NextPageFetcherImpl(url, bitbucketRequestExecutor))
-                .map(BitbucketPage::getValues).flatMap(Collection::stream);
+        return BitbucketPageStreamUtil.toStream(firstPage, new NextPageFetcherImpl(url, bitbucketRequestExecutor, MAX_PAGES))
+                .map(BitbucketPage::getValues)
+                .flatMap(Collection::stream);
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketDefaultBranch> {
 
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
+        private final AtomicLong currentPage = new AtomicLong();
+        private final long maxPages;
         private final HttpUrl url;
 
         NextPageFetcherImpl(HttpUrl url,
-                            BitbucketRequestExecutor bitbucketRequestExecutor) {
+                            BitbucketRequestExecutor bitbucketRequestExecutor,
+                            long maxPages) {
             this.url = url;
             this.bitbucketRequestExecutor = bitbucketRequestExecutor;
+            this.maxPages = maxPages;
         }
 
         @Override
@@ -61,6 +75,15 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
             if (previous.isLastPage()) {
                 throw new IllegalArgumentException("Last page does not have next page");
             }
+
+            if (currentPage.incrementAndGet() >= maxPages) {
+                // We've reached the maximum number of pages, so we return an "empty last page" to stop the iterator.
+                BitbucketPage<BitbucketDefaultBranch> lastPage = new BitbucketPage<>();
+                lastPage.setValues(Collections.emptyList());
+                lastPage.setLastPage(true);
+                return lastPage;
+            }
+
             return bitbucketRequestExecutor.makeGetRequest(
                     nextPageUrl(previous),
                     new TypeReference<BitbucketPage<BitbucketDefaultBranch>>() {}).getBody();
