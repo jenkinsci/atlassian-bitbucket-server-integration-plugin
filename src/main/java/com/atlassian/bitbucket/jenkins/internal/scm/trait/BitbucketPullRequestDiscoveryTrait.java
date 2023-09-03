@@ -74,6 +74,8 @@ public class BitbucketPullRequestDiscoveryTrait extends SCMSourceTrait {
                 } else {
                     log.fine("Not using MERGE checkout strategy " + prHead.getCheckoutStrategy());
                 }
+            } else {
+                log.fine("Unsupported SCMRevision type " + (revision == null ? "null" : revision.getClass()));
             }
         } else {
             log.fine("Unsupported SCMBuilder type " + builder.getClass());
