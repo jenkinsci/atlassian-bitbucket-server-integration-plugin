@@ -34,11 +34,7 @@ public class BitbucketSCMRevision extends SCMRevision {
         }
 
         BitbucketSCMRevision that = (BitbucketSCMRevision) o;
-        if (commitHash == null) {
-            return Objects.equals(getHead(), that.getHead());
-        }
-
-        return commitHash.equals(that.commitHash);
+        return Objects.equals(getHead(), that.getHead()) && Objects.equals(commitHash, that.commitHash);
     }
 
     @Override
@@ -47,7 +43,7 @@ public class BitbucketSCMRevision extends SCMRevision {
             return getHead().hashCode();
         }
 
-        return commitHash.hashCode();
+        return Objects.hash(getHead(), commitHash);
     }
 
     @Override
