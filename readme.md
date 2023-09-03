@@ -224,6 +224,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
   Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds.
   See [documentation](./docs/pull_request_discovery.md) for more details.
+- The branch discovery trait now uses a paged REST API call to retrieve branches from Bitbucket. Additionally, there is
+  now a maximum limit for the total number of branches being retrieved. This limit can be configured using the following
+  system properties (total count can be calculated using maxPages * pageSize).
+  - `bitbucket.remote.branches.retrieval.max.pages` - (defaults to 5)
+  - `bitbucket.remote.branches.retrieval.page.size` - (defaults to 1000)
 
 ### 4.0.0-beta.1 (Beta Release)
 **Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing
