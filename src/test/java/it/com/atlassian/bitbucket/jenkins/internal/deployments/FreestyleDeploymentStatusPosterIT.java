@@ -4,8 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.deployments.DeploymentNotifier;
 import com.atlassian.bitbucket.jenkins.internal.model.deployment.BitbucketDeploymentEnvironmentType;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import org.apache.http.HttpStatus;
 import org.junit.Test;
-import wiremock.org.apache.http.HttpStatus;
 
 import static com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState.IN_PROGRESS;
 import static com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState.SUCCESSFUL;
