@@ -1,10 +1,10 @@
 package it.com.atlassian.bitbucket.jenkins.internal.deployments;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpStatus;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Test;
-import wiremock.org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
