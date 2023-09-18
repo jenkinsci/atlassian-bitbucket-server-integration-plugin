@@ -1,11 +1,9 @@
 package it.com.atlassian.bitbucket.jenkins.internal.util;
 
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlDivision;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.*;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -27,13 +25,23 @@ public final class HtmlUnitUtils {
         throw new ElementNotFoundException("div", "text", text);
     }
 
-    public static HtmlAnchor getLinkByText(HtmlForm htmlForm, String text) throws ElementNotFoundException {
+    @Nullable
+    public static HtmlAnchor getLinkByText(HtmlForm htmlForm, String text) {
         for (HtmlElement b : htmlForm.getElementsByTagName("a")) {
             if (b instanceof HtmlAnchor && b.getTextContent().trim().equals(text)) {
                 return (HtmlAnchor) b;
             }
         }
-        throw new ElementNotFoundException("a", "caption", text);
+        return null;
+    }
+
+    public static HtmlButton getButtonByText(HtmlPage page, String text) throws ElementNotFoundException {
+        for (DomElement b : page.getElementsByTagName("button")) {
+            if (b instanceof HtmlButton && b.getTextContent().trim().equals(text)) {
+                return (HtmlButton) b;
+            }
+        }
+        throw new ElementNotFoundException("button", "text", text);
     }
 
     public static void waitTillItemIsRendered(Supplier<List<?>> supplier) {

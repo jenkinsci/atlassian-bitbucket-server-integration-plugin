@@ -62,9 +62,13 @@ public class BitbucketPluginConfigurationIT {
 
         //Add Bitbucket plugin configuration using UI
         HtmlButton addBitbucketButton = HtmlFormUtil.getButtonByCaption(form, "Add a Bitbucket Server instance");
-        addBitbucketButton.click();
+        HtmlPage pageWithButtonClicked = addBitbucketButton.click();
 
         HtmlAnchor addServerAnchor = getLinkByText(form, "Instance details");
+        if (addServerAnchor == null) {
+            //Try the format in Jenkins 2.422 and later, and click the button
+            getButtonByText(pageWithButtonClicked, "Instance details").click();
+        }
         waitTillItemIsRendered(() -> form.getInputsByName("_.serverName"));
 
         //Set required fields in the config form
