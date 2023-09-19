@@ -4,6 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
@@ -11,15 +13,21 @@ import okhttp3.Response;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.util.stream.IntStream;
 
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static java.net.HttpURLConnection.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static okhttp3.HttpUrl.parse;
@@ -31,6 +39,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -39,13 +48,20 @@ public class HttpRequestExecutorImplTest {
     private static final String BASE_URL = "http://localhost:7990/bitbucket";
     private static final HttpUrl PARSED_BASE_URL = parse(BASE_URL);
 
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @Rule
+    public final WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
+
     private BitbucketCredentials credential;
     private FakeRemoteHttpServer factory = new FakeRemoteHttpServer();
-    private HttpRequestExecutor httpBasedRequestExecutor = new HttpRequestExecutorImpl(factory);
+    private HttpRequestExecutor httpBasedRequestExecutor;
+    private String mockServerUrl;
 
     @Before
     public void setup() {
         credential = () -> "xyz";
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(factory);
     }
 
     @After
@@ -73,6 +89,110 @@ public class HttpRequestExecutorImplTest {
     public void testBadRequest() {
         factory.mapUrlToResponseCode(BASE_URL, HTTP_BAD_REQUEST);
         httpBasedRequestExecutor.executeGet(PARSED_BASE_URL, response -> null, credential);
+    }
+
+    @Test
+    public void testCacheBehaviorWithExpiredMaxAge() throws IOException, InterruptedException {
+        File cacheDir = temporaryFolder.newFolder("test-cache-dir");
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(cacheDir);
+
+        // Mock response with a 1 second cache
+        wireMockRule.stubFor(WireMock.get(urlEqualTo("/cached")).willReturn(aResponse()
+                .withHeader("Cache-Control", "max-age=1")
+                .withStatus(200)));
+
+        // Make two calls to the endpoint
+        IntStream.range(0, 2).forEach(i ->
+                httpBasedRequestExecutor
+                        .executeGet(parse(wireMockRule.baseUrl() + "/cached"), response -> null, credential));
+
+        // Verify that only one request was made to the server
+        WireMock.verify(1, getRequestedFor(urlEqualTo("/cached")));
+
+        // Wait for 2 seconds, so the cache becomes expired
+        Thread.sleep(2000);
+
+        // Make another call to the endpoint
+        httpBasedRequestExecutor
+                .executeGet(parse(wireMockRule.baseUrl() + "/cached"), response -> null, credential);
+
+        // Verify that a second request was made to the server after the cache has expired
+        WireMock.verify(2, getRequestedFor(urlEqualTo("/cached")));
+    }
+
+    @Test
+    public void testCacheBehaviorWithMaxAgeHeader() throws IOException {
+        File cacheDir = temporaryFolder.newFolder("test-cache-dir");
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(cacheDir);
+
+        // Mock response with 24 hour cache
+        wireMockRule.stubFor(WireMock.get(urlEqualTo("/cached")).willReturn(aResponse()
+                .withHeader("Cache-Control", "max-age=86400")
+                .withStatus(200)));
+
+        // Make two calls to the endpoint
+        IntStream.range(0, 2).forEach(i ->
+                httpBasedRequestExecutor
+                        .executeGet(parse(wireMockRule.baseUrl() + "/cached"), response -> null, credential));
+
+        // Verify that only one request was made to the server
+        WireMock.verify(1, getRequestedFor(urlEqualTo("/cached")));
+    }
+
+    @Test
+    public void testCacheBehaviorWithNoCacheControl() throws IOException {
+        File cacheDir = temporaryFolder.newFolder("test-cache-dir");
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(cacheDir);
+
+        // Mock response without cache control headers
+        wireMockRule.stubFor(WireMock.get(urlEqualTo("/cached")).willReturn(aResponse()
+                .withStatus(200)));
+
+        // Make two calls to the endpoint
+        IntStream.range(0, 2).forEach(i ->
+                httpBasedRequestExecutor
+                        .executeGet(parse(wireMockRule.baseUrl() + "/cached"), response -> null, credential));
+
+        // Verify that both requests were made to the server
+        WireMock.verify(2, getRequestedFor(urlEqualTo("/cached")));
+    }
+
+    @Test
+    public void testCacheBehaviorWithNoCacheHeader() throws IOException {
+        File cacheDir = temporaryFolder.newFolder("test-cache-dir");
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(cacheDir);
+
+        // Mock response with 'no-cache' header
+        wireMockRule.stubFor(WireMock.get(urlEqualTo("/nocache")).willReturn(aResponse()
+                .withHeader("Cache-Control", "no-cache")
+                .withStatus(200)));
+
+        // Make two calls to the endpoint
+        IntStream.range(0, 2).forEach(i ->
+                httpBasedRequestExecutor
+                        .executeGet(parse(wireMockRule.baseUrl() + "/nocache"), response -> null, credential));
+
+        // Verify that both requests were made to the server
+        WireMock.verify(2, getRequestedFor(urlEqualTo("/nocache")));
+    }
+
+    @Test
+    public void testCacheBehaviorWithNoStoreHeader() throws IOException {
+        File cacheDir = temporaryFolder.newFolder("test-cache-dir");
+        httpBasedRequestExecutor = new HttpRequestExecutorImpl(cacheDir);
+
+        // Mock response with 'no-store' header
+        wireMockRule.stubFor(WireMock.get(urlEqualTo("/nostore")).willReturn(aResponse()
+                .withHeader("Cache-Control", "no-store")
+                .withStatus(200)));
+
+        // Make two calls to the endpoint
+        IntStream.range(0, 2).forEach(i ->
+                httpBasedRequestExecutor
+                        .executeGet(parse(wireMockRule.baseUrl() + "/nostore"), response -> null, credential));
+
+        // Verify that both requests were made to the server
+        WireMock.verify(2, getRequestedFor(urlEqualTo("/nostore")));
     }
 
     @Test
