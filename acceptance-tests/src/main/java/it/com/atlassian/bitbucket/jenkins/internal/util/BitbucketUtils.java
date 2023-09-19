@@ -164,7 +164,7 @@ public class BitbucketUtils {
     }
 
     @SuppressWarnings("unchecked")
-    public static void createPullRequest(String projectKey, String repoSlug, String sourceBranch) {
+    public static String createPullRequest(String projectKey, String repoSlug, String sourceBranch) {
         HashMap<String, Object> createPullRequestRequest = new HashMap<>();
         HashMap<String, Object> fromRef = new HashMap<>();
         HashMap<String, Object> project = new HashMap<>();
@@ -180,7 +180,7 @@ public class BitbucketUtils {
         createPullRequestRequest.put("fromRef", fromRef);
         createPullRequestRequest.put("toRef", toRef);
 
-        RestAssured
+        return RestAssured
                 .given()
                 .log()
                 .ifValidationFails()
@@ -196,7 +196,7 @@ public class BitbucketUtils {
                 .pathParam("repositorySlug", repoSlug)
                 .when()
                 .post(BITBUCKET_BASE_URL + "/rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests")
-                .getBody();
+                .getBody().jsonPath().getString("id");
     }
 
     public static URL registerApplicationLink(String type, String name, String displayUrl, String rpcUrl) throws Exception {

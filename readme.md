@@ -162,6 +162,7 @@ A list of all custom environmental properties can be found in `SystemPropertiesC
 ### Additional documentation
 
 * [Sending deployment notifications](./docs/deployment_notifications.md)
+* [Enabling pull request discovery](./docs/pull_request_discovery.md)
 
 ---
 
@@ -219,6 +220,23 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 4.0.0
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds.
+  See [documentation](./docs/pull_request_discovery.md) for more details.
+
+### 4.0.0-beta.1 (Beta Release)
+**Disclaimer:** This is a beta release, and the feature has complete functionality. However, it is still undergoing
+testing to ensure optimal performance. Your feedback is valuable in helping us enhance the overall user experience.
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds. 
+  See [documentation](./docs/pull_request_discovery.md) for more details.
+
+### 4.0.0-alpha.1 (Alpha Release)
+**Disclaimer:** This is an alpha release, and the feature is still in development. Incomplete functionality and potential issues may be present.
+- JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
+  Multibranch Pipelines to detect open pull requests and initiate builds. NOTE: Forked (cross-repository) pull requests
+  are not supported as part of this alpha release.
 
 ### 3.6.0
 - Update minimum Jenkins version to **2.401.3**

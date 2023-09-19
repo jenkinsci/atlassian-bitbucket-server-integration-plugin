@@ -34,6 +34,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.*;
@@ -46,6 +47,9 @@ public class LocalSCMListenerTest extends HudsonTestCase {
     private static final String GIT_BRANCH_VALUE = "repository/master";
     private static final String GIT_COMMIT_VALUE = "683820238c4776695b206fd13b7c5caae4078666";
     private static final String GIT_TAG_VALUE = "refs/tags/v.1.0.0";
+    private static final String PR_BRANCH_NAME = "prsourcebranch";
+    private static final String PR_BRANCH_VALUE = "origin/prsourcebranch";
+    private static final String PR_COMMIT_VALUE = "1041ad01cafa9cb2832a2f53c9bc2ba3dc15a582";
 
     private final Map<String, String> buildMap = new HashMap<>();
     @Rule
@@ -76,6 +80,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         buildMap.put(GitSCM.GIT_COMMIT, GIT_COMMIT_VALUE);
 
         when(gitSCM.deriveLocalBranchName(GIT_BRANCH_VALUE)).thenReturn(BRANCH_NAME);
+        when(gitSCM.deriveLocalBranchName(PR_BRANCH_VALUE)).thenReturn(PR_BRANCH_NAME);
         when(bitbucketSCM.getGitSCM()).thenReturn(gitSCM);
         doAnswer(invocation -> {
             Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
@@ -141,6 +146,42 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         listener.onCheckout(build, bitbucketSCM, null, taskListener, null, null);
 
         verify(buildStatusPoster).postBuildStatus(eq(expectedRevision), eq(build), eq(taskListener));
+    }
+
+    @Test
+    public void testOnCheckoutWithBranchName() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
+
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, "refs/heads/master", GIT_COMMIT_VALUE);
+
+        verify(buildStatusPoster).postBuildStatus(expectedRevision, build, taskListener);
+    }
+
+    @Test
+    public void testOnCheckoutWithBranchNameUsingPrSource() {
+        FreeStyleProject project = mock(FreeStyleProject.class);
+        FreeStyleBuild build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn(project);
+        when(globalLibraries.getLibraries()).thenReturn(emptyList());
+        doAnswer(invocation -> {
+            Map<String, String> m = (Map<String, String>) invocation.getArguments()[1];
+            m.putAll(buildMap);
+            m.put(PULL_REQUEST_SOURCE_COMMIT, PR_COMMIT_VALUE);
+            return null;
+        }).when(gitSCM).buildEnvironment(notNull(), anyMap());
+
+        listener.onCheckout(build, gitSCM, null, taskListener, null, null);
+
+        BitbucketRevisionAction expectedRevision =
+                new BitbucketRevisionAction(scmRepository, null, PR_COMMIT_VALUE);
+
+        verify(buildStatusPoster).postBuildStatus(expectedRevision, build, taskListener);
     }
 
     @Test

@@ -2,8 +2,10 @@ package com.atlassian.bitbucket.jenkins.internal.link;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
@@ -55,7 +57,7 @@ public class BitbucketJobLinkActionFactoryTest {
     private DefaultSCMHeadByItemProvider headProvider;
     @Mock
     private DefaultSCMSourceByItemProvider sourceProvider;
-    
+
     private WorkflowJob workflowJob;
     private WorkflowJob workflowJobWithScmStep;
     private WorkflowJob multibranchJobFromSource;
@@ -86,7 +88,7 @@ public class BitbucketJobLinkActionFactoryTest {
         doReturn("branch2").when(multibranchJobFromSourceHead).getName();
         doReturn(multibranchJobFromSourceHead).when(headProvider).findHead(multibranchJobFromSource);
         doReturn(mockSCMSource).when(sourceProvider).findSource(multibranchJobFromSource);
-        
+
         externalLinkUtils = new BitbucketExternalLinkUtils(pluginConfiguration);
         actionFactory = getActionFactory();
     }
@@ -125,6 +127,40 @@ public class BitbucketJobLinkActionFactoryTest {
         assertThat(actions.size(), equalTo(1));
         BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
         assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/compare/commits?sourceBranch=refs%2Fheads%2Fbranch2"));
+    }
+
+    @Test
+    public void testCreateMultibranchSourcePullRequestHead() {
+        BitbucketProject project = new BitbucketProject("PROJ", null, "PROJ");
+        BitbucketRepository repository = new BitbucketRepository(0,
+                "repo",
+                null,
+                project,
+                "repo",
+                RepositoryState.AVAILABLE);
+        BitbucketPullRequestRef fromRef = new BitbucketPullRequestRef("heads/refs/from",
+                "from",
+                repository,
+                "fromCommit");
+        BitbucketPullRequestRef toRef = new BitbucketPullRequestRef("heads/refs/to",
+                "to",
+                repository,
+                "toCommit");
+        BitbucketPullRequest pullRequest = new BitbucketPullRequest(1,
+                BitbucketPullRequestState.OPEN,
+                fromRef,
+                toRef,
+                -1,
+                "Test pull request",
+                "This is a test pull request");
+        BitbucketPullRequestSCMHead prHead = new BitbucketPullRequestSCMHead(pullRequest);
+        doReturn(prHead).when(headProvider).findHead(multibranchJobFromSource);
+
+        Collection<? extends Action> actions = actionFactory.createFor(multibranchJobFromSource);
+
+        assertThat(actions.size(), equalTo(1));
+        BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
+        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/pull-requests/1"));
     }
 
     @Test

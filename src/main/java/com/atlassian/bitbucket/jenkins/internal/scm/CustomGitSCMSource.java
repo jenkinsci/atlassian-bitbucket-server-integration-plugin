@@ -1,13 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import hudson.model.TaskListener;
 import jenkins.plugins.git.GitSCMSource;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMSourceCriteria;
-
-import javax.annotation.CheckForNull;
-import java.io.IOException;
 
 /**
  * This class exists to work around the following issue:
@@ -17,7 +10,10 @@ import java.io.IOException;
  * since it is not implemented
  * <p>
  * This class inherits from the {@link GitSCMSource} and thus can access it and expose a method wrapper.
+ *
+ * @deprecated this is no longer being used, but we are keeping it for to be backward compatible with persisted config
  */
+@Deprecated
 class CustomGitSCMSource extends GitSCMSource {
 
     private BitbucketSCMRepository repository;
@@ -25,12 +21,6 @@ class CustomGitSCMSource extends GitSCMSource {
     public CustomGitSCMSource(String remote, BitbucketSCMRepository repository) {
         super(remote);
         this.repository = repository;
-    }
-
-    public void accessibleRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
-                                   @CheckForNull SCMHeadEvent<?> event,
-                                   TaskListener listener) throws IOException, InterruptedException {
-        super.retrieve(criteria, observer, event, listener);
     }
 
     public BitbucketSCMRepository getRepository() {

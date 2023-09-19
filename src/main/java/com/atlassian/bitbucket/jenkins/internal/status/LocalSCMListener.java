@@ -28,6 +28,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
+
 @Extension
 public class LocalSCMListener extends SCMListener {
 
@@ -103,13 +105,32 @@ public class LocalSCMListener extends SCMListener {
         underlyingScm.buildEnvironment(build, env);
 
         String refName = getRefFromEnvironment(env, underlyingScm);
-        BitbucketRevisionAction revisionAction = new BitbucketRevisionAction(bitbucketSCMRepository, refName, env.get(GitSCM.GIT_COMMIT));
+        BitbucketRevisionAction revisionAction =
+                new BitbucketRevisionAction(bitbucketSCMRepository, refName, getCommitFromEnvironment(env));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
     }
 
+    private String getCommitFromEnvironment(Map<String, String> env) {
+        // Pull requests may be built using a merge between the source and target branches which could result in a new
+        // commit for the merge. This new merge commit will not exist in Bitbucket, so we need to use the pull request
+        // source commit when posting the build status so that Bitbucket can correctly resolve the build to the correct
+        // commit.
+        String commit = env.get(PULL_REQUEST_SOURCE_COMMIT);
+        if (commit == null) {
+            commit = env.get(GitSCM.GIT_COMMIT);
+        }
+
+        return commit;
+    }
+
     @CheckForNull
     private String getRefFromEnvironment(Map<String, String> env, GitSCM scm) {
+        // If the pull request source commit is specified we do not need to specify the ref
+        if (StringUtils.isNotBlank(env.get(PULL_REQUEST_SOURCE_COMMIT))) {
+            return null;
+        }
+
         String refId = StringUtils.stripToNull(env.get(GitSCM.GIT_BRANCH));
         if (refId == null) {
             return null;

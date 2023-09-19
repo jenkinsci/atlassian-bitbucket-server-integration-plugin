@@ -5,9 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Item;
@@ -15,7 +13,6 @@ import hudson.plugins.git.BranchSpec;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation.Kind;
-import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.scm.api.*;
 
 import javax.annotation.CheckForNull;
@@ -122,9 +119,10 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                             .getRepositoryClient(repository.getRepositorySlug())
                             .getFilePathClient();
 
-            if (scmRevision != null && scmRevision.getHead() instanceof GitBranchSCMHead) {
-                return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((GitBranchSCMHead) scmRevision.getHead()).getRef());
+            if (scmRevision != null && scmRevision.getHead() instanceof BitbucketSCMHead) {
+                return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((BitbucketSCMHead) scmRevision.getHead()).getFullRef());
             }
+
             // Unsupported ref type. Lightweight checkout not supported
             LOGGER.finer("Lightweight checkout for Bitbucket SCM source only supported for Multibranch Pipeline jobs. " +
                          "Cannot build file system for job " + ownerName);

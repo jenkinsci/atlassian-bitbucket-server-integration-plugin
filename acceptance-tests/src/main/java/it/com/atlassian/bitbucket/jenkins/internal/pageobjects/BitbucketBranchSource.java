@@ -5,7 +5,12 @@ import org.jenkinsci.test.acceptance.po.Control;
 import org.jenkinsci.test.acceptance.po.Describable;
 import org.jenkinsci.test.acceptance.po.PageAreaImpl;
 import org.jenkinsci.test.acceptance.po.WorkflowMultiBranchJob;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
+
+import static it.com.atlassian.bitbucket.jenkins.internal.util.BrowserUtils.runWithRetry;
 
 /**
  * Represents the {@link PageAreaImpl page area} for setting up a Bitbucket Server Branch Source in Jenkins
@@ -29,6 +34,26 @@ public class BitbucketBranchSource extends BranchSource {
         return this;
     }
 
+    public BitbucketBranchSource discoverBranches(boolean isDiscoveryEnabled) {
+        if (isDiscoveryEnabled) {
+            addTrait("Discover branches");
+        } else {
+            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait");
+        }
+
+        return this;
+    }
+
+    public BitbucketBranchSource discoverPullRequests(boolean isDiscoveryEnabled) {
+        if (isDiscoveryEnabled) {
+            addTrait("Discover pull requests");
+        } else {
+            removeTraitIfEnabled("com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketPullRequestDiscoveryTrait");
+        }
+
+        return this;
+    }
+
     public BitbucketBranchSource serverId(String serverId) {
         new Select(this.serverId.resolve()).selectByVisibleText(serverId);
         return this;
@@ -42,5 +67,24 @@ public class BitbucketBranchSource extends BranchSource {
     public BitbucketBranchSource repositoryName(String repositoryName) {
         this.repositoryName.set(repositoryName);
         return this;
+    }
+
+    private void addTrait(String name) {
+        control(By.cssSelector(".trait-container .trait-add")).click();
+        WebElement traitOption =  control(By.linkText(name)).resolve();
+        runWithRetry(traitOption::click);
+    }
+
+    private void removeTraitIfEnabled(String traitClassName) {
+        try {
+            WebElement removeButton = control(By.cssSelector("div[descriptorid='" + traitClassName +
+                    "'] button.repeatable-delete")).resolve();
+
+            if (removeButton.isEnabled()) {
+                runWithRetry(removeButton::click);
+            }
+        } catch (NoSuchElementException e) {
+            // Do nothing
+        }
     }
 }
