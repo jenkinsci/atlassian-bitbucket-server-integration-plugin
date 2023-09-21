@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {
@@ -40,12 +42,15 @@ public class BitbucketBranchClientImplTest {
     private BitbucketCapabilitiesClient capabilitiesClient;
     private BitbucketRepositoryClientImpl client;
     @Mock
+    private PrintStream printStream;
+    @Mock
     private TaskListener taskListener;
 
     @Before
     public void setup() {
         client = new BitbucketRepositoryClientImpl(bitbucketRequestExecutor,
                 capabilitiesClient, PROJECT_KEY, REPO_SLUG);
+        when(taskListener.getLogger()).thenReturn(printStream);
     }
 
     @Test
