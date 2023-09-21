@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.fasterxml.jackson.core.type.TypeReference;
+import hudson.model.TaskListener;
 import okhttp3.HttpUrl;
 
 import java.util.Collection;
@@ -24,13 +25,16 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String projectKey;
     private final String repositorySlug;
+    private final TaskListener taskListener;
 
     public BitbucketBranchClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor,
                                      String projectKey,
-                                     String repositorySlug) {
+                                     String repositorySlug,
+                                     TaskListener taskListener) {
         this.bitbucketRequestExecutor = bitbucketRequestExecutor;
         this.projectKey = projectKey;
         this.repositorySlug = repositorySlug;
+        this.taskListener = taskListener;
     }
 
     @Override
@@ -49,8 +53,9 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
                 bitbucketRequestExecutor.makeGetRequest(url,
                         new TypeReference<BitbucketPage<BitbucketDefaultBranch>>() {
                 }).getBody();
+
         return BitbucketPageStreamUtil.toStream(firstPage, new NextPageFetcherImpl(url, bitbucketRequestExecutor,
-                        MAX_PAGES))
+                        MAX_PAGES, taskListener))
                 .map(BitbucketPage::getValues)
                 .flatMap(Collection::stream);
     }
@@ -60,14 +65,17 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
         private final AtomicInteger currentPage = new AtomicInteger();
         private final int maxPages;
+        private final TaskListener taskListener;
         private final HttpUrl url;
 
         NextPageFetcherImpl(HttpUrl url,
                             BitbucketRequestExecutor bitbucketRequestExecutor,
-                            int maxPages) {
+                            int maxPages,
+                            TaskListener taskListener) {
             this.url = url;
             this.bitbucketRequestExecutor = bitbucketRequestExecutor;
             this.maxPages = maxPages;
+            this.taskListener = taskListener;
         }
 
         @Override
@@ -78,6 +86,7 @@ public class BitbucketBranchClientImpl implements BitbucketBranchClient {
 
             if (currentPage.incrementAndGet() >= maxPages) {
                 // We've reached the maximum number of pages, so we return an "empty last page" to stop the iterator.
+                taskListener.getLogger().println("Max number of pages for branch retrieval reached.");
                 BitbucketPage<BitbucketDefaultBranch> lastPage = new BitbucketPage<>();
                 lastPage.setValues(Collections.emptyList());
                 lastPage.setLastPage(true);

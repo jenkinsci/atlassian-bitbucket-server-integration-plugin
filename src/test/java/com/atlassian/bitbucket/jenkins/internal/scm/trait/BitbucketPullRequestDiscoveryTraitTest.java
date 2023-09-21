@@ -11,6 +11,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.model.TaskListener;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMHead;
@@ -71,6 +72,8 @@ public class BitbucketPullRequestDiscoveryTraitTest {
     private SCMHeadObserver scmHeadObserver;
     @Mock
     private SCMSourceCriteria scmSourceCriteria;
+    @Mock
+    private TaskListener taskListener;
     @Mock
     private BitbucketSCMSourceContext testContext;
     @InjectMocks
@@ -199,7 +202,8 @@ public class BitbucketPullRequestDiscoveryTraitTest {
                 scmHeadObserver,
                 credentials,
                 eventHeads,
-                bitbucketSCMRepository));
+                bitbucketSCMRepository,
+                taskListener));
     }
 
     private BitbucketPullRequest mockPullRequest(long id, boolean isForked) {

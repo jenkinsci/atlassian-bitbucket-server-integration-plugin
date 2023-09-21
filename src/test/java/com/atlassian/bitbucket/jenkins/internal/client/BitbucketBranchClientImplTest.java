@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import hudson.model.TaskListener;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,8 @@ public class BitbucketBranchClientImplTest {
     @Mock
     private BitbucketCapabilitiesClient capabilitiesClient;
     private BitbucketRepositoryClientImpl client;
+    @Mock
+    private TaskListener taskListener;
 
     @Before
     public void setup() {
@@ -51,7 +54,7 @@ public class BitbucketBranchClientImplTest {
         String url = format(BRANCHES_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        BitbucketBranchClient branchClient = client.getBranchClient();
+        BitbucketBranchClient branchClient = client.getBranchClient(taskListener);
         List<BitbucketDefaultBranch> branchList = branchClient.getRemoteBranches().collect(Collectors.toList());
 
         assertEquals(branchList.size(), 1);
@@ -61,7 +64,8 @@ public class BitbucketBranchClientImplTest {
     @Test
     public void testNextPageFetching() {
         BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
-                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 5);
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        5, taskListener);
         int nextPageStart = 2;
         fakeRemoteHttpServer.mapUrlToResult(
                 BITBUCKET_BASE_URL + "?start=" + nextPageStart,
@@ -82,7 +86,8 @@ public class BitbucketBranchClientImplTest {
     @Test(expected = IllegalArgumentException.class)
     public void testLastPageDoesNotHaveNext() {
         BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
-                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 5);
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        5, taskListener);
         BitbucketPage<BitbucketDefaultBranch> page = new BitbucketPage<>();
         page.setLastPage(true);
 
@@ -93,7 +98,8 @@ public class BitbucketBranchClientImplTest {
     public void testMaxPagesNotExceeded() {
         // Limit fetcher to 1 page
         BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
-                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor, 1);
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        1, taskListener);
 
         // Run the fetcher
         BitbucketPage<BitbucketDefaultBranch> nextPage = fetcher.next(new BitbucketPage<>());
