@@ -10,6 +10,7 @@ import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketProxyRule;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.GitHelper;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProjectHandler;
 import jenkins.branch.MultiBranchProject;
+import org.apache.http.HttpStatus;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.After;
@@ -20,7 +21,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import wiremock.org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.net.URL;

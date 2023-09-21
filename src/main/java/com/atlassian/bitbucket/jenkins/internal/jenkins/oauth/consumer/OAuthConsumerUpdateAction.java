@@ -100,7 +100,7 @@ public class OAuthConsumerUpdateAction extends AbstractDescribableImpl<OAuthCons
 
     @Override
     public String getIconFileName() {
-        return "setting.png";
+        return "symbol-settings";
     }
 
     @SuppressWarnings("unused") //Stapler

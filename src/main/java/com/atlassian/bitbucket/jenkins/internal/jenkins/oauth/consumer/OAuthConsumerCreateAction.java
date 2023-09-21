@@ -55,7 +55,7 @@ public class OAuthConsumerCreateAction extends AbstractDescribableImpl<OAuthCons
 
     @Override
     public String getIconFileName() {
-        return "setting.png";
+        return "symbol-settings";
     }
 
     @Override

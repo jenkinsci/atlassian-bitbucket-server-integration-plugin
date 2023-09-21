@@ -21,7 +21,8 @@ import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {

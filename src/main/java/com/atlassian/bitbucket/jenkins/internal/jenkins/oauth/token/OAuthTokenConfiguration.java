@@ -60,7 +60,7 @@ public class OAuthTokenConfiguration implements Action, Describable<OAuthGlobalC
     @CheckForNull
     @Override
     public String getIconFileName() {
-        return "secure.png";
+        return "symbol-lock-closed";
     }
 
     @SuppressWarnings("unused") // Stapler
