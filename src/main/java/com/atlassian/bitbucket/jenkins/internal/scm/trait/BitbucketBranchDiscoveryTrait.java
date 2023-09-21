@@ -55,7 +55,7 @@ public class BitbucketBranchDiscoveryTrait extends SCMSourceTrait {
             BitbucketBranchClient bitbucketBranchClient = clientFactory.get()
                     .getProjectClient(repository.getProjectKey())
                     .getRepositoryClient(repository.getRepositorySlug())
-                    .getBranchClient();
+                    .getBranchClient(bitbucketContext.getTaskListener());
 
             bitbucketContext.withDiscoveryHandler(
                     new BitbucketSCMHeadDiscoveryHandler() {

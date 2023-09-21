@@ -1,5 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.util;
 
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketBranchClient;
+
 /**
  * A list of all system properties used by the plugin.
  */
@@ -40,7 +42,20 @@ public class SystemPropertiesConstants {
      * Defaults to 5 years and 30 days.
      */
     public static final String DEFAULT_OAUTH_SESSION_TTL_KEY = "bitbucket.oauth.default.session.ttl";
-
+    /**
+     * Specifies the maximum number of pages to fetch when
+     * {@link BitbucketBranchClient#getRemoteBranches() fetching remote branches}.
+     * Defaults to 5.
+     * @since 4.0.0
+     */
+    public static final String REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES = "bitbucket.remote.branches.retrieval.max.pages";
+    /**
+     * Specifies the size of a page to fetch when
+     * {@link BitbucketBranchClient#getRemoteBranches() fetching remote branches}.
+     * Defaults to 1000.
+     * @since 4.0.0
+     */
+    public static final String REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE = "bitbucket.remote.branches.retrieval.page.size";
     /**
      * Maximum number of attempts to retry when posting a build status and the server responds wth a 429.
      * Defaults 3. Care should be taken when adjusting this as to not overload a server that is already under load.

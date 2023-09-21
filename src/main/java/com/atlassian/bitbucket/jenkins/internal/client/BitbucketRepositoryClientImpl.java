@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import hudson.model.TaskListener;
 import okhttp3.HttpUrl;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
@@ -23,8 +24,8 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     private final String projectKey;
     private final String repositorySlug;
 
-    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor, 
-                                  BitbucketCapabilitiesClient capabilitiesClient, String projectKey, 
+    BitbucketRepositoryClientImpl(BitbucketRequestExecutor bitbucketRequestExecutor,
+                                  BitbucketCapabilitiesClient capabilitiesClient, String projectKey,
                                   String repositorySlug) {
         this.bitbucketRequestExecutor = requireNonNull(bitbucketRequestExecutor, "bitbucketRequestExecutor");
         this.capabilitiesClient = capabilitiesClient;
@@ -46,8 +47,8 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
-    public BitbucketBranchClient getBranchClient() {
-        return new BitbucketBranchClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    public BitbucketBranchClient getBranchClient(TaskListener taskListener) {
+        return new BitbucketBranchClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, taskListener);
     }
 
     @Override
@@ -119,7 +120,7 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                 .addPathSegment("repos")
                 .addPathSegment(repositorySlug);
     }
-    
+
     private HttpUrl.Builder getDefaultBranchyUrl() {
         return getRepositoryUrl()
                 .addPathSegment("default-branch");

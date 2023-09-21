@@ -12,6 +12,7 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMHeadDiscoveryHan
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSourceContext;
 import com.cloudbees.plugins.credentials.Credentials;
+import hudson.model.TaskListener;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
@@ -69,6 +70,8 @@ public class BitbucketBranchDiscoveryTraitTest {
     @Mock
     private SCMSourceCriteria scmSourceCriteria;
     @Mock
+    private TaskListener taskListener;
+    @Mock
     private BitbucketSCMSourceContext testContext;
     @InjectMocks
     private BitbucketBranchDiscoveryTrait.DescriptorImpl traitDescriptor;
@@ -87,7 +90,7 @@ public class BitbucketBranchDiscoveryTraitTest {
                 .when(jenkinsToBitbucketCredentials)
                 .toBitbucketCredentials(credentials);
         doReturn(bitbucketRepositoryClient).when(bitbucketProjectClient).getRepositoryClient(TEST_REPOSITORY_SLUG);
-        doReturn(bitbucketBranchClient).when(bitbucketRepositoryClient).getBranchClient();
+        doReturn(bitbucketBranchClient).when(bitbucketRepositoryClient).getBranchClient(taskListener);
         doReturn(bitbucketProjectClient).when(bitbucketClientFactory).getProjectClient(TEST_PROJECT_KEY);
         doReturn(bitbucketClientFactory).when(bitbucketClientFactoryProvider).getClient(TEST_URL, bitbucketCredentials);
         initContext(Collections.emptySet());
@@ -154,6 +157,7 @@ public class BitbucketBranchDiscoveryTraitTest {
                 scmHeadObserver,
                 credentials,
                 eventHeads,
-                bitbucketSCMRepository));
+                bitbucketSCMRepository,
+                taskListener));
     }
 }

@@ -379,8 +379,8 @@ public class BitbucketSCMSource extends SCMSource {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
 
         BitbucketSCMSourceContext context =
-                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads, repository)
-                        .withTraits(traits);
+                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads,
+                        repository, listener).withTraits(traits);
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {

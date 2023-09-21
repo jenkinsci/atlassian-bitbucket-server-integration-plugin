@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import hudson.model.TaskListener;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +12,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,12 +23,14 @@ import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketBranchClientImplTest {
 
-    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches?limit=1000";
+    private static final String BRANCHES_URL = "%s/rest/api/1.0/projects/%s/repos/%s/branches?limit=1000&orderBy=modification";
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
 
@@ -37,11 +41,16 @@ public class BitbucketBranchClientImplTest {
     @Mock
     private BitbucketCapabilitiesClient capabilitiesClient;
     private BitbucketRepositoryClientImpl client;
+    @Mock
+    private PrintStream printStream;
+    @Mock
+    private TaskListener taskListener;
 
     @Before
     public void setup() {
         client = new BitbucketRepositoryClientImpl(bitbucketRequestExecutor,
                 capabilitiesClient, PROJECT_KEY, REPO_SLUG);
+        when(taskListener.getLogger()).thenReturn(printStream);
     }
 
     @Test
@@ -50,7 +59,7 @@ public class BitbucketBranchClientImplTest {
         String url = format(BRANCHES_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
-        BitbucketBranchClient branchClient = client.getBranchClient();
+        BitbucketBranchClient branchClient = client.getBranchClient(taskListener);
         List<BitbucketDefaultBranch> branchList = branchClient.getRemoteBranches().collect(Collectors.toList());
 
         assertEquals(branchList.size(), 1);
@@ -59,7 +68,9 @@ public class BitbucketBranchClientImplTest {
 
     @Test
     public void testNextPageFetching() {
-        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher = new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        5, taskListener);
         int nextPageStart = 2;
         fakeRemoteHttpServer.mapUrlToResult(
                 BITBUCKET_BASE_URL + "?start=" + nextPageStart,
@@ -80,10 +91,26 @@ public class BitbucketBranchClientImplTest {
     @Test(expected = IllegalArgumentException.class)
     public void testLastPageDoesNotHaveNext() {
         BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
-                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor);
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        5, taskListener);
         BitbucketPage<BitbucketDefaultBranch> page = new BitbucketPage<>();
         page.setLastPage(true);
 
         fetcher.next(page);
+    }
+
+    @Test
+    public void testMaxPagesNotExceeded() {
+        // Limit fetcher to 1 page
+        BitbucketBranchClientImpl.NextPageFetcherImpl fetcher =
+                new BitbucketBranchClientImpl.NextPageFetcherImpl(parse(BITBUCKET_BASE_URL), bitbucketRequestExecutor,
+                        1, taskListener);
+
+        // Run the fetcher
+        BitbucketPage<BitbucketDefaultBranch> nextPage = fetcher.next(new BitbucketPage<>());
+
+        // Make sure the result is an "empty last page"
+        assertTrue(nextPage.getValues().isEmpty());
+        assertTrue(nextPage.isLastPage());
     }
 }

@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import hudson.model.TaskListener;
 
 import java.util.stream.Stream;
 
@@ -22,7 +23,7 @@ public interface BitbucketRepositoryClient {
      *
      * @since 4.0.0
      */
-    BitbucketBranchClient getBranchClient();
+    BitbucketBranchClient getBranchClient(TaskListener taskListener);
 
     /**
      * Returns a client for getting file content and directory information on paths in a repository.
@@ -93,7 +94,7 @@ public interface BitbucketRepositoryClient {
      * @since 3.0.0
      */
     Stream<BitbucketPullRequest> getPullRequests();
-    
+
     /**
      * Returns the default branch of a repository.
      *
@@ -114,5 +115,5 @@ public interface BitbucketRepositoryClient {
      *             for all errors not already captured
      */
     BitbucketDefaultBranch getDefaultBranch();
-    
+
 }

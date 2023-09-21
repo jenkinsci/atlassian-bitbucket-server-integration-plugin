@@ -21,16 +21,19 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
     private final Collection<BitbucketSCMHeadDiscoveryHandler> discoveryHandlers = new ArrayList<>();
     private final Collection<SCMHead> eventHeads;
     private final BitbucketSCMRepository repository;
+    private final TaskListener taskListener;
 
     public BitbucketSCMSourceContext(@CheckForNull SCMSourceCriteria criteria,
                                      SCMHeadObserver observer,
                                      @CheckForNull Credentials credentials,
                                      Collection<SCMHead> eventHeads,
-                                     BitbucketSCMRepository repository) {
+                                     BitbucketSCMRepository repository,
+                                     TaskListener taskListener) {
         super(criteria, observer);
         this.credentials = credentials;
         this.eventHeads = requireNonNull(eventHeads, "eventHeads");
         this.repository = requireNonNull(repository, "repository");
+        this.taskListener = requireNonNull(taskListener);
     }
 
     @CheckForNull
@@ -53,6 +56,10 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
 
     public BitbucketSCMRepository getRepository() {
         return repository;
+    }
+
+    public TaskListener getTaskListener() {
+        return taskListener;
     }
 
     public void withDiscoveryHandler(BitbucketSCMHeadDiscoveryHandler handler) {
