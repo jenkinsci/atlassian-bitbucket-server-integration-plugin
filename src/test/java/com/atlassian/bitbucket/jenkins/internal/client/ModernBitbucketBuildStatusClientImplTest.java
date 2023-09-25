@@ -5,7 +5,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BuildState;
 import com.atlassian.bitbucket.jenkins.internal.model.TestResults;
 import com.atlassian.bitbucket.jenkins.internal.provider.InstanceKeyPairProvider;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
-import jcifs.util.Base64;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
@@ -25,6 +24,7 @@ import java.security.KeyPair;
 import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -154,7 +154,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
             }
             verifySignature.update(buildStatus.getState().getBytes(UTF_8));
             verifySignature.update(buildStatus.getUrl().getBytes(UTF_8));
-            return verifySignature.verify(Base64.decode(signature));
+            return verifySignature.verify(Base64.getDecoder().decode(signature));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
