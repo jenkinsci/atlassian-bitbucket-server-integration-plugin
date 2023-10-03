@@ -6,7 +6,7 @@
     <name>Bitbucket Server Integration Plugin Acceptance Tests</name>
     <description>Includes the integration/acceptance tests for the Bitbucket Server Jenkins integration plugin</description>
     <packaging>jar</packaging>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.1-SNAPSHOT</version>
 
     <properties>
         <!-- The Maven build directory of the plugin, where the '.hpi' file is packaged (by default it's '../target').
@@ -14,10 +14,10 @@
         <plugin.build.dir>../target</plugin.build.dir>
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
-        <jenkins.acceptance-test-harness.version>5504.v485694f31cdf</jenkins.acceptance-test-harness.version>
+        <jenkins.acceptance-test-harness.version>5668.vddb_c1150ef3d</jenkins.acceptance-test-harness.version>
         <bitbucket.version>7.21.9</bitbucket.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <jenkins.version>2.401.3</jenkins.version>
+        <jenkins.version>2.414.2</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
         <jackson.version>2.15.1</jackson.version>
         <groovy.version>3.0.7</groovy.version>
