@@ -5,6 +5,7 @@ import org.jenkinsci.test.acceptance.po.PageObject;
 import org.openqa.selenium.By;
 
 import java.net.URL;
+import java.time.Duration;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -14,7 +15,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class BitbucketAuthenticatedOAuthAuthorizeTokenPage extends PageObject {
 
-    public static final long TIMEOUT_SECONDS = 5L;
+    public static final Duration TIMEOUT_SECONDS = Duration.ofSeconds(5L);
 
     public BitbucketAuthenticatedOAuthAuthorizeTokenPage(Jenkins jenkins, URL bitbucketAuthorizeUrl) {
         super(jenkins, bitbucketAuthorizeUrl);
@@ -28,7 +29,7 @@ public class BitbucketAuthenticatedOAuthAuthorizeTokenPage extends PageObject {
     public void authorize(String redirectUrl) {
         open();
         control(By.cssSelector("span[name=\"authorize\"] > span.first-child > button")).click();
-        waitFor().withTimeout(TIMEOUT_SECONDS, SECONDS)
+        waitFor().withTimeout(TIMEOUT_SECONDS)
                 .withMessage("Redirect URL must contain the 'oauth_verifier' query param")
                 .until(layer -> redirectUrl.equals(getCurrentUrl()));
     }
