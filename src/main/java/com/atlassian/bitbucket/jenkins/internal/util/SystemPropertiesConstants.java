@@ -61,4 +61,16 @@ public class SystemPropertiesConstants {
      * Defaults 3. Care should be taken when adjusting this as to not overload a server that is already under load.
      */
     public static final String REQUEST_RETRY_MAX_ATTEMPTS = "bitbucket.build.post.retry.request.attempts";
+
+    /**
+     * Http client connection timeout for rest calls.
+     * Defaults to 10,000 milliseconds (10 seconds)
+     */
+    public static final String DEFAULT_HTTP_CONNECTION_TIMEOUT = "bitbucket.http.connect.timeout";
+
+    /**
+     * Http client read timeout for rest calls.
+     * Defaults to 10,000 milliseconds (10 seconds)
+     */
+    public static final String DEFAULT_HTTP_READ_TIMEOUT = "bitbucket.http.request.timeout";
 }

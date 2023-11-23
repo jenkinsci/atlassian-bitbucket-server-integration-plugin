@@ -3,6 +3,8 @@ package com.atlassian.bitbucket.jenkins.internal.http;
 import com.atlassian.bitbucket.jenkins.internal.client.HttpRequestExecutor;
 import com.atlassian.bitbucket.jenkins.internal.client.RequestConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
+import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants;
+import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertyUtils;
 import hudson.Plugin;
 import jenkins.model.Jenkins;
 import okhttp3.*;
@@ -15,6 +17,7 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,9 +33,19 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private final Call.Factory httpCallFactory;
 
+    public static OkHttpClient buildDefaultOkHttpClient() {
+        long connectionTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 10000);
+        long readTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 10000);
+        log.info("buildDefaultHttpCallFactory with: "+ SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT + ": "+ connectionTimeout + ", "+SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT + ": "+readTimeout);
+        return new OkHttpClient.Builder()
+                .connectTimeout(connectionTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+                .addInterceptor(new UserAgentInterceptor()).build();
+    }
+
     @Inject
     public HttpRequestExecutorImpl() {
-        this(new OkHttpClient.Builder().addInterceptor(new UserAgentInterceptor()).build());
+        this(buildDefaultOkHttpClient());
     }
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
