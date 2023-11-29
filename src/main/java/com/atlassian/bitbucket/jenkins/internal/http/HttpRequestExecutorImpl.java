@@ -33,16 +33,6 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
     private static final Logger log = Logger.getLogger(HttpRequestExecutorImpl.class.getName());
     private final Call.Factory httpCallFactory;
 
-    public static OkHttpClient buildDefaultOkHttpClient() {
-        long connectionTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 10000);
-        long readTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 10000);
-        log.info("buildDefaultHttpCallFactory with: "+ SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT + ": "+ connectionTimeout + ", "+SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT + ": "+readTimeout);
-        return new OkHttpClient.Builder()
-                .connectTimeout(connectionTimeout, TimeUnit.MILLISECONDS)
-                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
-                .addInterceptor(new UserAgentInterceptor()).build();
-    }
-
     @Inject
     public HttpRequestExecutorImpl() {
         this(buildDefaultOkHttpClient());
@@ -50,6 +40,16 @@ public class HttpRequestExecutorImpl implements HttpRequestExecutor {
 
     public HttpRequestExecutorImpl(Call.Factory httpCallFactory) {
         this.httpCallFactory = httpCallFactory;
+    }
+
+    public static OkHttpClient buildDefaultOkHttpClient() {
+        long connectionTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT, 30000);
+        long readTimeout = SystemPropertyUtils.parsePositiveLongFromSystemProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT, 30000);
+        log.info("buildDefaultHttpCallFactory with: " + SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT + ": " + connectionTimeout + ", " + SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT + ": " + readTimeout);
+        return new OkHttpClient.Builder()
+                .connectTimeout(connectionTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+                .addInterceptor(new UserAgentInterceptor()).build();
     }
 
     @Override

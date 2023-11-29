@@ -21,6 +21,20 @@ public class SystemPropertiesConstants {
      */
     public static final String CAPABILITIES_CACHE_DURATION_KEY = "bitbucket.client.capabilities.cache.duration";
     /**
+     * Http client connection timeout for rest calls.
+     * Defaults to 30,000 milliseconds (30 seconds)
+     *
+     * @since 4.0.1
+     */
+    public static final String DEFAULT_HTTP_CONNECTION_TIMEOUT = "bitbucket.http.connect.timeout";
+    /**
+     * Http client read timeout for rest calls.
+     * Defaults to 30,000 milliseconds (30 seconds)
+     *
+     * @since 4.0.1
+     */
+    public static final String DEFAULT_HTTP_READ_TIMEOUT = "bitbucket.http.request.timeout";
+    /**
      * Specifies the time to live (TTL) of an OAuth access token, used when making API requests in Jenkins on
      * behalf of the Bitbucket user, such as starting jobs. When the token expires, the user will have to acquire
      * another before being able to make further API requests.
@@ -46,6 +60,7 @@ public class SystemPropertiesConstants {
      * Specifies the maximum number of pages to fetch when
      * {@link BitbucketBranchClient#getRemoteBranches() fetching remote branches}.
      * Defaults to 5.
+     *
      * @since 4.0.0
      */
     public static final String REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES = "bitbucket.remote.branches.retrieval.max.pages";
@@ -53,6 +68,7 @@ public class SystemPropertiesConstants {
      * Specifies the size of a page to fetch when
      * {@link BitbucketBranchClient#getRemoteBranches() fetching remote branches}.
      * Defaults to 1000.
+     *
      * @since 4.0.0
      */
     public static final String REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE = "bitbucket.remote.branches.retrieval.page.size";
@@ -61,16 +77,4 @@ public class SystemPropertiesConstants {
      * Defaults 3. Care should be taken when adjusting this as to not overload a server that is already under load.
      */
     public static final String REQUEST_RETRY_MAX_ATTEMPTS = "bitbucket.build.post.retry.request.attempts";
-
-    /**
-     * Http client connection timeout for rest calls.
-     * Defaults to 10,000 milliseconds (10 seconds)
-     */
-    public static final String DEFAULT_HTTP_CONNECTION_TIMEOUT = "bitbucket.http.connect.timeout";
-
-    /**
-     * Http client read timeout for rest calls.
-     * Defaults to 10,000 milliseconds (10 seconds)
-     */
-    public static final String DEFAULT_HTTP_READ_TIMEOUT = "bitbucket.http.request.timeout";
 }

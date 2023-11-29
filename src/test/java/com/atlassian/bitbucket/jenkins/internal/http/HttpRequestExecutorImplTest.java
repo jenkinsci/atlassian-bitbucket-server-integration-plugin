@@ -56,8 +56,8 @@ public class HttpRequestExecutorImplTest {
         System.clearProperty(SystemPropertiesConstants.DEFAULT_HTTP_CONNECTION_TIMEOUT);
         System.clearProperty(SystemPropertiesConstants.DEFAULT_HTTP_READ_TIMEOUT);
         OkHttpClient client = HttpRequestExecutorImpl.buildDefaultOkHttpClient();
-        assertThat(client.connectTimeoutMillis(), is(equalTo(10000)));
-        assertThat(client.readTimeoutMillis(), is(equalTo(10000)));
+        assertThat(client.connectTimeoutMillis(), is(equalTo(30000)));
+        assertThat(client.readTimeoutMillis(), is(equalTo(30000)));
     }
 
     @Test
