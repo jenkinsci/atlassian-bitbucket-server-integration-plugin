@@ -19,9 +19,9 @@
         <httpclient.version>4.5.13</httpclient.version>
         <jenkins.version>2.401.3</jenkins.version>
         <scribejava.version>6.8.1</scribejava.version>
-        <jackson.version>2.15.1</jackson.version>
+        <jackson.version>2.15.3</jackson.version>
         <groovy.version>3.0.7</groovy.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-lang3.version>3.13.0</commons-lang3.version>
         <jgit.version>4.5.7.201904151645-r</jgit.version>
         <junit.version>5.9.2</junit.version>
         <log4j.version>1.7.25</log4j.version>
