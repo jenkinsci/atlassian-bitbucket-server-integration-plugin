@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
@@ -69,17 +68,13 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
-    @UpgradeHandled(handledBy = "static fields not persisted", removeAnnotationInVersion = "4.0.0")
     private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
 
-    @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility
     private transient CustomGitSCMSource gitSCMSource;
-    @UpgradeHandled(handledBy = "readResolve() method", removeAnnotationInVersion = "4.0.0")
     private transient AtomicBoolean initialized;
     private BitbucketSCMRepository repository;
-    @UpgradeHandled(handledBy = "initialize() method", removeAnnotationInVersion = "4.0.0")
     private String selfLink;
     private List<SCMSourceTrait> traits;
     private volatile boolean webhookRegistered;
