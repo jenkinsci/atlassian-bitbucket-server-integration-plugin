@@ -15,11 +15,10 @@ public class BitbucketDefaultBranch extends BitbucketRef {
 
     @JsonCreator
     public BitbucketDefaultBranch(@JsonProperty("id") String id, @JsonProperty("displayId") String displayId,
-                                  @JsonProperty("type") BitbucketRefType type,
                                   @JsonProperty("latestCommit") String latestCommit,
                                   @JsonProperty("latestChangeset") String latestChangeset,
                                   @JsonProperty("isDefault") boolean isDefault) {
-        super(id, displayId, type);
+        super(id, displayId, BitbucketRefType.BRANCH);
         this.latestCommit = latestCommit;
         this.latestChangeset = latestChangeset;
         this.isDefault = isDefault;

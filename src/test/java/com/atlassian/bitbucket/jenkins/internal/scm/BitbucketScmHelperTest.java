@@ -173,7 +173,7 @@ public class BitbucketScmHelperTest {
         repositoryPage.setValues(singletonList(expectedRepo));
         when(searchClient.findRepositories("my repo")).thenReturn(repositoryPage);
         BitbucketDefaultBranch expectedBranch =
-                new BitbucketDefaultBranch("ref/head/master", "master", BitbucketRefType.BRANCH, "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", true);
+                new BitbucketDefaultBranch("ref/head/master", "master", "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", "1c4c3f92b4f8078e04b7f5a64ce7476a2d4276e0", true);
         when(repositoryClient.getDefaultBranch()).thenReturn(expectedBranch);
 
         BitbucketDefaultBranch branch = bitbucketScmHelper.getDefaultBranch("my project", "my repo").get();

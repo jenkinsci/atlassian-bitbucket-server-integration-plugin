@@ -97,6 +97,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
                 .getBody();
     }
 
+    @Override
+    public BitbucketTagClient getBitbucketTagClient(TaskListener taskListener) {
+        return new BitbucketTagClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, taskListener);
+    }
+
     private Stream<BitbucketPullRequest> getBitbucketPullRequestStream(HttpUrl.Builder urlBuilder) {
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketPullRequest> firstPage =

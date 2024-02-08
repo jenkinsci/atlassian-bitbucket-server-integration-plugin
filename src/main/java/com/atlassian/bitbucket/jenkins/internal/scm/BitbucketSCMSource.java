@@ -11,8 +11,8 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
+import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketTagDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -40,6 +40,7 @@ import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import jenkins.scm.impl.trait.Discovery;
@@ -299,6 +300,11 @@ public class BitbucketSCMSource extends SCMSource {
             throws IOException, InterruptedException {
         if (head instanceof BitbucketPullRequestSCMHead) {
             return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
+        }
+
+        if (head instanceof BitbucketTagSCMHead) {
+            return new BitbucketSCMRevision((BitbucketTagSCMHead) head,
+                    ((BitbucketTagSCMHead) head).getLatestCommit());
         }
 
         if (head instanceof BitbucketBranchSCMHead) {
@@ -632,7 +638,7 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            return Collections.singletonList(new BitbucketBranchDiscoveryTrait());
+            return Arrays.asList(new BitbucketTagDiscoveryTrait(), new BitbucketTagDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
@@ -652,7 +658,8 @@ public class BitbucketSCMSource extends SCMSource {
         @Override
         protected SCMHeadCategory[] createCategories() {
             return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
-                    new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())};
+                    new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display()),
+                    new TagSCMHeadCategory(Messages._bitbucket_scm_tag_display())};
         }
 
         BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {
