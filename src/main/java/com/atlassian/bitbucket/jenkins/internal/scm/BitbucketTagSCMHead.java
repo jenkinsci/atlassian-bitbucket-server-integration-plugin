@@ -9,8 +9,9 @@ import jenkins.plugins.git.GitTagSCMHead;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadMigration;
 import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.mixin.TagSCMHead;
 
-public class BitbucketTagSCMHead extends BitbucketSCMHead {
+public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead {
 
     private static final String REFS_HEADS_PREFIX = "refs/heads/";
     private static final long UNKNOWN_TIMESTAMP = -1;
@@ -26,6 +27,11 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead {
     @Override
     public String getFullRef() {
         return REFS_HEADS_PREFIX + getName();
+    }
+
+    @Override
+    public long getTimestamp() {
+        return 0;
     }
 
     /**
