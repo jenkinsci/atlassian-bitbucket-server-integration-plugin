@@ -248,6 +248,7 @@ testing to ensure optimal performance. Your feedback is valuable in helping us e
 
 ### 3.6.0
 - Update minimum Jenkins version to **2.401.3**
+- Upgrading from 3.5.0 may cause 'branchName' to appear as old data. This field has been changed to 'refName'.
 
 ### 3.5.0
 - The minimum version of Jenkins changed to be **2.401.1**
