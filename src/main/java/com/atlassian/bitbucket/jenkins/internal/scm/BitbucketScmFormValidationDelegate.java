@@ -15,6 +15,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -58,11 +59,14 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         checkPermission(context);
         if (isBlank(credentialsId)) {
             return FormValidation.warning(
-                    "Without credentials, Jenkins can’t check out source code from non-public repositories. ");
+                    "Without credentials, Jenkins can’t check out source code from non-public repositories.");
         }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
-            return FormValidation.error("No credentials exist for the provided credentialsId");
+            return FormValidation.error("No credentials exist for the provided credentialsId.");
+        }
+        if (providedCredentials.get() instanceof StringCredentials) {
+            return FormValidation.error("Secret text cannot be used for build credentials. Change to a different credentials type.");
         }
         return FormValidation.ok();
     }

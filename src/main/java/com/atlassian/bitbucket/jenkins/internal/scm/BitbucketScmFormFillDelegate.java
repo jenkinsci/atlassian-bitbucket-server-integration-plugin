@@ -24,7 +24,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.HttpResponse;
 
 import javax.annotation.Nullable;
@@ -79,12 +78,6 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
 
         return new StandardListBoxModel()
                 .includeEmptyValue()
-                .includeMatchingAs(
-                        ACL.SYSTEM,
-                        context,
-                        StringCredentials.class,
-                        URIRequirementBuilder.fromUri(baseUrl).build(),
-                        CredentialsMatchers.always())
                 .includeMatchingAs(
                         ACL.SYSTEM,
                         context,

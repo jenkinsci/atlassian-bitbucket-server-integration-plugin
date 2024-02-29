@@ -220,6 +220,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 4.0.1
+- JENKINS-72280 Secret text credentials can no longer be selected as part of a Bitbucket SCM configuration
+
 ### 4.0.0
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
   Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds.
