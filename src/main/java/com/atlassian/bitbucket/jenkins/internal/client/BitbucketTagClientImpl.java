@@ -45,7 +45,7 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .addPathSegment(repositorySlug)
                 .addPathSegment("tags")
                 .addQueryParameter("limit", String.valueOf(PAGE_SIZE))
-                .addQueryParameter("orderBy", "modification"); // the most recently-modified branches first
+                .addQueryParameter("orderBy", "modification"); // the most recently-modified tags first
 
         HttpUrl url = urlBuilder.build();
         BitbucketPage<BitbucketTag> firstPage =

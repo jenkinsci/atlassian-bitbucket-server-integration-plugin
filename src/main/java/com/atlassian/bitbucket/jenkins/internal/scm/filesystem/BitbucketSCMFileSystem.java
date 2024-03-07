@@ -119,7 +119,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                             .getRepositoryClient(repository.getRepositorySlug())
                             .getFilePathClient();
 
-            if (scmRevision != null && scmRevision.getHead() instanceof BitbucketSCMHead) {
+            if (scmRevision != null && scmRevision.getHead() instanceof BitbucketBranchSCMHead) {
                 return new BitbucketSCMFileSystem(filePathClient, scmRevision, ((BitbucketSCMHead) scmRevision.getHead()).getFullRef());
             }
 

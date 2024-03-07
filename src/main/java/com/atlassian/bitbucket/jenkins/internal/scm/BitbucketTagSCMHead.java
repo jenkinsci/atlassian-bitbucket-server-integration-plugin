@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefChange;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -13,7 +14,7 @@ import jenkins.scm.api.mixin.TagSCMHead;
 
 public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead {
 
-    private static final String REFS_HEADS_PREFIX = "refs/heads/";
+    private static final String REFS_HEADS_PREFIX = "refs/tags/";
     private static final long UNKNOWN_TIMESTAMP = -1;
 
     public BitbucketTagSCMHead(String name) {
@@ -22,6 +23,10 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead 
 
     public BitbucketTagSCMHead(BitbucketTag tag) {
         super(tag.getDisplayId(), tag.getLatestCommit(), UNKNOWN_TIMESTAMP);
+    }
+
+    public BitbucketTagSCMHead(BitbucketRefChange refChange) {
+        super(refChange.getRef().getDisplayId(), refChange.getToHash(), UNKNOWN_TIMESTAMP);
     }
 
     @Override
