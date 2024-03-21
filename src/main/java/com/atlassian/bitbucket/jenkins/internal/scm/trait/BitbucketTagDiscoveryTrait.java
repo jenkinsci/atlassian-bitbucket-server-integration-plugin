@@ -31,7 +31,6 @@ public class BitbucketTagDiscoveryTrait extends SCMSourceTrait {
 
     @DataBoundConstructor
     public BitbucketTagDiscoveryTrait() {
-
     }
 
     @Override
@@ -45,7 +44,7 @@ public class BitbucketTagDiscoveryTrait extends SCMSourceTrait {
                     descriptor.getClientFactory(bitbucketContext);
 
             if (!clientFactory.isPresent()) {
-                log.log(Level.WARNING, "Server configuration missing, cannot resolve client for Branch discovery");
+                log.log(Level.WARNING, "Server configuration missing, cannot resolve client for Tag discovery");
                 return;
             }
 
@@ -113,7 +112,7 @@ public class BitbucketTagDiscoveryTrait extends SCMSourceTrait {
 
         @Override
         public String getDisplayName() {
-            return "Tags";
+            return Messages.bitbucket_scm_trait_discovery_tag_display();
         }
 
         @Override

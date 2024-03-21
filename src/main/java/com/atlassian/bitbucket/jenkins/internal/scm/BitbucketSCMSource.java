@@ -11,8 +11,8 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
-import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketTagDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -302,14 +302,14 @@ public class BitbucketSCMSource extends SCMSource {
             return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
         }
 
-        if (head instanceof BitbucketTagSCMHead) {
-            return new BitbucketSCMRevision((BitbucketTagSCMHead) head,
-                    ((BitbucketTagSCMHead) head).getLatestCommit());
-        }
-
         if (head instanceof BitbucketBranchSCMHead) {
             return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
                     ((BitbucketBranchSCMHead) head).getLatestCommit());
+        }
+
+        if (head instanceof BitbucketTagSCMHead) {
+            return new BitbucketSCMRevision((BitbucketTagSCMHead) head,
+                    ((BitbucketTagSCMHead) head).getLatestCommit());
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
@@ -638,7 +638,7 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            return Arrays.asList(new BitbucketTagDiscoveryTrait(), new BitbucketTagDiscoveryTrait());
+            return Arrays.asList(new BitbucketBranchDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {

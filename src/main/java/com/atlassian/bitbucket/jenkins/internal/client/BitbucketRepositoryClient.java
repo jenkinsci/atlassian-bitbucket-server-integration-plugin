@@ -113,6 +113,13 @@ public interface BitbucketRepositoryClient {
      */
     BitbucketDefaultBranch getDefaultBranch();
 
+    /**
+     * Returns a client for getting tag information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since 4.0.0
+     */
     BitbucketTagClient getBitbucketTagClient(TaskListener taskListener);
 
 }

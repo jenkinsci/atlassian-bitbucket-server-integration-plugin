@@ -26,7 +26,7 @@ public class BitbucketTag extends BitbucketRef {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        BitbucketDefaultBranch that = (BitbucketDefaultBranch) o;
+        BitbucketTag that = (BitbucketTag) o;
         return Objects.equals(getId(), that.getId()) &&
                Objects.equals(getDisplayId(), that.getDisplayId()) &&
                Objects.equals(getType(), that.getType());
