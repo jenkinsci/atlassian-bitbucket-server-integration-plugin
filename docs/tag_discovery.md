@@ -1,7 +1,7 @@
 # Tags Discovery Behavior for Multibranch Pipeline Jobs
 
 ## Overview
-As of version 4.X.X of this plugin, we have added a new tag discovery behavior for Multibranch Pipeline jobs. 
+As of version 4.1.0 of this plugin, we have added a new tag discovery behavior for Multibranch Pipeline jobs. 
 This behavior allows the job to discover tags in Bitbucket Data Center.
 
 :warning: This change will only discover tags. We currently do not support automatic tag builds.

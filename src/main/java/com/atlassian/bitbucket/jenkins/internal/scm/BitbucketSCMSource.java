@@ -638,7 +638,7 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         public List<SCMSourceTrait> getTraitsDefaults() {
-            return Arrays.asList(new BitbucketBranchDiscoveryTrait());
+            return Collections.singletonList(new BitbucketBranchDiscoveryTrait());
         }
 
         public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {

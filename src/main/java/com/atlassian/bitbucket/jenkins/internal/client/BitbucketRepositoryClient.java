@@ -118,7 +118,7 @@ public interface BitbucketRepositoryClient {
      *
      * @return a git client that is ready to use
      *
-     * @since 4.0.0
+     * @since 4.1.0
      */
     BitbucketTagClient getBitbucketTagClient(TaskListener taskListener);
 

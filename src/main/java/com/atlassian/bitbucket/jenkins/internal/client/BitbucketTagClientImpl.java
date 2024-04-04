@@ -12,14 +12,14 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES;
-import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_TAGS_RETRIEVAL_MAX_PAGES;
+import static com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants.REMOTE_TAGS_RETRIEVAL_PAGE_SIZE;
 import static java.lang.String.valueOf;
 
 public class BitbucketTagClientImpl implements BitbucketTagClient {
 
-    private static final int MAX_PAGES = Integer.getInteger(REMOTE_BRANCHES_RETRIEVAL_MAX_PAGES, 5);
-    private static final int PAGE_SIZE = Integer.getInteger(REMOTE_BRANCHES_RETRIEVAL_PAGE_SIZE, 1000);
+    private static final int MAX_PAGES = Integer.getInteger(REMOTE_TAGS_RETRIEVAL_MAX_PAGES, 5);
+    private static final int PAGE_SIZE = Integer.getInteger(REMOTE_TAGS_RETRIEVAL_PAGE_SIZE, 1000);
 
     private final BitbucketRequestExecutor bitbucketRequestExecutor;
     private final String projectKey;
