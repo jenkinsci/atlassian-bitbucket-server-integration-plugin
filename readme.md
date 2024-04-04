@@ -222,7 +222,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 ### 4.1.0
-- JENKINS-72120 Implemented discovery of tags. This introduces a tag discovery trait enabling Multibranch pipelines to
+- [JENKINS-72120](https://issues.jenkins.io/browse/JENKINS-72120) Implemented discovery of tags. This introduces a tag discovery trait enabling Multibranch pipelines to
   detect tags. The trait will not initialise builds.
   See [documentation](./docs/tag_discovery.md) for more details.
   - The tag discovery trait uses a paged REST API call to retrieve tags from Bitbucket. Additionally, there is
