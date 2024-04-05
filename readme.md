@@ -231,6 +231,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
     - `bitbucket.remote.tags.retrieval.max.pages` - (defaults to 5)
     - `bitbucket.remote.tags.retrieval.page.size` - (defaults to 1000)
 
+### 4.0.1
+- JENKINS-72280 Secret text credentials can no longer be selected as part of a Bitbucket SCM configuration
+
 ### 4.0.0
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling
   Multibranch Pipelines to detect open pull requests (includes forked pull requests) and initiate builds.
@@ -256,6 +259,7 @@ testing to ensure optimal performance. Your feedback is valuable in helping us e
 
 ### 3.6.0
 - Update minimum Jenkins version to **2.401.3**
+- Upgrading from 3.5.0 may cause 'branchName' to appear as old data. This field has been changed to 'refName'.
 
 ### 3.5.0
 - The minimum version of Jenkins changed to be **2.401.1**
