@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefType;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketBranchSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMHeadDiscoveryHandler;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
@@ -114,7 +115,7 @@ public class BitbucketBranchDiscoveryTraitTest {
     @Test
     public void testDecorateContextWithEventHeads() {
         SCMHead testEventHead = new BitbucketBranchSCMHead(new BitbucketDefaultBranch(
-                "1", "master", "1", "2", true));
+                "1", "master", BitbucketRefType.BRANCH, "1", "2", true));
         initContext(Collections.singleton(testEventHead));
 
         underTest.decorateContext(testContext);
@@ -134,7 +135,7 @@ public class BitbucketBranchDiscoveryTraitTest {
     @Test
     public void testDecorateContextWithServerConfiguration() {
         BitbucketDefaultBranch branch =
-                new BitbucketDefaultBranch("1", "master", "1", "2", false);
+                new BitbucketDefaultBranch("1", "master", BitbucketRefType.BRANCH, "1", "2", false);
         doReturn(Collections.singleton(branch).stream()).when(bitbucketBranchClient).getRemoteBranches();
 
         underTest.decorateContext(testContext);
