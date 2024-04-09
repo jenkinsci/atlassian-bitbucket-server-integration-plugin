@@ -4,9 +4,8 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefChange;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import jenkins.plugins.git.GitBranchSCMHead;
-import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.plugins.git.GitTagSCMHead;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadMigration;
 import jenkins.scm.api.SCMRevision;
@@ -36,18 +35,18 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead 
 
     @Override
     public long getTimestamp() {
-        return 0;
+        return UNKNOWN_TIMESTAMP;
     }
 
     /**
-     * Migration from {@link GitBranchSCMHead} to {@link BitbucketBranchSCMHead}.
+     * Migration from {@link GitTagSCMHead} to {@link BitbucketTagSCMHead}.
      */
     @Extension
     public static class SCMHeadMigrationImpl extends SCMHeadMigration<BitbucketSCMSource, GitTagSCMHead,
-            GitBranchSCMRevision> {
+            GitTagSCMRevision> {
 
         public SCMHeadMigrationImpl() {
-            super(BitbucketSCMSource.class, GitTagSCMHead.class, GitBranchSCMRevision.class);
+            super(BitbucketSCMSource.class, GitTagSCMHead.class, GitTagSCMRevision.class);
         }
 
         @Override
@@ -56,7 +55,7 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead 
         }
 
         @Override
-        public SCMRevision migrate(@NonNull BitbucketSCMSource source, @NonNull GitBranchSCMRevision revision) {
+        public SCMRevision migrate(@NonNull BitbucketSCMSource source, @NonNull GitTagSCMRevision revision) {
             return new BitbucketSCMRevision(new BitbucketTagSCMHead(revision.getHead().getName()),
                     revision.getHash());
         }
