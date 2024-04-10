@@ -12,8 +12,9 @@ public class BitbucketTag extends BitbucketRef {
     private final String latestCommit;
 
     @JsonCreator
-    public BitbucketTag(@JsonProperty("id") String id, @JsonProperty("displayId") String displayId,
-                                  @JsonProperty("latestCommit") String latestCommit) {
+    public BitbucketTag(@JsonProperty("id") String id,
+                        @JsonProperty("displayId") String displayId,
+                        @JsonProperty("latestCommit") String latestCommit) {
         super(id, displayId, BitbucketRefType.TAG);
         this.latestCommit = latestCommit;
     }
@@ -29,7 +30,8 @@ public class BitbucketTag extends BitbucketRef {
         BitbucketTag that = (BitbucketTag) o;
         return Objects.equals(getId(), that.getId()) &&
                Objects.equals(getDisplayId(), that.getDisplayId()) &&
-               Objects.equals(getType(), that.getType());
+               Objects.equals(getType(), that.getType()) &&
+               Objects.equals(getLatestCommit(), that.getLatestCommit());
     }
 
     /**

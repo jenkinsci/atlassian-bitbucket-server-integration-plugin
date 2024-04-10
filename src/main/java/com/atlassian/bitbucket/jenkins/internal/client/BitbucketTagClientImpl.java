@@ -85,7 +85,7 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
             if (currentPage.incrementAndGet() >= maxPages) {
                 // We've reached the maximum number of pages, so we return an "empty last page" to stop the iterator.
-                taskListener.getLogger().println("Max number of pages for branch retrieval reached.");
+                taskListener.getLogger().println("Max number of pages for tag retrieval reached.");
                 BitbucketPage<BitbucketTag> lastPage = new BitbucketPage<>();
                 lastPage.setValues(Collections.emptyList());
                 lastPage.setLastPage(true);
