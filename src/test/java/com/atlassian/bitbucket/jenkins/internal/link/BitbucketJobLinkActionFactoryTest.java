@@ -5,10 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfigurat
 import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
 import hudson.model.ItemGroup;
@@ -161,6 +158,19 @@ public class BitbucketJobLinkActionFactoryTest {
         assertThat(actions.size(), equalTo(1));
         BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
         assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/pull-requests/1"));
+    }
+
+    @Test
+    public void testCreateMultibranchSourceTagHead() {
+        BitbucketTag bitbucketTag = new BitbucketTag("1", "test-tag", "1");
+        BitbucketTagSCMHead prHead = new BitbucketTagSCMHead(bitbucketTag);
+        doReturn(prHead).when(headProvider).findHead(multibranchJobFromSource);
+
+        Collection<? extends Action> actions = actionFactory.createFor(multibranchJobFromSource);
+
+        assertThat(actions.size(), equalTo(1));
+        BitbucketExternalLink externalLink = (BitbucketExternalLink) actions.stream().findFirst().get();
+        assertThat(externalLink.getUrlName(), equalTo(BASE_URL + "/projects/PROJ/repos/repo/compare/commits?sourceBranch=refs%2Ftags%2Ftest-tag"));
     }
 
     @Test

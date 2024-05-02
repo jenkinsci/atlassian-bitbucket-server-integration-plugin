@@ -5,13 +5,11 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMHeadDiscoveryHandler;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSourceContext;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketTagSCMHead;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.TaskListener;
+import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSourceCriteria;
@@ -33,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -100,6 +99,20 @@ public class BitbucketTagDiscoveryTraitTest {
                 return traitDescriptor;
             }
         };
+    }
+
+    @Test
+    public void testDecorateBuilder() {
+        BitbucketProject project = new BitbucketProject(TEST_PROJECT_KEY, null, TEST_PROJECT_KEY);
+        BitbucketTag bitbucketTag = new BitbucketTag("1", "tag", "1");
+        BitbucketTagSCMHead head = new BitbucketTagSCMHead(bitbucketTag);
+        BitbucketSCMRevision revision = new BitbucketSCMRevision(head, null);
+        GitSCMBuilder scmBuilder = new GitSCMBuilder(head, revision, "remote", null);
+
+        underTest.decorateBuilder(scmBuilder);
+
+        assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketTagSourceBranch.class));
+
     }
 
     @Test

@@ -34,6 +34,23 @@ public class BitbucketTagDiscoveryTrait extends SCMSourceTrait {
     }
 
     @Override
+    protected void decorateBuilder(SCMBuilder<?, ?> builder) {
+        if (builder instanceof GitSCMBuilder) {
+            GitSCMBuilder<?> gitSCMBuilder = (GitSCMBuilder<?>) builder;
+            SCMRevision revision = gitSCMBuilder.revision();
+
+            if (revision instanceof BitbucketSCMRevision) {
+                BitbucketSCMRevision tagRevision = (BitbucketSCMRevision) revision;
+                BitbucketTagSCMHead tagHead = (BitbucketTagSCMHead) tagRevision.getHead();
+
+                // Additionally, we also need to add the source tag name the underlying GitSCM's environment
+                // so it can be easily referenced if needed.
+                gitSCMBuilder.withExtension(new BitbucketTagSourceBranch(tagHead));
+            }
+        }
+    }
+
+    @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         if (context instanceof BitbucketSCMSourceContext) {
             BitbucketSCMSourceContext bitbucketContext = (BitbucketSCMSourceContext) context;
