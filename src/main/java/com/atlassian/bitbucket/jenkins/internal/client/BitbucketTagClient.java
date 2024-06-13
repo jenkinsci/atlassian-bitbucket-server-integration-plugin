@@ -24,4 +24,6 @@ public interface BitbucketTagClient {
      * @return Stream of bitbucket branches
      */
     Stream<BitbucketTag> getRemoteTags();
+
+    BitbucketTag getRemoteTag(String tagName);
 }

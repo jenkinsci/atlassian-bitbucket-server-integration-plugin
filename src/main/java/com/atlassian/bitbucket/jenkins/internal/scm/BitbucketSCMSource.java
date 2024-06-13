@@ -10,6 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
@@ -70,6 +71,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
     private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
+    private static final String REFSPEC_TAGS = "+refs/tags/*:refs/remotes/@{remote}/*";
 
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility
@@ -153,10 +155,14 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         validateInitialized();
-
         GitSCMBuilder<?> builder = new GitSCMBuilder<>(head, revision, cloneUrl, repository.getCloneCredentialsId());
         builder.withBrowser(new BitbucketServer(selfLink));
-        builder.withRefSpec(REFSPEC_DEFAULT);
+        if (head.getClass().equals(BitbucketTagSCMHead.class)) {
+            builder.withRefSpec(REFSPEC_TAGS);
+        } else {
+            builder.withRefSpec(REFSPEC_DEFAULT);
+        }
+
         builder.withTraits(traits);
         return builder.build();
     }
@@ -303,6 +309,14 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketTagSCMHead) {
+            if (((BitbucketTagSCMHead) head).getLatestCommit() == null) {
+                // This was previously a GitTagSCMHead and needs to be property retrieved
+                // Perform a fetch of the tag from the remote.
+                // Create a new BitbucketSCMRevision from the fetched tag.
+                BitbucketTag fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.getLatestCommit());
+            }
+
             return new BitbucketSCMRevision((BitbucketTagSCMHead) head,
                     ((BitbucketTagSCMHead) head).getLatestCommit());
         }
@@ -466,6 +480,16 @@ public class BitbucketSCMSource extends SCMSource {
         if (isBlank(cloneUrl)) {
             LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
         }
+    }
+
+    private BitbucketTag fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(getServerId());
+        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+
+        return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
+                .getRemoteTag(head.getName());
     }
 
     @Symbol("BbS")
