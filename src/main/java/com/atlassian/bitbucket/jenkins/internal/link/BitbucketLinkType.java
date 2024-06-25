@@ -6,7 +6,8 @@ public enum BitbucketLinkType {
 
     BRANCH(Messages::bitbucket_link_type_branch),
     PULL_REQUEST(Messages::bitbucket_link_type_pullrequest),
-    REPOSITORY(Messages::bitbucket_link_type_repository);
+    REPOSITORY(Messages::bitbucket_link_type_repository),
+    TAG(Messages::bitbucket_link_type_tag);
 
     private final Supplier<String> displayNameProvider;
 

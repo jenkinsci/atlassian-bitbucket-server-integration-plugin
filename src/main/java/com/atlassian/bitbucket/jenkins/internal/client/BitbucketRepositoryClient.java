@@ -2,10 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.model.TaskListener;
 
 import java.util.stream.Stream;
@@ -115,5 +112,14 @@ public interface BitbucketRepositoryClient {
      *             for all errors not already captured
      */
     BitbucketDefaultBranch getDefaultBranch();
+
+    /**
+     * Returns a client for getting tag information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since 4.1.0
+     */
+    BitbucketTagClient getBitbucketTagClient(TaskListener taskListener);
 
 }

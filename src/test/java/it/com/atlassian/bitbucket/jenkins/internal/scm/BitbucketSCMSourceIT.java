@@ -165,7 +165,7 @@ public class BitbucketSCMSourceIT {
         assertThat(scmSource.getServerId(), equalTo(serverId));
         assertThat(scmSource.getMirrorName(), equalTo(""));
         Set<? extends SCMHeadCategory> categories = scmSource.getCategories();
-        assertThat(categories.size(), equalTo(2));
+        assertThat(categories.size(), equalTo(3));
         assertTrue(categories.stream().anyMatch(UncategorizedSCMHeadCategory.DEFAULT::equals));
         assertTrue(categories.stream().anyMatch(ChangeRequestSCMHeadCategory.class::isInstance));
 

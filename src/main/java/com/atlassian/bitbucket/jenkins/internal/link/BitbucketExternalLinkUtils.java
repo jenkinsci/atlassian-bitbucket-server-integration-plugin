@@ -47,6 +47,26 @@ public class BitbucketExternalLinkUtils {
         return Optional.of(new BitbucketExternalLink(url, BitbucketLinkType.BRANCH));
     }
 
+    public Optional<BitbucketExternalLink> createTagDiffLink(BitbucketSCMRepository bitbucketRepository,
+                                                                String tag) {
+        BitbucketServerConfiguration configuration = getConfiguration(bitbucketRepository);
+        if (configuration == null) {
+            return Optional.empty();
+        }
+
+        String url = HttpUrl.get(configuration.getBaseUrl()).newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(bitbucketRepository.getProjectKey())
+                .addPathSegment("repos")
+                .addPathSegment(bitbucketRepository.getRepositorySlug())
+                .addPathSegment("compare")
+                .addPathSegment("commits")
+                .addQueryParameter("sourceBranch", "refs/tags/" + tag)
+                .toString();
+
+        return Optional.of(new BitbucketExternalLink(url, BitbucketLinkType.TAG));
+    }
+
     /**
      * @since 4.0.0
      */

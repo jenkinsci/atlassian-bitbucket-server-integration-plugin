@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketTagClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
@@ -10,6 +11,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import hudson.model.TaskListener;
 
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -102,5 +104,11 @@ public class BitbucketScmHelper {
         return clientFactory.getProjectClient(projectKey)
                 .getRepositoryClient(repositorySlug)
                 .getFilePathClient();
+    }
+
+    public BitbucketTagClient getTagClient(String projectKey, String repositorySlug, TaskListener listener) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug)
+                .getBitbucketTagClient(listener);
     }
 }

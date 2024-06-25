@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketTagSourceBranch.TAG_SOURCE_COMMIT;
 
 @Extension
 public class LocalSCMListener extends SCMListener {
@@ -136,10 +137,8 @@ public class LocalSCMListener extends SCMListener {
             return null;
         }
 
-        // The GitSCM will treat the tag as a branch with a fully qualified name, so if refs/tags/ is present,
-        // the name needs no further processing.
-        if (refId.startsWith(TAG_PREFIX)) {
-            return refId;
+        if (StringUtils.isNotBlank(env.get(TAG_SOURCE_COMMIT))) {
+            return env.get(TAG_SOURCE_COMMIT);
         }
 
         // Branches are in the form of the result of a git fetch, prepended with the repository name. The Git SCM
