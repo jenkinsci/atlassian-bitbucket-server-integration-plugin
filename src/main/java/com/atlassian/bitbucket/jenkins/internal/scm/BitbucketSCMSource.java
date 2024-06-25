@@ -304,6 +304,7 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketBranchSCMHead) {
+            // TODO: JENKINS-73267 fetch commit from source rather than cached value
             return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
                     ((BitbucketBranchSCMHead) head).getLatestCommit());
         }
