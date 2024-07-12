@@ -19,6 +19,6 @@ public class BitbucketTagSourceBranch extends GitSCMExtension {
 
     @Override
     public void populateEnvironmentVariables(GitSCM scm, Map<String, String> env) {
-        env.put(TAG_SOURCE_COMMIT, tag.getLatestCommit());
+        env.put(TAG_SOURCE_COMMIT, tag.getFullRef());
     }
 }

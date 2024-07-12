@@ -310,16 +310,11 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketTagSCMHead) {
-            if (((BitbucketTagSCMHead) head).getLatestCommit() == null) {
-                // This was previously a GitTagSCMHead and needs to be property retrieved
-                // Perform a fetch of the tag from the remote.
-                // Create a new BitbucketSCMRevision from the fetched tag.
-                BitbucketTag fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.getLatestCommit());
-            }
-
-            return new BitbucketSCMRevision((BitbucketTagSCMHead) head,
-                    ((BitbucketTagSCMHead) head).getLatestCommit());
+            // This was previously a GitTagSCMHead and needs to be property retrieved
+            // Perform a fetch of the tag from the remote.
+            // Create a new BitbucketSCMRevision from the fetched tag.
+            BitbucketTag fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.getLatestCommit());
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());

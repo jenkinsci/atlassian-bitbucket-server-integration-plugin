@@ -13,7 +13,7 @@ import jenkins.scm.api.mixin.TagSCMHead;
 
 public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead {
 
-    private static final String REFS_HEADS_PREFIX = "refs/tags/";
+    private static final String REFS_TAGS_PREFIX = "refs/tags/";
     private static final long UNKNOWN_TIMESTAMP = -1;
 
     public BitbucketTagSCMHead(String name) {
@@ -30,7 +30,7 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead 
 
     @Override
     public String getFullRef() {
-        return REFS_HEADS_PREFIX + getName();
+        return REFS_TAGS_PREFIX + getName();
     }
 
     @Override
