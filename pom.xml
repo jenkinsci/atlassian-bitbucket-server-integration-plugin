@@ -563,7 +563,7 @@
                     <plugin>
                         <groupId>com.atlassian.maven.plugins</groupId>
                         <artifactId>bitbucket-maven-plugin</artifactId>
-                        <version>8.0.0</version>
+                        <version>9.0.1</version>
                         <extensions>true</extensions>
                         <configuration>
                             <products>
@@ -572,6 +572,7 @@
                                     <instanceId>bitbucket</instanceId>
                                     <version>${bitbucket.version}</version>
                                     <productDataVersion>${bitbucket.version}</productDataVersion>
+                                    <jvm>${bitbucket.jvm}</jvm>
                                 </product>
                             </products>
                         </configuration>
