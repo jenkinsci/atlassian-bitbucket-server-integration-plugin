@@ -165,8 +165,8 @@
             <!--<version>managed by bom</version>-->
             <exclusions>
                 <exclusion>
-                    <groupId>io.jenkins.plugins</groupId>
-                    <artifactId>plugin-util-api</artifactId>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
