@@ -192,7 +192,7 @@
                 <plugin>
                     <groupId>com.atlassian.maven.plugins</groupId>
                     <artifactId>bitbucket-maven-plugin</artifactId>
-                    <version>8.0.4</version>
+                    <version>9.0.1</version>
                     <configuration>
                         <skipAllPrompts>true</skipAllPrompts>
                     </configuration>
