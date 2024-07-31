@@ -169,7 +169,7 @@ public class DeploymentNotifierTest {
 
         step.perform(run, null, null, listener);
 
-        verifyZeroInteractions(listener);
+        verifyNoInteractions(listener);
         verify(bitbucketDeploymentFactory).createDeployment(run, ENVIRONMENT);
         verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }
@@ -280,7 +280,7 @@ public class DeploymentNotifierTest {
         verify(listener).error("An error occurred when trying to post the deployment to Bitbucket Server: Some exception");
         verifyNoMoreInteractions(listener);
         verify(bitbucketDeploymentFactory).createDeployment(run, ENVIRONMENT);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(deploymentPoster);
     }
 
     @Test
@@ -292,8 +292,8 @@ public class DeploymentNotifierTest {
 
         verify(listener).error("Could not send deployment notification: DeploymentNotifier only works when using the Bitbucket SCM for checkout.");
         verifyNoMoreInteractions(listener);
-        verifyZeroInteractions(bitbucketDeploymentFactory);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(bitbucketDeploymentFactory);
+        verifyNoInteractions(deploymentPoster);
     }
 
     @Test
@@ -314,7 +314,7 @@ public class DeploymentNotifierTest {
 
         step.perform(run, null, null, listener);
 
-        verifyZeroInteractions(listener);
+        verifyNoInteractions(listener);
         verify(bitbucketDeploymentFactory).createDeployment(run, expectedEnvironment);
         verify(deploymentPoster).postDeployment(repo, commit, deployment, run, listener);
     }

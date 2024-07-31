@@ -64,8 +64,8 @@ public class DeploymentStepExecutionCallbackTest {
         callback.onStart(context);
 
         verify(context).get(TaskListener.class);
-        verifyZeroInteractions(deploymentFactory);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(deploymentFactory);
+        verifyNoInteractions(deploymentPoster);
     }
 
     @Test
@@ -76,8 +76,8 @@ public class DeploymentStepExecutionCallbackTest {
 
         verify(context).get(TaskListener.class);
         verify(context).get(Run.class);
-        verifyZeroInteractions(deploymentFactory);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(deploymentFactory);
+        verifyNoInteractions(deploymentPoster);
     }
 
     @Test
@@ -89,8 +89,8 @@ public class DeploymentStepExecutionCallbackTest {
         verify(context).get(TaskListener.class);
         verify(context).get(Run.class);
         verify(run).getAction(BitbucketRevisionAction.class);
-        verifyZeroInteractions(deploymentFactory);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(deploymentFactory);
+        verifyNoInteractions(deploymentPoster);
     }
 
     @Test
@@ -101,8 +101,8 @@ public class DeploymentStepExecutionCallbackTest {
 
         callback.onSuccess(context, result);
 
-        verifyZeroInteractions(deploymentFactory);
-        verifyZeroInteractions(deploymentPoster);
+        verifyNoInteractions(deploymentFactory);
+        verifyNoInteractions(deploymentPoster);
         verify(context).onSuccess(result);
     }
 

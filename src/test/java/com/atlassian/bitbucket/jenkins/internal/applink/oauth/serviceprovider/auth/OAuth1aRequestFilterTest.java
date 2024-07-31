@@ -242,7 +242,7 @@ public class OAuth1aRequestFilterTest {
 
         verify(chain).doFilter(isA(HttpServletRequest.class), isA(HttpServletResponse.class));
         verify(response, never()).addHeader(eq("WWW-Authenticate"), startsWith("OAuth"));
-        verifyZeroInteractions(trustedUnderlyingSystemAuthorizerFilter);
+        verifyNoInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test

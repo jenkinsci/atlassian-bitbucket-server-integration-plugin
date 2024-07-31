@@ -40,7 +40,7 @@ public class OauthCrumbExclusionTest {
 
         assertFalse(crumbExclusion.process(request, response, chain));
 
-        verifyZeroInteractions(chain);
+        verifyNoInteractions(chain);
     }
 
     @Test

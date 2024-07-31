@@ -26,7 +26,7 @@ The plugin streamlines the entire configuration process and removes the need for
 
 ## Requirements
 
-- Jenkins 2.401.3+
+- Jenkins 2.414.3+
 - Bitbucket Server 7.4+
 
 Note: Bitbucket Server 6.0 to 7.3 are also supported, but they're not recommended. This is because some plugin features are not available when using these versions. Instead, we recommend using Bitbucket Server 7.4+. With 7.0+ you can make use of pull request triggers for jobs. With 7.4+ you can set up an Application Link to have access to all plugin features.
@@ -222,6 +222,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ## Changelog
 ### 4.0.1
 - JENKINS-72280 Secret text credentials can no longer be selected as part of a Bitbucket SCM configuration
+- Updated minimum supported version of Jenkins to 2.14.3
 
 ### 4.0.0
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling

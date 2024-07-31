@@ -116,7 +116,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -201,7 +201,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -247,7 +247,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         listener.onCheckout(run, bitbucketSCM, null, taskListener, null, null);
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -289,7 +289,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -310,7 +310,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         // Twice since the same ID will be compared to itself.
         verify(bitbucketSCM, times(2)).getId();
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -322,7 +322,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 
     @Test
@@ -335,6 +335,6 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
         listener.onCheckout(run, scm, null, taskListener, null, null);
 
-        verifyZeroInteractions(buildStatusPoster);
+        verifyNoInteractions(buildStatusPoster);
     }
 }

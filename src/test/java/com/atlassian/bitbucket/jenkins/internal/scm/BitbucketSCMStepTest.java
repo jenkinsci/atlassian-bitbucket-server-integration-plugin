@@ -104,6 +104,6 @@ public class BitbucketSCMStepTest {
         BitbucketSCMRepository result = scmStep.createSCM().getBitbucketSCMRepository();
 
         assertThat(result.getServerId(), equalTo(SERVER_ID));
-        verifyZeroInteractions(descriptor);
+        verifyNoInteractions(descriptor);
     }
 }
