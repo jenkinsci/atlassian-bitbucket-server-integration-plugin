@@ -480,7 +480,6 @@ public class BitbucketSCMSource extends SCMSource {
 
     private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
-        Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(getServerId());
 
         return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
             BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
