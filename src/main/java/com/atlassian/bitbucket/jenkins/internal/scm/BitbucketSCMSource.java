@@ -10,6 +10,7 @@ import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
@@ -39,6 +40,7 @@ import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import jenkins.scm.impl.trait.Discovery;
@@ -69,6 +71,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
     private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
+    private static final String REFSPEC_TAGS = "+refs/tags/*:refs/remotes/@{remote}/*";
 
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility
@@ -152,10 +155,14 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         validateInitialized();
-
         GitSCMBuilder<?> builder = new GitSCMBuilder<>(head, revision, cloneUrl, repository.getCloneCredentialsId());
         builder.withBrowser(new BitbucketServer(selfLink));
-        builder.withRefSpec(REFSPEC_DEFAULT);
+        if (head.getClass().equals(BitbucketTagSCMHead.class)) {
+            builder.withRefSpec(REFSPEC_TAGS);
+        } else {
+            builder.withRefSpec(REFSPEC_DEFAULT);
+        }
+
         builder.withTraits(traits);
         return builder.build();
     }
@@ -297,8 +304,17 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketBranchSCMHead) {
+            // TODO: JENKINS-73267 fetch commit from source rather than cached value
             return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
                     ((BitbucketBranchSCMHead) head).getLatestCommit());
+        }
+
+        if (head instanceof BitbucketTagSCMHead) {
+            // This was previously a GitTagSCMHead and needs to be property retrieved
+            // Perform a fetch of the tag from the remote.
+            // Create a new BitbucketSCMRevision from the fetched tag.
+            Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
@@ -460,6 +476,16 @@ public class BitbucketSCMSource extends SCMSource {
         if (isBlank(cloneUrl)) {
             LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
         }
+    }
+
+    private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
+            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+            return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
+                    .getRemoteTag(head.getName());
+        });
     }
 
     @Symbol("BbS")
@@ -647,7 +673,8 @@ public class BitbucketSCMSource extends SCMSource {
         @Override
         protected SCMHeadCategory[] createCategories() {
             return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT,
-                    new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display())};
+                    new ChangeRequestSCMHeadCategory(Messages._bitbucket_scm_pullrequest_display()),
+                    new TagSCMHeadCategory(Messages._bitbucket_scm_tag_display())};
         }
 
         BitbucketMirrorHandler createMirrorHandler(BitbucketScmHelper helper) {

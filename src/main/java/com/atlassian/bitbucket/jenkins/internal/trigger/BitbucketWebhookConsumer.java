@@ -299,8 +299,21 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
             return effectiveRefs.stream()
-                    .collect(Collectors.toMap(BitbucketBranchSCMHead::new,
-                            change -> new BitbucketSCMRevision(new BitbucketBranchSCMHead(change), change.getToHash())));
+                    .collect(Collectors.toMap(this::mapHead, this::mapRevision));
+        }
+
+        private SCMHead mapHead(BitbucketRefChange refChange) {
+            if (refChange.getRef().getType() == BitbucketRefType.TAG) {
+                return new BitbucketTagSCMHead(refChange);
+            }
+            return new BitbucketBranchSCMHead(refChange);
+        }
+
+        private SCMRevision mapRevision(BitbucketRefChange refChange) {
+            if (refChange.getRef().getType() == BitbucketRefType.TAG) {
+                return new BitbucketSCMRevision(new BitbucketTagSCMHead(refChange), refChange.getToHash());
+            }
+            return new BitbucketSCMRevision(new BitbucketBranchSCMHead(refChange), refChange.getToHash());
         }
 
         @Override

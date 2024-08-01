@@ -4,10 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMHeadByItemPro
 import com.atlassian.bitbucket.jenkins.internal.provider.DefaultSCMSourceByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.SCMHeadByItemProvider;
 import com.atlassian.bitbucket.jenkins.internal.provider.SCMSourceByItemProvider;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.Action;
@@ -86,6 +83,9 @@ public class BitbucketJobLinkActionFactory extends TransientActionFactory<Job> {
                     externalLink = repository.flatMap(scmRepository ->
                             externalLinkUtils.createPullRequestLink(scmRepository,
                                     ((BitbucketPullRequestSCMHead) head).getId()));
+                } else if (head instanceof BitbucketTagSCMHead) {
+                    externalLink = repository.flatMap(scmRepository ->
+                            externalLinkUtils.createTagDiffLink(scmRepository, head.getName()));
                 } else {
                     externalLink = repository.flatMap(scmRepository ->
                             externalLinkUtils.createBranchDiffLink(scmRepository, head.getName()));

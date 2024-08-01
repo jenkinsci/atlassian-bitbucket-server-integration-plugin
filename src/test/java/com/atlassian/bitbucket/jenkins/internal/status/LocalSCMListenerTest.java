@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSourceBranch.PULL_REQUEST_SOURCE_COMMIT;
+import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketTagSourceBranch.TAG_SOURCE_COMMIT;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.*;
@@ -134,7 +135,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
     @Test
     public void testOnCheckoutWithBitbucketSCMTagEvent() {
-        buildMap.put(GitSCM.GIT_BRANCH, GIT_TAG_VALUE);
+        buildMap.put(TAG_SOURCE_COMMIT, GIT_TAG_VALUE);
         FreeStyleProject project = mock(FreeStyleProject.class);
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);
@@ -217,7 +218,7 @@ public class LocalSCMListenerTest extends HudsonTestCase {
 
     @Test
     public void testOnCheckoutWithGitSCMTagEvent() {
-        buildMap.put(GitSCM.GIT_BRANCH, GIT_TAG_VALUE);
+        buildMap.put(TAG_SOURCE_COMMIT, GIT_TAG_VALUE);
         FreeStyleProject project = mock(FreeStyleProject.class);
         FreeStyleBuild build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn(project);

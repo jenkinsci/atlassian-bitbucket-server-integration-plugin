@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestRef;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRefChange;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.plugins.git.GitBranchSCMHead;
