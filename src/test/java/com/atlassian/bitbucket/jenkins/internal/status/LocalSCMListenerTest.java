@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.provider.GlobalLibrariesProvider
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
+import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlySCM;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleBuild;
@@ -105,10 +106,8 @@ public class LocalSCMListenerTest extends HudsonTestCase {
                 jenkinsRule.getInstance().createProject(WorkflowMultiBranchProject.class, "MultiBranchProject");
         WorkflowJob workflowJob = new WorkflowJob(workflowMultiBranchProject, "Job1");
         WorkflowRun workflowRun = new WorkflowRun(workflowJob);
-        LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
-        SCMRetriever scmRetriever = mock(SCMRetriever.class);
-        when(libConfig.getRetriever()).thenReturn(scmRetriever);
-        when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
+        SCMRetriever scmRetriever = new SCMRetriever(new SerializationFriendlySCM(bitbucketSCM));
+        LibraryConfiguration libConfig = new LibraryConfiguration("multibranch folder", scmRetriever);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         workflowMultiBranchProject.addProperty(folderLibraries);
 
@@ -189,10 +188,8 @@ public class LocalSCMListenerTest extends HudsonTestCase {
         when(bitbucketSCM.getId()).thenReturn("SomeID");
         Folder folder = new Folder(jenkinsRule.getInstance().getItemGroup(), "Folder");
         WorkflowJob workflowJob = new WorkflowJob(folder, "Job1");
-        LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
-        SCMRetriever scmRetriever = mock(SCMRetriever.class);
-        when(libConfig.getRetriever()).thenReturn(scmRetriever);
-        when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
+        SCMRetriever scmRetriever = new SCMRetriever(new SerializationFriendlySCM(bitbucketSCM));
+        LibraryConfiguration libConfig = new LibraryConfiguration("folder on checkout", scmRetriever);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         folder.addProperty(folderLibraries);
         WorkflowRun workflowRun = new WorkflowRun(workflowJob);
@@ -275,10 +272,8 @@ public class LocalSCMListenerTest extends HudsonTestCase {
     public void testOnCheckoutWithNestedFolderLibraryDoesNotPostBuildStatus() throws IOException {
         when(bitbucketSCM.getId()).thenReturn("SomeID");
         Folder parentFolder = new Folder(jenkinsRule.getInstance().getItemGroup(), "ParentFolder");
-        LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
-        SCMRetriever scmRetriever = mock(SCMRetriever.class);
-        when(libConfig.getRetriever()).thenReturn(scmRetriever);
-        when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
+        SCMRetriever scmRetriever = new SCMRetriever(new SerializationFriendlySCM(bitbucketSCM));
+        LibraryConfiguration libConfig = new LibraryConfiguration("folder lib test", scmRetriever);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         parentFolder.addProperty(folderLibraries);
         Folder folder = new Folder(parentFolder, "Folder");
@@ -296,10 +291,8 @@ public class LocalSCMListenerTest extends HudsonTestCase {
     public void testOnCheckoutWithNestedFolderLibraryUnderMultiBranchDoesNotPostBuildStatus() throws IOException {
         when(bitbucketSCM.getId()).thenReturn("SomeID");
         Folder parentFolder = new Folder(jenkinsRule.getInstance().getItemGroup(), "ParentFolder");
-        LibraryConfiguration libConfig = mock(LibraryConfiguration.class);
-        SCMRetriever scmRetriever = mock(SCMRetriever.class);
-        when(libConfig.getRetriever()).thenReturn(scmRetriever);
-        when(scmRetriever.getScm()).thenReturn(bitbucketSCM);
+        SCMRetriever scmRetriever = new SCMRetriever(new SerializationFriendlySCM(bitbucketSCM));
+        LibraryConfiguration libConfig = new LibraryConfiguration("library under multibranch", scmRetriever);
         FolderLibraries folderLibraries = new FolderLibraries(singletonList(libConfig));
         parentFolder.addProperty(folderLibraries);
         WorkflowMultiBranchProject workflowMultiBranchProject = new WorkflowMultiBranchProject(parentFolder, "name");
