@@ -7,6 +7,8 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
+import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlySCM;
+import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlyTrigger;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.GitSCM;
 import jenkins.model.Jenkins;
@@ -124,23 +126,23 @@ public class BitbucketWebhookConsumerTest {
 
         FreeStyleProject ignoredProject = jenkinsRule.createFreeStyleProject();
         nullProject = jenkinsRule.createFreeStyleProject();
-        nullProject.addTrigger(nullBitbucketTrigger);
+        nullProject.addTrigger(new SerializationFriendlyTrigger(nullBitbucketTrigger));
 
         freeStyleProject = jenkinsRule.createFreeStyleProject();
-        freeStyleProject.setScm(bitbucketSCM);
-        freeStyleProject.addTrigger(bitbucketTrigger);
+        freeStyleProject.setScm(new SerializationFriendlySCM(bitbucketSCM));
+        freeStyleProject.addTrigger(new SerializationFriendlyTrigger(bitbucketTrigger));
 
         gitProject = jenkinsRule.createFreeStyleProject();
-        gitProject.setScm(gitSCM);
-        gitProject.addTrigger(gitTrigger);
+        gitProject.setScm(new SerializationFriendlyGitSCM(gitSCM));
+        gitProject.addTrigger(new SerializationFriendlyTrigger(gitTrigger));
         List<RemoteConfig> remoteConfig = createRemoteConfig();
         when(gitSCM.getRepositories()).thenReturn(remoteConfig);
 
         workflowJob = Jenkins.get().createProject(WorkflowJob.class,
                 "test " + Jenkins.get().getItems().size());
-        CpsScmFlowDefinition definition = new CpsScmFlowDefinition(workflowSCM, "Jenkinsfile");
+        CpsScmFlowDefinition definition = new CpsScmFlowDefinition(new SerializationFriendlySCM(workflowSCM), "Jenkinsfile");
         workflowJob.setDefinition(definition);
-        workflowJob.addTrigger(workflowTrigger);
+        workflowJob.addTrigger(new SerializationFriendlyTrigger(workflowTrigger));
 
         bitbucketRepository = repository("http://bitbucket.example.com/scm/jenkins/jenkins.git", JENKINS_PROJECT_KEY,
                 JENKINS_REPO_SLUG);
@@ -568,5 +570,20 @@ public class BitbucketWebhookConsumerTest {
                 projectKey);
         return new BitbucketRepository(
                 1, repoSlug, links, project, repoSlug, RepositoryState.AVAILABLE);
+    }
+
+    private static class SerializationFriendlyGitSCM extends GitSCM {
+
+        private final transient GitSCM delegate;
+
+        public SerializationFriendlyGitSCM(GitSCM mockScm) {
+            super("http://localhost/this/is/ignored/since/we/delegate/to/the/mock");
+            delegate = mockScm;
+        }
+
+        @Override
+        public List<RemoteConfig> getRepositories() {
+            return delegate.getRepositories();
+        }
     }
 }
