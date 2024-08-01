@@ -313,8 +313,8 @@ public class BitbucketSCMSource extends SCMSource {
             // This was previously a GitTagSCMHead and needs to be property retrieved
             // Perform a fetch of the tag from the remote.
             // Create a new BitbucketSCMRevision from the fetched tag.
-            BitbucketTag fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.getLatestCommit());
+            Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
@@ -478,14 +478,15 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
-    private BitbucketTag fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+    private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(getServerId());
-        BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
-        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
 
-        return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
-                .getRemoteTag(head.getName());
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
+            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+            return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
+                    .getRemoteTag(head.getName());
+        });
     }
 
     @Symbol("BbS")

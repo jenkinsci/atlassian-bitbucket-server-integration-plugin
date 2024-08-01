@@ -69,8 +69,7 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .addPathSegment(tagName);
 
         HttpUrl url = urlBuilder.build();
-        BitbucketTag tag = bitbucketRequestExecutor.makeGetRequest(url, new TypeReference<BitbucketTag>() {
-        }).getBody();
+        BitbucketTag tag = bitbucketRequestExecutor.makeGetRequest(url, BitbucketTag.class).getBody();
 
         return tag;
     }
