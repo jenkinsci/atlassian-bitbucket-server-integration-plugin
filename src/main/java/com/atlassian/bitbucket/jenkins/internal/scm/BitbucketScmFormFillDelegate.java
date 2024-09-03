@@ -2,6 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
@@ -38,8 +39,7 @@ import java.util.stream.Collectors;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findProjects;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.findRepositories;
 import static hudson.util.HttpResponses.okJSON;
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.*;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toCollection;
@@ -126,6 +126,9 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                         Collection<BitbucketProject> projects = findProjects(projectName,
                                 bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
                         return okJSON(JSONArray.fromObject(projects));
+                    } catch (AuthorizationException e) {
+                        return errorWithoutStack(HTTP_UNAUTHORIZED,
+                                "Bitbucket responded with not authorized: " + e.getMessage());
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
@@ -166,6 +169,9 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
                                 .filter(repository -> repository.getProject().getName().equals(projectName))
                                 .collect(Collectors.toList());
                         return okJSON(JSONArray.fromObject(repositories));
+                    } catch (AuthorizationException e) {
+                        return errorWithoutStack(HTTP_UNAUTHORIZED,
+                                "Bitbucket responded with not authorized: " + e.getMessage());
                     } catch (BitbucketClientException e) {
                         // Something went wrong with the request to Bitbucket
                         LOGGER.info(e.getMessage());
