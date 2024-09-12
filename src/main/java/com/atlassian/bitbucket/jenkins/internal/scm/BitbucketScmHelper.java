@@ -70,9 +70,7 @@ public class BitbucketScmHelper {
             BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
             try {
                 BitbucketRepository repository = getRepositoryByNameOrSlug(project.getName(), repositoryName, clientFactory);
-                return Optional.of(clientFactory
-                            .getProjectClient(project.getKey())
-                            .getRepositoryClient(repository.getSlug())
+                return Optional.of(getRepositoryClient(project.getKey(), repository.getSlug())
                             .getDefaultBranch());
             } catch (NotFoundException e) {
                 LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
@@ -98,20 +96,17 @@ public class BitbucketScmHelper {
     }
 
     public BitbucketCommitClient getCommitClient(String projectKey, String repositorySlug) {
-        return clientFactory.getProjectClient(projectKey)
-                .getRepositoryClient(repositorySlug)
+        return getRepositoryClient(projectKey, repositorySlug)
                 .getCommitClient();
     }
 
     public BitbucketFilePathClient getFilePathClient(String projectKey, String repositorySlug) {
-        return clientFactory.getProjectClient(projectKey)
-                .getRepositoryClient(repositorySlug)
+        return getRepositoryClient(projectKey, repositorySlug)
                 .getFilePathClient();
     }
 
     public BitbucketTagClient getTagClient(String projectKey, String repositorySlug, TaskListener listener) {
-        return clientFactory.getProjectClient(projectKey)
-                .getRepositoryClient(repositorySlug)
+        return getRepositoryClient(projectKey, repositorySlug)
                 .getBitbucketTagClient(listener);
     }
 

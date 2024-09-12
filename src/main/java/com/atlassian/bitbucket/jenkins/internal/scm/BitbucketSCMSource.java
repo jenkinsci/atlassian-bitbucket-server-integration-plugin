@@ -483,33 +483,25 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketBranchSCMHead head) {
-        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
-
-        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
-            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
-            return scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
-                    .getCommit(head.getName());
-        });
+        return getScmHelper().map(scmHelper -> scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
+                .getCommit(head.getName()));
     }
 
     private Optional<BitbucketPullRequest> fetchBitbucketPullRequest(BitbucketPullRequestSCMHead head) {
-        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
-
-        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
-            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
-            return scmHelper.getRepositoryClient(getProjectKey(), getRepositorySlug())
-                    .getPullRequest(head.getPullRequest().getPullRequestId());
-        });
+        return getScmHelper().map(scmHelper -> scmHelper.getRepositoryClient(getProjectKey(), getRepositorySlug())
+                .getPullRequest(head.getPullRequest().getPullRequestId()));
     }
 
     private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+        return getScmHelper().map(scmHelper -> scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
+                .getRemoteTag(head.getName()));
+    }
+
+    private Optional<BitbucketScmHelper> getScmHelper() {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
 
-        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
-            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
-            return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
-                    .getRemoteTag(head.getName());
-        });
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration ->
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null)));
     }
 
     @Symbol("BbS")
