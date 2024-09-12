@@ -77,6 +77,16 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
+    public BitbucketPullRequest getPullRequest(long id) {
+        HttpUrl url = getRepositoryUrl()
+                .addPathSegment("pull-requests")
+                .addPathSegment(String.valueOf(id))
+                .build();
+
+        return bitbucketRequestExecutor.makeGetRequest(url, BitbucketPullRequest.class).getBody();
+    }
+
+    @Override
     public Stream<BitbucketPullRequest> getPullRequests(BitbucketPullRequestState state) {
         return getPullRequestsWithState(state.toString());
     }

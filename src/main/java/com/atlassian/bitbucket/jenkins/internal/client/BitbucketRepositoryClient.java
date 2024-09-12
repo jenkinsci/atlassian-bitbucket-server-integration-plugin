@@ -79,6 +79,15 @@ public interface BitbucketRepositoryClient {
     BitbucketDeploymentClient getDeploymentClient(String revisionSha);
 
     /**
+     * Gets the pull request corresponding to the given ID.
+     *
+     * @param id the pull request's id
+     * @return the pull request with the given ID
+     * @since JENKINS-73267
+     */
+    BitbucketPullRequest getPullRequest(long id);
+
+    /**
      * Gets all pull requests of the given state for the repository. The returned stream will make paged calls to
      * Bitbucket to ensure that all pull requests are returned. Consumers are advised that this can return large amounts
      * of data and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items,

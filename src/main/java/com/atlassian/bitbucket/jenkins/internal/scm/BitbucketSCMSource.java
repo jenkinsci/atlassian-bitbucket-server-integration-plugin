@@ -9,10 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCommit;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
@@ -303,7 +300,10 @@ public class BitbucketSCMSource extends SCMSource {
     protected SCMRevision retrieve(SCMHead head, TaskListener listener)
             throws IOException, InterruptedException {
         if (head instanceof BitbucketPullRequestSCMHead) {
-            return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
+            return fetchBitbucketPullRequest((BitbucketPullRequestSCMHead) head).map(fetchedPullRequest -> {
+                BitbucketPullRequestSCMHead latestHead = new BitbucketPullRequestSCMHead(fetchedPullRequest);
+                return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+            }).orElse(null);
         }
 
         if (head instanceof BitbucketBranchSCMHead) {
@@ -489,6 +489,16 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
             return scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
                     .getCommit(head.getName());
+        });
+    }
+
+    private Optional<BitbucketPullRequest> fetchBitbucketPullRequest(BitbucketPullRequestSCMHead head) {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
+            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+            return scmHelper.getRepositoryClient(getProjectKey(), getRepositorySlug())
+                    .getPullRequest(head.getPullRequest().getPullRequestId());
         });
     }
 

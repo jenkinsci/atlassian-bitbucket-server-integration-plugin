@@ -114,4 +114,9 @@ public class BitbucketScmHelper {
                 .getRepositoryClient(repositorySlug)
                 .getBitbucketTagClient(listener);
     }
+
+    public BitbucketRepositoryClient getRepositoryClient(String projectKey, String repositorySlug) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug);
+    }
 }
