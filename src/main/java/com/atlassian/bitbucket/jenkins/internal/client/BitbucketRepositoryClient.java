@@ -23,6 +23,15 @@ public interface BitbucketRepositoryClient {
     BitbucketBranchClient getBranchClient(TaskListener taskListener);
 
     /**
+     * Returns a client for getting commit information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since JENKINS-73267
+     */
+    BitbucketCommitClient getCommitClient();
+
+    /**
      * Returns a client for getting file content and directory information on paths in a repository.
      *
      * @return A client that is ready to use

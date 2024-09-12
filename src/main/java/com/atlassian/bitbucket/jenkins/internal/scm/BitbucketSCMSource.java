@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCommit;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
@@ -306,9 +307,10 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         if (head instanceof BitbucketBranchSCMHead) {
-            // TODO: JENKINS-73267 fetch commit from source rather than cached value
-            return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
-                    ((BitbucketBranchSCMHead) head).getLatestCommit());
+            return fetchBitbucketCommit((BitbucketBranchSCMHead) head).map(fetchedCommit -> {
+                BitbucketBranchSCMHead latestHead = new BitbucketBranchSCMHead(head.getName(), fetchedCommit);
+                return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+            }).orElse(null);
         }
 
         if (head instanceof BitbucketTagSCMHead) {
@@ -478,6 +480,16 @@ public class BitbucketSCMSource extends SCMSource {
         if (isBlank(cloneUrl)) {
             LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
         }
+    }
+
+    private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketBranchSCMHead head) {
+        BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
+
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
+            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+            return scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
+                    .getCommit(head.getName());
+        });
     }
 
     private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {

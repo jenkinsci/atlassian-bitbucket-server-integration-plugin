@@ -1,9 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketTagClient;
+import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
@@ -98,6 +95,12 @@ public class BitbucketScmHelper {
                     e.getMessage());
             return Optional.empty();
         }
+    }
+
+    public BitbucketCommitClient getCommitClient(String projectKey, String repositorySlug) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug)
+                .getCommitClient();
     }
 
     public BitbucketFilePathClient getFilePathClient(String projectKey, String repositorySlug) {

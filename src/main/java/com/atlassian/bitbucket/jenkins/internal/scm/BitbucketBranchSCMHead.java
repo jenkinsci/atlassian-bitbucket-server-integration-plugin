@@ -33,6 +33,10 @@ public class BitbucketBranchSCMHead extends BitbucketSCMHead {
         super(refChange.getRef().getDisplayId(), refChange.getToHash(), UNKNOWN_TIMESTAMP);
     }
 
+    public BitbucketBranchSCMHead(String name, BitbucketCommit commit) {
+        super(name, commit.getId(), commit.getCommitterTimestamp());
+    }
+
     @Override
     public String getFullRef() {
         return REFS_HEADS_PREFIX + getName();

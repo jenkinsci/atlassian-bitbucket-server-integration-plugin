@@ -62,6 +62,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
+    public BitbucketCommitClient getCommitClient() {
+        return new BitbucketCommitClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    }
+
+    @Override
     public BitbucketDeploymentClient getDeploymentClient(String revisionSha) {
         return new BitbucketDeploymentClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, revisionSha);
     }
