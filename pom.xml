@@ -621,6 +621,12 @@
                     <groupId>org.jenkins-ci.main</groupId>
                     <artifactId>jenkins-core</artifactId>
                     <version>${jenkins.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>javax.servlet</groupId>
+                            <artifactId>javax.servlet-api</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.atlassian.bitbucket.server</groupId>
