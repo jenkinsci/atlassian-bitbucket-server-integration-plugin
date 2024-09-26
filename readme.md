@@ -222,9 +222,6 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 4.x
-- Fix [JENKINS-73267](https://issues.jenkins.io/browse/JENKINS-73267): Building branch on multibranch job without scanning will build stale commit
-
 ### 4.1.0
 - [JENKINS-72120](https://issues.jenkins.io/browse/JENKINS-72120) Implemented discovery of tags. This introduces a tag discovery trait enabling Multibranch pipelines to
   detect tags. The trait will not initialise builds.
@@ -234,6 +231,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
     system properties (total count can be calculated using maxPages * pageSize).
     - `bitbucket.remote.tags.retrieval.max.pages` - (defaults to 5)
     - `bitbucket.remote.tags.retrieval.page.size` - (defaults to 1000)
+- Fix [JENKINS-73267](https://issues.jenkins.io/browse/JENKINS-73267): Building branch/pull-request on multibranch job without scanning will build stale commit
 
 ### 4.0.1
 - JENKINS-72280 Secret text credentials can no longer be selected as part of a Bitbucket SCM configuration

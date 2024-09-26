@@ -27,7 +27,7 @@ public interface BitbucketRepositoryClient {
      *
      * @return a git client that is ready to use
      *
-     * @since JENKINS-73267
+     * @since 4.1.0
      */
     BitbucketCommitClient getCommitClient();
 
@@ -83,7 +83,7 @@ public interface BitbucketRepositoryClient {
      *
      * @param id the pull request's id
      * @return the pull request with the given ID
-     * @since JENKINS-73267
+     * @since 4.1.0
      */
     BitbucketPullRequest getPullRequest(long id);
 

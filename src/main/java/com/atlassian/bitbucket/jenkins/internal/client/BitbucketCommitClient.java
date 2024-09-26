@@ -3,7 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCommit;
 
 /**
- * @since JENKINS-73267
+ * @since 4.1.0
  */
 public interface BitbucketCommitClient {
 

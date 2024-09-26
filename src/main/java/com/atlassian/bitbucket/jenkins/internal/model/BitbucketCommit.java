@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import static java.util.Objects.requireNonNull;
 
 /**
- * @since JENKINS-73267
+ * @since 4.1.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCommit {
