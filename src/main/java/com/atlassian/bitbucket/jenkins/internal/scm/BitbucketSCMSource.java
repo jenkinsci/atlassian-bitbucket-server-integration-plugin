@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
@@ -299,26 +300,31 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     protected SCMRevision retrieve(SCMHead head, TaskListener listener)
             throws IOException, InterruptedException {
-        if (head instanceof BitbucketPullRequestSCMHead) {
-            return fetchBitbucketPullRequest((BitbucketPullRequestSCMHead) head).map(fetchedPullRequest -> {
-                BitbucketPullRequestSCMHead latestHead = new BitbucketPullRequestSCMHead(fetchedPullRequest);
-                return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
-            }).orElse(null);
-        }
+        try {
+            if (head instanceof BitbucketPullRequestSCMHead) {
+                return fetchBitbucketPullRequest((BitbucketPullRequestSCMHead) head).map(fetchedPullRequest -> {
+                    BitbucketPullRequestSCMHead latestHead = new BitbucketPullRequestSCMHead(fetchedPullRequest);
+                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                }).orElse(null);
+            }
 
-        if (head instanceof BitbucketBranchSCMHead) {
-            return fetchBitbucketCommit((BitbucketBranchSCMHead) head).map(fetchedCommit -> {
-                BitbucketBranchSCMHead latestHead = new BitbucketBranchSCMHead(head.getName(), fetchedCommit);
-                return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
-            }).orElse(null);
-        }
+            if (head instanceof BitbucketBranchSCMHead) {
+                return fetchBitbucketCommit((BitbucketBranchSCMHead) head).map(fetchedCommit -> {
+                    BitbucketBranchSCMHead latestHead = new BitbucketBranchSCMHead(head.getName(), fetchedCommit);
+                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                }).orElse(null);
+            }
 
-        if (head instanceof BitbucketTagSCMHead) {
-            // This was previously a GitTagSCMHead and needs to be property retrieved
-            // Perform a fetch of the tag from the remote.
-            // Create a new BitbucketSCMRevision from the fetched tag.
-            Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
+            if (head instanceof BitbucketTagSCMHead) {
+                // This was previously a GitTagSCMHead and needs to be property retrieved
+                // Perform a fetch of the tag from the remote.
+                // Create a new BitbucketSCMRevision from the fetched tag.
+                Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
+            }
+        } catch (NotFoundException e) {
+            listener.error(e.getMessage());
+            return null;
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
