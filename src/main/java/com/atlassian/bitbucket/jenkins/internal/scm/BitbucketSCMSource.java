@@ -323,6 +323,8 @@ public class BitbucketSCMSource extends SCMSource {
                 return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
             }
         } catch (NotFoundException e) {
+            // this exception can be thrown if the head no longer exists (e.g. multi-branch pipeline created without
+            // webhook configured, pull request build is run, pull request is deleted, then build is re-run)
             listener.error(e.getMessage());
             return null;
         }
