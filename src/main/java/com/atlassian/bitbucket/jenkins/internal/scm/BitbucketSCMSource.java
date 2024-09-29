@@ -3,15 +3,14 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLinkUtils;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketBranchDiscoveryTrait;
 import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketLegacyTraitConverter;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
@@ -301,22 +300,33 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     protected SCMRevision retrieve(SCMHead head, TaskListener listener)
             throws IOException, InterruptedException {
-        if (head instanceof BitbucketPullRequestSCMHead) {
-            return new BitbucketPullRequestSCMRevision((BitbucketPullRequestSCMHead) head);
-        }
+        try {
+            if (head instanceof BitbucketPullRequestSCMHead) {
+                return fetchBitbucketPullRequest((BitbucketPullRequestSCMHead) head).map(fetchedPullRequest -> {
+                    BitbucketPullRequestSCMHead latestHead = new BitbucketPullRequestSCMHead(fetchedPullRequest);
+                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                }).orElse(null);
+            }
 
-        if (head instanceof BitbucketBranchSCMHead) {
-            // TODO: JENKINS-73267 fetch commit from source rather than cached value
-            return new BitbucketSCMRevision((BitbucketBranchSCMHead) head,
-                    ((BitbucketBranchSCMHead) head).getLatestCommit());
-        }
+            if (head instanceof BitbucketBranchSCMHead) {
+                return fetchBitbucketCommit((BitbucketBranchSCMHead) head).map(fetchedCommit -> {
+                    BitbucketBranchSCMHead latestHead = new BitbucketBranchSCMHead(head.getName(), fetchedCommit);
+                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                }).orElse(null);
+            }
 
-        if (head instanceof BitbucketTagSCMHead) {
-            // This was previously a GitTagSCMHead and needs to be property retrieved
-            // Perform a fetch of the tag from the remote.
-            // Create a new BitbucketSCMRevision from the fetched tag.
-            Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-            return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
+            if (head instanceof BitbucketTagSCMHead) {
+                // This was previously a GitTagSCMHead and needs to be property retrieved
+                // Perform a fetch of the tag from the remote.
+                // Create a new BitbucketSCMRevision from the fetched tag.
+                Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
+            }
+        } catch (NotFoundException e) {
+            // this exception can be thrown if the head no longer exists (e.g. multi-branch pipeline created without
+            // webhook configured, pull request build is run, pull request is deleted, then build is re-run)
+            listener.error(e.getMessage());
+            return null;
         }
 
         listener.error("Error resolving revision, unsupported SCMHead type " + head.getClass());
@@ -480,14 +490,26 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
+    private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketBranchSCMHead head) {
+        return getScmHelper().map(scmHelper -> scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
+                .getCommit(head.getName()));
+    }
+
+    private Optional<BitbucketPullRequest> fetchBitbucketPullRequest(BitbucketPullRequestSCMHead head) {
+        return getScmHelper().map(scmHelper -> scmHelper.getRepositoryClient(getProjectKey(), getRepositorySlug())
+                .getPullRequest(head.getPullRequest().getPullRequestId()));
+    }
+
     private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+        return getScmHelper().map(scmHelper -> scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
+                .getRemoteTag(head.getName()));
+    }
+
+    private Optional<BitbucketScmHelper> getScmHelper() {
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
 
-        return descriptor.getConfiguration(getServerId()).map(serverConfiguration -> {
-            BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
-            return scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
-                    .getRemoteTag(head.getName());
-        });
+        return descriptor.getConfiguration(getServerId()).map(serverConfiguration ->
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null)));
     }
 
     @Symbol("BbS")

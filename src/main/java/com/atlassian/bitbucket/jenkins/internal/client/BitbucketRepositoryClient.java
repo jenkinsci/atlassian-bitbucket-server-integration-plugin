@@ -23,6 +23,15 @@ public interface BitbucketRepositoryClient {
     BitbucketBranchClient getBranchClient(TaskListener taskListener);
 
     /**
+     * Returns a client for getting commit information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since 4.1.0
+     */
+    BitbucketCommitClient getCommitClient();
+
+    /**
      * Returns a client for getting file content and directory information on paths in a repository.
      *
      * @return A client that is ready to use
@@ -68,6 +77,15 @@ public interface BitbucketRepositoryClient {
      * @since 3.1.0
      */
     BitbucketDeploymentClient getDeploymentClient(String revisionSha);
+
+    /**
+     * Gets the pull request corresponding to the given ID.
+     *
+     * @param id the pull request's id
+     * @return the pull request with the given ID
+     * @since 4.1.0
+     */
+    BitbucketPullRequest getPullRequest(long id);
 
     /**
      * Gets all pull requests of the given state for the repository. The returned stream will make paged calls to

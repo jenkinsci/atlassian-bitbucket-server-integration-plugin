@@ -1,9 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketTagClient;
+import com.atlassian.bitbucket.jenkins.internal.client.*;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
@@ -73,9 +70,7 @@ public class BitbucketScmHelper {
             BitbucketProject project = getProjectByNameOrKey(projectName, clientFactory);
             try {
                 BitbucketRepository repository = getRepositoryByNameOrSlug(project.getName(), repositoryName, clientFactory);
-                return Optional.of(clientFactory
-                            .getProjectClient(project.getKey())
-                            .getRepositoryClient(repository.getSlug())
+                return Optional.of(getRepositoryClient(project.getKey(), repository.getSlug())
                             .getDefaultBranch());
             } catch (NotFoundException e) {
                 LOGGER.info("Error creating the Bitbucket SCM: Cannot find the default branch for " + projectName + "/"
@@ -100,15 +95,23 @@ public class BitbucketScmHelper {
         }
     }
 
+    public BitbucketCommitClient getCommitClient(String projectKey, String repositorySlug) {
+        return getRepositoryClient(projectKey, repositorySlug)
+                .getCommitClient();
+    }
+
     public BitbucketFilePathClient getFilePathClient(String projectKey, String repositorySlug) {
-        return clientFactory.getProjectClient(projectKey)
-                .getRepositoryClient(repositorySlug)
+        return getRepositoryClient(projectKey, repositorySlug)
                 .getFilePathClient();
     }
 
     public BitbucketTagClient getTagClient(String projectKey, String repositorySlug, TaskListener listener) {
-        return clientFactory.getProjectClient(projectKey)
-                .getRepositoryClient(repositorySlug)
+        return getRepositoryClient(projectKey, repositorySlug)
                 .getBitbucketTagClient(listener);
+    }
+
+    public BitbucketRepositoryClient getRepositoryClient(String projectKey, String repositorySlug) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug);
     }
 }

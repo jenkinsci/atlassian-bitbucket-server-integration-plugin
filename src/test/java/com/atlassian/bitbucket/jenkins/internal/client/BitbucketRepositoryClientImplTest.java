@@ -47,6 +47,7 @@ public class BitbucketRepositoryClientImplTest {
 
     private static final String DEFAULT_BRANCH_URL = "%s/rest/api/1.0/projects/%s/repos/%s/default-branch";
     private static final String PROJECT_KEY = "PROJECT_1";
+    private static final String PULL_REQUEST_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests/%s";
     private static final String REPO_SLUG = "rep_1";
     private static final String REVISION = "bc891c29e289e373fbf8daff411480e8da6d5252";
     private static final String WEBHOOK_URL = "%s/rest/api/1.0/projects/%s/repos/%s/pull-requests?withAttributes=false&withProperties=false&state=OPEN";
@@ -74,6 +75,19 @@ public class BitbucketRepositoryClientImplTest {
         
         client = new BitbucketRepositoryClientImpl(bitbucketRequestExecutor,
                 capabilitiesClient, PROJECT_KEY, REPO_SLUG);
+    }
+
+    @Test
+    public void testFetchingPullRequest() {
+        String response = readFileToString("/open-pull-request.json");
+        String url = format(PULL_REQUEST_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, 97);
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        BitbucketPullRequest pullRequest = client.getPullRequest(97);
+
+        assertEquals(97, pullRequest.getId());
+        assertEquals(BitbucketPullRequestState.OPEN, pullRequest.getState());
+        assertEquals("e48655db012cd6da02b2b2dbfea569335c7f3495", pullRequest.getFromRef().getLatestCommit());
     }
 
     @Test
