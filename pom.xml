@@ -18,7 +18,7 @@
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
-        <jackson.version>2.15.3</jackson.version>
+        <jackson.version>2.16.1</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.version>2.414.3</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -43,8 +43,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.401.x</artifactId>
-                <version>2661.vb_b_60650f6d97</version>
+                <artifactId>bom-2.414.x</artifactId>
+                <version>2745.vc7b_fe4c876fa_</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -157,12 +157,22 @@
                     <groupId>org.jenkins-ci.plugins</groupId>
                     <artifactId>junit</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
             <!--<version>managed by bom</version>-->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
