@@ -8,8 +8,6 @@ import io.restassured.response.ResponseBody;
 import it.com.atlassian.bitbucket.jenkins.internal.applink.oauth.model.OAuthConsumer;
 import it.com.atlassian.bitbucket.jenkins.internal.pageobjects.BitbucketScmConfig;
 import okhttp3.HttpUrl;
-import org.jenkinsci.test.acceptance.SshKeyPair;
-import org.jenkinsci.test.acceptance.SshKeyPairGenerator;
 import org.jenkinsci.test.acceptance.po.Job;
 import org.json.JSONException;
 import org.json.JSONObject;

@@ -94,7 +94,7 @@ public class ProjectBasedMatrixSecurityHelper {
         // Project/job-level matrix security is configured in the job itself
         job.configure();
         ProjectMatrixProperty pmp = new ProjectMatrixProperty(job);
-        pmp.enable.check();
+        pmp.enable();
         userPermissions.forEach((user, perms) ->
                 perms.accept(getOrAddUserRow(pmp, user)));
         job.save();

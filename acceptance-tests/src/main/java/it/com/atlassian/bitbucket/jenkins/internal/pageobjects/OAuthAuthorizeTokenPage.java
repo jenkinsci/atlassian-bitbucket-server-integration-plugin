@@ -11,10 +11,10 @@ import org.openqa.selenium.WebElement;
 
 import java.net.URI;
 import java.net.URL;
+import java.time.Duration;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToIgnoringWhiteSpace;
 
@@ -81,6 +81,6 @@ public class OAuthAuthorizeTokenPage extends PageObject {
     }
 
     private Wait<CapybaraPortingLayer> waitWithTimeout() {
-        return waitFor().withTimeout(TIMEOUT_SECONDS, SECONDS);
+        return waitFor().withTimeout(Duration.ofSeconds(TIMEOUT_SECONDS));
     }
 }
