@@ -222,6 +222,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 4.1.1
+- [JEKINS-73871](https://issues.jenkins.io/browse/JENKINS-73871): Fix branch and tag names with slashes, not being built.
+
 ### 4.1.0
 - [JENKINS-72120](https://issues.jenkins.io/browse/JENKINS-72120) Implemented discovery of tags. This introduces a tag discovery trait enabling Multibranch pipelines to
   detect tags. The trait will not initialise builds.
