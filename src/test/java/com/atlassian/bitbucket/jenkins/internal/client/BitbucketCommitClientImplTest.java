@@ -9,6 +9,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.UnsupportedEncodingException;
+
 import static com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials.ANONYMOUS_CREDENTIALS;
 import static com.atlassian.bitbucket.jenkins.internal.util.TestUtils.*;
 import static java.lang.String.format;
@@ -35,17 +37,18 @@ public class BitbucketCommitClientImplTest {
     }
 
     @Test
-    public void testGetCommit() {
-        String commitId = "559aa7ba386";
+    public void testGetCommit() throws UnsupportedEncodingException {
+        String commitId = "feature/myfeature";
+        String encodedCommitId = "feature%252Fmyfeature"; // for some reason apache double encodes the url
         String response = readFileToString("/commit.json");
-        String url = format(COMMITS_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, commitId);
+        String url = format(COMMITS_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, encodedCommitId);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
 
         BitbucketCommitClient commitClient = client.getCommitClient();
         BitbucketCommit commit = commitClient.getCommit(commitId);
 
         assertEquals("559aa7ba386219254f9448ed24cdaa6e914e5fde", commit.getId());
-        assertEquals("559aa7ba386", commit.getDisplayId());
+        assertEquals("feature/myfeature", commit.getDisplayId());
         assertEquals("Commit message", commit.getMessage());
         assertEquals(1421908805000L, commit.getCommitterTimestamp());
     }

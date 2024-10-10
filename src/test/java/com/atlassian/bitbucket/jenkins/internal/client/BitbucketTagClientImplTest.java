@@ -57,8 +57,8 @@ public class BitbucketTagClientImplTest {
         BitbucketTagClient tagClient = client.getBitbucketTagClient(taskListener);
         List<BitbucketTag> tagList = tagClient.getRemoteTags().collect(Collectors.toList());
 
-        assertEquals(tagList.size(), 1);
-        assertEquals(tagList.get(0).getDisplayId(), "tag_1");
+        assertEquals(1, tagList.size());
+        assertEquals("release/tag_1", tagList.get(0).getDisplayId());
     }
 
     @Test(expected = IllegalArgumentException.class)

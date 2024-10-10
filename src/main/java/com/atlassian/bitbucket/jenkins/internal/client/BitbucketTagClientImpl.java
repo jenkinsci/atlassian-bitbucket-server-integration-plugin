@@ -7,6 +7,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import hudson.model.TaskListener;
 import okhttp3.HttpUrl;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,13 +62,18 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
     }
 
     public BitbucketTag getRemoteTag(String tagName) {
-        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                .addPathSegment("projects")
-                .addPathSegment(projectKey)
-                .addPathSegment("repos")
-                .addPathSegment(repositorySlug)
-                .addPathSegment("tags")
-                .addPathSegment(tagName);
+        HttpUrl.Builder urlBuilder = null;
+        try {
+            urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                    .addPathSegment("projects")
+                    .addPathSegment(projectKey)
+                    .addPathSegment("repos")
+                    .addPathSegment(repositorySlug)
+                    .addPathSegment("tags")
+                    .addPathSegment(URLEncoder.encode(tagName, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
 
         HttpUrl url = urlBuilder.build();
         BitbucketTag tag = bitbucketRequestExecutor.makeGetRequest(url, BitbucketTag.class).getBody();
