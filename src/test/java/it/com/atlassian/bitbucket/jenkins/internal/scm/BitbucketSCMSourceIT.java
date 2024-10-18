@@ -198,7 +198,7 @@ public class BitbucketSCMSourceIT {
                 serverId,
                 null);
 
-        executeFullFlow(scmSource);
+        executeFullFlow(scmSource, false);
     }
 
     @Test
@@ -216,10 +216,29 @@ public class BitbucketSCMSourceIT {
                 serverId,
                 null);
 
-        executeFullFlow(scmSource);
+        executeFullFlow(scmSource, false);
     }
 
-    private void executeFullFlow(SCMSource scmSource) throws IOException, InterruptedException, GitAPIException {
+    /* Tests cases where either Bitbucket is down during a Jenkins restart (https://issues.jenkins.io/browse/JENKINS-72765) or if the repo was created after the job.*/
+    @Test
+    public void testFullFlowSshRepoCreatedAfterJob() throws InterruptedException, GitAPIException, IOException {
+        BitbucketServerConfiguration serverConf = bbJenkinsRule.getBitbucketServerConfiguration();
+        String credentialsId = bbJenkinsRule.getBbAdminUsernamePasswordCredentialsId();
+        String id = randomUUID().toString();
+        String serverId = serverConf.getId();
+        SCMSource scmSource = new BitbucketSCMSource(id,
+                credentialsId,
+                bbJenkinsRule.getSshCredentialsId(),
+                new BitbucketSCMSource.DescriptorImpl().getTraitsDefaults(),
+                PROJECT_NAME,
+                forkRepoName,
+                serverId,
+                null);
+
+        executeFullFlow(scmSource, true);
+    }
+
+    private void executeFullFlow(SCMSource scmSource, boolean recreateRepo) throws IOException, InterruptedException, GitAPIException {
 
         WorkflowMultiBranchProject project =
                 bbJenkinsRule.createProject(WorkflowMultiBranchProject.class, "MultiBranch");
@@ -229,7 +248,16 @@ public class BitbucketSCMSourceIT {
 
         branchSource.setStrategy(new DefaultBranchPropertyStrategy(null));
         project.setSourcesList(Collections.singletonList(branchSource));
+
+        if(recreateRepo) {
+            deleteRepository(PROJECT_KEY, forkRepoName);
+        }
+
         scmSource.afterSave();
+
+        if(recreateRepo) {
+            forkRepository(PROJECT_KEY, REPO_SLUG, forkRepoName);
+        }
 
         Future queueFuture = project.scheduleBuild2(0).getFuture();
         while (!queueFuture.isDone()) { //wait for the branch scanning to complete before proceeding

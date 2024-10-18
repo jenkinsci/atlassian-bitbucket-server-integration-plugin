@@ -285,14 +285,13 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         if (event == null || isEventApplicable(event)) {
+            // In the case that Bitbucket was down during a save or Jenkins restart, we want to reinitialize: https://issues.jenkins.io/browse/JENKINS-72765
+            afterSave();
             if (!isValid()) {
-                listener.error(
-                        "The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve." +
-                        " Check the configuration before running this job again.");
+                listener.error("ERROR: The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve. Check the configuration before running this job again.");
                 return;
             }
 
-            validateInitialized();
             doRetrieve(criteria, observer, event, listener);
         }
     }
@@ -388,8 +387,9 @@ public class BitbucketSCMSource extends SCMSource {
         if (!initialized.get()) {
             synchronized (this) {
                 if (!initialized.get()) {
-                    initialize();
-                    initialized.set(true);
+                    if(initialize()) {
+                        initialized.set(true);
+                    }
                 }
             }
         }
@@ -437,12 +437,12 @@ public class BitbucketSCMSource extends SCMSource {
                 .collect(Collectors.toList());
     }
 
-    private void initialize() {
+    private boolean initialize() {
         DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
         Optional<BitbucketServerConfiguration> mayBeServerConf = descriptor.getConfiguration(repository.getServerId());
         if (!mayBeServerConf.isPresent()) {
             // Without a valid server config, we cannot fetch repo details so the config remains as the user entered it
-            return;
+            return true;
         }
         BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
 
@@ -487,7 +487,9 @@ public class BitbucketSCMSource extends SCMSource {
         selfLink = selfLink.substring(0, max(selfLink.lastIndexOf("/browse"), 0));
         if (isBlank(cloneUrl)) {
             LOGGER.info("No clone url found for repository: " + repository.getRepositoryName());
+            return false;
         }
+        return true;
     }
 
     private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketBranchSCMHead head) {
