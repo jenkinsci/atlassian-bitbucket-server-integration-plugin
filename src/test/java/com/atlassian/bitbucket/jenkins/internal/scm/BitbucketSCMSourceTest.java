@@ -29,10 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
@@ -483,7 +480,8 @@ public class BitbucketSCMSourceTest {
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
         BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
         when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
-        when(commitClient.getCommit("branch1")).thenReturn(new BitbucketCommit("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs"));
+        BitbucketCommit commit = new BitbucketCommit(new ArrayList<>(Collections.singleton(new BitbucketValueProperty("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs")))); //change this
+        when(commitClient.getCommit("branch1")).thenReturn(commit);
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);
 
@@ -532,11 +530,14 @@ public class BitbucketSCMSourceTest {
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
         BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
         when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
-        when(tagClient.getRemoteTag("tag1")).thenReturn(new BitbucketTag("refs/heads/tag1", "tag1", "jklmno"));
+        when(tagClient.getRemoteTag("tag1")).thenReturn(
+                new BitbucketSingleTag(new ArrayList<>(
+                        Collections.singleton(
+                                new BitbucketValueProperty("a1234", "tag1", 1L, "tag commit")))));
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, taskListener);
 
-        assertEquals("jklmno", revision.getHash());
+        assertEquals("a1234", revision.getHash());
     }
 
     @Test

@@ -61,24 +61,20 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .flatMap(Collection::stream);
     }
 
-    public BitbucketTag getRemoteTag(String tagName) {
-        HttpUrl.Builder urlBuilder = null;
-        try {
-            urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+    public BitbucketSingleTag getRemoteTag(String tagName) {
+        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                     .addPathSegment("projects")
                     .addPathSegment(projectKey)
                     .addPathSegment("repos")
                     .addPathSegment(repositorySlug)
-                    .addPathSegment("tags")
-                    .addPathSegment(URLEncoder.encode(tagName, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+                    .addPathSegment("commits")
+                    .addQueryParameter("until", tagName)
+                    .addQueryParameter("start", "0")
+                    .addQueryParameter("limit", "1");
+
 
         HttpUrl url = urlBuilder.build();
-        BitbucketTag tag = bitbucketRequestExecutor.makeGetRequest(url, BitbucketTag.class).getBody();
-
-        return tag;
+        return bitbucketRequestExecutor.makeGetRequest(url, BitbucketSingleTag.class).getBody();
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketTag> {

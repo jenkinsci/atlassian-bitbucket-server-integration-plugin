@@ -23,18 +23,17 @@ public class BitbucketCommitClientImpl implements BitbucketCommitClient {
     @Override
     public BitbucketCommit getCommit(String identifier) {
         HttpUrl url = null;
-        try {
             url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                     .addPathSegment("projects")
                     .addPathSegment(projectKey)
                     .addPathSegment("repos")
                     .addPathSegment(repositorySlug)
                     .addPathSegment("commits")
-                    .addPathSegment(URLEncoder.encode(identifier, "UTF-8"))
+                    .addQueryParameter("until", identifier)
+                    .addQueryParameter("start", "0")
+                    .addQueryParameter("limit", "1")
                     .build();
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+
 
         return bitbucketRequestExecutor.makeGetRequest(url, BitbucketCommit.class).getBody();
     }

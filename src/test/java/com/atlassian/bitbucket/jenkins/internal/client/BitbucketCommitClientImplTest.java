@@ -21,7 +21,7 @@ public class BitbucketCommitClientImplTest {
 
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
-    private static final String COMMITS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/commits/%s";
+    private static final String COMMITS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/commits?until=%s&start=0&limit=1";
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
@@ -39,7 +39,7 @@ public class BitbucketCommitClientImplTest {
     @Test
     public void testGetCommit() throws UnsupportedEncodingException {
         String commitId = "feature/myfeature";
-        String encodedCommitId = "feature%252Fmyfeature"; // for some reason apache double encodes the url
+        String encodedCommitId = "feature%2Fmyfeature"; // for some reason apache double encodes the url
         String response = readFileToString("/commit.json");
         String url = format(COMMITS_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, encodedCommitId);
         fakeRemoteHttpServer.mapUrlToResult(url, response);
