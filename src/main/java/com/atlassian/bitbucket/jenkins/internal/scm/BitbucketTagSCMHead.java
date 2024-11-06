@@ -24,7 +24,6 @@ public class BitbucketTagSCMHead extends BitbucketSCMHead implements TagSCMHead 
         super(tag.getDisplayId(), tag.getLatestCommit(), UNKNOWN_TIMESTAMP);
     }
 
-
     public BitbucketTagSCMHead(BitbucketRefChange refChange) {
         super(refChange.getRef().getDisplayId(), refChange.getToHash(), UNKNOWN_TIMESTAMP);
     }

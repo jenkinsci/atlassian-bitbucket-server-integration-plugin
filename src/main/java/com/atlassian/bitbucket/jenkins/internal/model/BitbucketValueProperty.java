@@ -24,7 +24,7 @@ public class BitbucketValueProperty {
             this.committerTimestamp = requireNonNull(committerTimestamp, "committerTimestamp");
         }
 
-        public final long getCommitterTimestamp() {
+        public long getCommitterTimestamp() {
             return committerTimestamp;
         }
 

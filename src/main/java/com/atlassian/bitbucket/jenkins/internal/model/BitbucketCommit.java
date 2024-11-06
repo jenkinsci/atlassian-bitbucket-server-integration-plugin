@@ -21,11 +21,11 @@ public class BitbucketCommit {
 
     }
 
-    public final long getCommitterTimestamp() {
+    public long getCommitterTimestamp() {
         return values.get(0).getCommitterTimestamp();
     }
 
-    public final String getDisplayId() {
+    public String getDisplayId() {
         return values.get(0).getDisplayId();
     }
 
@@ -33,7 +33,7 @@ public class BitbucketCommit {
         return values.get(0).getId();
     }
 
-    public final String getMessage() {
+    public String getMessage() {
         return values.get(0).getMessage();
     }
 }
