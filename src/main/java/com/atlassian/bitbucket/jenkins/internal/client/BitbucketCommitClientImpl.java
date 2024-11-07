@@ -22,8 +22,7 @@ public class BitbucketCommitClientImpl implements BitbucketCommitClient {
 
     @Override
     public BitbucketCommit getCommit(String identifier) {
-        HttpUrl url = null;
-            url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                     .addPathSegment("projects")
                     .addPathSegment(projectKey)
                     .addPathSegment("repos")
