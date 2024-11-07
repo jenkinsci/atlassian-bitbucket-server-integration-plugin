@@ -531,9 +531,7 @@ public class BitbucketSCMSourceTest {
         BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
         when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
         when(tagClient.getRemoteTag("tag1")).thenReturn(
-                new BitbucketSingleTag(new ArrayList<>(
-                        Collections.singleton(
-                                new BitbucketValueProperty("a1234", "tag1", 1L, "tag commit")))));
+                new BitbucketTag("a1234", "tag1", "a1234"));
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, taskListener);
 

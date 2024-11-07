@@ -319,8 +319,8 @@ public class BitbucketSCMSource extends SCMSource {
                 // This was previously a GitTagSCMHead and needs to be property retrieved
                 // Perform a fetch of the tag from the remote.
                 // Create a new BitbucketSCMRevision from the fetched tag.
-                Optional<BitbucketSingleTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketSingleTag::getId).orElse(null));
+                Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
+                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
             }
         } catch (NotFoundException e) {
             // this exception can be thrown if the head no longer exists (e.g. multi-branch pipeline created without
@@ -500,7 +500,7 @@ public class BitbucketSCMSource extends SCMSource {
                 .getPullRequest(head.getPullRequest().getPullRequestId()));
     }
 
-    private Optional<BitbucketSingleTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
+    private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
         return getScmHelper().map(scmHelper -> scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
                 .getRemoteTag(head.getName()));
     }

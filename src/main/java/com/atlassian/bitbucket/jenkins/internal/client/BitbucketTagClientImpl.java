@@ -61,7 +61,7 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .flatMap(Collection::stream);
     }
 
-    public BitbucketSingleTag getRemoteTag(String tagName) {
+    public BitbucketTag getRemoteTag(String tagName) {
         HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                     .addPathSegment("projects")
                     .addPathSegment(projectKey)
@@ -74,7 +74,8 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
 
         HttpUrl url = urlBuilder.build();
-        return bitbucketRequestExecutor.makeGetRequest(url, BitbucketSingleTag.class).getBody();
+        BitbucketCommit commits =  bitbucketRequestExecutor.makeGetRequest(url, BitbucketCommit.class).getBody();
+        return new BitbucketTag(commits.getId(), commits.getDisplayId(), commits.getId());
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketTag> {
