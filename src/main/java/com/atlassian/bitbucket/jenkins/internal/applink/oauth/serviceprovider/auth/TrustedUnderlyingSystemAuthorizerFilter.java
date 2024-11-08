@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
+import hudson.model.User;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -17,7 +18,7 @@ public interface TrustedUnderlyingSystemAuthorizerFilter {
     /**
      * Authorize the user in the underlying system
      *
-     * @param userName    the user to be authorize
+     * @param user    the user to be authorized and proceeed with
      * @param request     the request
      * @param response    the response
      * @param filterChain the filter chain to continue after authorization
@@ -25,6 +26,6 @@ public interface TrustedUnderlyingSystemAuthorizerFilter {
      * @throws ServletException for problems while operating on request or response
      * @throws NoSuchUserException if there is no user with the username
      */
-    void authorize(String userName, HttpServletRequest request, HttpServletResponse response,
+    void authorize(User user, HttpServletRequest request, HttpServletResponse response,
                    FilterChain filterChain) throws IOException, ServletException, NoSuchUserException;
 }
