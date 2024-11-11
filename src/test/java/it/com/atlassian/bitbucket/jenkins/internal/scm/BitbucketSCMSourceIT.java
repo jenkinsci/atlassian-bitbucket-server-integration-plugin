@@ -249,13 +249,13 @@ public class BitbucketSCMSourceIT {
         branchSource.setStrategy(new DefaultBranchPropertyStrategy(null));
         project.setSourcesList(Collections.singletonList(branchSource));
 
-        if(recreateRepo) {
+        if (recreateRepo) {
             deleteRepository(PROJECT_KEY, forkRepoName);
         }
 
         scmSource.afterSave();
 
-        if(recreateRepo) {
+        if (recreateRepo) {
             forkRepository(PROJECT_KEY, REPO_SLUG, forkRepoName);
         }
 

@@ -141,9 +141,9 @@ public class BitbucketSCMSource extends SCMSource {
                             repository, owner, isPullRequestTrigger, isRefTrigger);
                 } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
                     LOGGER.severe("Webhook failed to register- token credentials assigned to " +
-                                  bitbucketServerConfiguration.getServerName()
-                                  +
-                                  " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
+                            bitbucketServerConfiguration.getServerName()
+                            +
+                            " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
                 }
             }
         }
@@ -361,7 +361,7 @@ public class BitbucketSCMSource extends SCMSource {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
                     .filter(
                             action -> action.getBitbucketSCMRepository().equals(repository) &&
-                                      StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
+                                    StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
                     .findAny()
                     .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
         }
@@ -387,7 +387,7 @@ public class BitbucketSCMSource extends SCMSource {
         if (!initialized.get()) {
             synchronized (this) {
                 if (!initialized.get()) {
-                    if(initialize()) {
+                    if (initialize()) {
                         initialized.set(true);
                     }
                 }
@@ -421,7 +421,7 @@ public class BitbucketSCMSource extends SCMSource {
                                                 head, revision, isMatch));
                     } catch (IOException | InterruptedException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
-                                       scmRevision + ", error: " + e.getMessage());
+                                scmRevision + ", error: " + e.getMessage());
 
                         return true;
                     }
