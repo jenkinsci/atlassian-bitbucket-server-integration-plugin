@@ -493,7 +493,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketSCMHead head) {
         return getScmHelper().map(scmHelper -> scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
-                .getCommit(head.getName()));
+                .getCommit(head.getFullRef()));
     }
 
     private Optional<BitbucketPullRequest> fetchBitbucketPullRequest(BitbucketPullRequestSCMHead head) {
