@@ -284,7 +284,7 @@ public class DeploymentStepImplTest {
         assertThat(environment.getName(), equalTo(environmentName));
         assertThat(environment.getType(), equalTo(getEnvironmentType(environmentType)));
         assertThat(environment.getUrl(), nullValue());
-        verifyZeroInteractions(printStream);
+        verifyNoInteractions(printStream);
     }
 
     @Test
@@ -302,7 +302,7 @@ public class DeploymentStepImplTest {
         assertThat(environment.getName(), equalTo(environmentName));
         assertThat(environment.getType(), equalTo(getEnvironmentType(environmentType)));
         assertThat(environment.getUrl(), nullValue());
-        verifyZeroInteractions(printStream);
+        verifyNoInteractions(printStream);
     }
 
     @Test

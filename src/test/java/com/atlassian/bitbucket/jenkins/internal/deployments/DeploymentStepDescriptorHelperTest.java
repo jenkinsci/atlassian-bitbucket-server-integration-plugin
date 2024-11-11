@@ -42,7 +42,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentKey(context, " ");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -54,7 +54,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentKey(context, environmentKey);
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The environment key must be shorter than 255 characters"));
     }
 
@@ -66,7 +66,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentKey(context, environmentKey);
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -77,7 +77,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentName(context, " ");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The environment name is required"));
     }
 
@@ -99,7 +99,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentName(context, environmentName);
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The environment name must be shorter than 255 characters"));
     }
 
@@ -111,7 +111,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentName(context, environmentName);
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -122,7 +122,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentType(context, "not an environment type");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The environment type should be one of DEVELOPMENT, PRODUCTION, STAGING, TESTING"));
     }
 
@@ -133,7 +133,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentType(context, " ");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -152,7 +152,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentType(context, "PRODUCTION");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -163,7 +163,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, " ");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 
@@ -182,7 +182,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "not a url");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The environment URL must be a valid URL"));
     }
 
@@ -193,7 +193,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "/relative/url");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The deployment URI must be absolute"));
     }
 
@@ -205,7 +205,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, environmentUrl);
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation.getMessage(), equalTo("The deployment URI must be shorter than 1024 characters"));
     }
 
@@ -216,7 +216,7 @@ public class DeploymentStepDescriptorHelperTest {
         FormValidation formValidation = helper.doCheckEnvironmentUrl(context, "http://my-env");
 
         verify(context).checkPermission(Item.EXTENDED_READ);
-        verifyZeroInteractions(jenkins);
+        verifyNoInteractions(jenkins);
         assertThat(formValidation, equalTo(FORM_VALIDATION_OK));
     }
 

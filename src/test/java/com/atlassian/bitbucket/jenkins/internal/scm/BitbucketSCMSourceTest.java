@@ -75,7 +75,7 @@ public class BitbucketSCMSourceTest {
 
         bitbucketSCMsource.afterSave();
 
-        verifyZeroInteractions(triggerDesc);
+        verifyNoInteractions(triggerDesc);
     }
 
     @Test
@@ -90,7 +90,7 @@ public class BitbucketSCMSourceTest {
 
         bitbucketSCMsource.afterSave();
 
-        verifyZeroInteractions(triggerDesc);
+        verifyNoInteractions(triggerDesc);
     }
 
     @Test

@@ -169,7 +169,7 @@ public class BitbucketPullRequestDiscoveryTraitTest {
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
         // Verify that the client does not fetch any pull requests and uses the event heads instead
-        verifyZeroInteractions(bitbucketRepositoryClient);
+        verifyNoInteractions(bitbucketRepositoryClient);
         assertThat(heads, Matchers.contains(testEventHead));
     }
 

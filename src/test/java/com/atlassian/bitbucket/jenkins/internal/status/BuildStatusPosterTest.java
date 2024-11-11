@@ -84,8 +84,8 @@ public class BuildStatusPosterTest {
     public void testNoBuildAction() {
         when(run.getActions(BitbucketRevisionAction.class)).thenReturn(Collections.emptyList());
         buildStatusPoster.onCompleted(run, listener);
-        verifyZeroInteractions(jenkinsSetupMock.getPluginConfiguration());
-        verifyZeroInteractions(listener);
+        verifyNoInteractions(jenkinsSetupMock.getPluginConfiguration());
+        verifyNoInteractions(listener);
     }
 
     @Test
@@ -94,7 +94,7 @@ public class BuildStatusPosterTest {
         when(jenkinsSetupMock.getPluginConfiguration().getServerById(SERVER_ID)).thenReturn(Optional.empty());
         buildStatusPoster.onCompleted(run, listener);
         verify(listener).error(eq("Failed to post build status as the provided Bitbucket Server config does not exist"));
-        verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
+        verifyNoInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 
     @Test
@@ -108,7 +108,7 @@ public class BuildStatusPosterTest {
         }
         verify(logger).println(eq("Build statuses disabled, no build status sent."));
         
-        verifyZeroInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
+        verifyNoInteractions(clientFactoryMock.getBitbucketClientFactoryProvider());
     }
 
     @Test

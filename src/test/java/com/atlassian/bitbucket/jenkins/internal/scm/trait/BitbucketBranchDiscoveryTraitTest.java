@@ -128,7 +128,7 @@ public class BitbucketBranchDiscoveryTraitTest {
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
         // Verify that the client does not fetch any branches and uses the event heads instead
-        verifyZeroInteractions(bitbucketBranchClient);
+        verifyNoInteractions(bitbucketBranchClient);
         assertThat(heads, Matchers.contains(testEventHead));
     }
 
