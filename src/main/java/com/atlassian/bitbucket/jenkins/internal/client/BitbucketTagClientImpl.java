@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -60,37 +59,6 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .flatMap(Collection::stream);
     }
 
-    @Override
-    public BitbucketTag getRemoteTag(String tagName) throws NotFoundException {
-        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                    .addPathSegment("projects")
-                    .addPathSegment(projectKey)
-                    .addPathSegment("repos")
-                    .addPathSegment(repositorySlug)
-                    .addPathSegment("commits")
-                    .addQueryParameter("until", tagName)
-                    .addQueryParameter("start", "0")
-                    .addQueryParameter("limit", "1")
-                    .build();
-
-        BitbucketPage<BitbucketCommit> firstPage =
-                bitbucketRequestExecutor.makeGetRequest(url,
-                        new TypeReference<BitbucketPage<BitbucketCommit>>() {
-                        }).getBody();
-
-        BitbucketCommit commit = BitbucketPageStreamUtil.toStream(firstPage, new BitbucketTagClientImpl.OnlyPageFetcherImpl())
-                .map(BitbucketPage::getValues)
-                .flatMap(Collection::stream)
-                .findFirst().orElse(null);
-
-        if (commit == null) {
-            throw new NotFoundException(String.format("Unable to locate tag with name %s", tagName), firstPage.toString());
-        }
-
-        return new BitbucketTag(commit.getId(), commit.getDisplayId(), commit.getId());
-
-    }
-
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketTag> {
 
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
@@ -128,17 +96,6 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
         private HttpUrl nextPageUrl(BitbucketPage<BitbucketTag> previous) {
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
-        }
-    }
-
-    static class OnlyPageFetcherImpl implements NextPageFetcher<BitbucketCommit> {
-
-        @Override
-        public BitbucketPage<BitbucketCommit> next(BitbucketPage<BitbucketCommit> previous) {
-            BitbucketPage<BitbucketCommit> lastPage = new BitbucketPage<>();
-            lastPage.setValues(Collections.emptyList());
-            lastPage.setLastPage(true);
-            return lastPage; // We can never hit this as we only request one page, but if we do, just return an empty page
         }
     }
 }

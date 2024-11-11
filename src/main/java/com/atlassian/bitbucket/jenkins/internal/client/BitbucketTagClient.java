@@ -25,12 +25,4 @@ public interface BitbucketTagClient {
      * @return Stream of bitbucket branches
      */
     Stream<BitbucketTag> getRemoteTags();
-
-    /**
-     * Gets the named tag from the given repository.
-     *
-     * @param tagName The name iof the tag to get from the remote instance
-     * @return a {@link BitbucketTag tag}
-     */
-    BitbucketTag getRemoteTag(String tagName) throws NotFoundException;
 }

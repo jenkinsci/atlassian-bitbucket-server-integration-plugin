@@ -504,9 +504,9 @@ public class BitbucketSCMSourceTest {
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
-        BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
-        when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
-        when(tagClient.getRemoteTag("tag1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
 
         assertNull(bitbucketSCMsource.retrieve(head, taskListener));
         verify(taskListener).error("The requested resource does not exist");
@@ -528,10 +528,10 @@ public class BitbucketSCMSourceTest {
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
-        BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
-        when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
-        when(tagClient.getRemoteTag("tag1")).thenReturn(
-                new BitbucketTag("a1234", "tag1", "a1234"));
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenReturn(
+                new BitbucketCommit("a1234", "tag1", 1L, "message"));
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, taskListener);
 
