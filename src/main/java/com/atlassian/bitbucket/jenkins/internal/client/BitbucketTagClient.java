@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants;
 
@@ -31,5 +32,5 @@ public interface BitbucketTagClient {
      * @param tagName The name iof the tag to get from the remote instance
      * @return a {@link BitbucketTag tag}
      */
-    BitbucketTag getRemoteTag(String tagName);
+    BitbucketTag getRemoteTag(String tagName) throws NotFoundException;
 }

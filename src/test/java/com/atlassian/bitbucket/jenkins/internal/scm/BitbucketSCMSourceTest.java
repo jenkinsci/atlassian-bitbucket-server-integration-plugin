@@ -480,7 +480,7 @@ public class BitbucketSCMSourceTest {
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
         BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
         when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
-        BitbucketCommit commit = new BitbucketCommit(new ArrayList<>(Collections.singleton(new BitbucketValueProperty("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs")))); //change this
+        BitbucketCommit commit = new BitbucketCommit("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs"); //change this
         when(commitClient.getCommit("branch1")).thenReturn(commit);
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);

@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
 import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
@@ -7,8 +8,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import hudson.model.TaskListener;
 import okhttp3.HttpUrl;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,8 +60,9 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .flatMap(Collection::stream);
     }
 
-    public BitbucketTag getRemoteTag(String tagName) {
-        HttpUrl.Builder urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+    @Override
+    public BitbucketTag getRemoteTag(String tagName) throws NotFoundException {
+        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                     .addPathSegment("projects")
                     .addPathSegment(projectKey)
                     .addPathSegment("repos")
@@ -70,12 +70,25 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                     .addPathSegment("commits")
                     .addQueryParameter("until", tagName)
                     .addQueryParameter("start", "0")
-                    .addQueryParameter("limit", "1");
+                    .addQueryParameter("limit", "1")
+                    .build();
 
+        BitbucketPage<BitbucketCommit> firstPage =
+                bitbucketRequestExecutor.makeGetRequest(url,
+                        new TypeReference<BitbucketPage<BitbucketCommit>>() {
+                        }).getBody();
 
-        HttpUrl url = urlBuilder.build();
-        BitbucketCommit commits =  bitbucketRequestExecutor.makeGetRequest(url, BitbucketCommit.class).getBody();
-        return new BitbucketTag(commits.getId(), commits.getDisplayId(), commits.getId());
+        BitbucketCommit commit = BitbucketPageStreamUtil.toStream(firstPage, new BitbucketTagClientImpl.OnlyPageFetcherImpl())
+                .map(BitbucketPage::getValues)
+                .flatMap(Collection::stream)
+                .findFirst().orElse(null);
+
+        if (commit == null) {
+            throw new NotFoundException(String.format("Unable to locate tag with name %s", tagName), firstPage.toString());
+        }
+
+        return new BitbucketTag(commit.getId(), commit.getDisplayId(), commit.getId());
+
     }
 
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketTag> {
@@ -98,10 +111,6 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
         @Override
         public BitbucketPage<BitbucketTag> next(BitbucketPage<BitbucketTag> previous) {
-            if (previous.isLastPage()) {
-                throw new IllegalArgumentException("Last page does not have next page");
-            }
-
             if (currentPage.incrementAndGet() >= maxPages) {
                 // We've reached the maximum number of pages, so we return an "empty last page" to stop the iterator.
                 taskListener.getLogger().println("Max number of pages for tag retrieval reached.");
@@ -119,6 +128,17 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
         private HttpUrl nextPageUrl(BitbucketPage<BitbucketTag> previous) {
             return url.newBuilder().addQueryParameter("start", valueOf(previous.getNextPageStart())).build();
+        }
+    }
+
+    static class OnlyPageFetcherImpl implements NextPageFetcher<BitbucketCommit> {
+
+        @Override
+        public BitbucketPage<BitbucketCommit> next(BitbucketPage<BitbucketCommit> previous) {
+            BitbucketPage<BitbucketCommit> lastPage = new BitbucketPage<>();
+            lastPage.setValues(Collections.emptyList());
+            lastPage.setLastPage(true);
+            return lastPage; // We can never hit this as we only request one page, but if we do, just return an empty page
         }
     }
 }

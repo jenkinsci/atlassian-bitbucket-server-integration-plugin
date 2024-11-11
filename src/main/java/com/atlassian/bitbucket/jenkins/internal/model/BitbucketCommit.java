@@ -2,9 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.model;
 
 import com.fasterxml.jackson.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Map;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -13,27 +10,36 @@ import static java.util.Objects.requireNonNull;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCommit {
 
-    public ArrayList<BitbucketValueProperty> values;
+    private final long committerTimestamp;
+    private final String displayId;
+    private final String id;
+    private final String message;
 
     @JsonCreator
-    public BitbucketCommit(@JsonProperty("values") ArrayList<BitbucketValueProperty> values) {
-        this.values = requireNonNull(values, "values");
-
+    public BitbucketCommit(
+            @JsonProperty("id") String id,
+            @JsonProperty("displayId") String displayId,
+            @JsonProperty("committerTimestamp") long committerTimestamp,
+            @JsonProperty("message") String message) {
+        this.id = requireNonNull(id, "id");
+        this.displayId = requireNonNull(displayId, "displayId");
+        this.message = message;
+        this.committerTimestamp = committerTimestamp;
     }
 
     public long getCommitterTimestamp() {
-        return values.get(0).getCommitterTimestamp();
+        return committerTimestamp;
     }
 
     public String getDisplayId() {
-        return values.get(0).getDisplayId();
+        return displayId;
     }
 
-    public final String getId() {
-        return values.get(0).getId();
+    public String getId() {
+        return id;
     }
 
     public String getMessage() {
-        return values.get(0).getMessage();
+        return message;
     }
 }

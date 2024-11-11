@@ -5,7 +5,7 @@
   "values" : [
     {
       "id": "559aa7ba386219254f9448ed24cdaa6e914e5fde",
-      "displayId": "feature/myfeature",
+      "displayId": "tag/mytag",
       "committerTimestamp": "1421908805000",
       "message": "Commit message"
     }],

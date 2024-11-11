@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketValueProperty {
+
         private final String id;
         private final String displayId;
         private final long committerTimestamp;

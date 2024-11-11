@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.fixture.FakeRemoteHttpServer;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
@@ -13,6 +14,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,8 +26,7 @@ import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketTagClientImplTest {
@@ -32,6 +34,7 @@ public class BitbucketTagClientImplTest {
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
     private static final String TAGS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/tags?limit=1000&orderBy=modification";
+    private static final String COMMITS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/commits?until=%s&start=0&limit=1";
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,
@@ -59,6 +62,35 @@ public class BitbucketTagClientImplTest {
 
         assertEquals(1, tagList.size());
         assertEquals("release/tag_1", tagList.get(0).getDisplayId());
+    }
+
+    @Test
+    public void testGetRemoteTag() throws UnsupportedEncodingException {
+        String tagId = "tag/mytag";
+        String encodedTagId = URLEncoder.encode(tagId, "UTF-8");
+        String response = readFileToString("/tag.json");
+        String url = format(COMMITS_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, encodedTagId);
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        BitbucketTagClient tagClient = client.getBitbucketTagClient(taskListener);
+        BitbucketTag tag = tagClient.getRemoteTag(tagId);
+
+        assertEquals("559aa7ba386219254f9448ed24cdaa6e914e5fde", tag.getId());
+        assertEquals("tag/mytag", tag.getDisplayId());
+    }
+
+    @Test
+    public void testGetRemoteTagNotFound() throws UnsupportedEncodingException {
+        String tagId = "doesnotexist";
+        String encodedTagId = URLEncoder.encode(tagId, "UTF-8");
+        String response = readFileToString("/missing-commit.json");
+        String url = format(COMMITS_URL, BITBUCKET_BASE_URL, PROJECT_KEY, REPO_SLUG, encodedTagId);
+        fakeRemoteHttpServer.mapUrlToResult(url, response);
+
+        BitbucketTagClient tagClient = client.getBitbucketTagClient(taskListener);
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> tagClient.getRemoteTag(tagId));
+
+        assertEquals("Unable to locate tag with name doesnotexist", exception.getMessage());
     }
 
     @Test(expected = IllegalArgumentException.class)
