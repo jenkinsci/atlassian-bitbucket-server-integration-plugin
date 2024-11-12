@@ -7,7 +7,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
-import javax.annotation.Nullable;
+import javax.annotation.CheckForNull;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -26,7 +26,7 @@ public class BitbucketCommitClientImpl implements BitbucketCommitClient {
     }
 
     @Override
-    @Nullable
+    @CheckForNull
     public BitbucketCommit getCommit(String identifier) {
         HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
                 .addPathSegment("projects")

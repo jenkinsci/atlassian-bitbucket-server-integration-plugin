@@ -526,6 +526,7 @@ public class BitbucketSCMSourceTest {
         bitbucketSCMsource.setOwner(owner);
         BitbucketTagSCMHead head = mock(BitbucketTagSCMHead.class);
         when(head.getFullRef()).thenReturn("tag1");
+        when(head.getName()).thenReturn("tag1");
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
