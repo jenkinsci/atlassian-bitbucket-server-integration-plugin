@@ -321,7 +321,7 @@ public class BitbucketSCMSource extends SCMSource {
                 // Create a new BitbucketSCMRevision from the fetched tag.
                 return fetchBitbucketCommit((BitbucketTagSCMHead) head).map(fetchedCommit -> {
                     BitbucketTagSCMHead latestHead = new BitbucketTagSCMHead(
-                            new BitbucketTag(head.getName(), fetchedCommit.getDisplayId(), fetchedCommit.getId()));
+                            new BitbucketTag(fetchedCommit.getId(), head.getName(), fetchedCommit.getId()));
                     return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
                 }).orElse(null);
             }
