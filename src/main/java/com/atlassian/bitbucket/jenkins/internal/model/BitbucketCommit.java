@@ -1,8 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 import static java.util.Objects.requireNonNull;
 

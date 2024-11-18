@@ -23,8 +23,7 @@ import static java.util.stream.Collectors.toSet;
 import static okhttp3.HttpUrl.parse;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BitbucketTagClientImplTest {
@@ -32,6 +31,7 @@ public class BitbucketTagClientImplTest {
     private static final String PROJECT_KEY = "PROJECT_1";
     private static final String REPO_SLUG = "rep_1";
     private static final String TAGS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/tags?limit=1000&orderBy=modification";
+    private static final String COMMITS_URL = "%s/rest/api/1.0/projects/%s/repos/%s/commits?until=%s&start=0&limit=1";
     private final FakeRemoteHttpServer fakeRemoteHttpServer = new FakeRemoteHttpServer();
     private final HttpRequestExecutor requestExecutor = new HttpRequestExecutorImpl(fakeRemoteHttpServer);
     private final BitbucketRequestExecutor bitbucketRequestExecutor = new BitbucketRequestExecutor(BITBUCKET_BASE_URL,

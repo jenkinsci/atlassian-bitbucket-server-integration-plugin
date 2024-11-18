@@ -29,10 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
@@ -454,7 +451,7 @@ public class BitbucketSCMSourceTest {
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
         bitbucketSCMsource.setOwner(owner);
         BitbucketBranchSCMHead head = mock(BitbucketBranchSCMHead.class);
-        when(head.getName()).thenReturn("branch1");
+        when(head.getFullRef()).thenReturn("branch1");
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
@@ -478,12 +475,14 @@ public class BitbucketSCMSourceTest {
         bitbucketSCMsource.setOwner(owner);
         BitbucketBranchSCMHead head = mock(BitbucketBranchSCMHead.class);
         when(head.getName()).thenReturn("branch1");
+        when(head.getFullRef()).thenReturn("branch1");
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
         BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
         when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
-        when(commitClient.getCommit("branch1")).thenReturn(new BitbucketCommit("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs"));
+        BitbucketCommit commit = new BitbucketCommit("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs"); //change this
+        when(commitClient.getCommit("branch1")).thenReturn(commit);
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);
 
@@ -502,13 +501,13 @@ public class BitbucketSCMSourceTest {
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
         bitbucketSCMsource.setOwner(owner);
         BitbucketTagSCMHead head = mock(BitbucketTagSCMHead.class);
-        when(head.getName()).thenReturn("tag1");
+        when(head.getFullRef()).thenReturn("tag1");
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
-        BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
-        when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
-        when(tagClient.getRemoteTag("tag1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
 
         assertNull(bitbucketSCMsource.retrieve(head, taskListener));
         verify(taskListener).error("The requested resource does not exist");
@@ -526,17 +525,19 @@ public class BitbucketSCMSourceTest {
         MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
         bitbucketSCMsource.setOwner(owner);
         BitbucketTagSCMHead head = mock(BitbucketTagSCMHead.class);
+        when(head.getFullRef()).thenReturn("tag1");
         when(head.getName()).thenReturn("tag1");
 
         BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
         BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
-        BitbucketTagClient tagClient = mock(BitbucketTagClient.class);
-        when(helper.getTagClient(PROJECT_NAME, REPOSITORY_NAME, taskListener)).thenReturn(tagClient);
-        when(tagClient.getRemoteTag("tag1")).thenReturn(new BitbucketTag("refs/heads/tag1", "tag1", "jklmno"));
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenReturn(
+                new BitbucketCommit("a1234", "tag1", 1L, "message"));
 
         BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, taskListener);
 
-        assertEquals("jklmno", revision.getHash());
+        assertEquals("a1234", revision.getHash());
     }
 
     @Test

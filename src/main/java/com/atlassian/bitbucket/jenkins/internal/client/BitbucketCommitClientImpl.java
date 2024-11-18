@@ -1,10 +1,15 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
+import com.atlassian.bitbucket.jenkins.internal.client.paging.BitbucketPageStreamUtil;
+import com.atlassian.bitbucket.jenkins.internal.client.paging.NextPageFetcher;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketCommit;
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPage;
+import com.fasterxml.jackson.core.type.TypeReference;
 import okhttp3.HttpUrl;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import javax.annotation.CheckForNull;
+import java.util.Collection;
+import java.util.Collections;
 
 public class BitbucketCommitClientImpl implements BitbucketCommitClient {
 
@@ -21,21 +26,42 @@ public class BitbucketCommitClientImpl implements BitbucketCommitClient {
     }
 
     @Override
+    @CheckForNull
     public BitbucketCommit getCommit(String identifier) {
-        HttpUrl url = null;
-        try {
-            url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                    .addPathSegment("projects")
-                    .addPathSegment(projectKey)
-                    .addPathSegment("repos")
-                    .addPathSegment(repositorySlug)
-                    .addPathSegment("commits")
-                    .addPathSegment(URLEncoder.encode(identifier, "UTF-8"))
-                    .build();
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        HttpUrl url = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
+                .addPathSegment("projects")
+                .addPathSegment(projectKey)
+                .addPathSegment("repos")
+                .addPathSegment(repositorySlug)
+                .addPathSegment("commits")
+                .addQueryParameter("until", identifier)
+                .addQueryParameter("start", "0")
+                .addQueryParameter("limit", "1")
+                .build();
 
-        return bitbucketRequestExecutor.makeGetRequest(url, BitbucketCommit.class).getBody();
+        BitbucketPage<BitbucketCommit> firstPage =
+                bitbucketRequestExecutor.makeGetRequest(url,
+                        new TypeReference<BitbucketPage<BitbucketCommit>>() {
+                        }).getBody();
+
+        return BitbucketPageStreamUtil.toStream(firstPage, new BitbucketCommitClientImpl.OnlyPageFetcherImpl())
+                .map(BitbucketPage::getValues)
+                .flatMap(Collection::stream)
+                .findFirst().orElse(null);
+    }
+
+    static class OnlyPageFetcherImpl implements NextPageFetcher<BitbucketCommit> {
+
+        @Override
+        public BitbucketPage<BitbucketCommit> next(BitbucketPage<BitbucketCommit> previous) {
+            if (previous.isLastPage()) {
+                throw new IllegalArgumentException("Last page does not have next page");
+            }
+
+            BitbucketPage<BitbucketCommit> lastPage = new BitbucketPage<>();
+            lastPage.setValues(Collections.emptyList());
+            lastPage.setLastPage(true);
+            return lastPage;
+        }
     }
 }

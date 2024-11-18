@@ -7,8 +7,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import hudson.model.TaskListener;
 import okhttp3.HttpUrl;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,26 +59,6 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
                 .flatMap(Collection::stream);
     }
 
-    public BitbucketTag getRemoteTag(String tagName) {
-        HttpUrl.Builder urlBuilder = null;
-        try {
-            urlBuilder = bitbucketRequestExecutor.getCoreRestPath().newBuilder()
-                    .addPathSegment("projects")
-                    .addPathSegment(projectKey)
-                    .addPathSegment("repos")
-                    .addPathSegment(repositorySlug)
-                    .addPathSegment("tags")
-                    .addPathSegment(URLEncoder.encode(tagName, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-
-        HttpUrl url = urlBuilder.build();
-        BitbucketTag tag = bitbucketRequestExecutor.makeGetRequest(url, BitbucketTag.class).getBody();
-
-        return tag;
-    }
-
     static class NextPageFetcherImpl implements NextPageFetcher<BitbucketTag> {
 
         private final BitbucketRequestExecutor bitbucketRequestExecutor;
@@ -101,10 +79,6 @@ public class BitbucketTagClientImpl implements BitbucketTagClient {
 
         @Override
         public BitbucketPage<BitbucketTag> next(BitbucketPage<BitbucketTag> previous) {
-            if (previous.isLastPage()) {
-                throw new IllegalArgumentException("Last page does not have next page");
-            }
-
             if (currentPage.incrementAndGet() >= maxPages) {
                 // We've reached the maximum number of pages, so we return an "empty last page" to stop the iterator.
                 taskListener.getLogger().println("Max number of pages for tag retrieval reached.");

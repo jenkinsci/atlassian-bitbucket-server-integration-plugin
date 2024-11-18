@@ -318,8 +318,11 @@ public class BitbucketSCMSource extends SCMSource {
                 // This was previously a GitTagSCMHead and needs to be property retrieved
                 // Perform a fetch of the tag from the remote.
                 // Create a new BitbucketSCMRevision from the fetched tag.
-                Optional<BitbucketTag> fetchedTag = fetchBitbucketTag((BitbucketTagSCMHead) head, listener);
-                return new BitbucketSCMRevision((BitbucketTagSCMHead) head, fetchedTag.map(BitbucketTag::getLatestCommit).orElse(null));
+                return fetchBitbucketCommit((BitbucketTagSCMHead) head).map(fetchedCommit -> {
+                    BitbucketTagSCMHead latestHead = new BitbucketTagSCMHead(
+                            new BitbucketTag(fetchedCommit.getId(), head.getName(), fetchedCommit.getId()));
+                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                }).orElse(null);
             }
         } catch (NotFoundException e) {
             // this exception can be thrown if the head no longer exists (e.g. multi-branch pipeline created without
@@ -492,19 +495,14 @@ public class BitbucketSCMSource extends SCMSource {
         return true;
     }
 
-    private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketBranchSCMHead head) {
+    private Optional<BitbucketCommit> fetchBitbucketCommit(BitbucketSCMHead head) {
         return getScmHelper().map(scmHelper -> scmHelper.getCommitClient(getProjectKey(), getRepositorySlug())
-                .getCommit(head.getName()));
+                .getCommit(head.getFullRef()));
     }
 
     private Optional<BitbucketPullRequest> fetchBitbucketPullRequest(BitbucketPullRequestSCMHead head) {
         return getScmHelper().map(scmHelper -> scmHelper.getRepositoryClient(getProjectKey(), getRepositorySlug())
                 .getPullRequest(head.getPullRequest().getPullRequestId()));
-    }
-
-    private Optional<BitbucketTag> fetchBitbucketTag(BitbucketTagSCMHead head, TaskListener listener) {
-        return getScmHelper().map(scmHelper -> scmHelper.getTagClient(getProjectKey(), getRepositorySlug(), listener)
-                .getRemoteTag(head.getName()));
     }
 
     private Optional<BitbucketScmHelper> getScmHelper() {
