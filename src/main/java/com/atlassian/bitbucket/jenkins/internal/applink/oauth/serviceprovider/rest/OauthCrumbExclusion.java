@@ -63,8 +63,7 @@ public class OauthCrumbExclusion extends CrumbExclusion {
         if (req.getPathInfo().startsWith("/job") && req.getPathInfo().endsWith("/build")) {
             if (!securityChecker.isSecurityEnabled()) {
                 // Security is not enabled, so it can't be an oauth request. Continue the filter chain
-                chain.doFilter(req, resp);
-                return true;
+                return false;
             }
             if (oAuthRequestUtils.isOAuthAccessAttempt(req) || oAuthRequestUtils.isOauthTokenRequest(req)) {
                 //we probably have an OAuth1 request, we only allow starting builds via OAuth1 so see if the request is for starting a build
