@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.client;
 
-import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketTag;
 import com.atlassian.bitbucket.jenkins.internal.util.SystemPropertiesConstants;
 
