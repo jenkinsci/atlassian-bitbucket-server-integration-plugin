@@ -30,6 +30,8 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
  */
 public class OAuth1aRequestFilter implements Filter {
 
+    public static final String OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY = "bbdc_authenticated";
+
     private static final Logger log = Logger.getLogger(OAuth1aRequestFilter.class.getName());
 
     private final OAuth1Authenticator authenticator;
@@ -51,13 +53,13 @@ public class OAuth1aRequestFilter implements Filter {
                          FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse resp = (HttpServletResponse) response;
-        Object authenticated = req.getSession().getAttribute("bbdc-authenticated");
+        Object authenticated = req.getAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY);
         if (authenticated instanceof Boolean) {
             Boolean authed = (Boolean) authenticated;
             if (authed) {
                 //nothing to do, the request has already been authenticated. As the token can only be used once
                 //any new attempts to authenticate the request will fail.
-                req.getSession().removeAttribute("bbdc-authenticated");
+                req.removeAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY);
                 chain.doFilter(request, response);
                 return;
             }

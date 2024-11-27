@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.r
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.OAuthRequestUtils;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.AuthenticationFailedException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1Authenticator;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
 import hudson.model.User;
 import org.junit.Before;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter.OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
@@ -87,11 +89,11 @@ public class OauthCrumbExclusionTest {
     public void shouldAllowBuildStartEndpoint() throws ServletException, IOException, AuthenticationFailedException {
         when(request.getPathInfo()).thenReturn("/job/this/is/my/build/build");
         when(authenticator.authenticate(request, response)).thenReturn(mock(User.class));
-        when(request.getSession()).thenReturn(mock(HttpSession.class));
         buildUrls.add("/job/this/is/my/build/build");
 
         assertTrue(crumbExclusion.process(request, response, chain));
 
+        verify(request).setAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY, true);
         verify(chain).doFilter(request, response);
     }
 }

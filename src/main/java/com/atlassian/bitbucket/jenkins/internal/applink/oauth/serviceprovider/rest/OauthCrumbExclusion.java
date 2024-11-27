@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.r
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.OAuthRequestUtils;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.AuthenticationFailedException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1Authenticator;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
 import hudson.Extension;
 import hudson.model.Project;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter.OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY;
 import static java.lang.String.format;
 
 /**
@@ -71,7 +73,7 @@ public class OauthCrumbExclusion extends CrumbExclusion {
                     User user = authenticator.authenticate(req, resp);
                     if (user != null) {
                         try (ACLContext ignored = ACL.as(user)) {
-                            req.getSession().setAttribute("bbdc-authenticated", true);
+                            req.setAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY, true);
                             List<String> buildPaths = getBuilds();
                             if (buildPaths.contains(req.getPathInfo())) {
                                 chain.doFilter(req, resp);

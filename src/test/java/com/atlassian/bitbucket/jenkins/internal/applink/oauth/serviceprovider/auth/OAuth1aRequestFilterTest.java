@@ -19,7 +19,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Clock;
@@ -27,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter.OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER_WITH_2LO;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.USER;
@@ -89,8 +89,6 @@ public class OAuth1aRequestFilterTest {
     @Mock
     private HttpServletResponse response;
     @Mock
-    private HttpSession session;
-    @Mock
     private FilterChain chain;
     @Mock
     private SecurityModeChecker securityChecker;
@@ -115,7 +113,6 @@ public class OAuth1aRequestFilterTest {
 
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://host/service"));
         when(request.getMethod()).thenReturn("GET");
-        when(request.getSession()).thenReturn(session);
 
         responseOutputStream = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(new ByteArrayServletOutputStream(responseOutputStream));
@@ -156,6 +153,19 @@ public class OAuth1aRequestFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(trustedUnderlyingSystemAuthorizerFilter).authorize(argThat(u -> u.equals(user)), argThat(r -> r.equals(request)), isA(HttpServletResponse.class), argThat(c -> c.equals(chain)));
+    }
+
+    @Test
+    public void assertThatSuccessIsReturnedForCrumbExclusionFlagOnRequest() throws IOException, ServletException {
+        setupRequestWithParameters(rsaConsumerParameterMap);
+        when(request.getAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY)).thenReturn(Boolean.TRUE);
+
+        filter.doFilter(request, response, chain);
+
+        verify(request).removeAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY);
+        verify(chain).doFilter(isA(HttpServletRequest.class), isA(HttpServletResponse.class));
+        verify(response, never()).addHeader(eq("WWW-Authenticate"), startsWith("OAuth"));
+        verifyZeroInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test
