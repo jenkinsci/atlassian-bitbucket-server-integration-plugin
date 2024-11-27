@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.status;
 
 import com.atlassian.bitbucket.jenkins.internal.provider.GlobalLibrariesProvider;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepositoryHelper;
@@ -9,6 +10,8 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.SCMListener;
@@ -16,6 +19,10 @@ import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
 import hudson.util.DescribableList;
+import jenkins.branch.Branch;
+import jenkins.branch.BranchProjectFactory;
+import jenkins.branch.MultiBranchProject;
+import jenkins.scm.api.SCMHead;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.workflow.libs.FolderLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
@@ -103,13 +110,30 @@ public class LocalSCMListener extends SCMListener {
             return;
         }
         Map<String, String> env = new HashMap<>();
-        underlyingScm.buildEnvironment(build, env);
+        buildEnvironment(underlyingScm, build, env);
 
         String refName = getRefFromEnvironment(env, underlyingScm);
         BitbucketRevisionAction revisionAction =
                 new BitbucketRevisionAction(bitbucketSCMRepository, refName, getCommitFromEnvironment(env));
         build.addAction(revisionAction);
         buildStatusPoster.postBuildStatus(revisionAction, build, listener);
+    }
+
+    private void buildEnvironment(GitSCM underlyingScm, Run<?, ?> build, Map<String, String> env) {
+        underlyingScm.buildEnvironment(build, env);
+        Job<?, ?> job = build.getParent();
+        ItemGroup parent = job.getParent();
+        if (parent instanceof MultiBranchProject) {
+            BranchProjectFactory projectFactory = ((MultiBranchProject) parent).getProjectFactory();
+            if (projectFactory.isProject(job)) {
+                Branch branch = projectFactory.getBranch(job);
+                SCMHead head = branch.getHead();
+                if (head instanceof BitbucketPullRequestSCMHead) {
+                    BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) head;
+                    env.put(GitSCM.GIT_BRANCH, prHead.getOriginName());
+                }
+            }
+        }
     }
 
     private String getCommitFromEnvironment(Map<String, String> env) {

@@ -165,6 +165,9 @@ public class BitbucketSCMSource extends SCMSource {
         }
 
         builder.withTraits(traits);
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            builder.withExtension(new BitbucketPRBranchNameDecorator((BitbucketPullRequestSCMHead) head));
+        }
         return builder.build();
     }
 
