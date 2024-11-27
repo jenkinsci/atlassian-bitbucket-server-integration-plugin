@@ -2,7 +2,6 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCommitClient;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
-import com.atlassian.bitbucket.jenkins.internal.client.BitbucketTagClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
