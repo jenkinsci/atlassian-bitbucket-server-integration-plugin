@@ -222,6 +222,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 4.1.2
+- [JENKINS-74782](https://issues.jenkins.io/browse/JENKINS-74782): Previously the pull request name was sent to the build
+  status. This has been remedied to now send the source branch ref name.
+- [JENKINS-73871](https://issues.jenkins.io/browse/JENKINS-73871): Fixed branches & tag builds that included a '/' in their ref
+  not being able to be located on the Bitbucket instance.   
 ### 4.1.1
 - [JEKINS-73871](https://issues.jenkins.io/browse/JENKINS-73871): Fix branch and tag names with slashes, not being built.
 
