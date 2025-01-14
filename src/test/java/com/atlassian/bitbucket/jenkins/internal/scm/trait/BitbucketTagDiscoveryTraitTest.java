@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -103,7 +104,6 @@ public class BitbucketTagDiscoveryTraitTest {
 
     @Test
     public void testDecorateBuilder() {
-        BitbucketProject project = new BitbucketProject(TEST_PROJECT_KEY, null, TEST_PROJECT_KEY);
         BitbucketTag bitbucketTag = new BitbucketTag("1", "tag", "1");
         BitbucketTagSCMHead head = new BitbucketTagSCMHead(bitbucketTag);
         BitbucketSCMRevision revision = new BitbucketSCMRevision(head, null);
@@ -112,7 +112,6 @@ public class BitbucketTagDiscoveryTraitTest {
         underTest.decorateBuilder(scmBuilder);
 
         assertThat(scmBuilder.extensions().get(0), instanceOf(BitbucketTagSourceBranch.class));
-
     }
 
     @Test
@@ -163,6 +162,18 @@ public class BitbucketTagDiscoveryTraitTest {
         // Verify that the client fetches branches and converts them into heads
         verify(bitbucketTagClient).getRemoteTags();
         assertThat(heads, Matchers.contains(new BitbucketTagSCMHead(tag)));
+    }
+
+    @Test
+    public void testHandlingDifferentHeads() {
+        //if you enable more than one discovery is enabled our tag discovery may be called with a different HEAD type
+        BitbucketPullRequestSCMHead head = mock(BitbucketPullRequestSCMHead.class);
+        BitbucketSCMRevision revision = new BitbucketSCMRevision(head, null);
+        GitSCMBuilder scmBuilder = new GitSCMBuilder(head, revision, "remote", null);
+
+        underTest.decorateBuilder(scmBuilder);
+
+        assertTrue(scmBuilder.extensions().isEmpty());
     }
 
     private void initContext(Set<SCMHead> eventHeads) {

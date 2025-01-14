@@ -39,7 +39,7 @@ public class BitbucketTagDiscoveryTrait extends SCMSourceTrait {
             GitSCMBuilder<?> gitSCMBuilder = (GitSCMBuilder<?>) builder;
             SCMRevision revision = gitSCMBuilder.revision();
 
-            if (revision instanceof BitbucketSCMRevision) {
+            if (revision instanceof BitbucketSCMRevision && revision.getHead() instanceof BitbucketTagSCMHead) {
                 BitbucketSCMRevision tagRevision = (BitbucketSCMRevision) revision;
                 BitbucketTagSCMHead tagHead = (BitbucketTagSCMHead) tagRevision.getHead();
 

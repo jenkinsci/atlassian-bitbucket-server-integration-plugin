@@ -222,6 +222,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 4.1.3 (still unreleased)
+- [JENKINS-74736](https://issues.jenkins.io/browse/JENKINS-74736): Fixed an issue that could occur with tag discovery if
+  other discovery behaviours were enabled
+
 ### 4.1.2
 - [JENKINS-74782](https://issues.jenkins.io/browse/JENKINS-74782): Previously the pull request name was sent to the build
   status. This has been remedied to now send the source branch ref name.
