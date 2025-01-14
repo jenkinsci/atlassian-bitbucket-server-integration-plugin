@@ -166,7 +166,7 @@ public class BitbucketTagDiscoveryTraitTest {
 
     @Test
     public void testHandlingDifferentHeads() {
-        //if you enable more than one discovery isenabled our tag discovery may be called with a different HEAD type
+        //if you enable more than one discovery is enabled our tag discovery may be called with a different HEAD type
         BitbucketPullRequestSCMHead head = mock(BitbucketPullRequestSCMHead.class);
         BitbucketSCMRevision revision = new BitbucketSCMRevision(head, null);
         GitSCMBuilder scmBuilder = new GitSCMBuilder(head, revision, "remote", null);
