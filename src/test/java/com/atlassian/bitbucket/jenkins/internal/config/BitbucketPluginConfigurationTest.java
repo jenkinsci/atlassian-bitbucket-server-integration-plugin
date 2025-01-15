@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlySCM;
 import hudson.model.FreeStyleProject;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -76,8 +77,8 @@ public class BitbucketPluginConfigurationTest {
         FreeStyleProject freeStyleProject = jenkins.createFreeStyleProject();
         BitbucketSCM bitbucketSCMInitial = mock(BitbucketSCM.class);
         when(bitbucketSCMInitial.getServerId()).thenReturn("0");
-        freeStyleProject.setScm(bitbucketSCMInitial);
-        assertThat(jenkins.getInstance().getAllItems(FreeStyleProject.class).get(0).getScm(),
+        freeStyleProject.setScm(new SerializationFriendlySCM(bitbucketSCMInitial));
+        assertThat(((SerializationFriendlySCM) jenkins.getInstance().getAllItems(FreeStyleProject.class).get(0).getScm()).getUnderlyingSCM(),
                 equalTo(bitbucketSCMInitial));
 
         WorkflowJob workflowJob = jenkins.createProject(WorkflowJob.class);

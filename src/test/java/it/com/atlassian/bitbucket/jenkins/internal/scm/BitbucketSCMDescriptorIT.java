@@ -25,8 +25,7 @@ import java.util.stream.Collectors;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.HudsonResponse;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.JenkinsMirrorListBox;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 @RunWith(Parameterized.class)
 public class BitbucketSCMDescriptorIT {
@@ -75,9 +74,9 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdBlank() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketProject>> response =
+        Response formResponse =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(is(in(Arrays.asList(200, 401))))
                         .log()
                         .ifError()
                         .given()
@@ -85,10 +84,18 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("credentialsId", "")
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl())
-                        .getBody()
-                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
-                        });
+                        .post(getProjectSearchUrl());
+        if (formResponse.statusCode() == 401) {
+            // In Bitbucket 9.0+, repository/project search requests without credentials/authentication are considered
+            // unauthorised, unless the Bitbucket instance has a public repository/project
+            assertThat(formResponse.getBody().print(), containsString("Provided credentials cannot access the resource"));
+            return;
+        }
+
+        HudsonResponse<List<JenkinsBitbucketProject>> response = formResponse
+                .getBody()
+                .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
+                });
         assertThat(response.getStatus(), equalTo("ok"));
         List<JenkinsBitbucketProject> values = response.getData();
         // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
@@ -113,19 +120,27 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindProjectsCredentialsIdMissing() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketProject>> response =
+        Response formResponse =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(is(in(Arrays.asList(200, 401))))
                         .log()
                         .ifError()
                         .given()
                         .header("Jenkins-Crumb", "test")
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "proj")
-                        .post(getProjectSearchUrl())
-                        .getBody()
-                        .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
-                        });
+                        .post(getProjectSearchUrl());
+        if (formResponse.statusCode() == 401) {
+            // In Bitbucket 9.0+, repository/project search requests without credentials/authentication are considered
+            // unauthorised, unless the Bitbucket instance has a public repository/project
+            assertThat(formResponse.getBody().print(), containsString("Provided credentials cannot access the resource"));
+            return;
+        }
+
+        HudsonResponse<List<JenkinsBitbucketProject>> response = formResponse
+                .getBody()
+                .as(new TypeRef<HudsonResponse<List<JenkinsBitbucketProject>>>() {
+                });
         assertThat(response.getStatus(), equalTo("ok"));
         List<JenkinsBitbucketProject> values = response.getData();
         // Jenkins is unable to fetch the project's details if no credentials are provided and the repository isn't
@@ -272,9 +287,9 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindReposCredentialsIdBlank() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+        Response formResponse =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(is(in(Arrays.asList(200, 401))))
                         .log()
                         .ifError()
                         .given()
@@ -283,7 +298,16 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("credentialsId", "")
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl())
+                        .post(getReposUrl());
+        if (formResponse.statusCode() == 401) {
+            // In Bitbucket 9.0+, repository/project search requests without credentials/authentication are considered
+            // unauthorised, unless the Bitbucket instance has a public repository/project
+            assertThat(formResponse.getBody().print(), containsString("Provided credentials cannot access the resource"));
+            return;
+        }
+
+        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+                formResponse
                         .getBody()
                         .as(
                                 new TypeRef<
@@ -315,9 +339,9 @@ public class BitbucketSCMDescriptorIT {
 
     @Test
     public void testFindReposCredentialsMissing() throws Exception {
-        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+        Response formResponse =
                 RestAssured.expect()
-                        .statusCode(200)
+                        .statusCode(is(in(Arrays.asList(200, 401))))
                         .log()
                         .ifError()
                         .given()
@@ -325,7 +349,16 @@ public class BitbucketSCMDescriptorIT {
                         .formParam("serverId", bbJenkinsRule.getBitbucketServerConfiguration().getId())
                         .formParam("projectName", "Project 1")
                         .formParam("repositoryName", "rep")
-                        .post(getReposUrl())
+                        .post(getReposUrl());
+        if (formResponse.statusCode() == 401) {
+            // In Bitbucket 9.0+, repository/project search requests without credentials/authentication are considered
+            // unauthorised, unless the Bitbucket instance has a public repository/project
+            assertThat(formResponse.getBody().print(), containsString("Provided credentials cannot access the resource"));
+            return;
+        }
+
+        HudsonResponse<List<JenkinsBitbucketRepository>> response =
+                formResponse
                         .getBody()
                         .as(
                                 new TypeRef<

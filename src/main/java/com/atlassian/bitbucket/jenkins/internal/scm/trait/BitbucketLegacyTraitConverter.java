@@ -24,12 +24,16 @@ public class BitbucketLegacyTraitConverter {
      */
     @CheckForNull
     public static SCMSourceTrait maybeConvert(SCMSourceTrait trait) {
-        if (trait instanceof TagDiscoveryTrait || trait instanceof DiscoverOtherRefsTrait) {
+        if (trait instanceof DiscoverOtherRefsTrait) {
             return null;
         }
 
         if (trait instanceof BranchDiscoveryTrait) {
             return new BitbucketBranchDiscoveryTrait();
+        }
+
+        if (trait instanceof TagDiscoveryTrait) {
+            return new BitbucketTagDiscoveryTrait();
         }
 
         if (trait instanceof GitBrowserSCMSourceTrait) {

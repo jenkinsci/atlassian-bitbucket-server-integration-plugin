@@ -1,6 +1,7 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.*;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.AuthorizationException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
@@ -144,6 +145,20 @@ public class BitbucketScmFormFillDelegateTest {
     }
 
     @Test
+    public void testDoFillProjectNameItemsAuthorizationException() throws Exception {
+        String searchTerm = "test";
+        BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
+        when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(searchClient);
+        when(searchClient.findProjects()).thenThrow(
+                new AuthorizationException("Provided credentials cannot access the resource", 401, ""));
+
+        HttpResponse response =
+                delegate.doFillProjectNameItems(parent, SERVER_ID_VALID, "", searchTerm);
+        verifyErrorRequest((HttpResponses.HttpResponseException) response, 401,
+                "Bitbucket responded with not authorized: Provided credentials cannot access the resource");
+    }
+
+    @Test
     public void testDoFillProjectNameItemsCredentialsIdBlank() {
         String searchTerm = "test";
         mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
@@ -239,6 +254,21 @@ public class BitbucketScmFormFillDelegateTest {
                 delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(), myProject, searchTerm);
         verifyErrorRequest((HttpResponses.HttpResponseException) response, 500,
                 "An error occurred in Bitbucket: Bitbucket had an exception");
+    }
+
+    @Test
+    public void testDoFillRepositoryNameItemsAuthorizationException() throws Exception {
+        String searchTerm = "test";
+        String myProject = "myProject";
+        BitbucketSearchClient searchClient = mock(BitbucketSearchClient.class);
+        when(searchClient.findRepositories(searchTerm)).thenThrow(
+                new AuthorizationException("Provided credentials cannot access the resource", 401, ""));
+        when(bitbucketClientFactory.getSearchClient(myProject)).thenReturn(searchClient);
+
+        HttpResponse response =
+                delegate.doFillRepositoryNameItems(parent, SERVER_ID_VALID, "", myProject, searchTerm);
+        verifyErrorRequest((HttpResponses.HttpResponseException) response, 401,
+                "Bitbucket responded with not authorized: Provided credentials cannot access the resource");
     }
 
     @Test

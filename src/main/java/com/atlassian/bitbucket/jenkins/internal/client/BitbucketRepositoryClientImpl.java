@@ -62,6 +62,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     }
 
     @Override
+    public BitbucketCommitClient getCommitClient() {
+        return new BitbucketCommitClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    }
+
+    @Override
     public BitbucketDeploymentClient getDeploymentClient(String revisionSha) {
         return new BitbucketDeploymentClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, revisionSha);
     }
@@ -69,6 +74,16 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     @Override
     public BitbucketFilePathClient getFilePathClient() {
         return new BitbucketFilePathClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug);
+    }
+
+    @Override
+    public BitbucketPullRequest getPullRequest(long id) {
+        HttpUrl url = getRepositoryUrl()
+                .addPathSegment("pull-requests")
+                .addPathSegment(String.valueOf(id))
+                .build();
+
+        return bitbucketRequestExecutor.makeGetRequest(url, BitbucketPullRequest.class).getBody();
     }
 
     @Override
@@ -95,6 +110,11 @@ public class BitbucketRepositoryClientImpl implements BitbucketRepositoryClient 
     public BitbucketDefaultBranch getDefaultBranch() {
         return bitbucketRequestExecutor.makeGetRequest(getDefaultBranchyUrl().build(), BitbucketDefaultBranch.class)
                 .getBody();
+    }
+
+    @Override
+    public BitbucketTagClient getBitbucketTagClient(TaskListener taskListener) {
+        return new BitbucketTagClientImpl(bitbucketRequestExecutor, projectKey, repositorySlug, taskListener);
     }
 
     private Stream<BitbucketPullRequest> getBitbucketPullRequestStream(HttpUrl.Builder urlBuilder) {

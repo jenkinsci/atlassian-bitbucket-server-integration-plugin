@@ -1,0 +1,13 @@
+{
+  "size": 1,
+  "limit": 1,
+  "isLastPage": true,
+  "values" : [
+    {
+      "id": "559aa7ba386219254f9448ed24cdaa6e914e5fde",
+      "displayId": "feature/myfeature",
+      "committerTimestamp": "1421908805000",
+      "message": "Commit message"
+    }],
+  "start": 0
+}

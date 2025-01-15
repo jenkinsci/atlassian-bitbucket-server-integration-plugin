@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "context": null,
+      "message": "Commit 'doesnotexist' does not exist in repository 'rep_1'.",
+      "exceptionName": "com.atlassian.bitbucket.commit.NoSuchCommitException"
+    }
+  ]
+}

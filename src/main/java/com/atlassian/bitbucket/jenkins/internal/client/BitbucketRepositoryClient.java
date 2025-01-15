@@ -2,10 +2,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 import hudson.model.TaskListener;
 
 import java.util.stream.Stream;
@@ -24,6 +21,15 @@ public interface BitbucketRepositoryClient {
      * @since 4.0.0
      */
     BitbucketBranchClient getBranchClient(TaskListener taskListener);
+
+    /**
+     * Returns a client for getting commit information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since 4.1.0
+     */
+    BitbucketCommitClient getCommitClient();
 
     /**
      * Returns a client for getting file content and directory information on paths in a repository.
@@ -73,6 +79,15 @@ public interface BitbucketRepositoryClient {
     BitbucketDeploymentClient getDeploymentClient(String revisionSha);
 
     /**
+     * Gets the pull request corresponding to the given ID.
+     *
+     * @param id the pull request's id
+     * @return the pull request with the given ID
+     * @since 4.1.0
+     */
+    BitbucketPullRequest getPullRequest(long id);
+
+    /**
      * Gets all pull requests of the given state for the repository. The returned stream will make paged calls to
      * Bitbucket to ensure that all pull requests are returned. Consumers are advised that this can return large amounts
      * of data and are <strong>strongly</strong> encouraged to not collect to a list or similar before processing items,
@@ -115,5 +130,14 @@ public interface BitbucketRepositoryClient {
      *             for all errors not already captured
      */
     BitbucketDefaultBranch getDefaultBranch();
+
+    /**
+     * Returns a client for getting tag information from a repository.
+     *
+     * @return a git client that is ready to use
+     *
+     * @since 4.1.0
+     */
+    BitbucketTagClient getBitbucketTagClient(TaskListener taskListener);
 
 }

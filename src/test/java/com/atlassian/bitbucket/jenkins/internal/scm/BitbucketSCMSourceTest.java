@@ -1,5 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketCommitClient;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketRepositoryClient;
+import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.atlassian.bitbucket.jenkins.internal.link.BitbucketExternalLink;
@@ -15,6 +18,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhoo
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Action;
 import hudson.model.Actionable;
+import hudson.model.TaskListener;
 import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
@@ -24,10 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
@@ -35,6 +36,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -380,6 +383,179 @@ public class BitbucketSCMSourceTest {
         assertThat(bitbucketSCMsource.isEventApplicable(null), equalTo(false));
     }
 
+    @Test
+    public void testRetrieveNonExistentPullRequestHeadReturnsNull() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        TaskListener taskListener = mock(TaskListener.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        MinimalPullRequest pullRequest = mock(MinimalPullRequest.class);
+        when(pullRequest.getPullRequestId()).thenReturn(1L);
+        BitbucketPullRequestSCMHead head = mock(BitbucketPullRequestSCMHead.class);
+        when(head.getPullRequest()).thenReturn(pullRequest);
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
+        when(helper.getRepositoryClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(repositoryClient);
+        when(repositoryClient.getPullRequest(1)).thenThrow(new NotFoundException("The requested resource does not exist", null));
+
+        assertNull(bitbucketSCMsource.retrieve(head, taskListener));
+        verify(taskListener).error("The requested resource does not exist");
+    }
+
+    @Test
+    public void testRetrievePullRequestHeadFetchesLatestHead() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        MinimalPullRequest pullRequest = mock(MinimalPullRequest.class);
+        when(pullRequest.getPullRequestId()).thenReturn(1L);
+        BitbucketPullRequestSCMHead head = mock(BitbucketPullRequestSCMHead.class);
+        when(head.getPullRequest()).thenReturn(pullRequest);
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketRepositoryClient repositoryClient = mock(BitbucketRepositoryClient.class);
+        when(helper.getRepositoryClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(repositoryClient);
+        BitbucketPullRequest latestPullRequest = mock(BitbucketPullRequest.class, RETURNS_DEEP_STUBS);
+        when(latestPullRequest.getFromRef().getLatestCommit()).thenReturn("a1b2c3");
+        when(latestPullRequest.getToRef().getDisplayId()).thenReturn("PR");
+        when(repositoryClient.getPullRequest(1)).thenReturn(latestPullRequest);
+
+        BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);
+
+        assertEquals("a1b2c3", revision.getHash());
+    }
+
+    @Test
+    public void testRetrieveNonExistentBranchHeadReturnsNull() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        TaskListener taskListener = mock(TaskListener.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        BitbucketBranchSCMHead head = mock(BitbucketBranchSCMHead.class);
+        when(head.getFullRef()).thenReturn("branch1");
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("branch1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
+
+        assertNull(bitbucketSCMsource.retrieve(head, taskListener));
+        verify(taskListener).error("The requested resource does not exist");
+    }
+
+    @Test
+    public void testRetrieveBranchHeadFetchesLatestHead() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        BitbucketBranchSCMHead head = mock(BitbucketBranchSCMHead.class);
+        when(head.getName()).thenReturn("branch1");
+        when(head.getFullRef()).thenReturn("branch1");
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        BitbucketCommit commit = new BitbucketCommit("a1b2c3d4e5f6", "a1b2c3", 1L, "updated docs"); //change this
+        when(commitClient.getCommit("branch1")).thenReturn(commit);
+
+        BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);
+
+        assertEquals("a1b2c3d4e5f6", revision.getHash());
+    }
+
+    @Test
+    public void testRetrieveNonExistentTagReturnsNull() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        TaskListener taskListener = mock(TaskListener.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        BitbucketTagSCMHead head = mock(BitbucketTagSCMHead.class);
+        when(head.getFullRef()).thenReturn("tag1");
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenThrow(new NotFoundException("The requested resource does not exist", null));
+
+        assertNull(bitbucketSCMsource.retrieve(head, taskListener));
+        verify(taskListener).error("The requested resource does not exist");
+    }
+
+    @Test
+    public void testRetrieveTagHeadFetchesLatestHead() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        TaskListener taskListener = mock(TaskListener.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        BitbucketTagSCMHead head = mock(BitbucketTagSCMHead.class);
+        when(head.getFullRef()).thenReturn("tag1");
+        when(head.getName()).thenReturn("tag1");
+
+        BitbucketSCMSource.DescriptorImpl descriptor = setupDescriptor(bitbucketSCMsource, SERVER_ID, BASE_URL, owner);
+        BitbucketScmHelper helper = descriptor.getBitbucketScmHelper(BASE_URL, null);
+        BitbucketCommitClient commitClient = mock(BitbucketCommitClient.class);
+        when(helper.getCommitClient(PROJECT_NAME, REPOSITORY_NAME)).thenReturn(commitClient);
+        when(commitClient.getCommit("tag1")).thenReturn(
+                new BitbucketCommit("a1234", "tag1", 1L, "message"));
+
+        BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, taskListener);
+
+        assertEquals("a1234", revision.getHash());
+    }
+
+    @Test
+    public void testRetrieveUnknownHeadType() throws IOException, InterruptedException {
+        BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build();
+
+        TaskListener taskListener = mock(TaskListener.class);
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        bitbucketSCMsource.setOwner(owner);
+        UnknownHead unknownHead = new UnknownHead("unknown");
+
+        assertNull(bitbucketSCMsource.retrieve(unknownHead, taskListener));
+        verify(taskListener).error("Error resolving revision, unsupported SCMHead type class " + UnknownHead.class.getName());
+    }
+
     private BitbucketSCMSource.DescriptorImpl setupDescriptor(BitbucketSCMSource bitbucketSCMSource,
                                                               String serverId, String baseUrl,
                                                               MultiBranchProject<?, ?> owner) {
@@ -474,6 +650,7 @@ public class BitbucketSCMSourceTest {
                         when(project.getName()).thenReturn(PROJECT_NAME);
                         when(project.getKey()).thenReturn(PROJECT_NAME);
                         when(repository.getProject()).thenReturn(project);
+                        when(repository.getSlug()).thenReturn(REPOSITORY_NAME);
                         when(repository.getCloneUrls()).thenReturn(Arrays.asList(httpLink, sshLink));
                         when(repository.getSelfLink()).thenReturn("");
                         doReturn(mock(GlobalCredentialsProvider.class))
@@ -516,6 +693,11 @@ public class BitbucketSCMSourceTest {
             return this;
         }
 
+        public SCMSourceBuilder repositorySlug(String repositorySlug) {
+            this.repositoryName = requireNonNull(repositorySlug, "repositorySlug");
+            return this;
+        }
+
         public SCMSourceBuilder serverId(String serverId) {
             this.serverId = requireNonNull(serverId, "serverId");
             return this;
@@ -524,6 +706,13 @@ public class BitbucketSCMSourceTest {
         public SCMSourceBuilder sshCredentialId(String sshCredentialId) {
             this.sshCredentialId = requireNonNull(sshCredentialId, "sshCredentialId");
             return this;
+        }
+    }
+
+    private static class UnknownHead extends SCMHead {
+
+        public UnknownHead(String name) {
+            super(name);
         }
     }
 }
