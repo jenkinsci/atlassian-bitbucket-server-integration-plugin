@@ -222,7 +222,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
-### 4.1.3 (still unreleased)
+### 4.1.3
 - [JENKINS-74736](https://issues.jenkins.io/browse/JENKINS-74736): Fixed an issue that could occur with tag discovery if
   other discovery behaviours were enabled
 
