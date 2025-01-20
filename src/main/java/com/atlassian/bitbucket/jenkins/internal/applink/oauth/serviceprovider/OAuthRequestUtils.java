@@ -17,7 +17,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 /**
  * Utility class for extracting information from OAuth requests.
  */
-public final class OAuthRequestUtils {
+public class OAuthRequestUtils {
 
     public static final String EXCLUSION_PATH = "/bitbucket/oauth/";
     private static final Set<String> OAUTH_DATA_REQUEST_PARAMS = Stream.of(OAUTH_CONSUMER_KEY,
@@ -27,8 +27,7 @@ public final class OAuthRequestUtils {
             OAUTH_TIMESTAMP,
             OAUTH_NONCE).collect(Collectors.toSet());
 
-    private OAuthRequestUtils() {
-    }
+
 
     /**
      * Checks if the request is any form of OAuth request, either 2LO or 3LO.
@@ -37,7 +36,7 @@ public final class OAuthRequestUtils {
      * @param request the request object.
      * @return true if the request is an OAuth request.
      */
-    public static boolean isOAuthAccessAttempt(HttpServletRequest request) {
+    public boolean isOAuthAccessAttempt(HttpServletRequest request) {
         return is3LOAuthAccessAttempt(request) || is2LOAuthAccessAttempt(request);
     }
 
@@ -47,7 +46,7 @@ public final class OAuthRequestUtils {
      * @param request the request object
      * @return true if the request is for an OAuth token.
      */
-    public static boolean isOauthTokenRequest(HttpServletRequest request) {
+    public boolean isOauthTokenRequest(HttpServletRequest request) {
         String pathInfo = request.getPathInfo();
         return !isEmpty(pathInfo) && pathInfo.startsWith(OAuthRequestUtils.EXCLUSION_PATH);
     }

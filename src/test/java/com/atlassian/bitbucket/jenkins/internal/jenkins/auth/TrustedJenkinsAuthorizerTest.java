@@ -1,10 +1,8 @@
 package com.atlassian.bitbucket.jenkins.internal.jenkins.auth;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.TrustedUnderlyingSystemAuthorizerFilter;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
 import hudson.model.User;
 import hudson.security.ACLContext;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -16,9 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.USER;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TrustedJenkinsAuthorizerTest {
@@ -34,24 +30,13 @@ public class TrustedJenkinsAuthorizerTest {
     @Mock
     private ACLContext aclContext;
 
-    @Before
-    public void setup() {
-        when(user.getFullName()).thenReturn(USER);
-    }
-
     @Test
     public void successfulLogin() throws IOException, ServletException {
         TrustedUnderlyingSystemAuthorizerFilter filter = LocalTrustedJenkinsAuthorizer.createInstance(user, aclContext);
-        filter.authorize(USER, request, response, chain);
+        filter.authorize(user, request, response, chain);
 
         verify(chain).doFilter(request, response);
         verify(aclContext).close();
-    }
-
-    @Test(expected = NoSuchUserException.class)
-    public void throwsExceptionForUnknownUsers() throws IOException, ServletException {
-        TrustedUnderlyingSystemAuthorizerFilter filter = LocalTrustedJenkinsAuthorizer.createInstance(user, aclContext);
-        filter.authorize("gaurav", request, response, chain);
     }
 
     private static class LocalTrustedJenkinsAuthorizer extends TrustedJenkinsAuthorizer {
@@ -66,14 +51,6 @@ public class TrustedJenkinsAuthorizerTest {
 
         static TrustedJenkinsAuthorizer createInstance(User u, ACLContext context) {
             return new LocalTrustedJenkinsAuthorizer(u, context);
-        }
-
-        @Override
-        User getUser(String userName) {
-            if (userName.equals(u.getFullName())) {
-                return u;
-            }
-            return null;
         }
 
         @Override

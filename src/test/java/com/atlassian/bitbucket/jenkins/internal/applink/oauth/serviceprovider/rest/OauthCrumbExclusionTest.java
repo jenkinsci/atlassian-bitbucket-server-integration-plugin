@@ -1,6 +1,11 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.rest;
 
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.OAuthRequestUtils;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.AuthenticationFailedException;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1Authenticator;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter;
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
+import hudson.model.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,8 +17,12 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter.OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
@@ -27,11 +36,26 @@ public class OauthCrumbExclusionTest {
     private FilterChain chain;
     @Spy
     private HttpServletResponse response;
+
     private OauthCrumbExclusion crumbExclusion;
+    @Mock
+    private OAuth1Authenticator authenticator;
+    @Mock
+    private SecurityModeChecker securityChecker;
+    @Mock
+    private OAuthRequestUtils oAuthRequestUtils;
+    private List<String> buildUrls = new ArrayList<>();
 
     @Before
-    public void setup() {
-        crumbExclusion = new OauthCrumbExclusion();
+    public void setUp() throws Exception {
+        when(securityChecker.isSecurityEnabled()).thenReturn(true);
+        when(oAuthRequestUtils.isOAuthAccessAttempt(any())).thenReturn(true);
+        crumbExclusion = new OauthCrumbExclusion(authenticator, securityChecker, oAuthRequestUtils){
+            @Override
+            List<String> getBuilds() {
+                return buildUrls;
+            }
+        };
     }
 
     @Test
@@ -58,6 +82,18 @@ public class OauthCrumbExclusionTest {
 
         assertTrue(crumbExclusion.process(request, response, chain));
 
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    public void shouldAllowBuildStartEndpoint() throws ServletException, IOException, AuthenticationFailedException {
+        when(request.getPathInfo()).thenReturn("/job/this/is/my/build/build");
+        when(authenticator.authenticate(request, response)).thenReturn(mock(User.class));
+        buildUrls.add("/job/this/is/my/build/build");
+
+        assertTrue(crumbExclusion.process(request, response, chain));
+
+        verify(request).setAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY, true);
         verify(chain).doFilter(request, response);
     }
 }

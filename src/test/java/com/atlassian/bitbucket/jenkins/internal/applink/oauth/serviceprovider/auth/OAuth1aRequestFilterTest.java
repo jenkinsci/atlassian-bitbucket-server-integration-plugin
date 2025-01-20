@@ -1,11 +1,13 @@
 package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth;
 
+import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.OAuthRequestUtils;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.ServiceProviderConsumerStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.InvalidTokenException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.NoSuchUserException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderTokenStore;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.ByteArrayServletOutputStream;
+import hudson.model.User;
 import net.oauth.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter.OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.Consumers.RSA_CONSUMER_WITH_2LO;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.util.TestData.USER;
@@ -89,6 +92,10 @@ public class OAuth1aRequestFilterTest {
     private FilterChain chain;
     @Mock
     private SecurityModeChecker securityChecker;
+    @Mock
+    private OAuthRequestUtils oAuthRequestUtils;
+    @Mock
+    private User user;
 
     private OAuth1aRequestFilter filter;
     private Map<String, String[]> rsaConsumerParameterMap;
@@ -105,7 +112,6 @@ public class OAuth1aRequestFilterTest {
         rsaConsumerParameterMap.put("oauth_nonce", new String[]{"oauth_nonce"});
 
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://host/service"));
-        when(request.getRequestURI()).thenReturn("/service");
         when(request.getMethod()).thenReturn("GET");
 
         responseOutputStream = new ByteArrayOutputStream();
@@ -113,9 +119,19 @@ public class OAuth1aRequestFilterTest {
         when(clock.millis()).thenReturn(System.currentTimeMillis());
         when(consumerStore.get(RSA_CONSUMER.getKey())).thenReturn(Optional.of(RSA_CONSUMER));
         when(securityChecker.isSecurityEnabled()).thenReturn(true);
+        when(oAuthRequestUtils.isOAuthAccessAttempt(request)).thenReturn(true);
+        OAuth1Authenticator authenticator = new OAuth1Authenticator(consumerStore, store, validator, clock, securityChecker, oAuthRequestUtils) {
 
+            @Override
+            User getUser(String userName) throws NoSuchUserException {
+                if (userName.equals(user.getFullName())) {
+                    return user;
+                }
+                throw new NoSuchUserException(userName);
+            }
+        };
         filter =
-                new OAuth1aRequestFilter(consumerStore, store, validator, clock, trustedUnderlyingSystemAuthorizerFilter, securityChecker);
+                new OAuth1aRequestFilter(authenticator, trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test
@@ -133,15 +149,28 @@ public class OAuth1aRequestFilterTest {
     public void assertThatSuccessIsReturnedForValidAccessTokenWhenUserCanLogIn() throws IOException, ServletException {
         setupRequestWithParameters(rsaConsumerParameterMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
+        when(user.getFullName()).thenReturn(USER);
+        filter.doFilter(request, response, chain);
+
+        verify(trustedUnderlyingSystemAuthorizerFilter).authorize(argThat(u -> u.equals(user)), argThat(r -> r.equals(request)), isA(HttpServletResponse.class), argThat(c -> c.equals(chain)));
+    }
+
+    @Test
+    public void assertThatSuccessIsReturnedForCrumbExclusionFlagOnRequest() throws IOException, ServletException {
+        setupRequestWithParameters(rsaConsumerParameterMap);
+        when(request.getAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY)).thenReturn(Boolean.TRUE);
 
         filter.doFilter(request, response, chain);
 
-        verify(trustedUnderlyingSystemAuthorizerFilter).authorize(argThat(u -> u.equals(USER)), argThat(r -> r.equals(request)), isA(HttpServletResponse.class), argThat(c -> c.equals(chain)));
+        verify(request).removeAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY);
+        verify(chain).doFilter(isA(HttpServletRequest.class), isA(HttpServletResponse.class));
+        verify(response, never()).addHeader(eq("WWW-Authenticate"), startsWith("OAuth"));
+        verifyZeroInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test
     public void assertThatFailureResultForValidAccessTokenButConsumerKeyDoesNotMatch() throws IOException, ServletException {
-        Map<String, String[]> paramMap = new HashMap<String, String[]>(rsaConsumerParameterMap);
+        Map<String, String[]> paramMap = new HashMap<>(rsaConsumerParameterMap);
         paramMap.put("oauth_consumer_key", new String[]{RSA_CONSUMER_WITH_2LO.getKey()});
         setupRequestWithParameters(paramMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
@@ -149,7 +178,7 @@ public class OAuth1aRequestFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(trustedUnderlyingSystemAuthorizerFilter, never()).authorize(
-                anyString(),
+                any(User.class),
                 any(HttpServletRequest.class),
                 any(HttpServletResponse.class),
                 any(FilterChain.class));
@@ -205,8 +234,6 @@ public class OAuth1aRequestFilterTest {
     public void assertThatFailureResultWithPermissionDeniedMessageIsReturnedForUserWithValidTokenThatCannotLogIn() throws IOException, ServletException {
         setupRequestWithParameters(rsaConsumerParameterMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
-        doThrow(new NoSuchUserException("User gaurav does not exist")).when(trustedUnderlyingSystemAuthorizerFilter)
-                .authorize(argThat(u -> u.equals(USER)), argThat(r -> r.equals(request)), isA(HttpServletResponse.class), argThat(c -> c.equals(chain)));
 
         filter.doFilter(request, response, chain);
 
@@ -249,11 +276,12 @@ public class OAuth1aRequestFilterTest {
     public void verifyThatAuthenticationControllerIsNotifiedAndFilterChainContinuesWhenAuthenticationIsSuccessful() throws Exception {
         setupRequestWithParameters(rsaConsumerParameterMap);
         when(store.get(TOKEN)).thenReturn(Optional.of(ACCESS_TOKEN));
+        when(user.getFullName()).thenReturn(USER);
 
         filter.doFilter(request, response, chain);
 
         verify(trustedUnderlyingSystemAuthorizerFilter).authorize(
-                argThat(u -> u.equals(USER)),
+                argThat(u -> u.equals(user)),
                 any(HttpServletRequest.class),
                 any(HttpServletResponse.class),
                 any(FilterChain.class));
