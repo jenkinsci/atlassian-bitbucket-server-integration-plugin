@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>4.1.4</version>
+    <version>4.1.5-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <!-- This property can most likely be removed when our minimum Jenkins version is greater than 2.456 -->
@@ -627,7 +627,7 @@
         <developerConnection>scm:git:git@github.com:jenkinsci/atlassian-bitbucket-server-integration-plugin.git
         </developerConnection>
         <url>http://github.com/jenkinsci/atlassian-bitbucket-server-integration-plugin</url>
-        <tag>atlassian-bitbucket-server-integration-4.1.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <repositories>
