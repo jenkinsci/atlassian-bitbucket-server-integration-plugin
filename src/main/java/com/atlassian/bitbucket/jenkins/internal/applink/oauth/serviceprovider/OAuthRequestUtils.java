@@ -27,8 +27,6 @@ public class OAuthRequestUtils {
             OAUTH_TIMESTAMP,
             OAUTH_NONCE).collect(Collectors.toSet());
 
-
-
     /**
      * Checks if the request is any form of OAuth request, either 2LO or 3LO.
      * It is done by checking the request parameters.

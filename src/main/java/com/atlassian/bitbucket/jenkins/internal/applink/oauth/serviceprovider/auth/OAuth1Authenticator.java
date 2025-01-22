@@ -47,10 +47,10 @@ public class OAuth1Authenticator {
     private static final Logger log = Logger.getLogger(OAuth1Authenticator.class.getName());
     private final Clock clock;
     private final ServiceProviderConsumerStore consumerStore;
+    private final OAuthRequestUtils oAuthRequestUtils;
     private final SecurityModeChecker securityChecker;
     private final ServiceProviderTokenStore tokenStore;
     private final OAuthValidator validator;
-    private final OAuthRequestUtils oAuthRequestUtils;
 
     @Inject
     public OAuth1Authenticator(ServiceProviderConsumerStore consumerStore,
@@ -69,12 +69,13 @@ public class OAuth1Authenticator {
 
     /**
      * Authenticate the request.
-     * @param req request to validate
+     *
+     * @param req  request to validate
      * @param resp response to write errors etc to in case of failure.
      * @return If the request is successful the authenticated user is returned. If it is not a valid
-     *      * OAuth1 request null is returned.
+     * * OAuth1 request null is returned.
      * @throws AuthenticationFailedException Thrown to indicate that Authentication failed and the request should not be
-     * allowed to proceed
+     *                                       allowed to proceed
      */
     @CheckForNull
     public User authenticate(HttpServletRequest req, HttpServletResponse resp) throws AuthenticationFailedException {
@@ -110,7 +111,7 @@ public class OAuth1Authenticator {
 
     User getUser(String userName) throws NoSuchUserException {
         User user = User.getById(userName, false);
-        if(user == null) {
+        if (user == null) {
             throw new NoSuchUserException(format("No such user %s in the system", userName));
         }
         return user;
@@ -155,7 +156,6 @@ public class OAuth1Authenticator {
             return null;
         }
     }
-
 
     private boolean isOauthRequest(HttpServletRequest request) {
         String authorization = request.getHeader(AUTHORIZATION);

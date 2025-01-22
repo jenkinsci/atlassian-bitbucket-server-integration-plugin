@@ -77,15 +77,14 @@ public class OAuth1aRequestFilter implements Filter {
             }
         } catch (AuthenticationFailedException exception) {
             Throwable cause = exception.getCause();
-            if(cause instanceof NoSuchUserException) {
+            if (cause instanceof NoSuchUserException) {
                 String msg = format("User %s associated with the token %s not found in the system", exception.getUser(), exception.getTokenString());
                 OAuthServlet.handleException(resp, new OAuthProblemException(msg), getBaseUrl(req));
-            } else if(cause instanceof OAuthProblemException) {
+            } else if (cause instanceof OAuthProblemException) {
                 handleOAuthProblemException(req, resp, exception.getOAuthMessage(), (OAuthProblemException) cause);
             } else if (cause instanceof Exception) {
                 handleException(req, resp, exception.getOAuthMessage(), (Exception) cause);
             }
-
         }
     }
 
@@ -101,6 +100,14 @@ public class OAuth1aRequestFilter implements Filter {
         return scheme + serverName + serverPort + contextPath;
     }
 
+    private void handleException(HttpServletRequest request, HttpServletResponse response, OAuthMessage message,
+                                 Exception e) {
+        // this isn't likely to happen, it would result from some unknown error with the request that the OAuth.net
+        // library couldn't handle appropriately
+        log.log(SEVERE, "Failed to process OAuth message", e);
+        sendError(request, response, SC_INTERNAL_SERVER_ERROR, message);
+    }
+
     private void handleOAuthProblemException(HttpServletRequest request, HttpServletResponse response,
                                              OAuthMessage message,
                                              OAuthProblemException ope) {
@@ -113,14 +120,6 @@ public class OAuth1aRequestFilter implements Filter {
         }
     }
 
-    private void handleException(HttpServletRequest request, HttpServletResponse response, OAuthMessage message,
-                                 Exception e) {
-        // this isn't likely to happen, it would result from some unknown error with the request that the OAuth.net
-        // library couldn't handle appropriately
-        log.log(SEVERE, "Failed to process OAuth message", e);
-        sendError(request, response, SC_INTERNAL_SERVER_ERROR, message);
-    }
-
     private void sendError(HttpServletRequest request, HttpServletResponse response, int status, OAuthMessage message) {
         response.setStatus(status);
         try {
@@ -129,6 +128,7 @@ public class OAuth1aRequestFilter implements Filter {
             log.log(SEVERE, "Failure reporting OAuth error to client", e);
         }
     }
+
     /**
      * Wraps a HttpServletResponse and listens for the status to be set to a "401 Not authorized" or a 401 error to
      * be sent so that it can add the WWW-Authenticate headers for OAuth.
