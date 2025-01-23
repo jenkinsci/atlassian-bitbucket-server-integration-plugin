@@ -3,7 +3,6 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.r
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.OAuthRequestUtils;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.AuthenticationFailedException;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1Authenticator;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1aRequestFilter;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
 import hudson.Extension;
 import hudson.model.Project;
@@ -36,11 +35,11 @@ public class OauthCrumbExclusion extends CrumbExclusion {
 
     private static final Set<String> allowedParts = Set.of("/bitbucket/oauth/request-token", "/bbs-oauth/authorize/performSubmit", "/bitbucket/oauth/access-token");
     @Inject
+    OAuthRequestUtils oAuthRequestUtils;
+    @Inject
     private OAuth1Authenticator authenticator;
     @Inject
     private SecurityModeChecker securityChecker;
-    @Inject
-    OAuthRequestUtils oAuthRequestUtils;
 
     public OauthCrumbExclusion() {
         //required by Jenkins
