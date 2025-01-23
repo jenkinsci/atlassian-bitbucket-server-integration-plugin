@@ -140,7 +140,7 @@ public class BitbucketTagDiscoveryTraitTest {
         List<SCMHead> heads = handler.discoverHeads().collect(Collectors.toList());
 
         // Verify that the client does not fetch any tags and uses the event heads instead
-        verifyZeroInteractions(bitbucketTagClient);
+        verifyNoInteractions(bitbucketTagClient);
         assertThat(heads, Matchers.contains(testEventHead));
     }
 

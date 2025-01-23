@@ -250,6 +250,7 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ### 4.0.1
 - JENKINS-72280 Secret text credentials can no longer be selected as part of a Bitbucket SCM configuration
+- Updated minimum supported version of Jenkins to 2.414.3
 
 ### 4.0.0
 - JENKINS-66581 Implement ChangeRequestSCMHead2 for pull requests and introduced a pull request discovery trait enabling

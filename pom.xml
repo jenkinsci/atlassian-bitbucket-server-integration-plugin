@@ -18,7 +18,7 @@
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
-        <jackson.version>2.15.3</jackson.version>
+        <jackson.version>2.17.2</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.version>2.426.3</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -119,7 +119,7 @@
         <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
-            <version>142.v04572ca_5b_265</version>
+            <version>185.v303dc7c645f9</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -163,6 +163,12 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
             <!--<version>managed by bom</version>-->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -342,7 +348,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.21.0</version>
+            <version>4.8.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -165,7 +165,7 @@ public class OAuth1aRequestFilterTest {
         verify(request).removeAttribute(OAUTH_REQUEST_AUTHENTICATED_ATTRIBUTE_KEY);
         verify(chain).doFilter(isA(HttpServletRequest.class), isA(HttpServletResponse.class));
         verify(response, never()).addHeader(eq("WWW-Authenticate"), startsWith("OAuth"));
-        verifyZeroInteractions(trustedUnderlyingSystemAuthorizerFilter);
+        verifyNoInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test
@@ -269,7 +269,7 @@ public class OAuth1aRequestFilterTest {
 
         verify(chain).doFilter(isA(HttpServletRequest.class), isA(HttpServletResponse.class));
         verify(response, never()).addHeader(eq("WWW-Authenticate"), startsWith("OAuth"));
-        verifyZeroInteractions(trustedUnderlyingSystemAuthorizerFilter);
+        verifyNoInteractions(trustedUnderlyingSystemAuthorizerFilter);
     }
 
     @Test

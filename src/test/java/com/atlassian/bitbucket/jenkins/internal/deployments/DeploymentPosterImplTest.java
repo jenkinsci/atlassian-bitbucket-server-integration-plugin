@@ -248,7 +248,7 @@ public class DeploymentPosterImplTest {
         verify(pluginConfiguration).getServerById(SERVER_ID);
         verify(taskListener).error(
                 "Could not send deployment notification to Bitbucket Server: Unknown serverId '" + SERVER_ID + "'");
-        verifyZeroInteractions(clientFactoryProvider);
-        verifyZeroInteractions(jenkinsToBitbucketCredentials);
+        verifyNoInteractions(clientFactoryProvider);
+        verifyNoInteractions(jenkinsToBitbucketCredentials);
     }
 }
