@@ -306,7 +306,7 @@ public class BitbucketSCMSource extends SCMSource {
             if (head instanceof BitbucketPullRequestSCMHead) {
                 return fetchBitbucketPullRequest((BitbucketPullRequestSCMHead) head).map(fetchedPullRequest -> {
                     BitbucketPullRequestSCMHead latestHead = new BitbucketPullRequestSCMHead(fetchedPullRequest);
-                    return new BitbucketSCMRevision(latestHead, latestHead.getLatestCommit());
+                    return new BitbucketPullRequestSCMRevision(latestHead);
                 }).orElse(null);
             }
 
