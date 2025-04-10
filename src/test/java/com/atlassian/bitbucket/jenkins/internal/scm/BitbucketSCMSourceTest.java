@@ -36,8 +36,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -433,9 +432,11 @@ public class BitbucketSCMSourceTest {
         when(latestPullRequest.getToRef().getDisplayId()).thenReturn("PR");
         when(repositoryClient.getPullRequest(1)).thenReturn(latestPullRequest);
 
-        BitbucketSCMRevision revision = (BitbucketSCMRevision) bitbucketSCMsource.retrieve(head, null);
+        SCMRevision revision = bitbucketSCMsource.retrieve(head, null);
 
-        assertEquals("a1b2c3", revision.getHash());
+        BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
+        assertNotNull(prRevision);
+        assertEquals("a1b2c3", prRevision.getCommitHash());
     }
 
     @Test
