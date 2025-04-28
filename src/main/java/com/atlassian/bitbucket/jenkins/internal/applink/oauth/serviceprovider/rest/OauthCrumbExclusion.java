@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.au
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.OAuth1Authenticator;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.auth.SecurityModeChecker;
 import hudson.Extension;
-import hudson.model.Project;
+import hudson.model.Job;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -96,7 +96,7 @@ public class OauthCrumbExclusion extends CrumbExclusion {
     }
 
     List<String> getBuilds() {
-        return Jenkins.get().getAllItems(Project.class)
+        return Jenkins.get().getAllItems(Job.class)
                 .stream().map(project -> "/" + project.getUrl() + "build")
                 .collect(Collectors.toList());
     }
