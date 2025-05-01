@@ -222,6 +222,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 4.1.5
+- [JENKINS-75365](https://issues.jenkins.io/browse/JENKINS-75365): Fix build now action in Bitbucket not triggering builds
+
 ### 4.1.4
 - Security fixes. See security advisory for this version here: https://www.jenkins.io/security/advisory/2025-01-22/
 
