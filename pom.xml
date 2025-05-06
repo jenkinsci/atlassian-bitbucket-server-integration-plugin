@@ -490,6 +490,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <configuration>
+                    <rulesUri>file://${project.basedir}/version-ruleset.xml</rulesUri>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
