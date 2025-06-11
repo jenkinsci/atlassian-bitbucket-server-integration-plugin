@@ -1,5 +1,9 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import static java.lang.Math.max;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
@@ -32,6 +36,15 @@ import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
@@ -53,26 +66,15 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-
-import static java.lang.Math.max;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
 public class BitbucketSCMSource extends SCMSource {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketSCMSource.class.getName());
     private static final String REFSPEC_DEFAULT = "+refs/heads/*:refs/remotes/@{remote}/*";
-    @UpgradeHandled(handledBy = "Uses the same remote variable as REFSPEC_DEFAULT", removeAnnotationInVersion = "4.1")
-    private static final String REFSPEC_TAGS = "+refs/tags/*:refs/remotes/@{remote}/*";
+
+  @UpgradeHandled(
+      handledBy = "Uses the same remote variable as REFSPEC_DEFAULT",
+      removeAnnotationInVersion = "4.1")
+  private static final String REFSPEC_TAGS = "+refs/tags/*:refs/remotes/@{remote}/*";
 
     private String cloneUrl;
     @SuppressWarnings("unused") // Kept for backward compatibility
@@ -121,33 +123,43 @@ public class BitbucketSCMSource extends SCMSource {
         super.afterSave();
         validateInitialized();
 
-        if (!webhookRegistered && isValid()) {
-            SCMSourceOwner owner = getOwner();
-            if (owner instanceof ComputedFolder) {
-                ComputedFolder project = (ComputedFolder) owner;
-                DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-                BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
-                        .orElseThrow(() -> new BitbucketClientException(
-                                "Server config not found for input server id " + getServerId()));
-                List<BitbucketWebhookMultibranchTrigger> triggers = getTriggers(project);
-                boolean isPullRequestTrigger =
-                        triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isPullRequestTrigger);
-                boolean isRefTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isRefTrigger);
+        SCMSourceOwner owner = getOwner();
+        if (!(owner instanceof ComputedFolder)) {
+            return;
+        }
 
-                try {
-                    descriptor.getRetryingWebhookHandler().register(
-                            bitbucketServerConfiguration.getBaseUrl(),
-                            bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
-                            repository, owner, isPullRequestTrigger, isRefTrigger);
-                } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
-                    LOGGER.severe("Webhook failed to register- token credentials assigned to " +
-                            bitbucketServerConfiguration.getServerName()
-                            +
-                            " do not have admin access. Please reconfigure your instance in the Manage Jenkins -> Settings page.");
-                }
+        ComputedFolder<?> project = (ComputedFolder<?>) owner;
+        if (!webhookRegistered && isValid()) {  
+            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+            BitbucketServerConfiguration bitbucketServerConfiguration = descriptor.getConfiguration(getServerId())
+                    .orElseThrow(() -> new BitbucketClientException(
+                            "Server config not found for input server id " + getServerId()));
+            List<BitbucketWebhookMultibranchTrigger> triggers = getTriggers(project);
+            boolean isPullRequestTrigger =
+                    triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isPullRequestTrigger);
+            boolean isRefTrigger = triggers.stream().anyMatch(BitbucketWebhookMultibranchTrigger::isRefTrigger);
+
+            try {
+                descriptor.getRetryingWebhookHandler().register(
+                        bitbucketServerConfiguration.getBaseUrl(),
+                        bitbucketServerConfiguration.getGlobalCredentialsProvider(owner),
+                        repository, owner, isPullRequestTrigger, isRefTrigger);
+            } catch (WebhookRegistrationFailed webhookRegistrationFailed) {
+        LOGGER.severe(
+            "Webhook failed to register- token credentials assigned to "
+                + bitbucketServerConfiguration.getServerName()
+                + " do not have admin access. Please reconfigure your instance in the Manage"
+                + " Jenkins -> Settings page.");
             }
         }
+
+        try{
+            project.save();
+        } catch(IOException e){
+            LOGGER.log(Level.WARNING, "Failed to save ComputedFolder after SCMSource save", e);
+        }
     }
+    
 
     @Override
     public SCM build(SCMHead head, @CheckForNull SCMRevision revision) {
@@ -277,9 +289,9 @@ public class BitbucketSCMSource extends SCMSource {
                     .collect(Collectors.toList());
         }
 
-        // initialized will always be null here as transient fields are not persisted so we need to reassign it
-        initialized = new AtomicBoolean(false);
-        validateInitialized();
+    // initialized will always be null here as transient fields are not persisted so we need to
+    // reassign it
+    initialized = new AtomicBoolean(false);
         return this;
     }
 
@@ -291,7 +303,9 @@ public class BitbucketSCMSource extends SCMSource {
             // In the case that Bitbucket was down during a save or Jenkins restart, we want to reinitialize: https://issues.jenkins.io/browse/JENKINS-72765
             afterSave();
             if (!isValid()) {
-                listener.error("ERROR: The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve. Check the configuration before running this job again.");
+        listener.error(
+            "ERROR: The BitbucketSCMSource has been incorrectly configured, and cannot perform a"
+                + " retrieve. Check the configuration before running this job again.");
                 return;
             }
 
@@ -413,24 +427,35 @@ public class BitbucketSCMSource extends SCMSource {
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
-                // Process the stream of heads as they come in and terminate the
-                // stream if the request has finished observing (returns true)
-                discoveryHandler.discoverHeads().anyMatch(scmHead -> {
-                    SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
-                    try {
-                        return request.process(
-                                scmHead,
-                                scmRevision,
-                                this::newProbe,
-                                (head, revision, isMatch) ->
-                                        listener.getLogger().printf("head: %s, revision: %s, isMatch: %s%n",
-                                                head, revision, isMatch));
-                    } catch (IOException | InterruptedException e) {
-                        listener.error("Error processing request for head: " + scmHead + ", revision: " +
-                                scmRevision + ", error: " + e.getMessage());
+        // Process the stream of heads as they come in and terminate the
+        // stream if the request has finished observing (returns true)
+        discoveryHandler
+            .discoverHeads()
+            .anyMatch(
+                scmHead -> {
+                  SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
+                  try {
+                    return request.process(
+                        scmHead,
+                        scmRevision,
+                        this::newProbe,
+                        (head, revision, isMatch) ->
+                            listener
+                                .getLogger()
+                                .printf(
+                                    "head: %s, revision: %s, isMatch: %s%n",
+                                    head, revision, isMatch));
+                  } catch (IOException | InterruptedException e) {
+                    listener.error(
+                        "Error processing request for head: "
+                            + scmHead
+                            + ", revision: "
+                            + scmRevision
+                            + ", error: "
+                            + e.getMessage());
 
-                        return true;
-                    }
+                    return true;
+                  }
                 });
             }
         }
@@ -485,8 +510,11 @@ public class BitbucketSCMSource extends SCMSource {
             repository = new BitbucketSCMRepository(getCredentialsId(), getSshCredentialsId(),
                     fetchedRepository.getProject().getName(), fetchedRepository.getProject().getKey(),
                     fetchedRepository.getName(), fetchedRepository.getSlug(), getServerId(), "");
-            cloneUrl =
-                    fetchedRepository.getCloneUrl(repository.getCloneProtocol()).map(BitbucketNamedLink::getHref).orElse("");
+      cloneUrl =
+          fetchedRepository
+              .getCloneUrl(repository.getCloneProtocol())
+              .map(BitbucketNamedLink::getHref)
+              .orElse("");
             selfLink = fetchedRepository.getSelfLink();
         }
         // Self link contains `/browse` which we must trim off.
