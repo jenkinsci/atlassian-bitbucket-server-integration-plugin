@@ -53,6 +53,8 @@ public class UpgradeTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
+    private static final String HPI_URL="https://updates.jenkins.io/latest/atlassian-bitbucket-server-integration.hpi";
+
     /**
      * This is a rather complicated test with lots of supporting methods. The gist of it is
      * 1. Download the already released version of the plugin
@@ -196,15 +198,7 @@ public class UpgradeTest {
         File releasedHPIFile = getDestinationFile(tempDir);
         //when working locally no need to go and get the file every time
         if (!releasedHPIFile.exists()) {
-            System.out.println("Updating the update center");
-            //update the update center, so we know of latest versions
-            jenkins.jenkins.getUpdateCenter().updateAllSites();
-            //get our plugin, this is the latest released version (compatible withe the version of Jenkins we run in the test
-            UpdateSite.Plugin plugin = jenkins.jenkins.getUpdateCenter().getPlugin("atlassian-bitbucket-server-integration");
-            System.out.println("Will download: " + plugin.url);
-            System.out.println("Downloading hpi file");
-            //use Commons.io to download the HPI file, wait 10s for connection and 10s for data transfer to start
-            FileUtils.copyURLToFile(new URL(plugin.url), releasedHPIFile, 10_000, 10_1000);
+            FileUtils.copyURLToFile(new URL(HPI_URL), releasedHPIFile, 10_000, 10_1000);
             //the HPI is just a war file, so we need to unzip it.
             //this unzip code is stolen from the internet, and is unsafe, it is good enough for a proof of concept
             System.out.println("Unzip hpi file");
