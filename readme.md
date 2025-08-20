@@ -22,7 +22,7 @@ The plugin streamlines the entire configuration process and removes the need for
 - Automatic webhook creation in a Bitbucket Server repo when a Jenkins job is saved.
 - Quick selection of Bitbucket Server projects and repos for a Jenkins job through a dropdown.
 - The ability to automatically send build statuses to Bitbucket Server.
-- Cloning from Bitbucket Server [Smart Mirrors](https://confluence.atlassian.com/display/BitbucketServer/smart+mirroring) with no need to modify the clone URL.
+- Cloning from Bitbucket Server [Smart Mirrors](https://confluence.atlassian.com/bitbucketserver/mirrors-776640046.html) with no need to modify the clone URL.
 
 ## Requirements
 
