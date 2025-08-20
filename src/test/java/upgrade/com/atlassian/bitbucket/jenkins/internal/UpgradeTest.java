@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.annotations.NotUpgradeSensitive;
 import com.atlassian.bitbucket.jenkins.internal.annotations.UpgradeHandled;
 import com.cloudbees.plugins.credentials.BaseCredentials;
 import hudson.model.AbstractDescribableImpl;
-import hudson.model.UpdateSite;
 import hudson.scm.SCM;
 import hudson.triggers.Trigger;
 import jenkins.model.GlobalConfiguration;
@@ -53,7 +52,7 @@ public class UpgradeTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final String HPI_URL="https://updates.jenkins.io/latest/atlassian-bitbucket-server-integration.hpi";
+    private static final String HPI_URL = "https://updates.jenkins.io/latest/atlassian-bitbucket-server-integration.hpi";
 
     /**
      * This is a rather complicated test with lots of supporting methods. The gist of it is
