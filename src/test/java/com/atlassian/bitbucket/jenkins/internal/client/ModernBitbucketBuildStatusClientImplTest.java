@@ -76,7 +76,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
         
         client.post(buildStatusBuilder, consumer);
 
-        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture(), any());
         verify(consumer).accept(buildStatus);
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake
@@ -102,7 +102,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
         
         client.post(buildStatusBuilder, consumer);
 
-        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture(), any());
         verify(consumer).accept(buildStatus);
     }
 
@@ -114,7 +114,7 @@ public class ModernBitbucketBuildStatusClientImplTest {
 
         client.post(buildStatusBuilder, consumer);
 
-        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture());
+        verify(executor).makePostRequest(eq(EXPECTED_URL), eq(buildStatus), captor.capture(), any());
         verify(consumer).accept(buildStatus);
 
         //this shortcuts the testing route. We capture the RequestConfiguration applied, and just give it a fake

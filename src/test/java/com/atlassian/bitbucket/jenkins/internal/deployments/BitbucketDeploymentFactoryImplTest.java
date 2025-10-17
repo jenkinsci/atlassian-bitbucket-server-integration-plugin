@@ -6,7 +6,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.deployment.DeploymentState
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
-import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,13 +29,10 @@ public class BitbucketDeploymentFactoryImplTest {
     BitbucketDeploymentFactoryImpl deploymentFactory;
     @Mock
     DisplayURLProvider displayURLProvider;
-    @Mock
-    Jenkins jenkins;
 
     @Before
     public void setup() {
         when(displayURLProvider.getRunURL(any())).thenReturn(RUN_URL);
-        when(jenkins.getFullName()).thenReturn("");
     }
 
     @Test
@@ -148,11 +144,10 @@ public class BitbucketDeploymentFactoryImplTest {
         FreeStyleBuild run = mock(FreeStyleBuild.class);
         FreeStyleProject job = mock(FreeStyleProject.class);
         when(run.getParent()).thenReturn(job);
-        when(job.getParent()).thenReturn(jenkins);
         when(run.getNumber()).thenReturn((int) expected.getDeploymentSequenceNumber());
         when(run.getResult()).thenReturn(result);
         when(job.getDisplayName()).thenReturn(expected.getDisplayName());
-        when(job.getName()).thenReturn(expected.getKey());
+        when(job.getFullName()).thenReturn(expected.getKey());
         when(run.hasntStartedYet()).thenReturn(hasntStartedYet);
         return run;
     }
