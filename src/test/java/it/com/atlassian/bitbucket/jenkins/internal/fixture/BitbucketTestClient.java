@@ -8,6 +8,8 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentialsImpl;
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent;
+import hudson.model.Descriptor.FormException;
+import okhttp3.OkHttpClient;
 
 /**
  * To make communicating with Bitbucket easier in tests.
@@ -20,11 +22,13 @@ public class BitbucketTestClient {
     private final BitbucketClientFactoryProvider bitbucketClientFactoryProvider;
     private final BitbucketJenkinsRule bitbucketJenkinsRule;
 
-    public BitbucketTestClient(BitbucketJenkinsRule bitbucketJenkinsRule) {
+    public BitbucketTestClient(BitbucketJenkinsRule bitbucketJenkinsRule) throws FormException {
         this.bitbucketJenkinsRule = bitbucketJenkinsRule;
         JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials = new JenkinsToBitbucketCredentialsImpl();
         adminToken = jenkinsToBitbucketCredentials.toBitbucketCredentials(bitbucketJenkinsRule.getAdminToken());
-        bitbucketClientFactoryProvider = new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
+        // Use the parameterized constructor to avoid Jenkins.get() call that can throw FormException
+        HttpRequestExecutorImpl httpRequestExecutor = new HttpRequestExecutorImpl(new OkHttpClient());
+        bitbucketClientFactoryProvider = new BitbucketClientFactoryProvider(httpRequestExecutor);
     }
 
     /**

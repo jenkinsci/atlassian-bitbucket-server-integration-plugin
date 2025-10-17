@@ -16,6 +16,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.ExtensionList;
+import hudson.model.Descriptor.FormException;
 import hudson.util.SecretFactory;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
@@ -157,7 +158,7 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         addBitbucketServer(bitbucketServerConfiguration);
     }
 
-    public UsernamePasswordCredentials getAdminToken() {
+    public UsernamePasswordCredentials getAdminToken() throws FormException {
         return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
     }
 
