@@ -68,6 +68,7 @@ public class BuildStatusPosterTest {
         when(buildStatusPoster.useLegacyBuildStatus()).thenReturn(false);
 
         when(run.getProject()).thenReturn(project);
+        when(run.getParent()).thenReturn(project);
         when(listener.getLogger()).thenReturn(logger);
         when(buildStatusFactory.prepareBuildStatus(run, action)).thenReturn(buildStatus);
     }
