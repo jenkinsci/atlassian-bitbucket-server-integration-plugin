@@ -1,7 +1,7 @@
 package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.gargoylesoftware.htmlunit.html.*;
+import org.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;

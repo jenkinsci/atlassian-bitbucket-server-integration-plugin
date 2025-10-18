@@ -21,7 +21,6 @@
         <jackson.version>2.18.3</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.version>2.479.3</jenkins.version>
-        <jenkins-test-harness.version>1784.v83a_b_3ce99392</jenkins-test-harness.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -272,7 +271,7 @@
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>jenkins-test-harness</artifactId>
-            <version>${jenkins-test-harness.version}</version>
+            <!-- version managed by parent -->
             <scope>test</scope>
             <exclusions>
                 <exclusion>
