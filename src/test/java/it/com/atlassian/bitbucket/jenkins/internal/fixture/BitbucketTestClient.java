@@ -26,9 +26,7 @@ public class BitbucketTestClient {
         this.bitbucketJenkinsRule = bitbucketJenkinsRule;
         JenkinsToBitbucketCredentialsImpl jenkinsToBitbucketCredentials = new JenkinsToBitbucketCredentialsImpl();
         adminToken = jenkinsToBitbucketCredentials.toBitbucketCredentials(bitbucketJenkinsRule.getAdminToken());
-        // Use the parameterized constructor to avoid Jenkins.get() call that can throw FormException
-        HttpRequestExecutorImpl httpRequestExecutor = new HttpRequestExecutorImpl(new OkHttpClient());
-        bitbucketClientFactoryProvider = new BitbucketClientFactoryProvider(httpRequestExecutor);
+        bitbucketClientFactoryProvider = new BitbucketClientFactoryProvider(new HttpRequestExecutorImpl());
     }
 
     /**
