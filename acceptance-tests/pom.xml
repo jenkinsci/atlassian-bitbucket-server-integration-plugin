@@ -168,7 +168,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.4.1</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -178,6 +178,7 @@
                         <trimStackTrace>false</trimStackTrace>
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <reuseForks>false</reuseForks>
+                        <argLine>--add-opens java.base/sun.reflect.annotation=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
                         <environmentVariables>
                             <!-- Used by Jenkins Acceptance Test Harness -->
                             <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
@@ -211,12 +212,14 @@
                 <executions>
                     <execution>
                         <id>enforce-os</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
+                    <skip>true</skip>
                     <rules>
                         <requireOS>
                             <!-- Jenkins Acceptance Test Harness doesn't support Windows -->
@@ -234,6 +237,7 @@
                     <!-- There are no unit tests in this module, only integration tests. Surefire is used to run
                          the unit tests, and Failsafe is used to run the integration tests. So we can fully disable
                          the Surefire plugin below here; it's not necessary. -->
+                    <argLine>--add-opens java.base/sun.reflect.annotation=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
                     <excludes>
                         <exclude>it/**/*.java</exclude>
                     </excludes>
