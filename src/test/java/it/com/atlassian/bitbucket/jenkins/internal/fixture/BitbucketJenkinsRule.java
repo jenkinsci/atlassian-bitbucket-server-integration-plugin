@@ -188,6 +188,10 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         webClient.waitForBackgroundJavaScript(2000);
     }
 
+    public void waitForBackgroundJavaScript(long timeoutMillis) {
+        webClient.waitForBackgroundJavaScript(timeoutMillis);
+    }
+
     private void addCredentials(Credentials credentials) throws IOException {
         CredentialsStore store = CredentialsProvider.lookupStores(jenkins).iterator().next();
         Domain domain = Domain.global();
