@@ -126,7 +126,7 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.click();
         projectNameInput.setValueAttribute("");
         projectNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(500);
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
         assertEquals("Enter a project name", validationArea.getTextContent());
@@ -143,7 +143,7 @@ public class BitbucketProjectConfigurationIT {
         projectNameInput.click();
         projectNameInput.setValueAttribute("non-existent-project");
         projectNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(500);
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
         assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.", validationArea.getTextContent());
@@ -164,7 +164,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(500);
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("Repository name is required", validationArea.getTextContent());
@@ -188,7 +188,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.type("non-existent-repo"); // Type the new value
         repoNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(500);
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
