@@ -9,7 +9,6 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.http.HttpRequestExecutorImpl;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.BitbucketWebhookEvent;
 import hudson.model.Descriptor.FormException;
-import okhttp3.OkHttpClient;
 
 /**
  * To make communicating with Bitbucket easier in tests.
