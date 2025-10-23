@@ -259,7 +259,18 @@ public class BuildStatusPosterIT {
         return requestPatternBuilder
                 .withRequestBody(
                         equalToJson(
-                                format("{\"buildNumber\":\"%%s\",\"description\":\"%%s\",\"duration\":%%d,\"key\":\"%%s\",\"name\":\"%%s\",\"parent\":\"%%s\",\"ref\":\"%%s\",\"state\":\"%%s\",\"url\":\"%%s%%sdisplay/redirect\"}".formatted(),
+                                format("""
+                                        {
+                                            "buildNumber":"%%s",
+                                            "description":"%%s",
+                                            "duration":%%d,
+                                            "key":"%%s",
+                                            "name":"%%s",
+                                            "parent":"%%s",
+                                            "ref":"%%s",
+                                            "state":"%%s",
+                                            "url":"%%s%%sdisplay/redirect"}
+                                       """.formatted(),
                                         build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),
                                         build.getDuration(), job.getFullName(), name, parentName, refName,
