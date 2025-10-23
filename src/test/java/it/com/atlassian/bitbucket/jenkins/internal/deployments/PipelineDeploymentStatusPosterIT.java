@@ -4,7 +4,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -17,7 +16,6 @@ import static it.com.atlassian.bitbucket.jenkins.internal.fixture.JenkinsProject
 import static it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.PROJECT_KEY;
 import static java.lang.String.format;
 
-@Ignore("Temporarily disabled to investigate test failures")
 public class PipelineDeploymentStatusPosterIT extends AbstractDeploymentStatusPosterIT {
 
     @Test

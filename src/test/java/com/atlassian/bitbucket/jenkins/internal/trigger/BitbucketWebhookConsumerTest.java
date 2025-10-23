@@ -16,7 +16,6 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMEventListener;
 import jenkins.scm.api.SCMHeadEvent;
-import org.apache.groovy.util.Maps;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.hamcrest.BaseMatcher;
@@ -344,7 +343,7 @@ public class BitbucketWebhookConsumerTest {
     @Test
     public void testRefsChangedNotBitbucketSCM() {
         GitSCMSource scmSource = mock(GitSCMSource.class);
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = 
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent =
                 new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, null, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
@@ -368,7 +367,7 @@ public class BitbucketWebhookConsumerTest {
         doReturn(mockScmRepo).when(scmSource).getBitbucketSCMRepository();
         doReturn(mockWebhookRepo).when(payload).getRepository();
 
-        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent = 
+        BitbucketWebhookConsumer.BitbucketSCMHeadEvent headEvent =
                 new BitbucketWebhookConsumer.BitbucketSCMHeadEvent(null, payload, null, null);
 
         assertThat(headEvent.heads(scmSource), equalTo(emptyMap()));
@@ -563,7 +562,7 @@ public class BitbucketWebhookConsumerTest {
         BitbucketNamedLink cloneLink = new BitbucketNamedLink("http", cloneUrl);
         List<BitbucketNamedLink> cloneLinks = singletonList(cloneLink);
         Map<String, List<BitbucketNamedLink>> links =
-                Maps.of("clone", cloneLinks, "self", singletonList(selfLink));
+                Map.of("clone", cloneLinks, "self", singletonList(selfLink));
         BitbucketProject project = new BitbucketProject(projectKey,
                 singletonMap("self", singletonList(new BitbucketNamedLink(null,
                         "http://localhost:7990/bitbucket/projects/" + projectKey))),

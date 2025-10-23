@@ -18,7 +18,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-@Ignore("Temporarily disabled to investigate test failures")
 public class BitbucketProjectConfigurationIT {
 
     private static final String PROJECT_KEY = "PROJECT_1";
