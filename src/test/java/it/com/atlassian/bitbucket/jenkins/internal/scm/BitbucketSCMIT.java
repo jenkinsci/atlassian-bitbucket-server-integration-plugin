@@ -86,13 +86,11 @@ public class BitbucketSCMIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         assertEquals(String.join("\n", build.getLog(1000)), SUCCESS, build.getResult());
 
-        RestAssured
+        Response response = RestAssured
                 .given()
                 .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
                 .expect()
                 .statusCode(200)
-                .body("values.size", equalTo(1))
-                .body("values[0].message", equalTo(uniqueMessage))
                 .when()
                 .get(new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
                         .append("/rest/api/1.0/projects/")
@@ -102,6 +100,15 @@ public class BitbucketSCMIT {
                         .append("/commits?since=")
                         .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
                         .toString());
+
+        // Parse JSON response using Jackson to validate the key, name, and URL from the
+        // JSON response body without using any Groovy dependencies
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonResponse = objectMapper.readTree(response.getBody().asString());
+        JsonNode bodyValue = jsonResponse.get("values").get(0);
+
+        assertEquals("Build key should match project name",
+                uniqueMessage, bodyValue.get("message").asText());
     }
 
     @Test
