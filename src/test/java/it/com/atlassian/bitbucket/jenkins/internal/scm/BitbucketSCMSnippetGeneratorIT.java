@@ -69,8 +69,6 @@ public class BitbucketSCMSnippetGeneratorIT {
 
         RestAssured.expect()
                 .statusCode(500)
-                .log()
-                .ifError()
                 .given()
                 .header("Jenkins-Crumb", "test")
                 .formParam("json", objectMapper.writeValueAsString(json))
