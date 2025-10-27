@@ -87,7 +87,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>eddsa-api</artifactId>
-            <version>0.3.0-4.v84c6f0f4969e</version>
+            <version>0.3.0.1-19.vc432d923e5ee</version>
         </dependency>
         <dependency>
             <groupId>net.oauth.core</groupId>
