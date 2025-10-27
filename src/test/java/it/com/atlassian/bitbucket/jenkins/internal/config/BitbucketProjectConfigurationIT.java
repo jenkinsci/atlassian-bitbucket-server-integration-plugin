@@ -210,7 +210,7 @@ public class BitbucketProjectConfigurationIT {
 
         // Only assert the validation message for Jenkins versions less than 2.479.3 due to Jenkins Javascript error
         if (bbJenkinsRule.jenkins.getVersion().isOlderThan(new VersionNumber("2.479.3"))) {
-            assertEquals("Repository name is required", validationArea.getTextContent());
+            assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
         }
     }
 
