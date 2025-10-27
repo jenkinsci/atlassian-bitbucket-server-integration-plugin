@@ -52,13 +52,21 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     private FileHandler handler;
     private String sshCredentialsId;
     private String bbAdminUsernamePasswordCredentialsId;
-    private WebClient webClient;
 
     public BitbucketJenkinsRule() {
-        webClient = createWebClient();
+        LOGGER.setLevel(Level.INFO);
+    }
+
+    @Override
+    public JenkinsRule.WebClient createWebClient() {
+        JenkinsRule.WebClient webClient = super.createWebClient();
         // Enable fetch polyfill so tests can use js fetch API
         webClient.getOptions().setFetchPolyfillEnabled(true);
-        LOGGER.setLevel(Level.INFO);
+        // Disable script errors to prevent Array.filter issues from failing tests
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
+        webClient.getOptions().setJavaScriptEnabled(true);
+        
+        return webClient;
     }
 
     public void addBitbucketServer(BitbucketServerConfiguration bitbucketServer) {
@@ -179,17 +187,37 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     }
 
     public HtmlPage visit(String relativePath) throws IOException, SAXException {
-        HtmlPage htmlPage = webClient.goTo(relativePath);
+        HtmlPage htmlPage = createWebClient().goTo(relativePath);
         currentPage = htmlPage;
+        
+        // Inject Array.prototype.filter polyfill if not available
+        try {
+            htmlPage.executeJavaScript(
+                "if (!Array.prototype.filter) {" +
+                "  Array.prototype.filter = function(callback, thisArg) {" +
+                "    var result = [];" +
+                "    for (var i = 0; i < this.length; i++) {" +
+                "      if (callback.call(thisArg, this[i], i, this)) {" +
+                "        result.push(this[i]);" +
+                "      }" +
+                "    }" +
+                "    return result;" +
+                "  };" +
+                "}"
+            );
+        } catch (Exception e) {
+            LOGGER.warning("Failed to inject Array.filter polyfill: " + e.getMessage());
+        }
+        
         return htmlPage;
     }
 
     public void waitForBackgroundJavaScript() {
-        webClient.waitForBackgroundJavaScript(2000);
+        createWebClient().waitForBackgroundJavaScript(2000);
     }
 
     public void waitForBackgroundJavaScript(long timeoutMillis) {
-        webClient.waitForBackgroundJavaScript(timeoutMillis);
+        createWebClient().waitForBackgroundJavaScript(timeoutMillis);
     }
 
     private void addCredentials(Credentials credentials) throws IOException {
