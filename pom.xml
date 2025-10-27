@@ -14,7 +14,7 @@
     <properties>
         <!-- This property can most likely be removed when our minimum Jenkins version is greater than 2.456 -->
         <asm.version>9.7</asm.version>
-        <bitbucket.version>10.0.1</bitbucket.version>
+        <bitbucket.version>8.19.24</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
@@ -87,7 +87,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>eddsa-api</artifactId>
-            <version>0.3.0-4.v84c6f0f4969e</version>
+            <version>0.3.0.1-19.vc432d923e5ee</version>
         </dependency>
         <dependency>
             <groupId>net.oauth.core</groupId>

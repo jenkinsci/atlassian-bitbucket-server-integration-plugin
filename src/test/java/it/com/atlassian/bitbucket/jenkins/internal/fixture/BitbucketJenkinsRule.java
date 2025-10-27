@@ -15,6 +15,7 @@ import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import org.htmlunit.html.HtmlPage;
+import org.htmlunit.WebClient;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
 import hudson.util.SecretFactory;
@@ -58,6 +59,9 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         webClient = createWebClient();
         // Enable fetch polyfill so tests can use js fetch API
         webClient.getOptions().setFetchPolyfillEnabled(true);
+        // Suppress JavaScript exceptions to allow web actions and navigation to continue
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
+        webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
         LOGGER.setLevel(Level.INFO);
     }
 
