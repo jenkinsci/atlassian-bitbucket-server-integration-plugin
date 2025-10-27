@@ -20,7 +20,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <jackson.version>2.18.3</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.479.3</jenkins.version>
+        <jenkins.version>2.528.1</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -43,8 +43,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.479.x</artifactId>
-                <version>5054.v620b_5d2b_d5e6</version>
+                <artifactId>bom-2.516.x</artifactId>
+                <version>5353.v3dec76e40169</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
