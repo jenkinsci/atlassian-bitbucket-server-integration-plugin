@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.ex
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.google.common.annotations.VisibleForTesting;
 import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.extended.NamedMapConverter;
 import hudson.BulkChange;
 import hudson.CopyOnWrite;
 import hudson.XmlFile;
@@ -43,9 +42,7 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
     protected AbstractPersistentStore(String configFileName, Converter entityConverter) {
         this.configFileName = requireNonNull(configFileName, "configFileName");
         xStream = new XStream2();
-        xStream.registerConverter(new NamedMapConverter(xStream.getMapper(), getStoreEntryName(),
-                getStoreKeyName(), String.class, getStoreValueName(), getEntityClass()), PRIORITY);
-        xStream.registerConverter(entityConverter);
+        xStream.registerConverter(entityConverter, PRIORITY);
     }
 
     public synchronized void load() {
@@ -108,9 +105,17 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
 
     protected abstract Class<T> getEntityClass();
 
-    protected abstract String getStoreValueName();
+    // These methods were used for NamedMapConverter which is no longer used
+    // Keep them for backward compatibility but they're not called anymore
+    protected String getStoreValueName() {
+        return "value";
+    }
 
-    protected abstract String getStoreKeyName();
+    protected String getStoreKeyName() {
+        return "key";
+    }
 
-    protected abstract String getStoreEntryName();
+    protected String getStoreEntryName() {
+        return "entry";
+    }
 }
