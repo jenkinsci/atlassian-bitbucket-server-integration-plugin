@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import org.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
-import hudson.util.VersionNumber;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import org.junit.*;
 import org.xml.sax.SAXException;
@@ -130,11 +129,7 @@ public class BitbucketProjectConfigurationIT {
         bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
-
-        // Only assert the validation message for Jenkins versions less than 2.479.3 due to Jenkins Javascript error
-        if (bbJenkinsRule.jenkins.getVersion().isOlderThan(new VersionNumber("2.479.3"))) {
-            assertEquals("Enter a project name", validationArea.getTextContent());
-        }
+        assertEquals("Enter a project name", validationArea.getTextContent());
     }
 
     @Test
@@ -151,12 +146,9 @@ public class BitbucketProjectConfigurationIT {
         bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
-
-        // Only assert the validation message for Jenkins versions less than 2.479.3 due to Jenkins Javascript error
-        if (bbJenkinsRule.jenkins.getVersion().isOlderThan(new VersionNumber("2.479.3"))) {
-            assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.",
+        assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.",
                     validationArea.getTextContent());
-        }
+
     }
 
     @Test
@@ -177,11 +169,7 @@ public class BitbucketProjectConfigurationIT {
         bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
-
-        // Only assert the validation message for Jenkins versions less than 2.479.3 due to Jenkins Javascript error
-        if (bbJenkinsRule.jenkins.getVersion().isOlderThan(new VersionNumber("2.479.3"))) {
-            assertEquals("Repository name is required", validationArea.getTextContent());
-        }
+        assertEquals("Repository name is required", validationArea.getTextContent());
     }
 
     @Test
@@ -207,11 +195,7 @@ public class BitbucketProjectConfigurationIT {
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         validationArea.click();
-
-        // Only assert the validation message for Jenkins versions less than 2.479.3 due to Jenkins Javascript error
-        if (bbJenkinsRule.jenkins.getVersion().isOlderThan(new VersionNumber("2.479.3"))) {
-            assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
-        }
+        assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
     private void setupBitbucketSCM() throws IOException {
