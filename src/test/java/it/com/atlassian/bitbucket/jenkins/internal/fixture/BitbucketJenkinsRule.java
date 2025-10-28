@@ -15,8 +15,6 @@ import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import org.htmlunit.html.HtmlPage;
-import org.htmlunit.javascript.DefaultJavaScriptErrorListener;
-import org.htmlunit.ScriptException;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
 import hudson.util.SecretFactory;
@@ -54,48 +52,13 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     private FileHandler handler;
     private String sshCredentialsId;
     private String bbAdminUsernamePasswordCredentialsId;
+    private WebClient webClient;
 
     public BitbucketJenkinsRule() {
-        LOGGER.setLevel(Level.INFO);
-    }
-
-    @Override
-    public JenkinsRule.WebClient createWebClient() {
-        JenkinsRule.WebClient webClient = super.createWebClient();
+        webClient = createWebClient();
         // Enable fetch polyfill so tests can use js fetch API
         webClient.getOptions().setFetchPolyfillEnabled(true);
-        // Disable script errors to prevent Array.filter issues from failing tests
-        webClient.getOptions().setThrowExceptionOnScriptError(false);
-        webClient.getOptions().setJavaScriptEnabled(true);
-        
-        // Set custom JavaScript error listener to suppress specific known issues
-        webClient.setJavaScriptErrorListener(new DefaultJavaScriptErrorListener() {
-            @Override
-            public void scriptException(HtmlPage page, ScriptException scriptException) {
-                // Check if this is one of the known JavaScript exceptions we want to suppress
-                String message = scriptException.getMessage();
-                if (message != null && (
-                    message.contains("Cannot find function filter") ||
-                    message.contains("Cannot call method \"hide\" of undefined") ||
-                    message.contains("updateSuggestions") ||
-                    message.contains("app.js")
-                )) {
-                    // Log the suppressed exception at a lower level
-                    LOGGER.log(Level.FINE, "Suppressed JavaScript exception: " + message);
-                    return; // Don't call super, effectively suppressing the exception
-                }
-                // For other exceptions, use the default behavior
-                super.scriptException(page, scriptException);
-            }
-            
-            @Override
-            public void timeoutError(HtmlPage page, long allowedTime, long executionTime) {
-                // Also suppress timeout errors for JavaScript execution
-                LOGGER.log(Level.FINE, "JavaScript timeout suppressed: allowed=" + allowedTime + "ms, actual=" + executionTime + "ms");
-            }
-        });
-
-        return webClient;
+        LOGGER.setLevel(Level.INFO);
     }
 
     public void addBitbucketServer(BitbucketServerConfiguration bitbucketServer) {
@@ -216,37 +179,17 @@ public class BitbucketJenkinsRule extends JenkinsRule {
     }
 
     public HtmlPage visit(String relativePath) throws IOException, SAXException {
-        HtmlPage htmlPage = createWebClient().goTo(relativePath);
+        HtmlPage htmlPage = webClient.goTo(relativePath);
         currentPage = htmlPage;
-
-        // Inject Array.prototype.filter polyfill if not available
-        try {
-            htmlPage.executeJavaScript(
-                    "if (!Array.prototype.filter) {" +
-                            "  Array.prototype.filter = function(callback, thisArg) {" +
-                            "    var result = [];" +
-                            "    for (var i = 0; i < this.length; i++) {" +
-                            "      if (callback.call(thisArg, this[i], i, this)) {" +
-                            "        result.push(this[i]);" +
-                            "      }" +
-                            "    }" +
-                            "    return result;" +
-                            "  };" +
-                            "}"
-            );
-        } catch (Exception e) {
-            LOGGER.warning("Failed to inject Array.filter polyfill: " + e.getMessage());
-        }
-
         return htmlPage;
     }
 
     public void waitForBackgroundJavaScript() {
-        createWebClient().waitForBackgroundJavaScript(2000);
+        webClient.waitForBackgroundJavaScript(2000);
     }
 
     public void waitForBackgroundJavaScript(long timeoutMillis) {
-        createWebClient().waitForBackgroundJavaScript(timeoutMillis);
+        webClient.waitForBackgroundJavaScript(timeoutMillis);
     }
 
     private void addCredentials(Credentials credentials) throws IOException {
