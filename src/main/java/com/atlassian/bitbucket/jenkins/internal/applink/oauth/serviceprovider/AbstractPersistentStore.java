@@ -54,7 +54,7 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
         }
 
         XmlFile configFile = getConfigFile();
-        if (configFile.exists()) {
+        if (configFile.exists() && configFile.getFile().length() > 0) {
             try {
                 configFile.unmarshal(this);
             } catch (IOException e) {

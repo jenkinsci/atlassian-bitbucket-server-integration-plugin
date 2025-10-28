@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.RSAKeys;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod;
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.PersistentServiceProviderConsumerStore;
-import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.exception.StoreException;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.XmlFile;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
@@ -25,6 +24,7 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.HMAC_SHA1;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.RSA_SHA1;
@@ -91,6 +91,26 @@ public class PersistentServiceProviderConsumerStoreTest {
 
     @Test
     public void testSaveAndLoad() {
+        consumerStore.setEntityMap(new ConcurrentHashMap<>());
+        consumerStore.getEntityMap().put(RSA_CONSUMER.getKey(), RSA_CONSUMER);
+        consumerStore.getEntityMap().put(HMAC_CONSUMER.getKey(), HMAC_CONSUMER);
+        consumerStore.getEntityMap().put(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey(), HMAC_CONSUMER_NO_PUBLIC_KEY);
+
+        // Save the consumers to disk (temp XML file)
+        consumerStore.save();
+
+        // clear the consumer map so they are loaded from disk (temp XML file) next time 'load()' is called
+        consumerStore.setEntityMap(null);
+        consumerStore.load();
+        assertThat(consumerStore.getEntityMap(), allOf(aMapWithSize(3),
+                hasEntry(is(RSA_CONSUMER.getKey()), matches(RSA_CONSUMER)),
+                hasEntry(is(HMAC_CONSUMER.getKey()), matches(HMAC_CONSUMER)),
+                hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), matches(HMAC_CONSUMER_NO_PUBLIC_KEY))
+        ));
+    }
+
+    @Test
+    public void testAddAndGetAll() {
 
         List<Consumer> consumers = Arrays.asList(
                 RSA_CONSUMER,
@@ -230,27 +250,6 @@ public class PersistentServiceProviderConsumerStoreTest {
         @Override
         protected XmlFile getConfigFile() {
             return new XmlFile(xStream, consumersXmlFile);
-        }
-
-        @Override
-        public synchronized void load() {
-            // Override to handle the case when the file doesn't exist or is empty
-            if (entityMap != null) {
-                return;
-            }
-
-            XmlFile configFile = getConfigFile();
-            if (!configFile.exists() || configFile.getFile().length() == 0) {
-                // File doesn't exist or is empty, initialize with empty map
-                entityMap = new hudson.util.CopyOnWriteMap.Hash<>();
-            } else {
-                try {
-                    super.load();
-                } catch (StoreException e) {
-                    // If loading fails, initialize with empty map
-                    entityMap = new hudson.util.CopyOnWriteMap.Hash<>();
-                }
-            }
         }
 
         @VisibleForTesting
