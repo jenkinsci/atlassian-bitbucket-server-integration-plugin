@@ -183,17 +183,18 @@ public class BitbucketProjectConfigurationIT {
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute(PROJECT_NAME);
+        projectNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         // Clear and type the new repository name
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
-        repoNameInput.setValueAttribute("non-existent-repo"); // Type the new value
+        repoNameInput.setValueAttribute(""); // Clear first
+        repoNameInput.type("non-existent-repo"); // Type the new value character by character
         repoNameInput.blur(); // Trigger validation by losing focus
-        form.click();
-        DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
-        validationArea.click();
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
-        bbJenkinsRule.waitForBackgroundJavaScript(4000);
+        DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
