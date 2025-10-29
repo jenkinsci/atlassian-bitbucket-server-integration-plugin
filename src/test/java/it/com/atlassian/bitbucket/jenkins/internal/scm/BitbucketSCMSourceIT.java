@@ -61,7 +61,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore("Temporarily disabled to investigate test failures")
 public class BitbucketSCMSourceIT {
 
     @Rule
