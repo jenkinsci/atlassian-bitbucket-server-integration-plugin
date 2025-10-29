@@ -166,7 +166,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(1000);
+        bbJenkinsRule.waitForBackgroundJavaScript();
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("Repository name is required", validationArea.getTextContent());
@@ -189,8 +189,8 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.setValueAttribute("non-existent-repo"); // Type the new value
-        form.click(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript();
+        repoNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(3000);
         assertNotNull("non-existent-repo", repoNameInput.getTextContent());
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
