@@ -166,7 +166,7 @@ public class BitbucketProjectConfigurationIT {
         repoNameInput.click();
         repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(1000);
+        bbJenkinsRule.waitForBackgroundJavaScript();
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("Repository name is required", validationArea.getTextContent());
@@ -183,18 +183,18 @@ public class BitbucketProjectConfigurationIT {
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute(PROJECT_NAME);
+        projectNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         // Clear and type the new repository name
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
-        repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
-        repoNameInput.setValueAttribute("non-existent-repo"); // Type the new value
-        form.click(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript();
-        assertNotNull("non-existent-repo", repoNameInput.getTextContent());
+        repoNameInput.setValueAttribute(""); // Clear first
+        repoNameInput.type("non-existent-repo"); // Type the new value character by character
+        repoNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
-        validationArea.click();
         assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
