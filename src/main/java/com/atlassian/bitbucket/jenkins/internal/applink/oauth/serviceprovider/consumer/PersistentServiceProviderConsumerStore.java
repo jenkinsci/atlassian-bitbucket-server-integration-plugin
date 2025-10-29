@@ -104,26 +104,6 @@ public class PersistentServiceProviderConsumerStore extends AbstractPersistentSt
         save();
     }
 
-    @Override
-    protected Class<Consumer> getEntityClass() {
-        return Consumer.class;
-    }
-
-    @Override
-    protected String getStoreEntryName() {
-        return CONSUMER_STORE_ENTRY_NAME;
-    }
-
-    @Override
-    protected String getStoreKeyName() {
-        return CONSUMER_STORE_KEY_NAME;
-    }
-
-    @Override
-    protected String getStoreValueName() {
-        return CONSUMER_STORE_VALUE_NAME;
-    }
-
     private static final class ConsumerConverter implements Converter {
 
         private static final String CONSUMER_KEY = "key";
