@@ -102,20 +102,4 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
         }
         return Secret.toString(Secret.decrypt(encryptedValue));
     }
-
-    protected abstract Class<T> getEntityClass();
-
-    // These methods were used for NamedMapConverter which is no longer used
-    // Keep them for backward compatibility but they're not called anymore
-    protected String getStoreValueName() {
-        return "value";
-    }
-
-    protected String getStoreKeyName() {
-        return "key";
-    }
-
-    protected String getStoreEntryName() {
-        return "entry";
-    }
 }
