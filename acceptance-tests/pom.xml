@@ -226,6 +226,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>enforce-os</id>
@@ -236,7 +237,6 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <skip>true</skip>
                     <rules>
                         <requireOS>
                             <!-- Jenkins Acceptance Test Harness doesn't support Windows -->
