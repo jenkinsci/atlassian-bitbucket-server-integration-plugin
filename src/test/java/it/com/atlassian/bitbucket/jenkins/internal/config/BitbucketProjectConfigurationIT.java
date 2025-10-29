@@ -187,14 +187,13 @@ public class BitbucketProjectConfigurationIT {
         // Clear and type the new repository name
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
-        repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
         repoNameInput.setValueAttribute("non-existent-repo"); // Type the new value
         repoNameInput.blur(); // Trigger validation by losing focus
-        bbJenkinsRule.waitForBackgroundJavaScript(3000);
-        assertNotNull("non-existent-repo", repoNameInput.getTextContent());
-
+        form.click();
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         validationArea.click();
+
+        bbJenkinsRule.waitForBackgroundJavaScript(4000);
         assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
     }
 
