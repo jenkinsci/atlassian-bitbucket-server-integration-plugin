@@ -221,6 +221,11 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 
 ## Changelog
 
+### 5.0.0 (Nov 2025)
+- The minimum supported version of Jenkins has been updated to **2.479.3**
+- The minimum supported version of Bitbucket Data Center changed to [8.19 LTS](https://confluence.atlassian.com/bitbucketserver/bitbucket-data-center-8-19-release-notes-1354498386.html)
+- The minimum supported Java version changed to **Java 17**
+
 ### 4.2.0
 - [JENKINS-75365](https://issues.jenkins.io/browse/JENKINS-75365): Fix build now action in Bitbucket not triggering builds
 - [JENKINS-75494](https://issues.jenkins.io/browse/JENKINS-75494): Fix pr builds not getting correct refs
