@@ -251,10 +251,7 @@ public class BitbucketWebhookTriggerImplTest {
 
     private FreeStyleProject createFreeStyleProject() {
         FreeStyleProject project = mock(FreeStyleProject.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(project.getParent()).thenReturn(itemGroup);
-        when(project.getName()).thenReturn("Project name");
+        when(project.getFullName()).thenReturn("Project name");
         return project;
     }
 
@@ -369,10 +366,7 @@ public class BitbucketWebhookTriggerImplTest {
 
     private Job createWorkflowJob() {
         Job workflowJob = mock(Job.class);
-        Hudson itemGroup = mock(Hudson.class);
-        when(itemGroup.getFullName()).thenReturn("Item name");
-        when(workflowJob.getParent()).thenReturn(itemGroup);
-        when(workflowJob.getName()).thenReturn("WorkflowJob name");
+        when(workflowJob.getFullName()).thenReturn("WorkflowJob name");
         return workflowJob;
     }
 

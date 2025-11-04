@@ -53,6 +53,7 @@ public class BitbucketBuildStatusFactoryImplTest {
         parent = Jenkins.get();
         when(workflowProject.getName()).thenReturn(WORKFLOW_PROJECT_NAME);
         when(workflowProject.getDisplayName()).thenReturn(WORKFLOW_PROJECT_NAME);
+        when(workflowProject.getFullName()).thenReturn(WORKFLOW_PROJECT_NAME);
 
         freeStyleProject = new FreeStyleProject((ItemGroup) parent, FREESTYLE_PROJECT_NAME);
         workflowJob = new WorkflowJob(workflowProject, WORKFLOW_JOB_NAME);
@@ -68,7 +69,6 @@ public class BitbucketBuildStatusFactoryImplTest {
         when(workflowRun.getDurationString()).thenReturn(BUILD_DURATION);
         doReturn(workflowJob).when(workflowRun).getParent();
 
-        //when(parent.getFullName()).thenReturn("");
         doReturn(parent).when(workflowProject).getParent();
     }
 

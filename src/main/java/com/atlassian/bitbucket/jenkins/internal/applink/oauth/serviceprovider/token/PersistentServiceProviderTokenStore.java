@@ -142,26 +142,6 @@ public class PersistentServiceProviderTokenStore extends AbstractPersistentStore
         }
     }
 
-    @Override
-    protected Class<ServiceProviderToken> getEntityClass() {
-        return ServiceProviderToken.class;
-    }
-
-    @Override
-    protected String getStoreValueName() {
-        return TOKEN_STORE_VALUE_NAME;
-    }
-
-    @Override
-    protected String getStoreKeyName() {
-        return TOKEN_STORE_KEY_NAME;
-    }
-
-    @Override
-    protected String getStoreEntryName() {
-        return TOKEN_STORE_ENTRY_NAME;
-    }
-
     private static final class ServiceProviderTokenConverter implements Converter {
 
         private static final String ACCESS_TOKEN = "access-token";

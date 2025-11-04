@@ -27,6 +27,9 @@ import static it.com.atlassian.bitbucket.jenkins.internal.util.JsonUtils.Jenkins
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
+import io.restassured.config.RestAssuredConfig;
+import io.restassured.config.LogConfig;
+
 @RunWith(Parameterized.class)
 public class BitbucketSCMDescriptorIT {
 
@@ -46,6 +49,11 @@ public class BitbucketSCMDescriptorIT {
     @Before
     public void setup() throws Exception {
         project = bbJenkinsRule.createFreeStyleProject();
+        // Configure RestAssured to disable response prettification to avoid the need for groove-xml,
+        // which is excluded from rest-assured dependency to avoid dependency conflicts.
+        RestAssured.config = RestAssuredConfig.config().logConfig(
+            LogConfig.logConfig().enablePrettyPrinting(false)
+        );
     }
 
     @Test

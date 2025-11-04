@@ -24,42 +24,43 @@ public class BitbucketWebhookEndpointTest {
     @ClassRule
     public static JenkinsRule jenkins = new JenkinsRule();
 
-    private final String BB_WEBHOOK_URL =
-            jenkins.getInstance().getRootUrl() + BIBUCKET_WEBHOOK_URL + "/trigger/";
+    private String getBBWebhookUrl() {
+        return jenkins.getInstance().getRootUrl() + BIBUCKET_WEBHOOK_URL + "/trigger/";
+    }
 
     @Test
     public void testMirrorSynchronizedWebhook() throws URISyntaxException, IOException {
-        executeReqest(MIRROR_SYNCHRONIZED, "/webhook/mirrors_synchronized_body.json");
+        executeRequest(MIRROR_SYNCHRONIZED, "/webhook/mirrors_synchronized_body.json");
     }
 
     @Test
     public void testMirrorSynchronizedWebhook65AndLower() throws URISyntaxException, IOException {
-        executeReqest(MIRROR_SYNCHRONIZED, "/webhook/mirrors_synchronized_body_65.json");
+        executeRequest(MIRROR_SYNCHRONIZED, "/webhook/mirrors_synchronized_body_65.json");
     }
 
     @Test
     public void testPullRequestDeclinedWebhook() throws URISyntaxException, IOException {
-        executeReqest(PULL_REQUEST_DECLINED, "/webhook/pull_request_declined_body.json");
+        executeRequest(PULL_REQUEST_DECLINED, "/webhook/pull_request_declined_body.json");
     }
 
     @Test
     public void testPullRequestDeletedWebhook() throws URISyntaxException, IOException {
-        executeReqest(PULL_REQUEST_DELETED, "/webhook/pull_request_deleted_body.json");
+        executeRequest(PULL_REQUEST_DELETED, "/webhook/pull_request_deleted_body.json");
    }
 
     @Test
     public void testPullRequestMergedWebhook() throws URISyntaxException, IOException {
-        executeReqest(PULL_REQUEST_MERGED, "/webhook/pull_request_merged_body.json");
+        executeRequest(PULL_REQUEST_MERGED, "/webhook/pull_request_merged_body.json");
     }
 
     @Test
     public void testPullRequestOpenedWebhook() throws URISyntaxException, IOException {
-        executeReqest(PULL_REQUEST_OPENED, "/webhook/pull_request_opened_body.json");
+        executeRequest(PULL_REQUEST_OPENED, "/webhook/pull_request_opened_body.json");
     }
 
     @Test
     public void testRefsChangedWebhook() throws URISyntaxException, IOException {
-        executeReqest(REPO_REF_CHANGE, "/webhook/refs_changed_body.json");
+        executeRequest(REPO_REF_CHANGE, "/webhook/refs_changed_body.json");
     }
 
     @Test
@@ -68,7 +69,7 @@ public class BitbucketWebhookEndpointTest {
                 .ifValidationFails()
                 .body(Collections.emptyMap())
                 .when()
-                .post(BB_WEBHOOK_URL)
+                .post(getBBWebhookUrl())
                 .then()
                 .statusCode(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE)
                 .body(containsString("Invalid content type:"));
@@ -81,7 +82,7 @@ public class BitbucketWebhookEndpointTest {
                 .ifValidationFails()
                 .body(Collections.emptyMap())
                 .when()
-                .post(BB_WEBHOOK_URL)
+                .post(getBBWebhookUrl())
                 .then()
                 .statusCode(HttpServletResponse.SC_BAD_REQUEST)
                 .body(containsString("header not set"));
@@ -95,7 +96,7 @@ public class BitbucketWebhookEndpointTest {
                 .ifValidationFails()
                 .body(Collections.emptyMap())
                 .when()
-                .post(BB_WEBHOOK_URL)
+                .post(getBBWebhookUrl())
                 .then()
                 .statusCode(HttpServletResponse.SC_BAD_REQUEST)
                 .body(containsString("Failed to parse the body:"));
@@ -109,12 +110,12 @@ public class BitbucketWebhookEndpointTest {
                 .ifValidationFails()
                 .body(Collections.emptyMap())
                 .when()
-                .post(BB_WEBHOOK_URL)
+                .post(getBBWebhookUrl())
                 .then()
                 .statusCode(HttpServletResponse.SC_OK);
     }
 
-    private void executeReqest(BitbucketWebhookEvent repoRefChange, String resource) throws URISyntaxException, IOException {
+    private void executeRequest(BitbucketWebhookEvent repoRefChange, String resource) throws URISyntaxException, IOException {
         given().contentType(ContentType.JSON)
                 .header(X_EVENT_KEY, repoRefChange.getEventId())
                 .log()
@@ -126,7 +127,7 @@ public class BitbucketWebhookEndpointTest {
                                         .toURI(),
                                 StandardCharsets.UTF_8))
                 .when()
-                .post(BB_WEBHOOK_URL)
+                .post(getBBWebhookUrl())
                 .then()
                 .statusCode(HttpServletResponse.SC_OK);
     }

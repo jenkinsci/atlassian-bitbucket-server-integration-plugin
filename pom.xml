@@ -4,23 +4,23 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.52</version>
+        <version>5.24</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>atlassian-bitbucket-server-integration</artifactId>
-    <version>4.2.1-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <!-- This property can most likely be removed when our minimum Jenkins version is greater than 2.456 -->
         <asm.version>9.7</asm.version>
-        <bitbucket.version>6.10.15</bitbucket.version>
+        <bitbucket.version>8.19.24</bitbucket.version>
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
-        <jackson.version>2.17.2</jackson.version>
+        <jackson.version>2.18.3</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
-        <jenkins.version>2.426.3</jenkins.version>
+        <jenkins.version>2.479.3</jenkins.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <net.oauth.version>20100527</net.oauth.version>
         <!-- exclude the upgrade tests by default, as they interact with external resources and should not be run frequently -->
@@ -43,8 +43,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.426.x</artifactId>
-                <version>2661.vb_b_60650f6d97</version>
+                <artifactId>bom-2.479.x</artifactId>
+                <version>5054.v620b_5d2b_d5e6</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -87,7 +87,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>eddsa-api</artifactId>
-            <version>0.3.0-4.v84c6f0f4969e</version>
+            <version>0.3.0.1-19.vc432d923e5ee</version>
         </dependency>
         <dependency>
             <groupId>net.oauth.core</groupId>
@@ -102,7 +102,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.13.0</version>
+            <version>3.18.0</version>
             <exclusions>
                 <exclusion>
                     <!-- commons-text comes in via the jenkins:checks-api at a more modern version, exclude this one -->
@@ -119,8 +119,14 @@
         <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>instance-identity</artifactId>
-            <version>185.v303dc7c645f9</version>
+            <version>203.v15e81a_1b_7a_38</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.0.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -265,8 +271,14 @@
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>jenkins-test-harness</artifactId>
-            <version>1784.v83a_b_3ce99392</version>
+            <!-- version managed by parent -->
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>javax.servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!--to mock Bitbucket Server-->
         <dependency>
@@ -310,7 +322,7 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>4.4.0</version>
+            <version>5.5.6</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -324,6 +336,18 @@
                 <exclusion>
                     <groupId>org.hamcrest</groupId>
                     <artifactId>hamcrest</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-xml</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-json</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -348,7 +372,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.8.1</version>
+            <version>5.20.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -401,10 +425,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.6.0</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
-                    <encoding>UTF-8</encoding>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
@@ -413,7 +436,7 @@
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.20</version>
+                        <version>10.20.1</version>
                     </dependency>
                     <dependency>
                         <groupId>com.atlassian.bitbucket.server</groupId>

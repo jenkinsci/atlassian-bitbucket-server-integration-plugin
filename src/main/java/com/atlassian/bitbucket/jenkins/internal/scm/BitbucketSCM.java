@@ -10,7 +10,6 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.inject.Guice;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -70,7 +69,6 @@ public class BitbucketSCM extends SCM {
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
             @CheckForNull String projectName,
-            @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "We handle null values properly in a way that Findbugs misses")
             @CheckForNull String repositoryName,
             @CheckForNull String serverId,
             @CheckForNull String mirrorName) {
@@ -93,7 +91,6 @@ public class BitbucketSCM extends SCM {
             @CheckForNull List<GitSCMExtension> extensions,
             @CheckForNull String gitTool,
             @CheckForNull String projectName,
-            @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "We handle null values properly in a way that Findbugs misses")
             @CheckForNull String repositoryName,
             @CheckForNull String serverId,
             @CheckForNull String mirrorName,

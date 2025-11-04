@@ -22,6 +22,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import hudson.Extension;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -32,6 +33,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+@Extension
 @Singleton
 public class BitbucketWebhookConsumer {
 

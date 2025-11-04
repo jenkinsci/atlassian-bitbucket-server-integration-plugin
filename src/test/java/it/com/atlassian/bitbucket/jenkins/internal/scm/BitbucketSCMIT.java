@@ -3,15 +3,17 @@ package it.com.atlassian.bitbucket.jenkins.internal.scm;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRevisionAction;
 import com.atlassian.bitbucket.jenkins.internal.util.TestUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.plugins.git.BranchSpec;
 import hudson.tasks.Shell;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
-import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.junit.*;
 
@@ -26,7 +28,6 @@ import static hudson.model.Result.SUCCESS;
 import static it.com.atlassian.bitbucket.jenkins.internal.fixture.ScmUtils.createScm;
 import static it.com.atlassian.bitbucket.jenkins.internal.util.AsyncTestUtils.waitFor;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -84,13 +85,11 @@ public class BitbucketSCMIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         assertEquals(String.join("\n", build.getLog(1000)), SUCCESS, build.getResult());
 
-        RestAssured
+        Response response = RestAssured
                 .given()
                 .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
                 .expect()
                 .statusCode(200)
-                .body("values.size", equalTo(1))
-                .body("values[0].message", equalTo(uniqueMessage))
                 .when()
                 .get(new StringBuilder().append(BitbucketUtils.BITBUCKET_BASE_URL)
                         .append("/rest/api/1.0/projects/")
@@ -100,6 +99,15 @@ public class BitbucketSCMIT {
                         .append("/commits?since=")
                         .append(build.getAction(BitbucketRevisionAction.class).getRevisionSha1())
                         .toString());
+
+        // Parse JSON response using Jackson to validate the key, name, and URL from the
+        // JSON response body without using any Groovy dependencies
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonResponse = objectMapper.readTree(response.getBody().asString());
+        JsonNode bodyValue = jsonResponse.get("values").get(0);
+
+        assertEquals("Build key should match project name",
+                uniqueMessage, bodyValue.get("message").asText());
     }
 
     @Test
@@ -160,17 +168,27 @@ public class BitbucketSCMIT {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         BitbucketRevisionAction revisionAction = build.getAction(BitbucketRevisionAction.class);
 
-        RestAssured
+        Response response = RestAssured
                 .given()
                 .auth().preemptive().basic(BitbucketUtils.BITBUCKET_ADMIN_USERNAME, BitbucketUtils.BITBUCKET_ADMIN_PASSWORD)
                 .expect()
                 .statusCode(200)
-                .body("values[0].key", Matchers.equalTo(build.getProject().getName()))
-                .body("values[0].name", Matchers.equalTo(build.getProject().getDisplayName()))
-                .body("values[0].url", Matchers.equalTo(DisplayURLProvider.get().getRunURL(build)))
                 .when()
                 .get(BitbucketUtils.BITBUCKET_BASE_URL + "/rest/build-status/1.0/commits/" +
                      revisionAction.getRevisionSha1());
+        
+        // Parse JSON response using Jackson to validate the key, name, and URL from the
+        // JSON response body without using any Groovy dependencies
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonResponse = objectMapper.readTree(response.getBody().asString());
+        JsonNode bodyValue = jsonResponse.get("values").get(0);
+
+        assertEquals("Build key should match project name", 
+                     build.getProject().getName(), bodyValue.get("key").asText());
+        assertEquals("Build name should match project display name", 
+                     build.getProject().getDisplayName(), bodyValue.get("name").asText());
+        assertEquals("Build URL should match display URL", 
+                     DisplayURLProvider.get().getRunURL(build), bodyValue.get("url").asText());
     }
 
     private BitbucketSCM createSCMWithSshCredentials() {

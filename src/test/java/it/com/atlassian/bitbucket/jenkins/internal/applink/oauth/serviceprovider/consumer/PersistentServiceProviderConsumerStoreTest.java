@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.co
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.PersistentServiceProviderConsumerStore;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.XmlFile;
+import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -22,17 +23,14 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.HMAC_SHA1;
 import static com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.consumer.Consumer.SignatureMethod.RSA_SHA1;
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PersistentServiceProviderConsumerStoreTest {
@@ -76,6 +74,9 @@ public class PersistentServiceProviderConsumerStoreTest {
     }
 
     @Rule
+    public final BitbucketJenkinsRule bbJenkinsRule = new BitbucketJenkinsRule();
+
+    @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     private File consumersXmlFile;
@@ -84,7 +85,7 @@ public class PersistentServiceProviderConsumerStoreTest {
 
     @Before
     public void setup() throws IOException {
-        consumersXmlFile = tempFolder.newFile("oauth-tokens.xml");
+        consumersXmlFile = tempFolder.newFile("oauth-consumers.xml");
         consumerStore = new TestServiceProviderConsumerStore(consumersXmlFile);
     }
 
@@ -100,13 +101,38 @@ public class PersistentServiceProviderConsumerStoreTest {
 
         // clear the consumer map so they are loaded from disk (temp XML file) next time 'load()' is called
         consumerStore.setEntityMap(null);
-
         consumerStore.load();
-
         assertThat(consumerStore.getEntityMap(), allOf(aMapWithSize(3),
                 hasEntry(is(RSA_CONSUMER.getKey()), matches(RSA_CONSUMER)),
                 hasEntry(is(HMAC_CONSUMER.getKey()), matches(HMAC_CONSUMER)),
                 hasEntry(is(HMAC_CONSUMER_NO_PUBLIC_KEY.getKey()), matches(HMAC_CONSUMER_NO_PUBLIC_KEY))
+        ));
+    }
+
+    @Test
+    public void testAddAndGetAll() {
+
+        List<Consumer> consumers = Arrays.asList(
+                RSA_CONSUMER,
+                HMAC_CONSUMER,
+                HMAC_CONSUMER_NO_PUBLIC_KEY
+        );
+        consumers.forEach(consumerStore::add);
+
+        consumers.forEach(consumer ->
+                assertThat(
+                        consumerStore.get(consumer.getKey()),
+                        optionalWithValue(matches(consumer))
+                )
+        );
+        List<Consumer> allConsumers = new ArrayList<>();
+        consumerStore.getAll().forEach(allConsumers::add);
+        assertThat(allConsumers, hasSize(consumers.size()));
+
+        assertThat(allConsumers, containsInAnyOrder(
+                matches(RSA_CONSUMER),
+                matches(HMAC_CONSUMER),
+                matches(HMAC_CONSUMER_NO_PUBLIC_KEY)
         ));
     }
 

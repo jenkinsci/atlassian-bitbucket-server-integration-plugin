@@ -4,7 +4,6 @@ import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.ex
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.token.ServiceProviderToken;
 import com.google.common.annotations.VisibleForTesting;
 import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.extended.NamedMapConverter;
 import hudson.BulkChange;
 import hudson.CopyOnWrite;
 import hudson.XmlFile;
@@ -43,9 +42,7 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
     protected AbstractPersistentStore(String configFileName, Converter entityConverter) {
         this.configFileName = requireNonNull(configFileName, "configFileName");
         xStream = new XStream2();
-        xStream.registerConverter(new NamedMapConverter(xStream.getMapper(), getStoreEntryName(),
-                getStoreKeyName(), String.class, getStoreValueName(), getEntityClass()), PRIORITY);
-        xStream.registerConverter(entityConverter);
+        xStream.registerConverter(entityConverter, PRIORITY);
     }
 
     public synchronized void load() {
@@ -54,7 +51,7 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
         }
 
         XmlFile configFile = getConfigFile();
-        if (configFile.exists()) {
+        if (configFile.exists() && configFile.getFile().length() > 0) {
             try {
                 configFile.unmarshal(this);
             } catch (IOException e) {
@@ -105,12 +102,4 @@ public abstract class AbstractPersistentStore<T> implements Saveable, OnMaster {
         }
         return Secret.toString(Secret.decrypt(encryptedValue));
     }
-
-    protected abstract Class<T> getEntityClass();
-
-    protected abstract String getStoreValueName();
-
-    protected abstract String getStoreKeyName();
-
-    protected abstract String getStoreEntryName();
 }

@@ -15,42 +15,67 @@
         <!-- The name of the plugin being tested (i.e. the artifact name in the plugin's pom.xml) -->
         <plugin-under-test.name>atlassian-bitbucket-server-integration</plugin-under-test.name>
         <jenkins.acceptance-test-harness.version>5504.v485694f31cdf</jenkins.acceptance-test-harness.version>
-        <bitbucket.version>7.21.9</bitbucket.version>
-        <httpclient.version>4.5.13</httpclient.version>
-        <jenkins.version>2.401.3</jenkins.version>
-        <scribejava.version>6.8.1</scribejava.version>
-        <jackson.version>2.15.3</jackson.version>
-        <groovy.version>3.0.7</groovy.version>
-        <commons-lang3.version>3.13.0</commons-lang3.version>
-        <jgit.version>4.5.7.201904151645-r</jgit.version>
-        <junit.version>5.9.2</junit.version>
-        <log4j.version>1.7.25</log4j.version>
-        <rest-assured.version>3.0.7</rest-assured.version>
-        <maven.compiler.target>11</maven.compiler.target>
-        <maven.compiler.source>11</maven.compiler.source>
+        <bitbucket.version>8.19.24</bitbucket.version>
+        <httpclient.version>4.5.14</httpclient.version>
+        <jenkins.version>2.479.3</jenkins.version>
+        <scribejava.version>8.3.3</scribejava.version>
+        <jackson.version>2.18.3</jackson.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <jgit.version>6.10.0.202406032230-r</jgit.version>
+        <junit.version>5.11.3</junit.version>
+        <log4j.version>2.0.16</log4j.version>
+        <rest-assured.version>5.5.6</rest-assured.version>
+        <okhttp.version>4.12.0</okhttp.version>
+        <netty.version>4.1.115.Final</netty.version>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
             <groupId>com.github.scribejava</groupId>
             <artifactId>scribejava-apis</artifactId>
             <version>${scribejava.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.scribejava</groupId>
             <artifactId>scribejava-core</artifactId>
             <version>${scribejava.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.14.1</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec</artifactId>
-            <version>4.1.90.Final</version>
+            <version>${netty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
@@ -93,25 +118,28 @@
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${rest-assured.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.codehaus.groovy</groupId>
+                    <groupId>org.apache.groovy</groupId>
                     <artifactId>groovy</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-xml</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-json</artifactId>
+                </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>${groovy.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-xml</artifactId>
-            <version>${groovy.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
@@ -119,16 +147,9 @@
             <version>${jgit.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.junit</groupId>
-            <artifactId>junit-bom</artifactId>
-            <version>${junit.version}</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
-            <version>1.9.2</version>
+            <version>1.11.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -163,7 +184,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.0.0-M3</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -173,6 +194,7 @@
                         <trimStackTrace>false</trimStackTrace>
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <reuseForks>false</reuseForks>
+                        <argLine>--add-opens java.base/sun.reflect.annotation=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
                         <environmentVariables>
                             <!-- Used by Jenkins Acceptance Test Harness -->
                             <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
@@ -203,9 +225,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>enforce-os</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
@@ -229,6 +253,7 @@
                     <!-- There are no unit tests in this module, only integration tests. Surefire is used to run
                          the unit tests, and Failsafe is used to run the integration tests. So we can fully disable
                          the Surefire plugin below here; it's not necessary. -->
+                    <argLine>--add-opens java.base/sun.reflect.annotation=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
                     <excludes>
                         <exclude>it/**/*.java</exclude>
                     </excludes>

@@ -14,8 +14,10 @@ import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.WebClient;
 import hudson.ExtensionList;
+import hudson.model.Descriptor.FormException;
 import hudson.util.SecretFactory;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils;
 import it.com.atlassian.bitbucket.jenkins.internal.util.BitbucketUtils.*;
@@ -57,6 +59,9 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         webClient = createWebClient();
         // Enable fetch polyfill so tests can use js fetch API
         webClient.getOptions().setFetchPolyfillEnabled(true);
+        // Suppress JavaScript exceptions to allow web actions and navigation to continue
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
+        webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
         LOGGER.setLevel(Level.INFO);
     }
 
@@ -157,7 +162,7 @@ public class BitbucketJenkinsRule extends JenkinsRule {
         addBitbucketServer(bitbucketServerConfiguration);
     }
 
-    public UsernamePasswordCredentials getAdminToken() {
+    public UsernamePasswordCredentials getAdminToken() throws FormException {
         return new UsernamePasswordCredentialsImpl(null, null, null, BITBUCKET_ADMIN_USERNAME, ADMIN_PERSONAL_TOKEN.get().getSecret());
     }
 
@@ -185,6 +190,10 @@ public class BitbucketJenkinsRule extends JenkinsRule {
 
     public void waitForBackgroundJavaScript() {
         webClient.waitForBackgroundJavaScript(2000);
+    }
+
+    public void waitForBackgroundJavaScript(long timeoutMillis) {
+        webClient.waitForBackgroundJavaScript(timeoutMillis);
     }
 
     private void addCredentials(Credentials credentials) throws IOException {

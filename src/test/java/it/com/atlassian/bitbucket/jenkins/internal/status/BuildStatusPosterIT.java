@@ -13,10 +13,7 @@ import jenkins.branch.MultiBranchProject;
 import org.apache.http.HttpStatus;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -102,12 +99,15 @@ public class BuildStatusPosterIT {
                         PROJECT_KEY,
                         repoSlug,
                         bbJenkinsRule.getBitbucketServerConfiguration().getId());
-        String script = "node {\n" +
-                        "   \n" +
-                        "   stage('checkout') { \n" +
-                        bbSnippet +
-                        "   }" +
-                        "}";
+        String script = """
+                            node {
+                                stage('checkout') {
+                                    %s
+                                }
+                            }
+                         """
+                .formatted(bbSnippet);
+
         WorkflowJob job = jenkinsProjectHandler.createPipelineJob("wfj", script);
 
         String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
@@ -131,18 +131,19 @@ public class BuildStatusPosterIT {
         WorkflowJob wfj =
                 jenkinsProjectHandler.createPipelineJobWithBitbucketScm("wfj", PROJECT_KEY, repoSlug, MASTER_BRANCH_PATTERN);
 
-        String latestCommit = checkInJenkinsFile(
-                "pipeline {\n" +
-                "    agent any\n" +
-                "\n" +
-                "    stages {\n" +
-                "        stage('Build') {\n" +
-                "            steps {\n" +
-                "                echo 'Building..'\n" +
-                "            }\n" +
-                "        }\n" +
-                "    }\n" +
-                "}");
+        String latestCommit = checkInJenkinsFile("""          
+                pipeline {
+                    agent any
+                
+                    stages {
+                        stage('Build') {
+                            steps {
+                                echo 'Building..'
+                            }
+                        }
+                    }
+                }                
+                """);
 
         String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, latestCommit);
@@ -166,18 +167,18 @@ public class BuildStatusPosterIT {
 
         jenkinsProjectHandler.performBranchScanning(mbp);
 
-        String latestCommit = checkInJenkinsFile(
-                "pipeline {\n" +
-                "    agent any\n" +
-                "\n" +
-                "    stages {\n" +
-                "        stage('Build') {\n" +
-                "            steps {\n" +
-                "                echo 'Building..'\n" +
-                "            }\n" +
-                "        }\n" +
-                "    }\n" +
-                "}");
+        String latestCommit = checkInJenkinsFile("""
+                    pipeline {
+                        agent any
+                        stages {
+                            stage('Build') {
+                                steps {
+                                    echo 'Building..'
+                                }
+                            }
+                        }
+                    }
+                    """);
 
         String url = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
                 PROJECT_KEY, repoSlug, latestCommit);
@@ -204,12 +205,13 @@ public class BuildStatusPosterIT {
                         PROJECT_KEY,
                         repoSlug,
                         bbJenkinsRule.getBitbucketServerConfiguration().getId());
-        String script = "node {\n" +
-                        "   \n" +
-                        "   stage('checkout') { \n" +
-                        bbSnippet +
-                        "   }" +
-                        "}";
+        String script = """
+                node {                  
+                   stage('checkout') {
+                        %s   
+                   }
+                }""".formatted(bbSnippet);
+
         WorkflowJob wfj = jenkinsProjectHandler.createPipelineJob("wj", script);
 
         String url1 = format("/rest/api/1.0/projects/%s/repos/%s/commits/%s/builds",
@@ -257,17 +259,18 @@ public class BuildStatusPosterIT {
         return requestPatternBuilder
                 .withRequestBody(
                         equalToJson(
-                                format("{" +
-                                       "\"buildNumber\":\"%s\"," +
-                                       "\"description\":\"%s\"," +
-                                       "\"duration\":%d," +
-                                       "\"key\":\"%s\"," +
-                                       "\"name\":\"%s\"," +
-                                       "\"parent\":\"%s\"," +
-                                       "\"ref\":\"%s\"," +
-                                       "\"state\":\"%s\"," +
-                                       "\"url\":\"%s%sdisplay/redirect\"" +
-                                       "}",
+                                format("""
+                                        {
+                                            "buildNumber":"%%s",
+                                            "description":"%%s",
+                                            "duration":%%d,
+                                            "key":"%%s",
+                                            "name":"%%s",
+                                            "parent":"%%s",
+                                            "ref":"%%s",
+                                            "state":"%%s",
+                                            "url":"%%s%%sdisplay/redirect"}
+                                       """.formatted(),
                                         build.getId(),
                                         buildState.getDescriptiveText(build.getDisplayName(), build.getDurationString()),
                                         build.getDuration(), job.getFullName(), name, parentName, refName,

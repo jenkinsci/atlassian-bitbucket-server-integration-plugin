@@ -1,14 +1,11 @@
 package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.gargoylesoftware.htmlunit.html.*;
+import org.htmlunit.html.*;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.git.BranchSpec;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -128,8 +125,8 @@ public class BitbucketProjectConfigurationIT {
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute("");
-        form.click();
-        bbJenkinsRule.waitForBackgroundJavaScript();
+        projectNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
         assertEquals("Enter a project name", validationArea.getTextContent());
@@ -145,11 +142,13 @@ public class BitbucketProjectConfigurationIT {
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute("non-existent-project");
-        form.click();
-        bbJenkinsRule.waitForBackgroundJavaScript();
+        projectNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = projectNameInput.getParentNode().getNextElementSibling();
-        assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.", validationArea.getTextContent());
+        assertEquals("The project 'non-existent-project' does not exist or you do not have permission to access it.",
+                    validationArea.getTextContent());
+
     }
 
     @Test
@@ -165,8 +164,8 @@ public class BitbucketProjectConfigurationIT {
 
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
-        repoNameInput.setValueAttribute("");
-        form.click();
+        repoNameInput.setValueAttribute(""); // Clear old repository name from the initial SCM setup
+        repoNameInput.blur(); // Trigger validation by losing focus
         bbJenkinsRule.waitForBackgroundJavaScript();
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
@@ -179,16 +178,21 @@ public class BitbucketProjectConfigurationIT {
 
         HtmlPage configurePage = bbJenkinsRule.visit("job/" + JENKINS_PROJECT_NAME + "/configure");
         HtmlForm form = configurePage.getFormByName("config");
+
+        // First ensure the project name is set correctly
         HtmlInput projectNameInput = form.getInputByName("_.projectName");
         projectNameInput.click();
         projectNameInput.setValueAttribute(PROJECT_NAME);
-        form.click();
+        projectNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
+        // Clear and type the new repository name
         HtmlInput repoNameInput = form.getInputByName("_.repositoryName");
         repoNameInput.click();
-        repoNameInput.setValueAttribute("non-existent-repo");
-        form.click();
-        bbJenkinsRule.waitForBackgroundJavaScript();
+        repoNameInput.setValueAttribute(""); // Clear first
+        repoNameInput.type("non-existent-repo"); // Type the new value character by character
+        repoNameInput.blur(); // Trigger validation by losing focus
+        bbJenkinsRule.waitForBackgroundJavaScript(1000);
 
         DomElement validationArea = repoNameInput.getParentNode().getNextElementSibling();
         assertEquals("The repository 'non-existent-repo' does not exist or you do not have permission to access it.", validationArea.getTextContent());
