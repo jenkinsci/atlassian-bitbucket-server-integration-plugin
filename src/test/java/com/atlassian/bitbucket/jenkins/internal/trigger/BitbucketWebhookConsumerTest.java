@@ -3,9 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlySCM;
 import com.atlassian.bitbucket.jenkins.internal.util.SerializationFriendlyTrigger;
@@ -179,6 +177,60 @@ public class BitbucketWebhookConsumerTest {
     }
 
     @Test
+    public void testHeadsMapForRemovedPullRequestWebhookEvent() {
+        BitbucketPullRequestRef fromRef =
+                new BitbucketPullRequestRef("from", "from-display", bitbucketRepository, "aabbcc");
+        when(pullRequest.getFromRef()).thenReturn(fromRef);
+
+        PullRequestWebhookEvent webhookEvent =
+                new PullRequestWebhookEvent(BITBUCKET_USER, "unused-event-key", new Date(), pullRequest);
+        BitbucketWebhookConsumer.BitbucketSCMHeadPullRequestEvent headEvent =
+                new BitbucketWebhookConsumer.BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.REMOVED, webhookEvent, "origin");
+
+        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
+        BitbucketSCMRepository scmRepository = bitbucketSCM.getRepositories().get(0);
+        when(scmSource.getBitbucketSCMRepository()).thenReturn(scmRepository);
+
+        BitbucketPullRequestSCMHead prScmHead = new BitbucketPullRequestSCMHead(pullRequest);
+        assertThat(
+                headEvent.heads(scmSource),
+                equalTo(Map.of(prScmHead, new BitbucketPullRequestSCMRevision(prScmHead))
+                )
+        );
+    }
+
+    @Test
+    public void testHeadsMapForUpdatedPullRequestWebhookEvent() {
+        BitbucketPullRequestRef fromRef =
+                new BitbucketPullRequestRef("from", "from-display", bitbucketRepository, "aabbcc");
+        BitbucketPullRequestRef toRef =
+                new BitbucketPullRequestRef("to", "to-display", bitbucketRepository, "ddeefff");
+
+        when(pullRequest.getFromRef()).thenReturn(fromRef);
+        when(pullRequest.getToRef()).thenReturn(toRef);
+
+        PullRequestWebhookEvent webhookEvent =
+                new PullRequestWebhookEvent(BITBUCKET_USER, "unused-event-key", new Date(), pullRequest);
+        BitbucketWebhookConsumer.BitbucketSCMHeadPullRequestEvent headEvent =
+                new BitbucketWebhookConsumer.BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.UPDATED, webhookEvent, "origin");
+
+        BitbucketSCMSource scmSource = mock(BitbucketSCMSource.class);
+        BitbucketSCMRepository scmRepository = bitbucketSCM.getRepositories().get(0);
+        when(scmSource.getBitbucketSCMRepository()).thenReturn(scmRepository);
+
+        BitbucketBranchSCMHead branchScmHead = new BitbucketBranchSCMHead(fromRef);
+        BitbucketPullRequestSCMHead prScmHead = new BitbucketPullRequestSCMHead(pullRequest);
+        assertThat(
+                headEvent.heads(scmSource),
+                equalTo(Map.of(
+                                branchScmHead, new BitbucketSCMRevision(branchScmHead, fromRef.getLatestCommit()),
+                                prScmHead, new BitbucketPullRequestSCMRevision(prScmHead)
+                        )
+                )
+        );
+    }
+
+    @Test
     public void testMirrorSynchronizedUpdateAndDeleteFiresBothEvents() throws InterruptedException {
         BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
         when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
@@ -267,6 +319,25 @@ public class BitbucketWebhookConsumerTest {
         assertNotNull(event);
         assertThat(event.getPayload(), equalTo(pullRequestClosedEvent));
         assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+        assertThat(events.poll(POST_POLL_TIMEOUT, TimeUnit.MILLISECONDS), nullValue());
+    }
+
+    @Test
+    public void testPullRequestMergeTriggerBitbucketSCMBuild() throws InterruptedException {
+        BitbucketServerConfiguration serverConfiguration = mock(BitbucketServerConfiguration.class);
+        when(bitbucketPluginConfiguration.getServerById(bitbucketSCM.getServerId())).thenReturn(Optional.of(serverConfiguration));
+        when(bitbucketPluginConfiguration.getValidServerList()).thenReturn(singletonList(serverConfiguration));
+        when(serverConfiguration.getBaseUrl()).thenReturn(BITBUCKET_BASE_URL);
+        PullRequestWebhookEvent pullRequestMerged =
+                new PullRequestMergedWebhookEvent(BITBUCKET_USER, PULL_REQUEST_MERGED.getEventId(), new Date(), pullRequest);
+
+        consumer.process(pullRequestMerged);
+
+        SCMHeadEvent<? extends AbstractWebhookEvent> event = events.poll(EVENT_POLL_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertThat(event.getPayload(), equalTo(pullRequestMerged));
+        assertThat(event.getType(), equalTo(SCMEvent.Type.REMOVED));
+
         assertThat(events.poll(POST_POLL_TIMEOUT, TimeUnit.MILLISECONDS), nullValue());
     }
 
