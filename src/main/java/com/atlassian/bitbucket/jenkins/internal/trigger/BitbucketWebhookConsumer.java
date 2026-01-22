@@ -226,7 +226,7 @@ public class BitbucketWebhookConsumer {
      * or closing the pull request.
      * @since 3.0.0
      */
-    private static class BitbucketSCMHeadPullRequestEvent extends SCMHeadEvent<PullRequestWebhookEvent> {
+    static class BitbucketSCMHeadPullRequestEvent extends SCMHeadEvent<PullRequestWebhookEvent> {
 
         public BitbucketSCMHeadPullRequestEvent(Type type, PullRequestWebhookEvent payload, String origin) {
             super(type, payload, origin);
@@ -251,18 +251,20 @@ public class BitbucketWebhookConsumer {
             BitbucketPullRequestSCMHead prScmHead = new BitbucketPullRequestSCMHead(pullRequest);
             BitbucketPullRequestSCMRevision prScmRevision = new BitbucketPullRequestSCMRevision(prScmHead);
 
-            // We still want to return the affected "branch head" so that we maintain backwards compatibility for the
-            // current expected behavior for the branch discovery trait. Otherwise, `SCMHeadEvent.Validated`
-            // (an `SCMHeadObserver` wrapper) will not recognize the affected branch as a "trusted" head and will not
-            // be built.
-            BitbucketPullRequestRef fromRef = pullRequest.getFromRef();
-            BitbucketBranchSCMHead branchSCMHead = new BitbucketBranchSCMHead(fromRef);
-            BitbucketSCMRevision branchSCMRevision =
-                    new BitbucketSCMRevision(branchSCMHead, branchSCMHead.getLatestCommit());
-
             Map<SCMHead, SCMRevision> scmHeadSCMRevisionMap = new HashMap<>();
+            if (getType() != Type.REMOVED) {
+                // We still want to return the affected "branch head" so that we maintain backwards compatibility for the
+                // current expected behavior for the branch discovery trait. Otherwise, `SCMHeadEvent.Validated`
+                // (an `SCMHeadObserver` wrapper) will not recognize the affected branch as a "trusted" head and will not
+                // be built.
+                BitbucketPullRequestRef fromRef = pullRequest.getFromRef();
+                BitbucketBranchSCMHead branchSCMHead = new BitbucketBranchSCMHead(fromRef);
+                BitbucketSCMRevision branchSCMRevision =
+                        new BitbucketSCMRevision(branchSCMHead, branchSCMHead.getLatestCommit());
+                scmHeadSCMRevisionMap.put(branchSCMHead, branchSCMRevision);
+            }
+
             scmHeadSCMRevisionMap.put(prScmHead, prScmRevision);
-            scmHeadSCMRevisionMap.put(branchSCMHead, branchSCMRevision);
             return scmHeadSCMRevisionMap;
         }
 
