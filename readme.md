@@ -26,7 +26,7 @@ The plugin streamlines the entire configuration process and removes the need for
 
 ## Requirements
 
-- Jenkins 2.479.3+
+- Jenkins 2.492.3+
 - Bitbucket Server 8.19+
 - Java 17+
 
@@ -220,6 +220,10 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 6.0.0
+- The minimum supported version of Jenkins has been updated to **2.492.3**
+- [JENKINS-75277](https://issues.jenkins.io/browse/JENKINS-75277) Fixed auto-complete suggestions for project and repository fields
+
 ### 5.0.1 
 - [JENKINS-76176](https://issues.jenkins.io/browse/JENKINS-76176) Fixed disabling source branches when a pull request is closed
 
