@@ -220,6 +220,8 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 5.0.1 
+- [JENKINS-76176](https://issues.jenkins.io/browse/JENKINS-76176) Fixed disabling source branches when a pull request is closed
 
 ### 5.0.0 (Nov 2025)
 - The minimum supported version of Jenkins has been updated to **2.479.3**
