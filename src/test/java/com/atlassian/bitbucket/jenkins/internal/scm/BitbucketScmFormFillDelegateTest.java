@@ -18,13 +18,13 @@ import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 import hudson.util.JsonResponseFactory;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.acegisecurity.AccessDeniedException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -36,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.springframework.security.access.AccessDeniedException;
 import wiremock.com.google.common.collect.ImmutableMap;
 
 import javax.servlet.ServletException;
@@ -49,6 +50,7 @@ import static java.util.Optional.of;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -237,6 +239,48 @@ public class BitbucketScmFormFillDelegateTest {
                 "The provided Bitbucket Server serverId does not exist");
     }
 
+    @Test
+    public void testDoAutoCompleteProjectNameReturnsCandidates() {
+        String searchTerm = "te";
+        mockSearchClientWithProjects(Arrays.asList("test-key", "test-key2"));
+
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteProjectName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        searchTerm);
+
+        assertThat(candidates.getValues(), containsInAnyOrder("test-key-name", "test-key2-name"));
+    }
+
+    @Test
+    public void testDoAutoCompleteProjectNameShortInputReturnsEmpty() {
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteProjectName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(), "t");
+
+        assertTrue(candidates.getValues().isEmpty());
+        verifyNoInteractions(bitbucketClientFactory);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testDoAutoCompleteProjectNameNoItemPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doAutoCompleteProjectName(parent, SERVER_ID_VALID, null, "test");
+    }
+
+    @Test
+    public void testDoAutoCompleteProjectNameBitbucketClientException() throws Exception {
+        String searchTerm = "test";
+        BitbucketSearchClient badSearchClient = mock(BitbucketSearchClient.class);
+        when(bitbucketClientFactory.getSearchClient(searchTerm)).thenReturn(badSearchClient);
+        when(badSearchClient.findProjects()).thenThrow(new BitbucketClientException("Bitbucket had an exception",
+                400, "Some error from Bitbucket"));
+
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteProjectName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        searchTerm);
+
+        assertTrue(candidates.getValues().isEmpty());
+    }
+
     @Test(expected = AccessDeniedException.class)
     public void testDoFillRepositoryNamesNoItemPermissions() {
         doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
@@ -376,6 +420,62 @@ public class BitbucketScmFormFillDelegateTest {
                 delegate.doFillRepositoryNameItems(parent, "non-existent", bbJenkins.getUsernamePasswordCredentialsId(),
                         "myProject", "test");
         verifyBadRequest(response, "The provided Bitbucket Server serverId does not exist");
+    }
+
+    @Test
+    public void testDoAutoCompleteRepositoryNameReturnsCandidates() {
+        mockSearchClientWithRepos(ImmutableMap.<String, List<String>>builder()
+                .put("myProject", List.of("test-repo", "test-repo2"))
+                .put("otherProject", List.of("other-repo"))
+                .build());
+
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteRepositoryName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        "myProject-name", "te");
+
+        assertThat(candidates.getValues(), containsInAnyOrder("test-repo-name", "test-repo2-name"));
+    }
+
+    @Test
+    public void testDoAutoCompleteRepositoryNameShortInputReturnsEmpty() {
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteRepositoryName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        "myProject-name", "t");
+
+        assertTrue(candidates.getValues().isEmpty());
+        verifyNoInteractions(bitbucketClientFactory);
+    }
+
+    @Test
+    public void testDoAutoCompleteRepositoryNameMissingProjectReturnsEmpty() {
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteRepositoryName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        "", "test");
+
+        assertTrue(candidates.getValues().isEmpty());
+        verifyNoInteractions(bitbucketClientFactory);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testDoAutoCompleteRepositoryNameNoItemPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doAutoCompleteRepositoryName(parent, SERVER_ID_VALID, null, "myProject-name", "test");
+    }
+
+    @Test
+    public void testDoAutoCompleteRepositoryNameBitbucketClientException() throws Exception {
+        String searchTerm = "test";
+        String projectName = "myProject-name";
+        BitbucketSearchClient badSearchClient = mock(BitbucketSearchClient.class);
+        when(bitbucketClientFactory.getSearchClient(projectName)).thenReturn(badSearchClient);
+        when(badSearchClient.findRepositories(searchTerm)).thenThrow(new BitbucketClientException(
+                "Bitbucket had an exception", 400, "Some error from Bitbucket"));
+
+        AutoCompletionCandidates candidates =
+                delegate.doAutoCompleteRepositoryName(parent, SERVER_ID_VALID, bbJenkins.getUsernamePasswordCredentialsId(),
+                        projectName, searchTerm);
+
+        assertTrue(candidates.getValues().isEmpty());
     }
 
     @Test

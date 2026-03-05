@@ -85,4 +85,16 @@ public class BitbucketSCMDescriptorTest {
         descriptor.doFillServerIdItems(parent, "myServerId");
         verify(formFill).doFillServerIdItems(parent, "myServerId");
     }
+
+    @Test
+    public void testDoAutoCompleteProjectName() {
+        descriptor.doAutoCompleteProjectName(parent, "myServerId", "myCredentialsId", "myValue");
+        verify(formFill).doAutoCompleteProjectName(parent, "myServerId", "myCredentialsId", "myValue");
+    }
+
+    @Test
+    public void testDoAutoCompleteRepositoryName() {
+        descriptor.doAutoCompleteRepositoryName(parent, "myServerId", "myCredentialsId", "myProjectName", "myValue");
+        verify(formFill).doAutoCompleteRepositoryName(parent, "myServerId", "myCredentialsId", "myProjectName", "myValue");
+    }
 }
