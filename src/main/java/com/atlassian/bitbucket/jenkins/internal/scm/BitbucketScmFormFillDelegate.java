@@ -17,6 +17,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Item;
 import hudson.plugins.git.GitTool;
 import hudson.plugins.git.extensions.GitSCMExtensionDescriptor;
@@ -233,6 +234,81 @@ public class BitbucketScmFormFillDelegate implements BitbucketScmFormFill {
     @Override
     public boolean getShowGitToolOptions() {
         return false;
+    }
+
+    /**
+     * Auto-complete for project name field. Used by Jenkins' built-in auto-complete.
+     * 
+     * @param context the context item
+     * @param serverId the Bitbucket server ID
+     * @param credentialsId the credentials ID
+     * @param value the current input value (project name prefix)
+     * @return auto-completion candidates
+     */
+    public AutoCompletionCandidates doAutoCompleteProjectName(@Nullable Item context, String serverId,
+                                                              String credentialsId, String value) {
+        AutoCompletionCandidates candidates = new AutoCompletionCandidates();
+        
+        if (isBlank(serverId) || stripToEmpty(value).length() < 2) {
+            return candidates;
+        }
+
+        checkPermissions(context);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
+
+        bitbucketPluginConfiguration.getServerById(serverId).ifPresent(serverConf -> {
+            try {
+                BitbucketCredentials credentials =
+                        jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials.orElse(null));
+                Collection<BitbucketProject> projects = findProjects(value,
+                        bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials));
+                projects.forEach(project -> candidates.add(project.getName()));
+            } catch (BitbucketClientException e) {
+                LOGGER.fine("Auto-complete failed: " + e.getMessage());
+            }
+        });
+
+        return candidates;
+    }
+
+    /**
+     * Auto-complete for repository name field. Used by Jenkins' built-in auto-complete.
+     * 
+     * @param context the context item
+     * @param serverId the Bitbucket server ID
+     * @param credentialsId the credentials ID
+     * @param projectName the selected project name
+     * @param value the current input value (repository name prefix)
+     * @return auto-completion candidates
+     */
+    public AutoCompletionCandidates doAutoCompleteRepositoryName(@Nullable Item context, String serverId,
+                                                                 String credentialsId, String projectName,
+                                                                 String value) {
+        AutoCompletionCandidates candidates = new AutoCompletionCandidates();
+        
+        if (isBlank(serverId) || isBlank(projectName) || stripToEmpty(value).length() < 2) {
+            return candidates;
+        }
+
+        checkPermissions(context);
+        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
+
+        bitbucketPluginConfiguration.getServerById(serverId).ifPresent(serverConf -> {
+            try {
+                BitbucketCredentials credentials =
+                        jenkinsToBitbucketCredentials.toBitbucketCredentials(providedCredentials.orElse(null));
+                Collection<BitbucketRepository> repositories = findRepositories(value, projectName,
+                        bitbucketClientFactoryProvider.getClient(serverConf.getBaseUrl(), credentials))
+                        .stream()
+                        .filter(repository -> repository.getProject().getName().equals(projectName))
+                        .collect(Collectors.toList());
+                repositories.forEach(repo -> candidates.add(repo.getName()));
+            } catch (BitbucketClientException e) {
+                LOGGER.fine("Auto-complete failed: " + e.getMessage());
+            }
+        });
+
+        return candidates;
     }
 
     private void checkPermissions(@Nullable Item context) {
