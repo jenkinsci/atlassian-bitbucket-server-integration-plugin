@@ -15,11 +15,13 @@ f.section() {
     }
 
     f.entry(title: _("bitbucket.scm.projectName"), field: "projectName") {
-        f.combobox(context: app, placeholder: "Start typing to find a project or click help to see how to find a personal project", checkMethod: "post", clazz:'searchable')
+        f.textbox(placeholder: "Start typing to find a project or click help to see how to find a personal project",
+                checkMethod: "post", "data-maxsuggestions": "25")
     }
 
     f.entry(title: _("bitbucket.scm.repositoryName"), field: "repositoryName") {
-        f.combobox(context: app, placeholder: "Start typing to find a repository or click help to see how to find a personal repository", checkMethod: "post", clazz:'searchable')
+        f.textbox(placeholder: "Start typing to find a repository or click help to see how to find a personal repository",
+                checkMethod: "post", "data-maxsuggestions": "25")
     }
 
     f.entry(title: _("bitbucket.scm.mirror"), field: "mirrorName") {
@@ -49,5 +51,5 @@ f.section() {
         )
     }
 
-    script(src:"${rootURL}${h.getResourcePath()}/plugin/atlassian-bitbucket-server-integration/js/searchableField.js")
+
 }

@@ -13,6 +13,7 @@ import com.google.inject.Guice;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
@@ -448,6 +449,23 @@ public class BitbucketSCM extends SCM {
         @POST
         public ListBoxModel doFillGitToolItems() {
             return gitScmDescriptor.doFillGitToolItems();
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteProjectName(@AncestorInPath Item context,
+                                                                  @QueryParameter String serverId,
+                                                                  @QueryParameter String credentialsId,
+                                                                  @QueryParameter String value) {
+            return formFill.doAutoCompleteProjectName(context, serverId, credentialsId, value);
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteRepositoryName(@AncestorInPath Item context,
+                                                                     @QueryParameter String serverId,
+                                                                     @QueryParameter String credentialsId,
+                                                                     @QueryParameter String projectName,
+                                                                     @QueryParameter String value) {
+            return formFill.doAutoCompleteRepositoryName(context, serverId, credentialsId, projectName, value);
         }
 
         @Override
