@@ -18,6 +18,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.events.RefsChangedWebhoo
 import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Action;
 import hudson.model.Actionable;
+import hudson.model.Item;
 import hudson.model.TaskListener;
 import jenkins.branch.MultiBranchProject;
 import jenkins.scm.api.*;
@@ -541,6 +542,30 @@ public class BitbucketSCMSourceTest {
     }
 
     @Test
+    public void testDescriptorDelegatesAutoCompleteProjectName() throws Exception {
+        BitbucketSCMSource.DescriptorImpl descriptor = new BitbucketSCMSource.DescriptorImpl();
+        BitbucketScmFormFillDelegate formFill = mock(BitbucketScmFormFillDelegate.class);
+        Item context = mock(Item.class);
+        setDescriptorFormFill(descriptor, formFill);
+
+        descriptor.doAutoCompleteProjectName(context, "serverId", "creds", "query");
+
+        verify(formFill).doAutoCompleteProjectName(context, "serverId", "creds", "query");
+    }
+
+    @Test
+    public void testDescriptorDelegatesAutoCompleteRepositoryName() throws Exception {
+        BitbucketSCMSource.DescriptorImpl descriptor = new BitbucketSCMSource.DescriptorImpl();
+        BitbucketScmFormFillDelegate formFill = mock(BitbucketScmFormFillDelegate.class);
+        Item context = mock(Item.class);
+        setDescriptorFormFill(descriptor, formFill);
+
+        descriptor.doAutoCompleteRepositoryName(context, "serverId", "creds", "project", "query");
+
+        verify(formFill).doAutoCompleteRepositoryName(context, "serverId", "creds", "project", "query");
+    }
+
+    @Test
     public void testRetrieveUnknownHeadType() throws IOException, InterruptedException {
         BitbucketSCMSource bitbucketSCMsource = new SCMSourceBuilder(CREDENTIAL_ID)
                 .serverId(SERVER_ID)
@@ -588,6 +613,13 @@ public class BitbucketSCMSourceTest {
         when(descriptor.getBitbucketExternalLinkUtils()).thenReturn(linkUtils);
 
         return descriptor;
+    }
+
+    private static void setDescriptorFormFill(BitbucketSCMSource.DescriptorImpl descriptor,
+                                              BitbucketScmFormFillDelegate formFill) throws Exception {
+        java.lang.reflect.Field formFillField = BitbucketSCMSource.DescriptorImpl.class.getDeclaredField("formFill");
+        formFillField.setAccessible(true);
+        formFillField.set(descriptor, formFill);
     }
 
     private static class SCMSourceBuilder {

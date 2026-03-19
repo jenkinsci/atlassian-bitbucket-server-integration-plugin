@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfigurat
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Item;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitTool;
@@ -228,6 +229,23 @@ public class BitbucketSCMStep extends SCMStep {
                                                         @QueryParameter String baseUrl,
                                                         @QueryParameter String sshCredentialsId) {
             return formFill.doFillSshCredentialsIdItems(context, baseUrl, sshCredentialsId);
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteProjectName(@AncestorInPath Item context,
+                                                                  @QueryParameter String serverId,
+                                                                  @QueryParameter String credentialsId,
+                                                                  @QueryParameter String value) {
+            return formFill.doAutoCompleteProjectName(context, serverId, credentialsId, value);
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteRepositoryName(@AncestorInPath Item context,
+                                                                     @QueryParameter String serverId,
+                                                                     @QueryParameter String credentialsId,
+                                                                     @QueryParameter String projectName,
+                                                                     @QueryParameter String value) {
+            return formFill.doAutoCompleteRepositoryName(context, serverId, credentialsId, projectName, value);
         }
 
         @Override

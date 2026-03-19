@@ -22,6 +22,7 @@ import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.Item;
@@ -600,6 +601,23 @@ public class BitbucketSCMSource extends SCMSource {
                                                   @QueryParameter String mirrorName) {
             return formFill.doFillMirrorNameItems(context, serverId, credentialsId, projectName, repositoryName,
                     mirrorName);
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteProjectName(@AncestorInPath Item context,
+                                                                  @QueryParameter String serverId,
+                                                                  @QueryParameter String credentialsId,
+                                                                  @QueryParameter String value) {
+            return formFill.doAutoCompleteProjectName(context, serverId, credentialsId, value);
+        }
+
+        @POST
+        public AutoCompletionCandidates doAutoCompleteRepositoryName(@AncestorInPath Item context,
+                                                                     @QueryParameter String serverId,
+                                                                     @QueryParameter String credentialsId,
+                                                                     @QueryParameter String projectName,
+                                                                     @QueryParameter String value) {
+            return formFill.doAutoCompleteRepositoryName(context, serverId, credentialsId, projectName, value);
         }
 
         @Override
