@@ -20,7 +20,6 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.events.AbstractWebhookEv
 import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistrationFailed;
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.google.common.annotations.VisibleForTesting;
 import hudson.Extension;
 import hudson.model.AutoCompletionCandidates;
 import hudson.model.Action;
@@ -280,7 +279,6 @@ public class BitbucketSCMSource extends SCMSource {
 
         // initialized will always be null here as transient fields are not persisted so we need to reassign it
         initialized = new AtomicBoolean(false);
-        validateInitialized();
         return this;
     }
 
@@ -389,8 +387,7 @@ public class BitbucketSCMSource extends SCMSource {
         return result;
     }
 
-    @VisibleForTesting
-    void validateInitialized() {
+    public void validateInitialized() {
         if (!initialized.get()) {
             synchronized (this) {
                 if (!initialized.get()) {
@@ -400,6 +397,9 @@ public class BitbucketSCMSource extends SCMSource {
                 }
             }
         }
+        // Log a message indicating that the SCM source has been initialized
+        LOGGER.fine("Finished initializing BitbucketSCMSource for repository: " + getRepositoryName() +
+                " in project: " + getProjectName() + " with serverId: " + getServerId());
     }
 
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
