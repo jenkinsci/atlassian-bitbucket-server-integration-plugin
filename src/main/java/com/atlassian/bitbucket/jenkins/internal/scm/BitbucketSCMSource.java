@@ -414,12 +414,13 @@ public class BitbucketSCMSource extends SCMSource {
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
-                // Process the stream of heads as they come in and terminate the
-                // stream if the request has finished observing (returns true)
-                discoveryHandler.discoverHeads().anyMatch(scmHead -> {
+                for (SCMHead scmHead : (Iterable<? extends SCMHead>) discoveryHandler.discoverHeads()::iterator) {
+                    if (request.isComplete()) {
+                        break;
+                    }
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
-                        return request.process(
+                        request.process(
                                 scmHead,
                                 scmRevision,
                                 this::newProbe,
@@ -429,10 +430,8 @@ public class BitbucketSCMSource extends SCMSource {
                     } catch (IOException | InterruptedException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
                                 scmRevision + ", error: " + e.getMessage());
-
-                        return true;
                     }
-                });
+                }
             }
         }
     }
