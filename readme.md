@@ -1,5 +1,5 @@
 # Bitbucket Server integration
-[![Build Status](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/)
+[![Build Status](https://ci.jenkins.io/buildStatus/icon?job=Plugins%2Fatlassian-bitbucket-server-integration-plugin%2Fmaster)](https://ci.jenkins.io/job/Plugins/job/atlassian-bitbucket-server-integration-plugin/job/master/)
 
 ---
 We're collecting feedback at [issues.jenkins-ci.org](https://issues.jenkins-ci.org/browse/JENKINS-59578?jql=project%20%3D%20JENKINS%20AND%20component%20%3D%20atlassian-bitbucket-server-integration-plugin). Head there to see what issues have been created, or create a new issue using the component _atlassian-bitbucket-server-integration-plugin_.
