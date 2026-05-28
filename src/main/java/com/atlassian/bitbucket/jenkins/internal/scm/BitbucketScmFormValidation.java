@@ -9,7 +9,7 @@ public interface BitbucketScmFormValidation {
 
     FormValidation doCheckCredentialsId(@Nullable Item context, String credentialsId);
 
-    FormValidation doCheckSshCredentialsId(@Nullable Item context, String sshCredentialsId);
+    FormValidation doCheckSshCredentialsId(@Nullable Item context, String credentialsId, String sshCredentialsId);
 
     FormValidation doCheckProjectName(@Nullable Item context, String serverId, String credentialsId, String projectName);
 

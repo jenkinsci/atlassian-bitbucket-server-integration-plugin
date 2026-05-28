@@ -6,6 +6,7 @@ import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClient
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
@@ -15,11 +16,11 @@ import com.cloudbees.plugins.credentials.Credentials;
 import hudson.model.Item;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.util.Optional;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
@@ -63,16 +64,6 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
             return FormValidation.error("No credentials exist for the provided credentialsId");
-        }
-        return FormValidation.ok();
-    }
-
-    @Override
-    public FormValidation doCheckSshCredentialsId(@Nullable Item context, String sshCredentialsId) {
-        checkPermission(context);
-        Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(sshCredentialsId, context);
-        if (!isBlank(sshCredentialsId) && !providedCredentials.isPresent()) {
-            return FormValidation.error("No credentials exist for the provided sshCredentialsId");
         }
         return FormValidation.ok();
     }
@@ -169,6 +160,31 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     }
 
     @Override
+    public FormValidation doCheckSshCredentialsId(@Nullable Item context, String credentialsId,
+                                                  String sshCredentialsId) {
+        checkPermission(context);
+        Optional<Credentials> providedSshCredentials = CredentialUtils.getCredentials(sshCredentialsId, context);
+        if (!isBlank(sshCredentialsId) && providedSshCredentials.isEmpty()) {
+            return FormValidation.error("No credentials exist for the provided sshCredentialsId");
+        }
+
+        // If the HTTP credential is a bearer token (StringCredentials or BitbucketTokenCredentials), SSH credentials
+        // are mandatory because git has no built-in concept of bearer tokens and Bitbucket may restrict basic auth
+        // operations when a token is used. Username/password credentials can be used directly by git, without SSH.
+        if (!isBlank(credentialsId)) {
+            Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
+            if (providedSshCredentials.isEmpty() &&
+                providedCredentials.isPresent() &&
+                isBearerTokenCredential(providedCredentials.get())
+            ) {
+                return FormValidation.warning(
+                        "SSH credentials are required when using a token and Bitbucket has Basic Auth access disabled.");
+            }
+        }
+        return FormValidation.ok();
+    }
+
+    @Override
     public FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId, String projectName,
                                            String repositoryName, String mirrorName) {
         checkPermission(context);
@@ -204,6 +220,10 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
                 .orElse("Bitbucket Server");
         return FormValidation.ok(format("Jenkins successfully connected to %s's %s / %s on %s", serverName, projectName,
                 repositoryName, isBlank(mirrorName) ? "Primary Server" : mirrorName));
+    }
+
+    private static boolean isBearerTokenCredential(@Nullable Credentials credentials) {
+        return credentials instanceof StringCredentials || credentials instanceof BitbucketTokenCredentials;
     }
 
     private void checkPermission(@Nullable Item context) {

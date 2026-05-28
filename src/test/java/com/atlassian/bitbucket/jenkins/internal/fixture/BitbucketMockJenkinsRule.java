@@ -14,6 +14,7 @@ import com.github.tomakehurst.wiremock.core.Options;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.SecretFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import static java.lang.String.format;
 public class BitbucketMockJenkinsRule extends JenkinsRule {
 
     private final String bitbucketUserToken;
+    private String stringCredentialsId;
     private String tokenCredentialsId;
     private String usernamePasswordCredentialsId;
     private String serverId;
@@ -56,6 +58,8 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
 
         tokenCredentialsId = UUID.randomUUID().toString();
         setupTokenCredentials(tokenCredentialsId, bitbucketUserToken);
+        stringCredentialsId = UUID.randomUUID().toString();
+        setupStringCredentials(stringCredentialsId, bitbucketUserToken);
         usernamePasswordCredentialsId = UUID.randomUUID().toString();
         setupUsernamePasswordCredentials(usernamePasswordCredentialsId);
         serverId = UUID.randomUUID().toString();
@@ -70,6 +74,10 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
 
     public String getTokenCredentialsId() {
         return tokenCredentialsId;
+    }
+
+    public String getStringCredentialsId() {
+        return stringCredentialsId;
     }
 
     public String getUsernamePasswordCredentialsId() {
@@ -121,6 +129,11 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
 
     private void setupTokenCredentials(String credentialsId, String secret) throws Exception {
         setupCredentials(new BitbucketTokenCredentialsImpl(credentialsId, "", SecretFactory.getSecret(secret)));
+    }
+
+    private void setupStringCredentials(String credentialsId, String secret) throws Exception {
+        setupCredentials(new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId,
+                "Bitbucket Server token string credentials", SecretFactory.getSecret(secret)));
     }
 
     private void setupUsernamePasswordCredentials(String credentialsId) throws Exception {

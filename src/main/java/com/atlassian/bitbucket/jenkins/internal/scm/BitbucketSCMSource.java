@@ -579,8 +579,9 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
+                                                      @QueryParameter String credentialsId,
                                                       @QueryParameter String sshCredentialsId) {
-            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
+            return formValidation.doCheckSshCredentialsId(context, credentialsId, sshCredentialsId);
         }
 
         @Override
