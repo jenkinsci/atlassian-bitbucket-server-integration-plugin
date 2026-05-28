@@ -210,10 +210,12 @@ public class BitbucketSCMStep extends SCMStep {
         public FormValidation doTestConnection(@AncestorInPath Item context,
                                                @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
+                                               @QueryParameter String sshCredentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName, mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, sshCredentialsId, projectName,
+                    repositoryName, mirrorName);
         }
 
         @Override

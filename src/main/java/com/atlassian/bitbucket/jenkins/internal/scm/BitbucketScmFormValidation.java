@@ -18,5 +18,6 @@ public interface BitbucketScmFormValidation {
     FormValidation doCheckServerId(@Nullable Item context, String serverId);
 
     FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId,
-                                    String projectName, String repositoryName, String mirrorName);
+                                    String sshCredentialsId, String projectName, String repositoryName,
+                                    String mirrorName);
 }

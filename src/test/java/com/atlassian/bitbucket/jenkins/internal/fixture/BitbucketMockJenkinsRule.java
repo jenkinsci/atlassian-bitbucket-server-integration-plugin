@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.fixture;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentialsImpl;
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -30,6 +31,8 @@ import static java.lang.String.format;
 public class BitbucketMockJenkinsRule extends JenkinsRule {
 
     private final String bitbucketUserToken;
+    private String secondSshCredentialsId;
+    private String sshCredentialsId;
     private String stringCredentialsId;
     private String tokenCredentialsId;
     private String usernamePasswordCredentialsId;
@@ -62,6 +65,10 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         setupStringCredentials(stringCredentialsId, bitbucketUserToken);
         usernamePasswordCredentialsId = UUID.randomUUID().toString();
         setupUsernamePasswordCredentials(usernamePasswordCredentialsId);
+        sshCredentialsId = UUID.randomUUID().toString();
+        setupSshCredentials(sshCredentialsId);
+        secondSshCredentialsId = UUID.randomUUID().toString();
+        setupSshCredentials(secondSshCredentialsId);
         serverId = UUID.randomUUID().toString();
         BitbucketServerConfiguration server =
                 new BitbucketServerConfiguration(tokenCredentialsId, service.baseUrl(), serverId);
@@ -70,6 +77,14 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
         BitbucketPluginConfiguration configuration = new BitbucketPluginConfiguration();
         configuration.setServerList(servers);
         configuration.save();
+    }
+
+    public String getSecondSshCredentialsId() {
+        return secondSshCredentialsId;
+    }
+
+    public String getSshCredentialsId() {
+        return sshCredentialsId;
     }
 
     public String getTokenCredentialsId() {
@@ -134,6 +149,11 @@ public class BitbucketMockJenkinsRule extends JenkinsRule {
     private void setupStringCredentials(String credentialsId, String secret) throws Exception {
         setupCredentials(new StringCredentialsImpl(CredentialsScope.GLOBAL, credentialsId,
                 "Bitbucket Server token string credentials", SecretFactory.getSecret(secret)));
+    }
+
+    private void setupSshCredentials(String credentialsId) throws Exception {
+        setupCredentials(new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, credentialsId, "git",
+                new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource("private-key"), "", "SSH credentials"));
     }
 
     private void setupUsernamePasswordCredentials(String credentialsId) throws Exception {

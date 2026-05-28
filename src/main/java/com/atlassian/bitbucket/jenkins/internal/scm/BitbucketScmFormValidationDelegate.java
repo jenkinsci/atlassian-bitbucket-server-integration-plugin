@@ -185,7 +185,8 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
     }
 
     @Override
-    public FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId, String projectName,
+    public FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId,
+                                           String sshCredentialsId, String projectName,
                                            String repositoryName, String mirrorName) {
         checkPermission(context);
         FormValidation serverIdValidation = doCheckServerId(context, serverId);
@@ -196,6 +197,11 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         FormValidation credentialsIdValidation = doCheckCredentialsId(context, credentialsId);
         if (credentialsIdValidation.kind == ERROR) {
             return credentialsIdValidation;
+        }
+
+        FormValidation sshCredentialsIdValidation = doCheckSshCredentialsId(context, credentialsId, sshCredentialsId);
+        if (sshCredentialsIdValidation.kind == ERROR) {
+            return sshCredentialsIdValidation;
         }
 
         FormValidation projectNameValidation = doCheckProjectName(context, serverId, credentialsId, projectName);

@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
+import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -17,8 +18,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 public final class CredentialUtils {
 
-    private static final List<Class> CREDENTIAL_TYPES = Arrays.asList(StringCredentials.class,
-            UsernamePasswordCredentials.class, BasicSSHUserPrivateKey.class);
+    private static final List<Class> CREDENTIAL_TYPES = Arrays.asList(BitbucketTokenCredentials.class,
+            StringCredentials.class, UsernamePasswordCredentials.class, BasicSSHUserPrivateKey.class);
 
     private CredentialUtils() {
         throw new UnsupportedOperationException(
