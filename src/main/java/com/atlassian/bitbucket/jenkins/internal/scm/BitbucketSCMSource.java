@@ -405,7 +405,7 @@ public class BitbucketSCMSource extends SCMSource {
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
                             SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
-                            TaskListener listener) throws IOException {
+                            TaskListener listener) throws IOException, InterruptedException {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
 
         BitbucketSCMSourceContext context = createSourceContext(criteria, observer, eventHeads, listener);
@@ -424,9 +424,6 @@ public class BitbucketSCMSource extends SCMSource {
                                 (head, revision, isMatch) ->
                                         listener.getLogger().printf("head: %s, revision: %s, isMatch: %s%n",
                                                 head, revision, isMatch));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Interrupted while processing head: " + scmHead, e);
                     } catch (IOException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
                                 scmRevision + ", error: " + e.getMessage());
