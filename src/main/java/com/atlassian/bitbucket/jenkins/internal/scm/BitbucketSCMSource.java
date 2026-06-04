@@ -412,10 +412,9 @@ public class BitbucketSCMSource extends SCMSource {
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
-                for (SCMHead scmHead : (Iterable<SCMHead>) () -> (java.util.Iterator<SCMHead>) (java.util.Iterator<?>) discoveryHandler.discoverHeads().iterator()) {
-                    if (request.isComplete()) {
-                        break;
-                    }
+                Iterator<? extends SCMHead> it = discoveryHandler.discoverHeads().iterator();
+                while (it.hasNext() && !request.isComplete()) {
+                    SCMHead scmHead = it.next();
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
                         request.process(
@@ -425,7 +424,10 @@ public class BitbucketSCMSource extends SCMSource {
                                 (head, revision, isMatch) ->
                                         listener.getLogger().printf("head: %s, revision: %s, isMatch: %s%n",
                                                 head, revision, isMatch));
-                    } catch (IOException | InterruptedException e) {
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted while processing head: " + scmHead, e);
+                    } catch (IOException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
                                 scmRevision + ", error: " + e.getMessage());
                     }
