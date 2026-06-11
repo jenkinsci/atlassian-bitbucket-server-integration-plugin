@@ -542,6 +542,81 @@ public class BitbucketSCMSourceTest {
     }
 
     @Test
+    public void testRetrieveProcessesAllHeadsWhenObserverNeverSignalsDone() throws IOException, InterruptedException {
+        List<String> processedHeads = new ArrayList<>();
+        BitbucketSCMSourceRequest request = mockRequestWithHeads(
+                Arrays.asList(new SCMHead("PR-1"), new SCMHead("PR-2"), new SCMHead("PR-3")),
+                processedHeads,
+                false);
+
+        BitbucketSCMSource source = sourceWithMockedContext(request);
+        source.retrieve(null, SCMHeadObserver.collect(), null, mockListener());
+
+        assertThat(processedHeads, equalTo(Arrays.asList("PR-1", "PR-2", "PR-3")));
+    }
+
+    @Test
+    public void testRetrieveStopsEarlyWhenObserverSignalsDone() throws IOException, InterruptedException {
+        List<String> processedHeads = new ArrayList<>();
+        BitbucketSCMSourceRequest request = mockRequestWithHeads(
+                Arrays.asList(new SCMHead("PR-1"), new SCMHead("PR-2")),
+                processedHeads,
+                true);
+
+        BitbucketSCMSource source = sourceWithMockedContext(request);
+        source.retrieve(null, SCMHeadObserver.collect(), null, mockListener());
+
+        assertThat(processedHeads, equalTo(singletonList("PR-1")));
+    }
+
+    private BitbucketSCMSourceRequest mockRequestWithHeads(
+            List<SCMHead> heads, List<String> processedHeads, boolean stopAfterFirst) throws IOException {
+        BitbucketSCMSourceRequest request = mock(BitbucketSCMSourceRequest.class);
+        when(request.getDiscoveryHandlers()).thenReturn(singletonList(
+                new BitbucketSCMHeadDiscoveryHandler() {
+                    @Override
+                    public java.util.stream.Stream<? extends SCMHead> discoverHeads() {
+                        return heads.stream();
+                    }
+
+                    @Override
+                    public SCMRevision toRevision(SCMHead head) {
+                        processedHeads.add(head.getName());
+                        return mock(SCMRevision.class);
+                    }
+                }));
+        if (stopAfterFirst) {
+            when(request.isComplete()).thenReturn(false, true);
+        } else {
+            when(request.isComplete()).thenReturn(false);
+        }
+        return request;
+    }
+
+    private BitbucketSCMSource sourceWithMockedContext(BitbucketSCMSourceRequest request) throws IOException {
+        BitbucketSCMSourceContext context = mock(BitbucketSCMSourceContext.class);
+        when(context.newRequest(any(), any())).thenReturn(request);
+
+        BitbucketSCMSource source = spy(new SCMSourceBuilder(CREDENTIAL_ID)
+                .serverId(SERVER_ID)
+                .projectName(PROJECT_NAME)
+                .repositorySlug(REPOSITORY_NAME)
+                .build());
+        doReturn(context).when(source).createSourceContext(any(), any(), any(), any());
+        MultiBranchProject<?, ?> owner = mock(MultiBranchProject.class);
+        source.setOwner(owner);
+        doReturn(true).when(source).isValid();
+        doNothing().when(source).afterSave();
+        return source;
+    }
+
+    private TaskListener mockListener() {
+        TaskListener listener = mock(TaskListener.class);
+        when(listener.getLogger()).thenReturn(new java.io.PrintStream(java.io.OutputStream.nullOutputStream()));
+        return listener;
+    }
+
+    @Test
     public void testDescriptorDelegatesAutoCompleteProjectName() throws Exception {
         BitbucketSCMSource.DescriptorImpl descriptor = new BitbucketSCMSource.DescriptorImpl();
         BitbucketScmFormFillDelegate formFill = mock(BitbucketScmFormFillDelegate.class);
@@ -740,6 +815,7 @@ public class BitbucketSCMSourceTest {
             this.sshCredentialId = requireNonNull(sshCredentialId, "sshCredentialId");
             return this;
         }
+
     }
 
     private static class UnknownHead extends SCMHead {

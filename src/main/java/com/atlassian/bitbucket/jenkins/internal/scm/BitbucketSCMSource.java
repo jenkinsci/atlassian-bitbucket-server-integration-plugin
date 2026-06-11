@@ -405,36 +405,41 @@ public class BitbucketSCMSource extends SCMSource {
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria,
                             SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
-                            TaskListener listener) throws IOException {
+                            TaskListener listener) throws IOException, InterruptedException {
         Collection<SCMHead> eventHeads = event == null ? Collections.emptySet() : event.heads(this).keySet();
 
-        BitbucketSCMSourceContext context =
-                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads,
-                        repository, listener).withTraits(traits);
+        BitbucketSCMSourceContext context = createSourceContext(criteria, observer, eventHeads, listener);
 
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers()) {
-                // Process the stream of heads as they come in and terminate the
-                // stream if the request has finished observing (returns true)
-                discoveryHandler.discoverHeads().anyMatch(scmHead -> {
+                Iterator<? extends SCMHead> it = discoveryHandler.discoverHeads().iterator();
+                while (it.hasNext() && !request.isComplete()) {
+                    SCMHead scmHead = it.next();
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
-                        return request.process(
+                        request.process(
                                 scmHead,
                                 scmRevision,
                                 this::newProbe,
                                 (head, revision, isMatch) ->
                                         listener.getLogger().printf("head: %s, revision: %s, isMatch: %s%n",
                                                 head, revision, isMatch));
-                    } catch (IOException | InterruptedException e) {
+                    } catch (IOException e) {
                         listener.error("Error processing request for head: " + scmHead + ", revision: " +
                                 scmRevision + ", error: " + e.getMessage());
-
-                        return true;
                     }
-                });
+                }
             }
         }
+    }
+
+    @VisibleForTesting
+    protected BitbucketSCMSourceContext createSourceContext(@CheckForNull SCMSourceCriteria criteria,
+                                                            SCMHeadObserver observer,
+                                                            Collection<SCMHead> eventHeads,
+                                                            TaskListener listener) {
+        return new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), eventHeads,
+                repository, listener).withTraits(traits);
     }
 
     private List<BitbucketWebhookMultibranchTrigger> getTriggers(ComputedFolder<?> owner) {
