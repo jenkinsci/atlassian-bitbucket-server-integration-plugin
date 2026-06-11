@@ -56,7 +56,7 @@ f.section() {
                 title: _("bitbucket.scm.test.connection"),
                 progress: _("bitbucket.scm.test.connection"),
                 method: "testConnection",
-                with: "credentialsId,serverId,projectName,repositoryName,mirrorName"
+                with: "credentialsId,sshCredentialsId,serverId,projectName,repositoryName,mirrorName"
         )
     }
 

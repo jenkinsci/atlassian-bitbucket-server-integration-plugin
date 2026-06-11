@@ -9,7 +9,7 @@ public interface BitbucketScmFormValidation {
 
     FormValidation doCheckCredentialsId(@Nullable Item context, String credentialsId);
 
-    FormValidation doCheckSshCredentialsId(@Nullable Item context, String sshCredentialsId);
+    FormValidation doCheckSshCredentialsId(@Nullable Item context, String credentialsId, String sshCredentialsId);
 
     FormValidation doCheckProjectName(@Nullable Item context, String serverId, String credentialsId, String projectName);
 
@@ -18,5 +18,6 @@ public interface BitbucketScmFormValidation {
     FormValidation doCheckServerId(@Nullable Item context, String serverId);
 
     FormValidation doTestConnection(@Nullable Item context, String serverId, String credentialsId,
-                                    String projectName, String repositoryName, String mirrorName);
+                                    String sshCredentialsId, String projectName, String repositoryName,
+                                    String mirrorName);
 }

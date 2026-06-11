@@ -41,6 +41,12 @@ public class BitbucketSCMStepDescriptorTest {
     }
 
     @Test
+    public void testDoCheckSshCredentialsId() {
+        descriptor.doCheckSshCredentialsId(parent, "myCredentialsId", "mySshCredentialsId");
+        verify(formValidation).doCheckSshCredentialsId(parent, "myCredentialsId", "mySshCredentialsId");
+    }
+
+    @Test
     public void testDoCheckServerId() {
         descriptor.doCheckServerId(parent, "myServerId");
         verify(formValidation).doCheckServerId(parent, "myServerId");

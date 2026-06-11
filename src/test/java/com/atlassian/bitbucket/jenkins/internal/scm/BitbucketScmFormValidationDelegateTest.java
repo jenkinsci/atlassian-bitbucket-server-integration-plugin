@@ -31,6 +31,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.Optional.of;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -247,18 +248,93 @@ public class BitbucketScmFormValidationDelegateTest {
     }
 
     @Test
+    public void testSshCredentialsIdEmptyWithTokenCredentials() {
+        FormValidation result = delegate.doCheckSshCredentialsId(null, bbJenkins.getTokenCredentialsId(), "");
+        assertEquals(FormValidation.Kind.WARNING, result.kind);
+        assertEquals("SSH credentials are required when using a token and Bitbucket has Basic Auth access disabled.",
+                result.getMessage());
+    }
+
+    @Test
+    public void testSshCredentialsIdEmptyWithStringCredentials() {
+        FormValidation result = delegate.doCheckSshCredentialsId(parent, bbJenkins.getStringCredentialsId(), "");
+        assertEquals(FormValidation.Kind.WARNING, result.kind);
+        assertEquals("SSH credentials are required when using a token and Bitbucket has Basic Auth access disabled.",
+                result.getMessage());
+    }
+
+    @Test
+    public void testSshCredentialsIdEmptyWithUsernamePasswordCredentials() {
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckSshCredentialsId(parent,
+                bbJenkins.getUsernamePasswordCredentialsId(), "").kind);
+    }
+
+    @Test
+    public void testSshCredentialsIdEmptyWithNoCredentials() {
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckSshCredentialsId(parent, "", "").kind);
+    }
+
+    @Test
+    public void testSshCredentialsIdValidWithTokenCredentials() {
+        assertEquals(FormValidation.Kind.OK, delegate.doCheckSshCredentialsId(parent,
+                bbJenkins.getTokenCredentialsId(), bbJenkins.getSshCredentialsId()).kind);
+    }
+
+    @Test
+    public void testSshCredentialsIdValidWithStringCredentials() {
+        FormValidation result = delegate.doCheckSshCredentialsId(parent,
+                bbJenkins.getStringCredentialsId(), bbJenkins.getSshCredentialsId());
+        assertEquals(FormValidation.Kind.OK, result.kind);
+        assertNull(result.getMessage());
+    }
+
+    @Test
+    public void testSecondSshCredentialsIdValidWithStringCredentials() {
+        FormValidation result = delegate.doCheckSshCredentialsId(parent,
+                bbJenkins.getStringCredentialsId(), bbJenkins.getSecondSshCredentialsId());
+        assertEquals(FormValidation.Kind.OK, result.kind);
+        assertNull(result.getMessage());
+    }
+
+    @Test
+    public void testSshCredentialsIdInvalid() {
+        FormValidation result = delegate.doCheckSshCredentialsId(parent,
+                bbJenkins.getTokenCredentialsId(), "missing-ssh-credentials");
+        assertEquals(FormValidation.Kind.ERROR, result.kind);
+        assertEquals("No credentials exist for the provided sshCredentialsId", result.getMessage());
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testSshCredentialsIdNoPermissions() {
+        doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
+        delegate.doCheckSshCredentialsId(parent, bbJenkins.getTokenCredentialsId(), bbJenkins.getSshCredentialsId());
+    }
+
+    @Test
     public void testTestConnection() {
         BitbucketMirrorClient mirrorClient = mock(BitbucketMirrorClient.class);
         when(bitbucketClientFactory.getMirroredRepositoriesClient(0)).thenReturn(mirrorClient);
         when(mirrorClient.getMirroredRepositoryDescriptors()).thenReturn(new BitbucketPage<>());
-        assertEquals(FormValidation.Kind.OK, delegate.doTestConnection(parent, serverConfigurationValid.getId(),
-                bbJenkins.getUsernamePasswordCredentialsId(), "PROJECT_1", "repo", "").kind);
+        FormValidation result = delegate.doTestConnection(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), bbJenkins.getSecondSshCredentialsId(), "PROJECT_1", "repo",
+                "");
+        assertEquals(FormValidation.Kind.OK, result.kind);
+        assertEquals("Jenkins successfully connected to ServerName_Valid&#039;s PROJECT_1 / repo on Primary Server",
+                result.getMessage());
+    }
+
+    @Test
+    public void testTestConnectionInvalidSshCredentialsId() {
+        FormValidation result = delegate.doTestConnection(parent, serverConfigurationValid.getId(),
+                bbJenkins.getUsernamePasswordCredentialsId(), "missing-ssh-credentials", "PROJECT_1", "repo", "");
+        assertEquals(FormValidation.Kind.ERROR, result.kind);
+        assertEquals("No credentials exist for the provided sshCredentialsId", result.getMessage());
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testTestConnectionNoPermissions() {
         doThrow(AccessDeniedException.class).when(parent).checkPermission(Item.EXTENDED_READ);
-        delegate.doTestConnection(parent, serverConfigurationValid.getId(), "", "PROEJECT_1", "repo", "");
+        delegate.doTestConnection(parent, serverConfigurationValid.getId(), "", "", "PROEJECT_1", "repo", "");
     }
 
     private static Map<String, List<BitbucketNamedLink>> getSelfLink(String projectKey) {

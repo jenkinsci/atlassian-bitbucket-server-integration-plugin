@@ -584,8 +584,9 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         public FormValidation doCheckSshCredentialsId(@AncestorInPath Item context,
+                                                      @QueryParameter String credentialsId,
                                                       @QueryParameter String sshCredentialsId) {
-            return formValidation.doCheckSshCredentialsId(context, sshCredentialsId);
+            return formValidation.doCheckSshCredentialsId(context, credentialsId, sshCredentialsId);
         }
 
         @Override
@@ -663,11 +664,12 @@ public class BitbucketSCMSource extends SCMSource {
         public FormValidation doTestConnection(@AncestorInPath Item context,
                                                @QueryParameter String serverId,
                                                @QueryParameter String credentialsId,
+                                               @QueryParameter String sshCredentialsId,
                                                @QueryParameter String projectName,
                                                @QueryParameter String repositoryName,
                                                @QueryParameter String mirrorName) {
-            return formValidation.doTestConnection(context, serverId, credentialsId, projectName, repositoryName,
-                    mirrorName);
+            return formValidation.doTestConnection(context, serverId, credentialsId, sshCredentialsId, projectName,
+                    repositoryName, mirrorName);
         }
 
         public BitbucketClientFactoryProvider getBitbucketClientFactoryProvider() {
