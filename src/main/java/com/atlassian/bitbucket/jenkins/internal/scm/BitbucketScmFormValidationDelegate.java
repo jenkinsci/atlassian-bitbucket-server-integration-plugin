@@ -59,7 +59,7 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         checkPermission(context);
         if (isBlank(credentialsId)) {
             return FormValidation.warning(
-                    "Without credentials, Jenkins can’t check out source code from non-public repositories. ");
+                    "Without credentials, Jenkins can’t check out source code from non-public repositories.");
         }
         Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
         if (!providedCredentials.isPresent()) {
@@ -173,12 +173,9 @@ public class BitbucketScmFormValidationDelegate implements BitbucketScmFormValid
         // operations when a token is used. Username/password credentials can be used directly by git, without SSH.
         if (!isBlank(credentialsId)) {
             Optional<Credentials> providedCredentials = CredentialUtils.getCredentials(credentialsId, context);
-            if (providedSshCredentials.isEmpty() &&
-                providedCredentials.isPresent() &&
-                isBearerTokenCredential(providedCredentials.get())
-            ) {
-                return FormValidation.warning(
-                        "SSH credentials are required when using a token and Bitbucket has Basic Auth access disabled.");
+            if (providedSshCredentials.isEmpty() && providedCredentials.isPresent() &&
+                isBearerTokenCredential(providedCredentials.get())) {
+                return FormValidation.warning("SSH credentials are required when using a token and Bitbucket has Basic Auth access disabled.");
             }
         }
         return FormValidation.ok();
