@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 import java.security.Principal;
 import java.time.Clock;
 import java.util.Map;
@@ -90,14 +91,12 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
         }
         return generateAndRedirectToCallback(request,
                 data.getString(OAUTH_TOKEN_PARAM),
-                data.getString(OAUTH_CALLBACK_PARAM),
                 userPrincipal,
                 allow);
     }
 
     private HttpResponse generateAndRedirectToCallback(StaplerRequest request,
                                                        String tokenStr,
-                                                       String callback,
                                                        Principal userPrincipal,
                                                        boolean allow) throws IOException {
         ServiceProviderToken token;
@@ -115,8 +114,17 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
             newToken = token.deny(userPrincipal.getName());
         }
         getDescriptor().tokenStore.put(newToken);
+	    // Use the server-stored callback URI from the token (set at request-token issuance time).
+        // Never trust the oauth_callback value submitted in the form — it is attacker-controllable
+        // and would allow an open-redirect attack (CWE-601) that leaks oauth_token + oauth_verifier.
+        URI callback = newToken.getCallback();
+        if (callback == null) {
+            // oauth_callback=oob (out-of-band): no redirect, just show a success page.
+            return HttpResponses.ok();
+        }
+
         String callBackUrl =
-                addParameters(callback,
+                addParameters(callback.toString(),
                         OAUTH_TOKEN, newToken.getToken(),
                         OAUTH_VERIFIER,
                         newToken.getAuthorization() == Authorization.AUTHORIZED ? newToken.getVerifier() :
@@ -184,7 +192,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
     public void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         if (descriptor.jenkinsAuthWrapper.getSecurityMode() == UNSECURED) {
             HttpResponse httpResponse =
-                    generateAndRedirectToCallback(req, req.getParameter(OAUTH_TOKEN_PARAM), req.getParameter(OAUTH_CALLBACK_PARAM), ANONYMOUS, true);
+                    generateAndRedirectToCallback(req, req.getParameter(OAUTH_TOKEN_PARAM), ANONYMOUS, true);
             httpResponse.generateResponse(req, rsp, this);
         } else {
             req.getView(this, "index.jelly").forward(req, rsp);

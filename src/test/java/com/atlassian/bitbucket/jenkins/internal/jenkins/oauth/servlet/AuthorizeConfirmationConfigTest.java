@@ -28,6 +28,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.time.Clock;
 import java.util.Date;
 import java.util.HashMap;
@@ -159,8 +160,10 @@ public class AuthorizeConfirmationConfigTest {
 
     @Test
     public void submitWithAuthorizeReturnsValidator() throws FormException, IOException, ServletException {
+        URI callbackUri = URI.create("https://bitbucket.example.com/oauth/callback");
         ServiceProviderToken unAuthorizedRequestToken =
-                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER).build();
+                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER)
+                        .callback(callbackUri).build();
         when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
 
         AuthorizeConfirmationConfigDescriptor descriptor = createDescriptor();
@@ -172,13 +175,16 @@ public class AuthorizeConfirmationConfigTest {
         HttpResponse r = config.doPerformSubmit(request);
         r.generateResponse(request, response, null);
 
-        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY, format("?oauth_token=%s&oauth_verifier=%s", TOKEN_VALUE, VERIFIER));
+        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY,
+                format("https://bitbucket.example.com/oauth/callback?oauth_token=%s&oauth_verifier=%s", TOKEN_VALUE, VERIFIER));
     }
 
     @Test
     public void submitWithDenyReturnsValidator() throws FormException, IOException, ServletException {
+        URI callbackUri = URI.create("https://bitbucket.example.com/oauth/callback");
         ServiceProviderToken unAuthorizedRequestToken =
-                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER).build();
+                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER)
+                        .callback(callbackUri).build();
         when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
 
         AuthorizeConfirmationConfigDescriptor descriptor = createDescriptor();
@@ -191,7 +197,57 @@ public class AuthorizeConfirmationConfigTest {
         r.generateResponse(request, response, null);
 
         verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY,
-                format("?oauth_token=1234&oauth_verifier=denied", TOKEN_VALUE, VERIFIER));
+                format("https://bitbucket.example.com/oauth/callback?oauth_token=%s&oauth_verifier=denied", TOKEN_VALUE));
+    }
+
+    @Test
+    public void submitIgnoresAttackerSuppliedCallbackInFormAndUsesTokenCallback()
+            throws FormException, IOException, ServletException {
+        URI legitimateCallback = URI.create("https://bitbucket.example.com/oauth/callback");
+        ServiceProviderToken unAuthorizedRequestToken =
+                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER)
+                        .callback(legitimateCallback).build();
+        when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
+
+        // Attacker injects a different oauth_callback into the submitted form data
+        JSONObject maliciousData = new JSONObject();
+        maliciousData.put(OAUTH_TOKEN_PARAM, TOKEN_VALUE);
+        maliciousData.put(OAUTH_CALLBACK_PARAM, "https://attacker.example.com/steal");
+        when(request.getSubmittedForm()).thenReturn(maliciousData);
+
+        AuthorizeConfirmationConfigDescriptor descriptor = createDescriptor();
+        AuthorizeConfirmationConfig config = descriptor.createInstance(request);
+
+        when(request.getParameterMap()).thenReturn(
+                mapOf(ALLOW_KEY, new String[0],
+                        OAUTH_TOKEN, new String[]{TOKEN_VALUE}));
+        HttpResponse r = config.doPerformSubmit(request);
+        r.generateResponse(request, response, null);
+
+        // Must redirect to the server-stored legitimate callback, NOT the attacker's URL
+        verify(response).sendRedirect(HttpStatus.SC_MOVED_TEMPORARILY,
+                format("https://bitbucket.example.com/oauth/callback?oauth_token=%s&oauth_verifier=%s", TOKEN_VALUE, VERIFIER));
+    }
+
+    @Test
+    public void submitWithOobCallbackReturnsOkInsteadOfRedirect()
+            throws FormException, IOException, ServletException {
+        // oauth_callback=oob means out-of-band: no redirect should be issued
+        ServiceProviderToken unAuthorizedRequestToken =
+                ServiceProviderToken.newRequestToken(TOKEN_VALUE).tokenSecret("5678").consumer(RSA_CONSUMER)
+                        .callback(null).build();
+        when(serviceProviderTokenStore.get(TOKEN_VALUE)).thenReturn(Optional.of(unAuthorizedRequestToken));
+
+        AuthorizeConfirmationConfigDescriptor descriptor = createDescriptor();
+        AuthorizeConfirmationConfig config = descriptor.createInstance(request);
+
+        when(request.getParameterMap()).thenReturn(
+                mapOf(ALLOW_KEY, new String[0],
+                        OAUTH_TOKEN, new String[]{TOKEN_VALUE}));
+        HttpResponse r = config.doPerformSubmit(request);
+        r.generateResponse(request, response, null);
+
+        verify(response).setStatus(HttpStatus.SC_OK);
     }
 
     private AuthorizeConfirmationConfigDescriptor createDescriptor() {

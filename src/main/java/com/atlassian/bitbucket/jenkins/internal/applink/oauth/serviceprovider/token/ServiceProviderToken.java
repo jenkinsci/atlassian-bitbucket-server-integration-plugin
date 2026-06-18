@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.applink.oauth.serviceprovider.t
 import com.atlassian.bitbucket.jenkins.internal.applink.oauth.Token;
 import net.jcip.annotations.Immutable;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.time.Clock;
@@ -301,6 +302,7 @@ public final class ServiceProviderToken extends Token {
      *
      * @return {@code URI} the consumer should be redirected to after the user has completed authorization
      */
+    @CheckForNull
     public URI getCallback() {
         return callback;
     }
