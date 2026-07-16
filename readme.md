@@ -220,6 +220,9 @@ Integration tests are run under the `it` profile with the Failsafe plugin using 
 ---
 
 ## Changelog
+### 6.0.1
+- [JENKINS-76450](https://issues.jenkins.io/browse/JENKINS-76450) Added support for combination of secret text and SSH credentials
+
 ### 6.0.0
 - The minimum supported version of Jenkins has been updated to **2.492.3**
 - [JENKINS-75277](https://issues.jenkins.io/browse/JENKINS-75277) Fixed auto-complete suggestions for project and repository fields
