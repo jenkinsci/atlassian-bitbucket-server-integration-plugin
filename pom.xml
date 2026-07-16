@@ -18,7 +18,7 @@
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
-        <jackson.version>2.18.3</jackson.version>
+        <jackson.version>2.18.6</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.baseline>2.492</jenkins.baseline>
         <jenkins.version>${jenkins.baseline}.3</jenkins.version>
