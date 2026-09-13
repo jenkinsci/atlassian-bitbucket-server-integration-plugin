@@ -2,13 +2,10 @@ package com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.NameWith;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import hudson.util.Secret;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 @NameWith(BitbucketTokenCredentials.NameProvider.class)
-public interface BitbucketTokenCredentials extends StandardCredentials {
-
-    Secret getSecret();
+public interface BitbucketTokenCredentials extends StringCredentials {
 
     class NameProvider extends CredentialsNameProvider<BitbucketTokenCredentialsImpl> {
 

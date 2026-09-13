@@ -1,6 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.credentials;
 
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import java.util.Optional;
 
@@ -13,5 +13,5 @@ public interface GlobalCredentialsProvider {
     /**
      * @return the global admin credentials
      */
-    Optional<BitbucketTokenCredentials> getGlobalAdminCredentials();
+    Optional<StringCredentials> getGlobalAdminCredentials();
 }
