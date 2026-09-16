@@ -114,7 +114,7 @@ public class AuthorizeConfirmationConfig extends AbstractDescribableImpl<Authori
             newToken = token.deny(userPrincipal.getName());
         }
         getDescriptor().tokenStore.put(newToken);
-	    // Use the server-stored callback URI from the token (set at request-token issuance time).
+        // Use the server-stored callback URI from the token (set at request-token issuance time).
         // Never trust the oauth_callback value submitted in the form — it is attacker-controllable
         // and would allow an open-redirect attack (CWE-601) that leaks oauth_token + oauth_verifier.
         URI callback = newToken.getCallback();
