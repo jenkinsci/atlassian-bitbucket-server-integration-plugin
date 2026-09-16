@@ -13,6 +13,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.AtlassianServerCapabilitie
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -79,7 +80,7 @@ public class BitbucketServerConfiguration
      */
     public GlobalCredentialsProvider getGlobalCredentialsProvider(Item item) {
         return () -> {
-            BitbucketTokenCredentials adminCredentials = getAdminCredentials();
+            StringCredentials adminCredentials = getAdminCredentials();
             return Optional.ofNullable(CredentialsProvider.track(item, adminCredentials));
         };
     }
@@ -170,11 +171,13 @@ public class BitbucketServerConfiguration
         Credentials creds =
                 firstOrNull(
                         lookupCredentials(
-                                BitbucketTokenCredentials.class,
+                                StringCredentials.class,
                                 Jenkins.get(),
                                 ACL.SYSTEM,
                                 Collections.emptyList()),
-                        withId(trimToEmpty(adminCredentialsId)));
+                        CredentialsMatchers.allOf(
+                                withId(trimToEmpty(adminCredentialsId)),
+                                CredentialsMatchers.withScope(CredentialsScope.SYSTEM)));
 
         if (creds == null) {
             return FormValidation.error(
@@ -196,14 +199,16 @@ public class BitbucketServerConfiguration
     }
 
     @Nullable
-    private BitbucketTokenCredentials getAdminCredentials() {
+    private StringCredentials getAdminCredentials() {
         return firstOrNull(
                 lookupCredentials(
-                        BitbucketTokenCredentials.class,
+                        StringCredentials.class,
                         Jenkins.get(),
                         ACL.SYSTEM,
                         Collections.emptyList()),
-                withId(trimToEmpty(adminCredentialsId)));
+                CredentialsMatchers.allOf(
+                        withId(trimToEmpty(adminCredentialsId)),
+                        CredentialsMatchers.withScope(CredentialsScope.SYSTEM)));
     }
 
     @Symbol("BbS")
@@ -247,9 +252,9 @@ public class BitbucketServerConfiguration
                     .includeMatchingAs(
                             ACL.SYSTEM,
                             instance,
-                            BitbucketTokenCredentials.class,
+                            StringCredentials.class,
                             URIRequirementBuilder.fromUri(baseUrl).build(),
-                            CredentialsMatchers.always());
+                            CredentialsMatchers.withScope(CredentialsScope.SYSTEM));
         }
 
         @SuppressWarnings({"MethodMayBeStatic", "unused"})
