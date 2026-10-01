@@ -2,7 +2,6 @@ package it.com.atlassian.bitbucket.jenkins.internal.config;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketServerConfiguration;
-import com.atlassian.bitbucket.jenkins.internal.config.BitbucketTokenCredentials;
 import com.atlassian.bitbucket.jenkins.internal.credentials.GlobalCredentialsProvider;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -12,6 +11,7 @@ import org.htmlunit.html.*;
 import hudson.model.Fingerprint;
 import hudson.model.FreeStyleProject;
 import it.com.atlassian.bitbucket.jenkins.internal.fixture.BitbucketJenkinsRule;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -126,7 +126,7 @@ public class BitbucketPluginConfigurationIT {
         FreeStyleProject item = bbJenkinsRule.createFreeStyleProject("test");
         GlobalCredentialsProvider globalCredentialsProvider =
                 bbJenkinsRule.getBitbucketServerConfiguration().getGlobalCredentialsProvider(item);
-        Optional<BitbucketTokenCredentials> globalAdminCredentials =
+        Optional<StringCredentials> globalAdminCredentials =
                 globalCredentialsProvider.getGlobalAdminCredentials();
         assertTrue(globalAdminCredentials.isPresent());
 
