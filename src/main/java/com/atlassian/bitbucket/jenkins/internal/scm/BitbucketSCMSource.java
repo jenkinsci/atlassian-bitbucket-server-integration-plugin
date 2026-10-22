@@ -38,6 +38,7 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
+import jenkins.plugins.git.traits.RefSpecsSCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
@@ -159,10 +160,13 @@ public class BitbucketSCMSource extends SCMSource {
         validateInitialized();
         GitSCMBuilder<?> builder = new GitSCMBuilder<>(head, revision, cloneUrl, repository.getCloneCredentialsId());
         builder.withBrowser(new BitbucketServer(selfLink));
-        if (head.getClass().equals(BitbucketTagSCMHead.class)) {
-            builder.withRefSpec(REFSPEC_TAGS);
-        } else {
-            builder.withRefSpec(REFSPEC_DEFAULT);
+        // User-configured refspecs replace the defaults, otherwise they would only add to what is already fetched
+        if (traits.stream().noneMatch(RefSpecsSCMSourceTrait.class::isInstance)) {
+            if (head.getClass().equals(BitbucketTagSCMHead.class)) {
+                builder.withRefSpec(REFSPEC_TAGS);
+            } else {
+                builder.withRefSpec(REFSPEC_DEFAULT);
+            }
         }
 
         builder.withTraits(traits);
