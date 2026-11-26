@@ -18,6 +18,10 @@
         <cloverVersion>4.3.1</cloverVersion>
         <disableTestInjection>true</disableTestInjection>
         <hamcrest.version>2.2</hamcrest.version>
+        <!-- Overrides the version from the parent pom. 3.1746 (from plugin 5.24) cannot read Java 21 class files,
+             so hpi:validate fails when building against Jenkins 2.580+, which is compiled for Java 21.
+             Remove this once the parent pom provides 3.1841 or later. -->
+        <hpi-plugin.version>3.1841.va_2f3e25d3a_5f</hpi-plugin.version>
         <jackson.version>2.18.3</jackson.version>
         <!-- When updating the Jenkins version, also update io.jenkins.tools.bom dependency management and the README -->
         <jenkins.baseline>2.492</jenkins.baseline>
